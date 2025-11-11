@@ -1,0 +1,35 @@
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+
+# NLP Core - 完整安装（包含 TensorFlow）
+hanlp[full]==2.1.0b54  # 完整版本，支持所有模型
+tensorflow==2.10.1  # HanLP 兼容版本，避免 AbstractRNNCell 问题
+transformers==4.35.2  # 兼容 TensorFlow 2.10.1 和 sentence-transformers
+safetensors==0.4.1  # 修复 safe_open 迭代问题
+
+# Text Embedding & Similarity
+sentence-transformers==2.3.1
+text2vec==1.2.1
+
+# Vector Search
+faiss-cpu==1.7.4
+# GPU 版本: faiss-gpu==1.7.4
+
+# Text Processing
+jieba==0.42.1
+pypinyin==0.50.0
+
+# Utilities
+numpy==1.24.3
+pandas==2.0.3
+loguru==0.7.2
+python-dotenv==1.0.0
+
+# Development
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.1

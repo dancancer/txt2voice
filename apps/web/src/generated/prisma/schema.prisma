@@ -1,0 +1,235 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../src/generated/prisma"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Book {
+  id                String                @id @default(uuid())
+  title             String
+  author            String?
+  originalFilename  String?
+  uploadedFilePath  String?
+  fileSize          BigInt?
+  totalWords        Int?
+  totalCharacters   Int                   @default(0)
+  totalSegments     Int                   @default(0)
+  encoding          String?
+  fileFormat        String?
+  status            String                @default("uploaded")
+  metadata          Json                  @default("{}")
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  audioFiles        AudioFile[]
+  mergeAudits       CharacterMergeAudit[]
+  characterProfiles CharacterProfile[]
+  processingTasks   ProcessingTask[]
+  scriptSentences   ScriptSentence[]
+  textSegments      TextSegment[]
+
+  @@index([status, createdAt])
+  @@index([author, createdAt])
+  @@map("books")
+}
+
+model CharacterProfile {
+  id                String                  @id @default(uuid())
+  bookId            String
+  canonicalName     String
+  characteristics   Json                    @default("{}")
+  voicePreferences  Json                    @default("{}")
+  emotionProfile    Json                    @default("{}")
+  genderHint        String                  @default("unknown")
+  ageHint           Int?
+  emotionBaseline   String                  @default("neutral")
+  isActive          Boolean                 @default(true)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  aliases           CharacterAlias[]
+  mergeAuditsSource CharacterMergeAudit[]   @relation("SourceCharacter")
+  mergeAuditsTarget CharacterMergeAudit[]   @relation("TargetCharacter")
+  book              Book                    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  voiceBindings     CharacterVoiceBinding[]
+  scriptSentences   ScriptSentence[]
+
+  @@index([bookId])
+  @@index([bookId, isActive])
+  @@map("character_profiles")
+}
+
+model CharacterAlias {
+  id             String           @id @default(uuid())
+  characterId    String
+  alias          String
+  confidence     Decimal          @default(0.8) @db.Decimal(3, 2)
+  sourceSentence String?
+  createdAt      DateTime         @default(now())
+  character      CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  @@index([characterId])
+  @@index([alias])
+  @@map("character_aliases")
+}
+
+model TTSVoiceProfile {
+  id                String                  @id @default(uuid())
+  provider          String
+  voiceId           String
+  voiceName         String
+  displayName       String
+  description       String?
+  characteristics   Json                    @default("{}")
+  defaultParameters Json                    @default("{\"rate\": 1.0, \"pitch\": 1.0, \"volume\": 1.0}")
+  previewAudio      Json?
+  usageCount        Int                     @default(0)
+  rating            Decimal                 @default(3.0) @db.Decimal(2, 1)
+  isAvailable       Boolean                 @default(true)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  audioFiles        AudioFile[]
+  voiceBindings     CharacterVoiceBinding[]
+
+  @@index([provider])
+  @@index([isAvailable])
+  @@map("tts_voice_profiles")
+}
+
+model CharacterVoiceBinding {
+  id               String           @id @default(uuid())
+  characterId      String
+  voiceProfileId   String
+  customParameters Json?
+  emotionMappings  Json             @default("{}")
+  isDefault        Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  character        CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  voiceProfile     TTSVoiceProfile  @relation(fields: [voiceProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, voiceProfileId])
+  @@index([characterId])
+  @@map("character_voice_bindings")
+}
+
+model TextSegment {
+  id              String           @id @default(uuid())
+  bookId          String
+  segmentIndex    Int
+  startPosition   Int
+  endPosition     Int
+  content         String
+  wordCount       Int?
+  segmentType     String?
+  orderIndex      Int
+  metadata        Json?
+  status          String           @default("pending")
+  createdAt       DateTime         @default(now())
+  audioFiles      AudioFile[]
+  scriptSentences ScriptSentence[]
+  book            Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@index([bookId, orderIndex])
+  @@index([bookId, status])
+  @@map("text_segments")
+}
+
+model ScriptSentence {
+  id             String            @id @default(uuid())
+  bookId         String
+  segmentId      String
+  characterId    String?
+  rawSpeaker     String?
+  text           String
+  orderInSegment Int
+  tone           String?
+  strength       Int?
+  pauseAfter     Decimal?          @default(0.0) @db.Decimal(3, 1)
+  ttsParameters  Json?
+  createdAt      DateTime          @default(now())
+  audioFiles     AudioFile[]
+  book           Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  character      CharacterProfile? @relation(fields: [characterId], references: [id])
+  segment        TextSegment       @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([characterId])
+  @@index([bookId, segmentId])
+  @@index([bookId, orderInSegment])
+  @@map("script_sentences")
+}
+
+model AudioFile {
+  id             String           @id @default(uuid())
+  bookId         String
+  sentenceId     String?
+  segmentId      String?
+  filePath       String
+  fileName       String?
+  duration       Decimal?         @db.Decimal(5, 2)
+  fileSize       BigInt?
+  format         String?
+  status         String           @default("pending")
+  errorMessage   String?
+  retryCount     Int              @default(0)
+  provider       String?
+  voiceProfileId String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  book           Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  segment        TextSegment?     @relation(fields: [segmentId], references: [id])
+  scriptSentence ScriptSentence?  @relation(fields: [sentenceId], references: [id])
+  voiceProfile   TTSVoiceProfile? @relation(fields: [voiceProfileId], references: [id])
+
+  @@index([bookId])
+  @@index([status])
+  @@index([bookId, status, createdAt])
+  @@index([sentenceId, status])
+  @@index([segmentId])
+  @@map("audio_files")
+}
+
+model CharacterMergeAudit {
+  id                String           @id @default(uuid())
+  bookId            String
+  sourceCharacterId String
+  targetCharacterId String
+  mergeReason       String?
+  mergedBy          String?
+  createdAt         DateTime         @default(now())
+  book              Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  sourceCharacter   CharacterProfile @relation("SourceCharacter", fields: [sourceCharacterId], references: [id])
+  targetCharacter   CharacterProfile @relation("TargetCharacter", fields: [targetCharacterId], references: [id])
+
+  @@map("character_merge_audit")
+}
+
+model ProcessingTask {
+  id             String    @id @default(uuid())
+  bookId         String
+  taskType       String
+  status         String    @default("pending")
+  progress       Int       @default(0)
+  totalItems     Int       @default(0)
+  processedItems Int       @default(0)
+  taskData       Json      @default("{}")
+  errorMessage   String?
+  externalTaskId String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  book           Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@index([status])
+  @@index([bookId, status, createdAt])
+  @@index([taskType, status])
+  @@index([externalTaskId])
+  @@map("processing_tasks")
+}

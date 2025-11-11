@@ -1,0 +1,36 @@
+# Development Dockerfile for Next.js with hot reload support
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+# Copy workspace configuration files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/web/package.json ./apps/web/
+
+# Install all dependencies (including dev dependencies)
+RUN pnpm install --filter=web... --frozen-lockfile
+
+# Copy the entire workspace (source code will be mounted via volumes)
+COPY apps/web ./apps/web
+
+WORKDIR /app/apps/web
+
+# Remove prisma.config.ts as it's not needed in Docker builds and causes dotenv dependency issues
+RUN rm -f prisma.config.ts
+
+# Generate Prisma Client
+RUN npx prisma generate
+
+# Expose port
+EXPOSE 3001
+
+ENV PORT 3001
+ENV HOSTNAME "0.0.0.0"
+ENV NODE_ENV development
+ENV NEXT_TELEMETRY_DISABLED 1
+
+# Start Next.js in development mode
+CMD ["pnpm", "dev", "--hostname", "0.0.0.0", "-p", "3001"]

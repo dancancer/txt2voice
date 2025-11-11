@@ -2,7 +2,20 @@
 
 ## 项目概述
 
-Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，支持上传书籍文件，自动识别角色，生成台本，并通过 TTS 服务将文本转换为自然流畅的语音。
+Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，采用 **monorepo** 架构组织代码。项目支持上传书籍文件，自动识别角色，生成台本，并通过 TTS 服务将文本转换为自然流畅的语音。
+
+### Monorepo 结构
+
+```
+txt2voice/
+├── apps/
+│   ├── web/                        # Next.js Web 应用
+│   └── character-recognition/      # Python 人物识别服务 (FastAPI)
+├── packages/                       # 共享包（未来扩展）
+├── docs/                          # 文档目录
+├── scripts/                       # 工具脚本
+└── docker-compose.yml             # Docker 编排配置
+```
 
 ## 技术栈
 
@@ -32,13 +45,20 @@ Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，支持
 - **LLM 服务**: OpenAI SDK 6.8.1 (支持 OpenAI, DeepSeek 等兼容 API)
 - **TTS 服务**: 多提供商支持架构
 
+### Python 服务 (character-recognition)
+- **框架**: FastAPI
+- **NLP 库**: HanLP (人名识别)
+- **向量模型**: Text2Vec (语义聚类)
+- **容器**: Docker
+- **端口**: 8001
+
 ## 系统架构
 
 ### 整体架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                        前端层 (Next.js)                       │
+│                    前端层 (apps/web - Next.js)               │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │  页面组件     │  │  UI 组件库   │  │  状态管理     │      │
 │  │  (App Router)│  │  (Radix UI)  │  │  (Zustand)   │      │
@@ -46,7 +66,7 @@ Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，支持
 └─────────────────────────────────────────────────────────────┘
                             ↓ HTTP/API
 ┌─────────────────────────────────────────────────────────────┐
-│                     API 层 (Next.js API Routes)              │
+│                 API 层 (apps/web - API Routes)               │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │  Books API   │  │  TTS API     │  │  Characters  │      │
 │  │  /api/books  │  │  /api/tts    │  │  API         │      │
@@ -54,7 +74,7 @@ Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，支持
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                      业务逻辑层 (Services)                    │
+│                  业务逻辑层 (apps/web - Services)             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
 │  │ Text         │  │ LLM          │  │ Script       │      │
 │  │ Processor    │  │ Service      │  │ Generator    │      │
@@ -75,11 +95,15 @@ Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，支持
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                      外部服务层                               │
-│  ┌──────────────┐  ┌──────────────┐                         │
-│  │  LLM API     │  │  TTS API     │                         │
-│  │ (OpenAI/     │  │ (多提供商)    │                         │
-│  │  DeepSeek)   │  │              │                         │
-│  └──────────────┘  └──────────────┘                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  LLM API     │  │  TTS API     │  │  Python 服务  │      │
+│  │ (OpenAI/     │  │ (多提供商)    │  │ (FastAPI)    │      │
+│  │  DeepSeek)   │  │              │  │ :8001        │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│                                       │ - 人物识别    │      │
+│                                       │ - 别名识别    │      │
+│                                       │ - 关系抽取    │      │
+│                                       └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -87,7 +111,7 @@ Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，支持
 
 ### 1. 文本处理模块 (Text Processor)
 
-**位置**: `src/lib/text-processor.ts`
+**文件**: `apps/web/src/lib/text-processor.ts`
 
 **功能**:
 - 文件编码检测 (UTF-8, UTF-16LE, Latin1)
@@ -124,7 +148,7 @@ interface TextSegmentData {
 
 ### 2. LLM 服务模块 (LLM Service)
 
-**位置**: `src/lib/llm-service.ts`
+**文件**: `apps/web/src/lib/llm-service.ts`
 
 **功能**:
 - 统一的 LLM API 调用接口
@@ -172,7 +196,7 @@ interface ScriptAnalysisResult {
 
 ### 3. 台本生成模块 (Script Generator)
 
-**位置**: `src/lib/script-generator.ts`
+**文件**: `apps/web/src/lib/script-generator.ts`
 
 **功能**:
 - 自动识别角色
@@ -229,7 +253,7 @@ interface GeneratedScript {
 
 ### 4. 音频生成模块 (Audio Generator)
 
-**位置**: `src/lib/audio-generator.ts`
+**文件**: `apps/web/src/lib/audio-generator.ts`
 
 **功能**:
 - 单个台词音频生成
@@ -279,7 +303,7 @@ interface AudioGenerationResult {
 
 ### 5. TTS 服务模块 (TTS Service)
 
-**位置**: `src/lib/tts-service.ts`
+**文件**: `apps/web/src/lib/tts-service.ts`
 
 **功能**:
 - 多 TTS 提供商管理
@@ -307,7 +331,7 @@ class TTSServiceManager {
 
 ### 6. 任务管理模块 (Task Manager)
 
-**位置**: `src/lib/processing-task-utils.ts`
+**文件**: `apps/web/src/lib/processing-task-utils.ts`
 
 **功能**:
 - 任务创建和更新
@@ -565,24 +589,28 @@ model ProcessingTask {
 ### 页面结构
 
 ```
-src/app/
+apps/web/src/app/
 ├── page.tsx              # 首页 (书籍列表)
 ├── layout.tsx            # 根布局
 ├── globals.css           # 全局样式
 └── books/
     └── [id]/
+        ├── layout.tsx    # 书籍详情布局 (包含 BookNavigation)
         └── page.tsx      # 书籍详情页
 ```
 
 ### 组件结构
 
 ```
-src/components/
+apps/web/src/components/
 ├── ui/                   # 基础 UI 组件
 │   ├── button.tsx
 │   ├── card.tsx
 │   ├── badge.tsx
 │   └── progress.tsx
+├── Navigation.tsx        # 全局导航组件
+├── BookNavigation.tsx    # 书籍导航组件
+├── ErrorBoundary.tsx     # 错误边界组件
 ├── BookList.tsx          # 书籍列表组件
 ├── BookCard.tsx          # 书籍卡片组件
 ├── BookUpload.tsx        # 书籍上传组件
@@ -695,6 +723,100 @@ TTS_API_KEY=...
 - 数据库读写分离
 - 文件存储可迁移到对象存储 (S3, OSS)
 
+## Python 人物识别服务 (character-recognition)
+
+### 服务概述
+
+独立的 FastAPI 服务，位于 `apps/character-recognition/`，提供高精度的中文小说人物识别能力。
+
+### 核心功能
+
+#### 1. 人名识别 (NER)
+- **基础识别**: HanLP 预训练模型
+- **规则补充**: 姓氏+名字模式 (2-4字中文名)
+- **准确率**: 结合深度学习和规则的混合方法
+
+#### 2. 别名识别与归一化
+- **前缀识别**: 老张、小李、阿月
+- **后缀识别**: 王叔、宝玉哥、大小姐
+- **儿化音**: 月儿、旺财儿
+- **语义聚类**: 基于 Text2Vec 句向量
+
+#### 3. 指代消解
+- **代词识别**: 他/她/他们/她们
+- **启发式回指**: 最近出现 + 性别匹配
+- **对话上下文优先**: 对话场景中优先考虑
+
+#### 4. 对话归因
+- **三种模式**: 直接引语、间接引语、对话标记
+- **说话者标注**: 自动识别说话人
+- **台词统计**: 统计每个角色的对话数量
+
+#### 5. 关系抽取
+- **共现关系**: 统计角色在相同场景中出现的频率
+- **对话关系**: 分析角色之间的对话互动
+- **权重计算**: 基于共现频率和对话次数
+
+### 技术实现
+
+**位置**: `apps/character-recognition/`
+
+**主要文件**:
+- `src/core/ner.py` - 人名识别核心
+- `src/core/alias_merge.py` - 别名识别和归一化
+- `src/core/coreference.py` - 指代消解
+- `src/core/dialogue_attribution.py` - 对话归因
+- `src/core/relation_extraction.py` - 关系抽取
+- `main.py` - FastAPI 服务入口
+
+**API 端点**:
+```
+POST /api/v1/recognize
+  - 输入: 小说文本
+  - 输出: 人物列表、别名、关系等完整信息
+  
+GET /health
+  - 健康检查端点
+```
+
+**依赖**:
+- HanLP 2.1+ (人名识别)
+- Text2Vec (句向量模型)
+- FastAPI (Web 框架)
+- Pydantic (数据验证)
+
+### Docker 部署
+
+```yaml
+# docker-compose.yml
+character-recognition:
+  build: ./apps/character-recognition
+  ports:
+    - "8001:8001"
+  environment:
+    - MODEL_PATH=/app/models
+```
+
+### 与 Web 应用集成
+
+Web 应用可以通过 HTTP 调用 Python 服务：
+
+```typescript
+// apps/web/src/lib/character-recognition-client.ts
+const response = await fetch('http://character-recognition:8001/api/v1/recognize', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ text: novelText })
+})
+```
+
+### 性能优化
+
+- **模型缓存**: 预加载 HanLP 和 Text2Vec 模型
+- **批处理**: 支持批量文本处理
+- **异步处理**: FastAPI 异步 handler
+- **轻量容器**: 基于 Python 3.11-slim 镜像
+
 ## 安全性
 
 ### 数据安全
@@ -716,10 +838,20 @@ TTS_API_KEY=...
 - 错误追踪
 
 ### 监控指标
+
+**Web 应用 (apps/web)**:
 - API 响应时间
 - 任务处理进度
 - 错误率
 - 资源使用情况
+- LLM API 调用次数和延迟
+- TTS API 调用次数和延迟
+
+**Python 服务 (character-recognition)**:
+- 服务健康状态
+- 识别请求处理时间
+- 模型推理性能
+- 内存使用情况
 
 ## 未来规划
 
@@ -743,4 +875,24 @@ TTS_API_KEY=...
 
 ## 总结
 
-Text to Voice 采用现代化的全栈架构，前端使用 Next.js 16 + React 19，后端使用 Next.js API Routes + Prisma + PostgreSQL，集成 LLM 和 TTS 服务，实现了从文本上传到音频生成的完整工作流。系统设计注重模块化、可扩展性和性能优化，为未来的功能扩展和规模化部署奠定了良好的基础。
+Text to Voice 采用现代化的 **monorepo** 全栈架构：
+
+- **前端**: Next.js 16 + React 19 + TypeScript (位于 `apps/web/`)
+- **后端**: Next.js API Routes + Prisma + PostgreSQL
+- **AI 服务**: 集成 LLM (OpenAI/DeepSeek) 和多提供商 TTS
+- **Python 服务**: FastAPI + HanLP + Text2Vec (位于 `apps/character-recognition/`)
+
+系统实现了从文本上传、角色识别、台本生成到音频合成的完整自动化工作流。设计注重模块化、可扩展性和性能优化，采用微服务架构，支持独立部署和水平扩展，为未来的功能扩展和规模化部署奠定了良好的基础。
+
+---
+
+## 文档更新日志
+
+### 2024-11-11 - Monorepo 架构更新
+- ✅ 添加 monorepo 结构说明
+- ✅ 更新所有文件路径引用 (`src/` → `apps/web/src/`)
+- ✅ 添加 Python 服务 (character-recognition) 完整说明
+- ✅ 更新架构图，包含 Python 服务层
+- ✅ 更新页面和组件结构说明
+- ✅ 更新监控指标，包含 Python 服务
+- ✅ 补充 Docker 部署和服务集成说明

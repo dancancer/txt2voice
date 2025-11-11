@@ -1,43 +1,67 @@
-# dependencies
-/node_modules
-/.pnp
+# Dependencies
+node_modules/
+.pnp
 .pnp.js
-.yarn/install-state.gz
 
-# testing
-/coverage
+# Testing
+coverage/
+.nyc_output/
 
-# next.js
-/.next/
-/out/
+# Production
+build/
+dist/
+.next/
+out/
 
-# production
-/build
-
-# misc
+# Misc
 .DS_Store
 *.pem
 
-# debug
+# Debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# local env files
+# Local env files
+.env
 .env*.local
 
-# vercel
+# Vercel
 .vercel
 
-# typescript
+# Typescript
 *.tsbuildinfo
 next-env.d.ts
-/src/generated/prisma
 
-# other
-/.claude/
-/.kiro/
+# IDEs
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
 
-/uploads/
+# OS
+Thumbs.db
 
-.env
+# Uploads and generated files
+uploads/
+audio/
+
+# Docker
+.docker/
+
+# Backup files
+*.backup
+*-backup
+
+# Prisma
+apps/*/prisma/migrations/
+!apps/*/prisma/migrations/.gitkeep
