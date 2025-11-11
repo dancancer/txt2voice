@@ -4,9 +4,9 @@ import prisma from '@/lib/prisma'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import JSZip from 'jszip'
-
-const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB
-const ALLOWED_EXTENSIONS = ['.txt', '.md']
+import { CONFIG } from '@/lib/constants'
+import { sanitizeFilename, validateFilePath, validateBookExists } from '@/lib/api-utils'
+import { logger } from '@/lib/logger'
 
 // POST /api/books/[id]/upload - 上传文件
 export const POST = withErrorHandler(async (
@@ -16,13 +16,7 @@ export const POST = withErrorHandler(async (
   const { id: bookId } = await params
 
   // 验证书籍是否存在
-  const book = await prisma.book.findUnique({
-    where: { id: bookId }
-  })
-
-  if (!book) {
-    throw new ValidationError('书籍不存在')
-  }
+  const book = await validateBookExists(bookId)
 
   const formData = await request.formData()
   const file = formData.get('file') as File
@@ -32,12 +26,12 @@ export const POST = withErrorHandler(async (
   }
 
   // 验证文件大小
-  if (file.size > MAX_FILE_SIZE) {
+  if (file.size > CONFIG.FILE_UPLOAD.MAX_SIZE) {
     throw new FileProcessingError(
       '文件大小超过限制',
       'FILE_TOO_LARGE',
       {
-        maxSize: `${MAX_FILE_SIZE / 1024 / 1024}MB`,
+        maxSize: `${CONFIG.FILE_UPLOAD.MAX_SIZE / 1024 / 1024}MB`,
         actualSize: `${(file.size / 1024 / 1024).toFixed(2)}MB`
       }
     )
@@ -45,12 +39,12 @@ export const POST = withErrorHandler(async (
 
   // 验证文件格式
   const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'))
-  if (!ALLOWED_EXTENSIONS.includes(fileExtension)) {
+  if (!CONFIG.FILE_UPLOAD.ALLOWED_EXTENSIONS.includes(fileExtension as '.txt' | '.md')) {
     throw new FileProcessingError(
       '不支持的文件格式',
       'INVALID_FORMAT',
       {
-        allowedFormats: ALLOWED_EXTENSIONS.join(', '),
+        allowedFormats: CONFIG.FILE_UPLOAD.ALLOWED_EXTENSIONS.join(', '),
         actualFormat: fileExtension
       }
     )
@@ -61,13 +55,23 @@ export const POST = withErrorHandler(async (
   try {
     await mkdir(uploadsDir, { recursive: true })
   } catch (error) {
-    console.error('Failed to create upload directory:', error)
+    logger.error('Failed to create upload directory', error)
   }
 
-  // 保存文件
+  // 保存文件 - 清理文件名防止路径遍历攻击
   const timestamp = Date.now()
-  const savedFilename = `${timestamp}_${file.name}`
+  const sanitizedFilename = sanitizeFilename(file.name)
+  const savedFilename = `${timestamp}_${sanitizedFilename}`
   const filePath = join(uploadsDir, savedFilename)
+
+  // 验证最终路径在预期目录内
+  if (!validateFilePath(filePath, uploadsDir)) {
+    throw new FileProcessingError(
+      '无效的文件路径',
+      'INVALID_FORMAT',
+      { message: '文件路径验证失败' }
+    )
+  }
 
   const bytes = await file.arrayBuffer()
   const buffer = Buffer.from(bytes)
@@ -97,12 +101,12 @@ export const POST = withErrorHandler(async (
     }
 
     // 检查内容长度（防止异常大的文件）
-    if (content.length > 10 * 1024 * 1024) { // 10MB 文本限制
+    if (content.length > CONFIG.FILE_UPLOAD.MAX_TEXT_LENGTH) {
       throw new FileProcessingError(
         '文本内容过长',
         'FILE_TOO_LARGE',
         {
-          maxTextLength: '10MB',
+          maxTextLength: `${CONFIG.FILE_UPLOAD.MAX_TEXT_LENGTH / 1024 / 1024}MB`,
           actualLength: `${(content.length / 1024 / 1024).toFixed(2)}MB`
         }
       )

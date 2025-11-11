@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, ValidationError } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
+import { CreateBookSchema } from '@/lib/validation'
+import { parsePaginationParams, createPaginationResponse } from '@/lib/api-utils'
+import { withRateLimit } from '@/lib/rate-limiter'
+import { logger } from '@/lib/logger'
 
 // GET /api/books - 获取书籍列表
-export const GET = withErrorHandler(async (request: NextRequest) => {
+export const GET = withRateLimit(withErrorHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url)
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '10')
+  const { page, limit, skip } = parsePaginationParams(searchParams)
   const status = searchParams.get('status')
 
   const where: any = {}
   if (status) {
     where.status = status
   }
-
-  const skip = (page - 1) * limit
 
   const [books, total] = await Promise.all([
     prisma.book.findMany({
@@ -38,37 +39,33 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     prisma.book.count({ where })
   ])
 
+  logger.info('Books fetched', { count: books.length, page, limit })
+
   return NextResponse.json({
     success: true,
-    data: books,
-    pagination: {
-      page,
-      limit,
-      total,
-      totalPages: Math.ceil(total / limit)
-    }
+    ...createPaginationResponse(books, total, page, limit)
   })
-})
+}))
 
 // POST /api/books - 创建新书籍
-export const POST = withErrorHandler(async (request: NextRequest) => {
+export const POST = withRateLimit(withErrorHandler(async (request: NextRequest) => {
   const body = await request.json()
-  const { title, author, originalFilename } = body
-
-  if (!title) {
-    throw new ValidationError('书籍标题是必需的', 'title')
-  }
+  
+  // 验证输入
+  const validatedData = CreateBookSchema.parse(body)
+  const { title, author } = validatedData
 
   const book = await prisma.book.create({
     data: {
       title,
-      author: author || null,
-      originalFilename: originalFilename || null
+      author: author || null
     }
   })
+
+  logger.info('Book created', { bookId: book.id, title })
 
   return NextResponse.json({
     success: true,
     data: book
   }, { status: 201 })
-})
+}))

@@ -30,37 +30,7 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Text to Voice</h1>
-                <p className="text-sm text-gray-600">智能文本转语音平台</p>
-              </div>
-            </div>
-            <nav className="hidden md:flex items-center space-x-8">
-              <div className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 cursor-pointer">
-                <BookOpen className="w-4 h-4" />
-                <span>我的书籍</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 cursor-pointer">
-                <Mic className="w-4 h-4" />
-                <span>语音库</span>
-              </div>
-              <div className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 cursor-pointer">
-                <Users className="w-4 h-4" />
-                <span>角色管理</span>
-              </div>
-            </nav>
-          </div>
-        </div>
-      </header>
+    <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 min-h-full">
 
       {/* Hero Section - Only show when no books and not uploading */}
       {!showUpload && (
@@ -178,14 +148,6 @@ export default function Home() {
         )}
       </section>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center text-gray-600">
-            <p>&copy; 2024 Text to Voice. 智能文本转语音平台</p>
-          </div>
-        </div>
-      </footer>
-    </main>
+    </div>
   )
 }

@@ -160,6 +160,8 @@ export class LLMService {
     const maxTextLength = 8000
     const chunks = this.splitTextIntoChunks(text, maxTextLength)
 
+    console.log(`Text length: ${text.length}, will process ${chunks.length} chunks`)
+
     if (chunks.length === 1) {
       return this.analyzeScriptChunk(text)
     }
@@ -172,11 +174,13 @@ export class LLMService {
     let tone = ''
 
     for (let i = 0; i < chunks.length; i++) {
+      console.log(`Processing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`)
       const chunk = chunks[i]
       const result = await this.analyzeScriptChunk(chunk, i > 0)
+      console.log(`Chunk ${i + 1} completed: ${result.characters.length} characters, ${result.dialogues.length} dialogues`)
 
       // 合并角色信息
-      await this.mergeCharacterInfo(allCharacters, result.characters)
+      this.mergeCharacterInfo(allCharacters, result.characters)
 
       // 合并对话信息（调整位置索引）
       const adjustedDialogues = result.dialogues.map(dialogue => ({

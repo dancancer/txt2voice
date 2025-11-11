@@ -28,6 +28,7 @@
     "clsx": "^2.1.1",
     "formidable": "^3.5.4",
     "hono": "^4.10.4",
+    "iconv-lite": "^0.7.0",
     "ioredis": "^5.8.2",
     "jszip": "^3.10.1",
     "lucide-react": "^0.553.0",

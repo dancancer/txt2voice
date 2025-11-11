@@ -31,6 +31,8 @@ model Book {
   scriptSentences   ScriptSentence[]
   textSegments      TextSegment[]
 
+  @@index([status, createdAt])
+  @@index([author, createdAt])
   @@map("books")
 }
 
@@ -131,6 +133,8 @@ model TextSegment {
   book            Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
+  @@index([bookId, orderIndex])
+  @@index([bookId, status])
   @@map("text_segments")
 }
 
@@ -154,6 +158,8 @@ model ScriptSentence {
 
   @@index([segmentId])
   @@index([characterId])
+  @@index([bookId, segmentId])
+  @@index([bookId, orderInSegment])
   @@map("script_sentences")
 }
 
@@ -181,6 +187,9 @@ model AudioFile {
 
   @@index([bookId])
   @@index([status])
+  @@index([bookId, status, createdAt])
+  @@index([sentenceId, status])
+  @@index([segmentId])
   @@map("audio_files")
 }
 
@@ -217,5 +226,7 @@ model ProcessingTask {
 
   @@index([bookId])
   @@index([status])
+  @@index([bookId, status, createdAt])
+  @@index([taskType, status])
   @@map("processing_tasks")
 }
