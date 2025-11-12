@@ -75,20 +75,22 @@ services:
       dockerfile: apps/web/Dockerfile
     container_name: txt2voice-web
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      # Database
+      # Database (容器内部连接)
       DATABASE_URL: postgresql://txt2voice:txt2voice_password@postgres:5432/txt2voice
       
-      # Redis
+      # Redis (容器内部连接)
       REDIS_URL: redis://redis:6379
       
-      # Next.js
+      # Next.js (从 .env 读取，提供默认值)
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-this-secret-key-in-production}
       NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
       
-      # TTS Providers
-      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY}
-      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION}
+      # TTS Providers (从 .env 读取)
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-}
       
       # File Storage
       UPLOAD_DIR: /app/apps/web/uploads
@@ -98,13 +100,13 @@ services:
       NODE_ENV: production
       PORT: 3001
       
-      # LLM Provider Configuration
+      # LLM Provider Configuration (从 .env 读取)
       LLM_PROVIDER: ${LLM_PROVIDER:-custom}
-      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
       LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
       
-      # Character Recognition Service
+      # Character Recognition Service (容器内部连接)
       CHARACTER_RECOGNITION_URL: http://character-recognition:8001
     volumes:
       - uploads_data:/app/apps/web/uploads

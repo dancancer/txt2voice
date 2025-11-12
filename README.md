@@ -60,20 +60,22 @@ pnpm typecheck
 ### Docker 部署
 
 ```bash
-# 配置环境变量
+# 1. 配置环境变量（首次部署）
 cp .env.docker .env
-# 编辑 .env 文件填入你的配置
+# 编辑 .env 文件填入你的配置（LLM_API_KEY、AZURE_SPEECH_KEY 等）
 
-# 构建并启动所有服务
+# 2. 构建并启动所有服务
 pnpm docker:build
 pnpm docker:up
 
-# 查看日志
+# 3. 查看日志
 pnpm docker:logs
 
-# 停止服务
+# 4. 停止服务
 pnpm docker:down
 ```
+
+**注意**：Docker Compose 会自动读取项目根目录的 `.env` 文件。确保该文件存在并包含所有必需的配置。
 
 ## 🐳 Docker 服务
 

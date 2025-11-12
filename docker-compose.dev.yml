@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile.dev
+    env_file:
+      - .env
     volumes:
       # 挂载源代码以支持热更新
       - ./apps/web/src:/app/apps/web/src:cached

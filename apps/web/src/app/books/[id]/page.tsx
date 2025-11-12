@@ -49,7 +49,7 @@ export default function BookDetailPage() {
 
   const handleStartCharacterAnalysis = async () => {
     try {
-      const response = await fetch(`/api/books/${bookId}/characters/analyze`, {
+      const response = await fetch(`/api/books/${bookId}/characters/recognize`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -62,11 +62,11 @@ export default function BookDetailPage() {
         // 重新加载书籍数据以更新状态
         await loadBook()
       } else {
-        setError('角色分析启动失败')
+        setError('角色识别启动失败')
       }
     } catch (err) {
-      console.error('Failed to start character analysis:', err)
-      setError('角色分析启动失败')
+      console.error('Failed to start character recognition:', err)
+      setError('角色识别启动失败')
     }
   }
 
