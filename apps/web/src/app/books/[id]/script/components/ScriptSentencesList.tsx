@@ -1,6 +1,6 @@
 "use client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ScriptSentence } from "./types";
+import { ScriptSentence } from "@/lib/types";
 import { ScriptSentenceCard } from "./ScriptSentenceCard";
 
 interface ScriptSentencesListProps {

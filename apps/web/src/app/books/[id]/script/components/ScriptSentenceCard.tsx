@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Edit, Trash2 } from "lucide-react";
-import { ScriptSentence } from "./types";
+import { User, Edit, Trash2, Volume2 } from "lucide-react";
+import { ScriptSentence } from "@/lib/types";
 
 interface ScriptSentenceCardProps {
   sentence: ScriptSentence;
@@ -23,18 +23,31 @@ export function ScriptSentenceCard({
           <span className="text-sm font-medium text-gray-500">
             #{index + 1}
           </span>
-          {sentence.character && (
+          {sentence.character ? (
             <Badge variant="outline">
               <User className="w-3 h-3 mr-1" />
-              {sentence.character.name}
+              {sentence.character.canonicalName} {/* 使用canonicalName */}
+            </Badge>
+          ) : (
+            <Badge
+              variant="secondary"
+              className="bg-gray-100 text-gray-600 border-gray-300"
+            >
+              <Volume2 className="w-3 h-3 mr-1" />
+              旁白
             </Badge>
           )}
-          {sentence.emotion && (
+          {sentence.tone && (
             <Badge
               variant="secondary"
               className="bg-purple-100 text-purple-700 border-purple-300"
             >
-              {sentence.emotion}
+              {sentence.tone}
+            </Badge>
+          )}
+          {sentence.strength && (
+            <Badge variant="outline" className="text-xs">
+              强度: {sentence.strength}
             </Badge>
           )}
           <span className="text-xs text-gray-500">
@@ -45,6 +58,12 @@ export function ScriptSentenceCard({
           </span>
         </div>
         <p className="text-gray-900">{sentence.text}</p>
+        {sentence.rawSpeaker &&
+          sentence.rawSpeaker !== sentence.character?.canonicalName && (
+            <p className="text-xs text-gray-500 mt-1">
+              原始说话人: {sentence.rawSpeaker}
+            </p>
+          )}
       </div>
       <div className="flex space-x-1 ml-4 shrink-0">
         <Button

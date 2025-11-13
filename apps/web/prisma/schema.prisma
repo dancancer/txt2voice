@@ -48,6 +48,8 @@ model CharacterProfile {
   ageHint           Int?
   emotionBaseline   String                  @default("neutral")
   isActive          Boolean                 @default(true)
+  mentions          Int?                    @default(0)
+  quotes            Int?                    @default(0)
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
   aliases           CharacterAlias[]
@@ -148,8 +150,8 @@ model ScriptSentence {
   text           String
   orderInSegment Int
   tone           String?
-  strength       Int?
-  pauseAfter     Decimal?          @default(0.0) @db.Decimal(3, 1)
+  strength       Int?              @default(75)
+  pauseAfter     Decimal?          @default(1.5) @db.Decimal(3, 1)
   ttsParameters  Json?
   createdAt      DateTime          @default(now())
   audioFiles     AudioFile[]
@@ -159,7 +161,7 @@ model ScriptSentence {
 
   @@index([segmentId])
   @@index([characterId])
-  @@index([bookId, segmentId])
+  @@index([bookId, segmentId, orderInSegment])
   @@index([bookId, orderInSegment])
   @@map("script_sentences")
 }

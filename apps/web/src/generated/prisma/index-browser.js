@@ -150,6 +150,8 @@ exports.Prisma.CharacterProfileScalarFieldEnum = {
   ageHint: 'ageHint',
   emotionBaseline: 'emotionBaseline',
   isActive: 'isActive',
+  mentions: 'mentions',
+  quotes: 'quotes',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

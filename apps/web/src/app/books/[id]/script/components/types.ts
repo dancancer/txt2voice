@@ -2,13 +2,16 @@ export interface ScriptSentence {
   id: string;
   text: string;
   orderInSegment: number;
-  characterId?: string;
+  characterId?: string | null; // 当是旁白时为 null
   segmentId: string;
-  emotion?: string;
+  tone?: string;
+  rawSpeaker?: string; // 原始说话人信息
+  strength?: number;
+  pauseAfter?: number;
   character?: {
     id: string;
-    name: string;
-  };
+    canonicalName: string;
+  } | null; // 当是旁白时为 null
   segment?: {
     id: string;
     content: string;
@@ -18,7 +21,7 @@ export interface ScriptSentence {
 
 export interface CharacterProfile {
   id: string;
-  name: string;
+  canonicalName: string;
   description?: string;
   isActive: boolean;
   aliases: Array<{ alias: string }>;

@@ -3329,10 +3329,14 @@ export namespace Prisma {
 
   export type CharacterProfileAvgAggregateOutputType = {
     ageHint: number | null
+    mentions: number | null
+    quotes: number | null
   }
 
   export type CharacterProfileSumAggregateOutputType = {
     ageHint: number | null
+    mentions: number | null
+    quotes: number | null
   }
 
   export type CharacterProfileMinAggregateOutputType = {
@@ -3343,6 +3347,8 @@ export namespace Prisma {
     ageHint: number | null
     emotionBaseline: string | null
     isActive: boolean | null
+    mentions: number | null
+    quotes: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3355,6 +3361,8 @@ export namespace Prisma {
     ageHint: number | null
     emotionBaseline: string | null
     isActive: boolean | null
+    mentions: number | null
+    quotes: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3370,6 +3378,8 @@ export namespace Prisma {
     ageHint: number
     emotionBaseline: number
     isActive: number
+    mentions: number
+    quotes: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -3378,10 +3388,14 @@ export namespace Prisma {
 
   export type CharacterProfileAvgAggregateInputType = {
     ageHint?: true
+    mentions?: true
+    quotes?: true
   }
 
   export type CharacterProfileSumAggregateInputType = {
     ageHint?: true
+    mentions?: true
+    quotes?: true
   }
 
   export type CharacterProfileMinAggregateInputType = {
@@ -3392,6 +3406,8 @@ export namespace Prisma {
     ageHint?: true
     emotionBaseline?: true
     isActive?: true
+    mentions?: true
+    quotes?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3404,6 +3420,8 @@ export namespace Prisma {
     ageHint?: true
     emotionBaseline?: true
     isActive?: true
+    mentions?: true
+    quotes?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3419,6 +3437,8 @@ export namespace Prisma {
     ageHint?: true
     emotionBaseline?: true
     isActive?: true
+    mentions?: true
+    quotes?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -3521,6 +3541,8 @@ export namespace Prisma {
     ageHint: number | null
     emotionBaseline: string
     isActive: boolean
+    mentions: number | null
+    quotes: number | null
     createdAt: Date
     updatedAt: Date
     _count: CharacterProfileCountAggregateOutputType | null
@@ -3555,6 +3577,8 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
+    mentions?: boolean
+    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     aliases?: boolean | CharacterProfile$aliasesArgs<ExtArgs>
@@ -3577,6 +3601,8 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
+    mentions?: boolean
+    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
@@ -3593,6 +3619,8 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
+    mentions?: boolean
+    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
@@ -3609,11 +3637,13 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
+    mentions?: boolean
+    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "createdAt" | "updatedAt", ExtArgs["result"]["characterProfile"]>
+  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "mentions" | "quotes" | "createdAt" | "updatedAt", ExtArgs["result"]["characterProfile"]>
   export type CharacterProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aliases?: boolean | CharacterProfile$aliasesArgs<ExtArgs>
     mergeAuditsSource?: boolean | CharacterProfile$mergeAuditsSourceArgs<ExtArgs>
@@ -3651,6 +3681,8 @@ export namespace Prisma {
       ageHint: number | null
       emotionBaseline: string
       isActive: boolean
+      mentions: number | null
+      quotes: number | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["characterProfile"]>
@@ -4092,6 +4124,8 @@ export namespace Prisma {
     readonly ageHint: FieldRef<"CharacterProfile", 'Int'>
     readonly emotionBaseline: FieldRef<"CharacterProfile", 'String'>
     readonly isActive: FieldRef<"CharacterProfile", 'Boolean'>
+    readonly mentions: FieldRef<"CharacterProfile", 'Int'>
+    readonly quotes: FieldRef<"CharacterProfile", 'Int'>
     readonly createdAt: FieldRef<"CharacterProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"CharacterProfile", 'DateTime'>
   }
@@ -14259,6 +14293,8 @@ export namespace Prisma {
     ageHint: 'ageHint',
     emotionBaseline: 'emotionBaseline',
     isActive: 'isActive',
+    mentions: 'mentions',
+    quotes: 'quotes',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -14700,6 +14736,8 @@ export namespace Prisma {
     ageHint?: IntNullableFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringFilter<"CharacterProfile"> | string
     isActive?: BoolFilter<"CharacterProfile"> | boolean
+    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     aliases?: CharacterAliasListRelationFilter
@@ -14721,6 +14759,8 @@ export namespace Prisma {
     ageHint?: SortOrderInput | SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
+    mentions?: SortOrderInput | SortOrder
+    quotes?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     aliases?: CharacterAliasOrderByRelationAggregateInput
@@ -14745,6 +14785,8 @@ export namespace Prisma {
     ageHint?: IntNullableFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringFilter<"CharacterProfile"> | string
     isActive?: BoolFilter<"CharacterProfile"> | boolean
+    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     aliases?: CharacterAliasListRelationFilter
@@ -14766,6 +14808,8 @@ export namespace Prisma {
     ageHint?: SortOrderInput | SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
+    mentions?: SortOrderInput | SortOrder
+    quotes?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: CharacterProfileCountOrderByAggregateInput
@@ -14789,6 +14833,8 @@ export namespace Prisma {
     ageHint?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringWithAggregatesFilter<"CharacterProfile"> | string
     isActive?: BoolWithAggregatesFilter<"CharacterProfile"> | boolean
+    mentions?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeWithAggregatesFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CharacterProfile"> | Date | string
   }
@@ -15687,6 +15733,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
@@ -15708,6 +15756,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
@@ -15727,6 +15777,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
@@ -15748,6 +15800,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
@@ -15768,6 +15822,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -15782,6 +15838,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -15797,6 +15855,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -16990,12 +17050,16 @@ export namespace Prisma {
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type CharacterProfileAvgOrderByAggregateInput = {
     ageHint?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
   }
 
   export type CharacterProfileMaxOrderByAggregateInput = {
@@ -17006,6 +17070,8 @@ export namespace Prisma {
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -17018,12 +17084,16 @@ export namespace Prisma {
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type CharacterProfileSumOrderByAggregateInput = {
     ageHint?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
   }
 
   export type BoolWithAggregatesFilter<$PrismaModel = never> = {
@@ -18971,6 +19041,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
@@ -18990,6 +19062,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
@@ -19230,6 +19304,8 @@ export namespace Prisma {
     ageHint?: IntNullableFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringFilter<"CharacterProfile"> | string
     isActive?: BoolFilter<"CharacterProfile"> | boolean
+    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeFilter<"CharacterProfile"> | Date | string
   }
@@ -19714,6 +19790,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
@@ -19734,6 +19812,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
@@ -19768,6 +19848,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
@@ -19788,6 +19870,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
@@ -19914,6 +19998,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
@@ -19934,6 +20020,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
@@ -20009,6 +20097,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
@@ -20029,6 +20119,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
@@ -20417,6 +20509,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
@@ -20437,6 +20531,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
@@ -20581,6 +20677,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
@@ -20601,6 +20699,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
@@ -21065,6 +21165,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
@@ -21085,6 +21187,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
@@ -21108,6 +21212,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
@@ -21128,6 +21234,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
@@ -21219,6 +21327,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
@@ -21239,6 +21349,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
@@ -21268,6 +21380,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
@@ -21288,6 +21402,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
@@ -21441,6 +21557,8 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
+    mentions?: number | null
+    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -21580,6 +21698,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
@@ -21599,6 +21719,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
@@ -21618,6 +21740,8 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

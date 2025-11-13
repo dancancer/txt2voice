@@ -5,14 +5,22 @@ import { characterRecognitionClient } from "./character-recognition-client";
 
 export interface DialogueLine {
   id: string;
-  characterName: string;
+  characterId?: string | null; // 对齐数据库字段
+  rawSpeaker?: string; // 对齐数据库字段
   text: string;
-  emotion: string;
-  context: string;
+  orderInSegment: number; // 对齐数据库字段
+  tone?: string; // 对齐数据库字段
+  strength?: number; // 对齐数据库字段 (0-100)
+  pauseAfter?: number; // 对齐数据库字段 (秒)
+  ttsParameters?: Record<string, any>; // 对齐数据库字段
   segmentId: string;
-  orderInSegment: number;
-  isNarration: boolean;
-  metadata?: Record<string, any>;
+  isNarration?: boolean; // 内部使用，不存数据库
+
+  // 兼容性字段
+  characterName?: string; // 向后兼容
+  emotion?: string; // 向后兼容
+  context?: string; // 向后兼容
+  metadata?: Record<string, any>; // 向后兼容
 }
 
 export interface ScriptGenerationOptions {
@@ -283,11 +291,11 @@ ${segment.content}
       }
 
       let jsonString = jsonArrayMatch?.[0] || jsonObjectMatch?.[0];
-      
+
       if (!jsonString) {
         throw new Error("无法从LLM响应中提取JSON");
       }
-      
+
       let result: any;
 
       try {
@@ -684,7 +692,7 @@ ${brokenJson.substring(0, 3000)}
 
     // 角色分布统计
     for (const line of dialogueLines) {
-      if (!line.isNarration) {
+      if (!line.isNarration && line.characterName) {
         summary.characterDistribution[line.characterName] =
           (summary.characterDistribution[line.characterName] || 0) + 1;
       }
@@ -692,8 +700,10 @@ ${brokenJson.substring(0, 3000)}
 
     // 情感分布统计
     for (const line of dialogueLines) {
-      summary.emotionDistribution[line.emotion] =
-        (summary.emotionDistribution[line.emotion] || 0) + 1;
+      if (line.emotion) {
+        summary.emotionDistribution[line.emotion] =
+          (summary.emotionDistribution[line.emotion] || 0) + 1;
+      }
     }
 
     return summary;
@@ -708,17 +718,17 @@ ${brokenJson.substring(0, 3000)}
   ): Promise<void> {
     try {
       // 优先尝试使用character-recognition服务
-      const useCharacterRecognition = await characterRecognitionClient.healthCheck();
-      
+      const useCharacterRecognition =
+        await characterRecognitionClient.healthCheck();
+
       if (useCharacterRecognition) {
         console.log("使用character-recognition服务进行角色识别");
         await this.identifyWithCharacterRecognition(bookId, textSegments);
         return;
       }
-      
+
       console.log("character-recognition服务不可用，使用LLM进行角色识别");
       await this.identifyWithLLM(bookId, textSegments);
-      
     } catch (error) {
       console.error("角色识别失败:", error);
       // 创建默认角色作为后备
@@ -747,8 +757,8 @@ ${brokenJson.substring(0, 3000)}
         enable_coreference: true,
         enable_dialogue: true,
         enable_relations: true,
-        similarity_threshold: 0.8
-      }
+        similarity_threshold: 0.8,
+      },
     });
 
     console.log(`识别到 ${recognitionResult.characters.length} 个角色`);
@@ -764,8 +774,12 @@ ${brokenJson.substring(0, 3000)}
         if (!char.name || char.name.trim().length === 0) continue;
 
         // 推断重要性
-        const importance = char.quotes >= 10 ? 'main' :
-          char.quotes >= 5 ? 'supporting' : 'minor';
+        const importance =
+          (char.quotes || 0) >= 10
+            ? "main"
+            : (char.quotes || 0) >= 5
+            ? "supporting"
+            : "minor";
 
         const character = await tx.characterProfile.create({
           data: {
@@ -885,8 +899,7 @@ ${sampleTexts}
             bookId,
             canonicalName: char.name.trim(),
             characteristics: {
-              description:
-                char.description || `文本中识别的角色: ${char.name}`,
+              description: char.description || `文本中识别的角色: ${char.name}`,
               personality: Array.isArray(char.personality)
                 ? char.personality
                 : [char.personality || "正常"],

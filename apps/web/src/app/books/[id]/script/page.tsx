@@ -5,9 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { booksApi } from "@/lib/api";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScriptSentence, CharacterProfile } from "@/lib/types";
 import {
-  ScriptSentence,
-  CharacterProfile,
   SegmentStatus,
   ScriptHeader,
   GenerationProgress,
@@ -222,7 +221,7 @@ export default function ScriptGenerationPage() {
     try {
       const scriptContent = scriptSentences
         .map((sentence) => {
-          const characterName = sentence.character?.name || "旁白";
+          const characterName = sentence.character?.canonicalName || "旁白";
           return `${characterName}: ${sentence.text}`;
         })
         .join("\n\n");
@@ -533,7 +532,8 @@ export default function ScriptGenerationPage() {
             scriptSentencesCount={scriptSentences.length}
             charactersCount={characters.filter((c) => c.isActive).length}
             assignedSentencesCount={
-              scriptSentences.filter((s) => s.character).length
+              scriptSentences.filter((s) => s.character && s.character.id)
+                .length
             }
             hasTextSegments={hasTextSegments}
             hasScriptSentences={hasScriptSentences}

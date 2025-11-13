@@ -34,15 +34,19 @@ export function ScriptPreviewModal({
                   <span className="text-sm font-medium text-gray-500">
                     #{index + 1}
                   </span>
-                  {sentence.character && (
-                    <Badge variant="outline">{sentence.character.name}</Badge>
+                  {sentence.character ? (
+                    <Badge variant="outline">
+                      {sentence.character.canonicalName}
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">旁白</Badge>
                   )}
-                  {sentence.emotion && (
+                  {sentence.tone && (
                     <Badge
                       variant="secondary"
                       className="bg-purple-100 text-purple-700 border-purple-300"
                     >
-                      {sentence.emotion}
+                      {sentence.tone}
                     </Badge>
                   )}
                 </div>

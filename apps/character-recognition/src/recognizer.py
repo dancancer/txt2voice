@@ -116,21 +116,23 @@ class CharacterRecognizer:
         characters = self._filter_characters(characters, options)
         characters = sorted(characters, key=lambda c: c.mentions, reverse=True)
         
-        # 10. 构建响应
+        # 10. 构建响应（使用新的数据库格式）
         processing_time = time.time() - start_time
         
-        response = RecognitionResponse(
+        statistics = RecognitionStatistics(
+            total_characters=len(characters),
+            total_mentions=sum(c.mentions for c in characters),
+            total_dialogues=sum(c.quotes for c in characters),
+            processing_time=processing_time,
+            text_length=len(text),
+            sentence_count=len(sentences)
+        )
+        
+        # 使用新的数据库格式响应
+        response = RecognitionResponse.from_characters(
             characters=characters,
-            alias_map=alias_map,
             relations=relations,
-            statistics=RecognitionStatistics(
-                total_characters=len(characters),
-                total_mentions=sum(c.mentions for c in characters),
-                total_dialogues=sum(c.quotes for c in characters),
-                processing_time=processing_time,
-                text_length=len(text),
-                sentence_count=len(sentences)
-            )
+            statistics=statistics
         )
         
         logger.info(

@@ -21,7 +21,9 @@ export function CharacterAssignment({
   onSentenceCharacterChange,
   onSaveAssignment,
 }: CharacterAssignmentProps) {
-  const assignedCount = scriptSentences.filter((s) => s.character).length;
+  const assignedCount = scriptSentences.filter(
+    (s) => s.character && s.character.id
+  ).length;
   const assignmentProgress =
     scriptSentences.length > 0
       ? (assignedCount / scriptSentences.length) * 100
@@ -35,11 +37,7 @@ export function CharacterAssignment({
             <User className="w-5 h-5 mr-2" />
             角色分配
           </CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onToggleAssignment}
-          >
+          <Button variant="outline" size="sm" onClick={onToggleAssignment}>
             <Settings className="w-4 h-4 mr-2" />
             {showCharacterAssignment ? "收起" : "配置"}
           </Button>
@@ -87,7 +85,7 @@ export function CharacterAssignment({
                     .filter((c) => c.isActive)
                     .map((character) => (
                       <option key={character.id} value={character.id}>
-                        {character.name}
+                        {character.canonicalName}
                       </option>
                     ))}
                 </select>
