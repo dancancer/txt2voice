@@ -50,8 +50,11 @@ export const booksApi = {
   },
 
   // 获取单本书籍详情
-  async getBook(id: string): Promise<BookResponse> {
-    const response = await fetch(`${API_BASE}/${id}`)
+  async getBook(id: string, include?: string[]): Promise<BookResponse> {
+    const params = include && include.length > 0
+      ? `?include=${include.join(',')}`
+      : ''
+    const response = await fetch(`${API_BASE}/${id}${params}`)
     if (!response.ok) {
       throw new Error('Failed to fetch book')
     }

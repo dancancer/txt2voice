@@ -143,6 +143,7 @@ class AliasRecognizer:
         self,
         mentions: List[CharacterMention],
         sentences: List[str],
+        book_id: str,
         threshold: float = None
     ) -> Tuple[List[Character], Dict[str, str]]:
         """
@@ -175,14 +176,16 @@ class AliasRecognizer:
             main_name, aliases, mention_list = group_data
             character = Character(
                 id=f"c{char_id:03d}",
-                name=main_name,
-                aliases=aliases,
+                book_id=book_id,
+                canonical_name=main_name,
+                aliases=list(aliases),
                 mentions=len(mention_list),
                 first_appearance_idx=min(m.start for m in mention_list) if mention_list else -1
             )
             
             # 推断性别
-            character.gender = self._infer_gender(main_name, aliases)
+            gender = self._infer_gender(main_name, aliases)
+            character.gender_hint = "male" if gender == "男" else "female" if gender == "女" else "unknown"
             
             characters.append(character)
             

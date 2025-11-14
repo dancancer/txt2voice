@@ -235,3 +235,27 @@ model ProcessingTask {
   @@index([externalTaskId])
   @@map("processing_tasks")
 }
+
+model SpeakerProfile {
+  id              Int       @id @default(autoincrement()) @map("speaker_id") // 自增说话人ID
+  name            String? // 自定义说话人名字
+  gender          String    @default("unknown") // 性别: male, female, unknown
+  ageGroup        String    @default("adult") @map("age_group") // 年龄段: child, teen, adult, senior
+  toneStyle       String    @default("neutral") @map("tone_style") // 语气风格
+  description     String? // 描述
+  referenceAudio  String?   @map("reference_audio") // 主要参考音频文件名
+  confidence      Decimal?  @db.Decimal(5, 4) // 识别置信度
+  embeddingVector Bytes?    @map("embedding_vector") // 说话人嵌入向量
+  metadata        Json      @default("{}") // 其他元数据
+  isActive        Boolean   @default(true) @map("is_active") // 是否启用
+  usageCount      Int       @default(0) @map("usage_count") // 使用次数
+  lastUsedAt      DateTime? @map("last_used_at") // 最后使用时间
+  syncedAt        DateTime? @map("synced_at") // 同步时间
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@index([isActive])
+  @@index([gender])
+  @@index([ageGroup])
+  @@map("speaker_profiles")
+}

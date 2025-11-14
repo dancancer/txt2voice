@@ -198,6 +198,7 @@ async function runCharacterRecognition(bookId: string, taskId: string): Promise<
     // 调用character-recognition服务（异步模式）
     const taskResult = await characterRecognitionClient.recognizeAsync({
       text: fullText,
+      book_id: bookId,
       options: {
         enable_coreference: true,
         enable_dialogue: true,
@@ -426,7 +427,7 @@ async function saveRecognitionResults(bookId: string, result: any): Promise<void
       const profile = await tx.characterProfile.create({
         data: {
           bookId,
-          canonicalName: character.name,
+          canonicalName: character.canonical_name,
           characteristics: {
             description: `提及${character.mentions}次，对话${character.quotes}次`,
             importance,

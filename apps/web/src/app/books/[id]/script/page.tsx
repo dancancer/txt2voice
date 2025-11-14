@@ -61,7 +61,7 @@ export default function ScriptGenerationPage() {
   const loadBookAndData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await booksApi.getBook(bookId);
+      const response = await booksApi.getBook(bookId, ['segments', 'scripts', 'characters']);
       setBook(response.data);
       setSegments(response.data.textSegments || []);
       setCharacters(response.data.characterProfiles || []);
@@ -90,8 +90,7 @@ export default function ScriptGenerationPage() {
         return;
       }
 
-      const firstTwoSegments = segments.slice(0, 2);
-      if (firstTwoSegments.length === 0) {
+      if (segments.length === 0) {
         alert("没有可处理的文本段落");
         setIsGenerating(false);
         return;
@@ -103,7 +102,6 @@ export default function ScriptGenerationPage() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          startFromSegmentId: firstTwoSegments[0].id,
           options: {
             includeNarration: true,
             emotionDetection: true,
@@ -111,7 +109,6 @@ export default function ScriptGenerationPage() {
             minDialogueLength: 5,
             maxDialogueLength: 200,
             preserveOriginalBreaks: true,
-            limitToSegments: 2,
           },
         }),
       });
@@ -141,7 +138,7 @@ export default function ScriptGenerationPage() {
           setGenerationProgress(progress);
 
           if (status === "completed") {
-            setGenerationStatus("前两个段落台本生成完成！");
+            setGenerationStatus("台本生成完成！");
             clearInterval(pollInterval);
             await loadBookAndData();
             setIsGenerating(false);

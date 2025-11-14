@@ -30,7 +30,8 @@ txt2voice/
 │   ├── history/                    # 历史记录和迁移文档
 │   └── technical/                  # 技术文档
 ├── scripts/                        # 工具脚本
-├── docker-compose.yml              # Docker 编排配置
+├── docker-compose.yml              # Docker 开发环境配置（默认）
+├── docker-compose.prod.yml         # Docker 生产环境配置
 ├── pnpm-workspace.yaml             # PNPM workspace 配置
 ├── package.json                    # 根 package.json
 └── ARCHITECTURE.md                 # 架构文档
@@ -59,12 +60,14 @@ pnpm typecheck
 
 ### Docker 部署
 
+#### 开发环境（默认，支持热更新）
+
 ```bash
 # 1. 配置环境变量（首次部署）
 cp .env.docker .env
 # 编辑 .env 文件填入你的配置（LLM_API_KEY、AZURE_SPEECH_KEY 等）
 
-# 2. 构建并启动所有服务
+# 2. 构建并启动开发环境
 pnpm docker:build
 pnpm docker:up
 
@@ -75,7 +78,28 @@ pnpm docker:logs
 pnpm docker:down
 ```
 
-**注意**：Docker Compose 会自动读取项目根目录的 `.env` 文件。确保该文件存在并包含所有必需的配置。
+#### 生产环境
+
+```bash
+# 1. 配置环境变量（首次部署）
+cp .env.docker .env
+# 编辑 .env 文件填入你的配置（LLM_API_KEY、AZURE_SPEECH_KEY 等）
+
+# 2. 构建并启动生产环境
+docker-compose -f docker-compose.prod.yml build
+docker-compose -f docker-compose.prod.yml up -d
+
+# 3. 查看日志
+docker-compose -f docker-compose.prod.yml logs -f
+
+# 4. 停止服务
+docker-compose -f docker-compose.prod.yml down
+```
+
+**注意**：
+- 开发环境使用 `docker-compose.yml`，支持热更新和调试
+- 生产环境使用 `docker-compose.prod.yml`，优化了性能和安全性
+- Docker Compose 会自动读取项目根目录的 `.env` 文件。确保该文件存在并包含所有必需的配置。
 
 ## 🐳 Docker 服务
 
@@ -142,11 +166,22 @@ pnpm typecheck    # 运行类型检查
 
 ### Docker 命令
 
+#### 开发环境命令
+
 ```bash
-pnpm docker:up      # 启动 Docker 服务
-pnpm docker:down    # 停止 Docker 服务
-pnpm docker:build   # 构建 Docker 镜像
-pnpm docker:logs    # 查看 Docker 日志
+pnpm docker:up      # 启动开发环境 Docker 服务
+pnpm docker:down    # 停止开发环境 Docker 服务
+pnpm docker:build   # 构建开发环境 Docker 镜像
+pnpm docker:logs    # 查看开发环境 Docker 日志
+```
+
+#### 生产环境命令
+
+```bash
+pnpm docker:prod        # 启动生产环境 Docker 服务
+pnpm docker:prod:down   # 停止生产环境 Docker 服务
+pnpm docker:prod:build # 构建生产环境 Docker 镜像
+pnpm docker:prod:logs  # 查看生产环境 Docker 日志
 ```
 
 ### 针对特定应用

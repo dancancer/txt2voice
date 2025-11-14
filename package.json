@@ -13,8 +13,10 @@
     "docker:down": "docker-compose down",
     "docker:build": "docker-compose build",
     "docker:logs": "docker-compose logs -f",
-    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d",
-    "docker:dev:down": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml down",
+    "docker:prod": "docker-compose -f docker-compose.prod.yml up -d",
+    "docker:prod:down": "docker-compose -f docker-compose.prod.yml down",
+    "docker:prod:build": "docker-compose -f docker-compose.prod.yml build",
+    "docker:prod:logs": "docker-compose -f docker-compose.prod.yml logs -f",
     "docker:services": "docker-compose up -d postgres redis character-recognition",
     "docker:services:down": "docker-compose down postgres redis character-recognition",
     "dev:local": "pnpm docker:services && pnpm --filter web dev"

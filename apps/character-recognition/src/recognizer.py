@@ -92,7 +92,10 @@ class CharacterRecognizer:
         # 5. 实体合并
         threshold = options.similarity_threshold or settings.SIMILARITY_THRESHOLD
         characters, alias_map = self.alias_recognizer.merge_characters(
-            all_mentions, sentences, threshold
+            mentions=all_mentions,
+            sentences=sentences,
+            book_id=request.book_id,
+            threshold=threshold
         )
         
         # 6. 指代消解（可选）

@@ -1,40 +1,42 @@
 // Optional: Configure Jest to work with custom CSS modules or other global setups
 // import '@testing-library/jest-dom'
 
-// Mock Web APIs
-Object.defineProperty(window, "Request", {
-  writable: true,
-  value: class Request {
-    constructor(input, init = {}) {
-      this.url = input;
-      this.method = init.method || "GET";
-      this.headers = init.headers || {};
-      this.body = init.body;
-    }
-  },
-});
+// Mock Web APIs (guard for non-browser test environments)
+if (typeof window !== "undefined") {
+  Object.defineProperty(window, "Request", {
+    writable: true,
+    value: class Request {
+      constructor(input, init = {}) {
+        this.url = input;
+        this.method = init.method || "GET";
+        this.headers = init.headers || {};
+        this.body = init.body;
+      }
+    },
+  });
 
-Object.defineProperty(window, "Response", {
-  writable: true,
-  value: class Response {
-    constructor(body, init = {}) {
-      this.body = body;
-      this.status = init.status || 200;
-      this.statusText = init.statusText || "OK";
-      this.headers = init.headers || {};
-    }
+  Object.defineProperty(window, "Response", {
+    writable: true,
+    value: class Response {
+      constructor(body, init = {}) {
+        this.body = body;
+        this.status = init.status || 200;
+        this.statusText = init.statusText || "OK";
+        this.headers = init.headers || {};
+      }
 
-    static json(data) {
-      return new Response(JSON.stringify(data), {
-        headers: { "Content-Type": "application/json" },
-      });
-    }
+      static json(data) {
+        return new Response(JSON.stringify(data), {
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
-    async json() {
-      return JSON.parse(this.body);
-    }
-  },
-});
+      async json() {
+        return JSON.parse(this.body);
+      }
+    },
+  });
+}
 
 // Mock Next.js router
 jest.mock("next/navigation", () => ({

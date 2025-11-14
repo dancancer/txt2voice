@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, Edit, Trash2, Volume2 } from "lucide-react";
+import { User, Edit, Trash2, Volume2, ChevronDown, ChevronUp } from "lucide-react";
 import { ScriptSentence } from "@/lib/types";
 
 interface ScriptSentenceCardProps {
@@ -16,6 +17,13 @@ export function ScriptSentenceCard({
   onEdit,
   onDelete,
 }: ScriptSentenceCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Determine if text should be truncated (more than 100 characters)
+  const shouldShowToggle = sentence.text.length > 100;
+  const displayText = shouldShowToggle && !isExpanded
+    ? sentence.text.substring(0, 100) + "..."
+    : sentence.text;
   return (
     <div className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
       <div className="flex-1">
@@ -57,7 +65,29 @@ export function ScriptSentenceCard({
               : sentence.orderInSegment + 1}
           </span>
         </div>
-        <p className="text-gray-900">{sentence.text}</p>
+        <div className="text-gray-900">
+          <p>{displayText}</p>
+          {shouldShowToggle && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="mt-1 h-auto p-0 text-blue-600 hover:text-blue-800 hover:bg-transparent"
+            >
+              {isExpanded ? (
+                <>
+                  <ChevronUp className="w-3 h-3 mr-1" />
+                  收起
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="w-3 h-3 mr-1" />
+                  展开
+                </>
+              )}
+            </Button>
+          )}
+        </div>
         {sentence.rawSpeaker &&
           sentence.rawSpeaker !== sentence.character?.canonicalName && (
             <p className="text-xs text-gray-500 mt-1">

@@ -43,7 +43,7 @@ export const GET = withErrorHandler(
     // 获取总数
     const total = await prisma.characterProfile.count({ where });
 
-    // 获取角色列表
+    // 获取角色列表（获取所有数据，然后在内存中排序）
     const characters = await prisma.characterProfile.findMany({
       where,
       include: {
@@ -74,13 +74,55 @@ export const GET = withErrorHandler(
           },
         },
       },
-      orderBy: [{ mentions: "desc" }, { canonicalName: "asc" }],
       skip: offset,
-      take: limit,
+      take: limit * 2, // 获取更多数据以便在内存中正确排序
     });
 
+    // 解析 characteristics.description 中的提及数和对话数
+    const parseMentionsAndQuotes = (characteristics: any) => {
+      const description = characteristics?.description || '';
+      const mentionsMatch = description.match(/提及(\d+)次/);
+      const quotesMatch = description.match(/对话(\d+)次/);
+
+      return {
+        mentions: mentionsMatch ? parseInt(mentionsMatch[1]) : 0,
+        quotes: quotesMatch ? parseInt(quotesMatch[1]) : 0
+      };
+    };
+
+    // 在内存中解析并排序
+    const charactersWithParsedData = characters.map((character) => {
+      const parsed = parseMentionsAndQuotes(character.characteristics);
+      return {
+        ...character,
+        parsedMentions: parsed.mentions,
+        parsedQuotes: parsed.quotes
+      };
+    });
+
+    // 排序
+    charactersWithParsedData.sort((a, b) => {
+      // 1. 按提及次数降序
+      if (b.parsedMentions !== a.parsedMentions) {
+        return b.parsedMentions - a.parsedMentions;
+      }
+      // 2. 按引用次数降序
+      if (b.parsedQuotes !== a.parsedQuotes) {
+        return b.parsedQuotes - a.parsedQuotes;
+      }
+      // 3. 按对话次数降序
+      if (b._count.scriptSentences !== a._count.scriptSentences) {
+        return b._count.scriptSentences - a._count.scriptSentences;
+      }
+      // 4. 按角色名称升序
+      return a.canonicalName.localeCompare(b.canonicalName);
+    });
+
+    // 取前 limit 条记录
+    const sortedCharacters = charactersWithParsedData.slice(0, limit);
+
     // 格式化返回数据
-    const formattedCharacters = characters.map((character) => ({
+    const formattedCharacters = sortedCharacters.map((character) => ({
       id: character.id,
       canonicalName: character.canonicalName,
       characteristics: character.characteristics,
@@ -88,8 +130,8 @@ export const GET = withErrorHandler(
       ageHint: character.ageHint,
       emotionBaseline: character.emotionBaseline,
       isActive: character.isActive,
-      mentions: character.mentions,
-      quotes: character.quotes,
+      mentions: character.parsedMentions,
+      quotes: character.parsedQuotes,
       aliases: character.aliases,
       voiceBindings: character.voiceBindings.map((binding) => ({
         id: binding.id,

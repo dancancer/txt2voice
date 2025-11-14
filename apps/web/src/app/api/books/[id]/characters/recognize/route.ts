@@ -172,6 +172,7 @@ async function runCharacterRecognition(bookId: string, taskId: string): Promise<
     // 调用character-recognition服务（异步模式）
     const taskResult = await characterRecognitionClient.recognizeAsync({
       text: fullText,
+      book_id: bookId,
       options: {
         enable_coreference: true,
         enable_dialogue: true,
@@ -392,6 +393,18 @@ async function handleRecognitionComplete(bookId: string, taskId: string, recogni
  * 保存识别结果到数据库
  */
 async function saveRecognitionResults(bookId: string, result: any): Promise<void> {
+  // 添加调试日志
+  logger.info('开始保存识别结果', {
+    bookId,
+    characterCount: result.characters?.length || 0,
+    firstCharacter: result.characters?.[0] ? {
+      id: result.characters[0].id,
+      name: result.characters[0].name,
+      canonical_name: result.characters[0].canonical_name,
+      canonicalName: result.characters[0].canonicalName
+    } : null
+  })
+
   await prisma.$transaction(async (tx) => {
     // 删除旧的角色配置（如果存在）
     await tx.characterProfile.deleteMany({
@@ -404,10 +417,31 @@ async function saveRecognitionResults(bookId: string, result: any): Promise<void
       const importance = character.quotes >= 10 ? 'main' :
         character.quotes >= 5 ? 'supporting' : 'minor'
 
+      // 处理 canonicalName，优先使用 canonical_name，然后是 name，最后使用 id
+      let canonicalName = character.canonical_name || character.name || character.id
+
+      if (!canonicalName) {
+        logger.error('角色缺少有效名称', {
+          characterId: character.id,
+          character: JSON.stringify(character)
+        })
+        continue // 跳过无效角色
+      }
+
+      logger.info('保存角色', {
+        characterId: character.id,
+        canonicalName,
+        originalFields: {
+          canonical_name: character.canonical_name,
+          name: character.name,
+          id: character.id
+        }
+      })
+
       const profile = await tx.characterProfile.create({
         data: {
           bookId,
-          canonicalName: character.name,
+          canonicalName,
           characteristics: {
             description: `提及${character.mentions}次，对话${character.quotes}次`,
             importance,

@@ -48,10 +48,10 @@ model CharacterProfile {
   ageHint           Int?
   emotionBaseline   String                  @default("neutral")
   isActive          Boolean                 @default(true)
-  mentions          Int?                    @default(0)
-  quotes            Int?                    @default(0)
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
+  mentions          Int?                    @default(0)
+  quotes            Int?                    @default(0)
   aliases           CharacterAlias[]
   mergeAuditsSource CharacterMergeAudit[]   @relation("SourceCharacter")
   mergeAuditsTarget CharacterMergeAudit[]   @relation("TargetCharacter")
@@ -221,11 +221,11 @@ model ProcessingTask {
   processedItems Int       @default(0)
   taskData       Json      @default("{}")
   errorMessage   String?
-  externalTaskId String?
   startedAt      DateTime?
   completedAt    DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
+  externalTaskId String?
   book           Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
@@ -234,4 +234,28 @@ model ProcessingTask {
   @@index([taskType, status])
   @@index([externalTaskId])
   @@map("processing_tasks")
+}
+
+model SpeakerProfile {
+  name            String?
+  gender          String    @default("unknown")
+  ageGroup        String    @default("adult") @map("age_group")
+  toneStyle       String    @default("neutral") @map("tone_style")
+  description     String?
+  referenceAudio  String?   @map("reference_audio")
+  confidence      Decimal?  @db.Decimal(5, 4)
+  embeddingVector Bytes?    @map("embedding_vector")
+  metadata        Json      @default("{}")
+  isActive        Boolean   @default(true) @map("is_active")
+  usageCount      Int       @default(0) @map("usage_count")
+  lastUsedAt      DateTime? @map("last_used_at")
+  syncedAt        DateTime? @map("synced_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id              Int       @id @default(autoincrement()) @map("speaker_id")
+
+  @@index([isActive])
+  @@index([gender])
+  @@index([ageGroup])
+  @@map("speaker_profiles")
 }

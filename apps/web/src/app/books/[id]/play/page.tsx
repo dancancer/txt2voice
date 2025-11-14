@@ -619,7 +619,7 @@ export default function AudioPlaybackPage() {
                     onClick={() => router.push(`/books/${bookId}/characters`)}
                   >
                     <User className="w-4 h-4 mr-2" />
-                    角色配置
+                    角色配置111
                   </Button>
                 </CardContent>
               </Card>

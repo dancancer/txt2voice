@@ -1,11 +1,20 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { booksApi } from '@/lib/api'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { booksApi } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   ArrowLeft,
   Users,
@@ -17,78 +26,120 @@ import {
   User,
   Search,
   Mic,
-  FileText
-} from 'lucide-react'
+  FileText,
+} from "lucide-react";
 
 export default function CharacterProfilesPage() {
-  const params = useParams()
-  const router = useRouter()
-  const bookId = params.id as string
+  const params = useParams();
+  const router = useRouter();
+  const bookId = params.id as string;
 
-  const [book, setBook] = useState<any>(null)
-  const [characters, setCharacters] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [showAddCharacter, setShowAddCharacter] = useState(false)
-  const [editingCharacter, setEditingCharacter] = useState<any>(null)
+  const [book, setBook] = useState<any>(null);
+  const [characters, setCharacters] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showAddCharacter, setShowAddCharacter] = useState(false);
+  const [editingCharacter, setEditingCharacter] = useState<any>(null);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
 
   useEffect(() => {
-    loadBookAndCharacters()
-  }, [bookId])
+    loadBookAndCharacters(1, "");
+  }, [bookId]);
 
-  const loadBookAndCharacters = async () => {
+  useEffect(() => {
+    // 防抖搜索
+    const timeoutId = setTimeout(() => {
+      loadBookAndCharacters(1, searchTerm);
+    }, 500);
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const loadBookAndCharacters = async (
+    page: number = 1,
+    search: string = ""
+  ) => {
     try {
-      setLoading(true)
-      const response = await booksApi.getBook(bookId)
-      setBook(response.data)
-      setCharacters(response.data.characterProfiles || [])
-    } catch (err) {
-      console.error('Failed to load book and characters:', err)
-      setError('加载角色配置失败')
-    } finally {
-      setLoading(false)
-    }
-  }
+      setLoading(true);
+      // 加载书籍信息
+      const bookResponse = await booksApi.getBook(bookId);
+      setBook(bookResponse.data);
 
-  const filteredCharacters = characters.filter(character =>
-    (character.canonicalName || character.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    ((character.characteristics as any)?.description || '').toLowerCase().includes(searchTerm.toLowerCase())
-  )
+      // 加载角色列表（包含分页和搜索）
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: "20",
+        ...(search && { search }),
+      });
+
+      const charactersResponse = await fetch(
+        `/api/books/${bookId}/characters?${params}`
+      );
+      if (charactersResponse.ok) {
+        const charactersData = await charactersResponse.json();
+        // API返回格式: { success: true, data: { data: [...], pagination: {...} } }
+        setCharacters(charactersData.data?.data || []);
+        if (charactersData.data?.pagination) {
+          setPagination(charactersData.data.pagination);
+        }
+      } else {
+        console.error("Failed to load characters");
+        setCharacters([]);
+      }
+    } catch (err) {
+      console.error("Failed to load book and characters:", err);
+      setError("加载角色配置失败");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    loadBookAndCharacters(newPage, searchTerm);
+  };
+
+  const filteredCharacters = characters; // 移除前端过滤，使用后端搜索
 
   const handleCreateCharacter = async (characterData: any) => {
     try {
       // TODO: Implement character creation API
-      console.log('Creating character:', characterData)
-      setShowAddCharacter(false)
-      await loadBookAndCharacters()
+      console.log("Creating character:", characterData);
+      setShowAddCharacter(false);
+      await loadBookAndCharacters(pagination.page, searchTerm);
     } catch (error) {
-      console.error('Failed to create character:', error)
+      console.error("Failed to create character:", error);
     }
-  }
+  };
 
   const handleUpdateCharacter = async (id: string, characterData: any) => {
     try {
       // TODO: Implement character update API
-      console.log('Updating character:', id, characterData)
-      setEditingCharacter(null)
-      await loadBookAndCharacters()
+      console.log("Updating character:", id, characterData);
+      setEditingCharacter(null);
+      await loadBookAndCharacters(pagination.page, searchTerm);
     } catch (error) {
-      console.error('Failed to update character:', error)
+      console.error("Failed to update character:", error);
     }
-  }
+  };
 
   const handleDeleteCharacter = async (id: string) => {
-    if (confirm('确定要删除这个角色吗？')) {
+    if (confirm("确定要删除这个角色吗？")) {
       try {
         // TODO: Implement character delete API
-        console.log('Deleting character:', id)
-        await loadBookAndCharacters()
+        console.log("Deleting character:", id);
+        await loadBookAndCharacters(pagination.page, searchTerm);
       } catch (error) {
-        console.error('Failed to delete character:', error)
+        console.error("Failed to delete character:", error);
       }
     }
-  }
+  };
 
   if (loading) {
     return (
@@ -98,7 +149,7 @@ export default function CharacterProfilesPage() {
           <p className="text-gray-600">加载中...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !book) {
@@ -106,11 +157,11 @@ export default function CharacterProfilesPage() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Users className="w-8 h-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">{error || '书籍不存在'}</p>
+          <p className="text-red-600 mb-4">{error || "书籍不存在"}</p>
           <Button onClick={() => router.back()}>返回</Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -130,13 +181,15 @@ export default function CharacterProfilesPage() {
                 返回
               </Button>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">角色配置</h1>
+                <h1 className="text-xl font-semibold text-gray-900">
+                  角色配置
+                </h1>
                 <p className="text-sm text-gray-500">{book.title}</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <Badge variant="secondary">
-                {filteredCharacters.length} 个角色
+                {pagination.total} 个角色（共 {pagination.totalPages} 页）
               </Badge>
               <Button
                 onClick={() => setShowAddCharacter(true)}
@@ -154,142 +207,255 @@ export default function CharacterProfilesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search and Info */}
         <Card className="mb-6">
-          <CardContent className="p-6">
+          <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
+                  <Input
                     type="text"
                     placeholder="搜索角色名称或描述..."
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="pl-10 pr-4"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
               </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <Users className="w-4 h-4 mr-2" />
-                  <span>共 {characters.length} 个角色</span>
-                </div>
-                {book.textSegments && (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center">
-                    <FileText className="w-4 h-4 mr-2" />
-                    <span>{book.textSegments.length} 个文本段落</span>
+                    <Users className="w-4 h-4 mr-2" />
+                    <span>
+                      当前页 {characters.length} 个角色，总计 {pagination.total}{" "}
+                      个
+                    </span>
                   </div>
-                )}
+                  {book.textSegments && (
+                    <div className="flex items-center">
+                      <FileText className="w-4 h-4 mr-2" />
+                      <span>{book.textSegments.length} 个文本段落</span>
+                    </div>
+                  )}
+                </div>
+                <div className="text-sm text-gray-500">
+                  按提及次数、引用次数、对话次数降序排列
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Characters Grid */}
+        {/* Characters Table */}
         {filteredCharacters.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCharacters.map((character) => (
-              <Card key={character.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <User className="w-6 h-6 text-blue-600" />
+          <>
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[180px]">
+                          角色名称
+                        </TableHead>
+                        <TableHead className="min-w-[80px]">性别</TableHead>
+                        <TableHead className="min-w-[100px]">台词数</TableHead>
+                        <TableHead className="min-w-[100px]">提及数</TableHead>
+                        <TableHead className="min-w-[100px]">引用数</TableHead>
+                        <TableHead className="min-w-[80px]">别名数</TableHead>
+                        <TableHead className="min-w-[120px]">
+                          语音配置
+                        </TableHead>
+                        <TableHead className="min-w-[80px]">状态</TableHead>
+                        <TableHead className="min-w-[150px]">操作</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredCharacters.map((character) => (
+                        <TableRow key={character.id}>
+                          <TableCell>
+                            <div className="max-w-[200px]">
+                              <div className="font-medium text-gray-900 truncate">
+                                {character.canonicalName || character.name}
+                              </div>
+                              {((character.characteristics as any)
+                                ?.description ||
+                                character.description) && (
+                                <div className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                  {(character.characteristics as any)
+                                    ?.description || character.description}
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm inline-block">
+                              {character.genderHint === "unknown"
+                                ? "未知"
+                                : character.genderHint === "male"
+                                ? "男"
+                                : character.genderHint === "female"
+                                ? "女"
+                                : character.genderHint}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-blue-600 inline-block">
+                              {character.scriptSentencesCount || 0}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-green-600 inline-block">
+                              {character.mentions}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="font-medium text-orange-600 inline-block">
+                              {character.quotes}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-gray-600 inline-block">
+                              {character.aliases?.length || 0}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="inline-block">
+                              {character.voiceBindings?.length > 0 ? (
+                                <Badge
+                                  variant="outline"
+                                  className="text-green-600"
+                                >
+                                  <Volume2 className="w-3 h-3 mr-1" />
+                                  已配置
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="text-orange-600"
+                                >
+                                  <Settings className="w-3 h-3 mr-1" />
+                                  未配置
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="inline-block">
+                              <Badge
+                                variant={
+                                  character.isActive ? "default" : "secondary"
+                                }
+                              >
+                                {character.isActive ? "启用" : "禁用"}
+                              </Badge>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center space-x-1 min-w-[140px]">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setEditingCharacter(character)}
+                                className="h-8 w-8 p-0 flex-shrink-0"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  router.push(
+                                    `/books/${bookId}/audio?character=${character.id}`
+                                  )
+                                }
+                                className="h-8 w-8 p-0 flex-shrink-0"
+                              >
+                                <Settings className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleDeleteCharacter(character.id)
+                                }
+                                className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Pagination */}
+            {pagination.totalPages > 1 && (
+              <div className="mt-6">
+                <Card>
+                  <CardContent className="pt-4 p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-600">
+                        显示第 {(pagination.page - 1) * pagination.limit + 1} -{" "}
+                        {Math.min(
+                          pagination.page * pagination.limit,
+                          pagination.total
+                        )}{" "}
+                        个角色，共 {pagination.total} 个
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900">{character.canonicalName || character.name}</h3>
-                        <p className="text-sm text-gray-500">
-                          {character.aliases?.length || 0}个别名
-                        </p>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(pagination.page - 1)}
+                          disabled={!pagination.hasPrev}
+                        >
+                          上一页
+                        </Button>
+
+                        <div className="flex items-center space-x-1">
+                          {Array.from(
+                            { length: pagination.totalPages },
+                            (_, i) => i + 1
+                          ).map((pageNum) => (
+                            <Button
+                              key={pageNum}
+                              variant={
+                                pageNum === pagination.page
+                                  ? "default"
+                                  : "outline"
+                              }
+                              size="sm"
+                              onClick={() => handlePageChange(pageNum)}
+                              className="min-w-[32px]"
+                            >
+                              {pageNum}
+                            </Button>
+                          ))}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handlePageChange(pagination.page + 1)}
+                          disabled={!pagination.hasNext}
+                        >
+                          下一页
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-1">
-                      <Badge variant={character.isActive ? 'default' : 'secondary'}>
-                        {character.isActive ? '启用' : '禁用'}
-                      </Badge>
-                    </div>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="pt-0">
-                  {/* Character Description */}
-                  {((character.characteristics as any)?.description || character.description) && (
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-3">
-                      {(character.characteristics as any)?.description || character.description}
-                    </p>
-                  )}
-
-                  {/* Voice Configuration */}
-                  <div className="space-y-3 mb-4">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">语音配置</span>
-                      {character.voiceBindings?.length > 0 ? (
-                        <Badge variant="outline" className="text-green-600">
-                          <Volume2 className="w-3 h-3 mr-1" />
-                          已配置
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-orange-600">
-                          <Settings className="w-3 h-3 mr-1" />
-                          未配置
-                        </Badge>
-                      )}
-                    </div>
-
-                    {character.voiceBindings?.length > 0 && (
-                      <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                        {character.voiceBindings.map((binding: any, index: number) => (
-                          <div key={index} className="flex items-center">
-                            <Mic className="w-3 h-3 mr-1" />
-                            {binding.voiceProfile?.name || '未命名语音'}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Statistics */}
-                  <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
-                    <span>台词数: {character._count?.scriptSentences || 0}</span>
-                    <span>出现频率: {character.frequency || '低'}</span>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditingCharacter(character)}
-                      className="flex-1"
-                    >
-                      <Edit className="w-4 h-4 mr-1" />
-                      编辑
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => router.push(`/books/${bookId}/audio?character=${character.id}`)}
-                      className="flex-1"
-                    >
-                      <Settings className="w-4 h-4 mr-1" />
-                      语音
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeleteCharacter(character.id)}
-                      className="text-red-600 hover:text-red-800 hover:bg-red-50"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </>
         ) : (
           /* Empty State */
           <Card>
-            <CardContent className="p-12 text-center">
+            <CardContent className="pt-12 p-12 text-center">
               <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">
                 暂无角色配置
@@ -300,7 +466,9 @@ export default function CharacterProfilesPage() {
               <div className="space-y-4">
                 <Button
                   onClick={() => setShowAddCharacter(true)}
-                  disabled={!book.textSegments || book.textSegments.length === 0}
+                  disabled={
+                    !book.textSegments || book.textSegments.length === 0
+                  }
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   创建第一个角色
@@ -321,19 +489,21 @@ export default function CharacterProfilesPage() {
             <Card className="w-full max-w-md">
               <CardHeader>
                 <CardTitle>
-                  {editingCharacter ? '编辑角色' : '添加角色'}
+                  {editingCharacter ? "编辑角色" : "添加角色"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <CharacterForm
                   character={editingCharacter}
-                  onSubmit={editingCharacter
-                    ? (data) => handleUpdateCharacter(editingCharacter.id, data)
-                    : handleCreateCharacter
+                  onSubmit={
+                    editingCharacter
+                      ? (data) =>
+                          handleUpdateCharacter(editingCharacter.id, data)
+                      : handleCreateCharacter
                   }
                   onCancel={() => {
-                    setShowAddCharacter(false)
-                    setEditingCharacter(null)
+                    setShowAddCharacter(false);
+                    setEditingCharacter(null);
                   }}
                 />
               </CardContent>
@@ -342,29 +512,41 @@ export default function CharacterProfilesPage() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 // Character Form Component
-function CharacterForm({ character, onSubmit, onCancel }: {
-  character?: any
-  onSubmit: (data: any) => void
-  onCancel: () => void
+function CharacterForm({
+  character,
+  onSubmit,
+  onCancel,
+}: {
+  character?: any;
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
 }) {
   const [formData, setFormData] = useState({
-    name: character?.canonicalName || character?.name || '',
-    description: (character?.characteristics as any)?.description || character?.description || '',
-    aliases: character?.aliases?.map((a: { alias: string }) => a.alias).join(', ') || '',
-    isActive: character?.isActive ?? true
-  })
+    name: character?.canonicalName || character?.name || "",
+    description:
+      (character?.characteristics as any)?.description ||
+      character?.description ||
+      "",
+    aliases:
+      character?.aliases?.map((a: { alias: string }) => a.alias).join(", ") ||
+      "",
+    isActive: character?.isActive ?? true,
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     onSubmit({
       ...formData,
-      aliases: formData.aliases.split(',').map((a: string) => a.trim()).filter(Boolean)
-    })
-  }
+      aliases: formData.aliases
+        .split(",")
+        .map((a: string) => a.trim())
+        .filter(Boolean),
+    });
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -390,7 +572,9 @@ function CharacterForm({ character, onSubmit, onCancel }: {
           rows={3}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, description: e.target.value })
+          }
           placeholder="描述角色的性格特征、身份等"
         />
       </div>
@@ -403,7 +587,9 @@ function CharacterForm({ character, onSubmit, onCancel }: {
           type="text"
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           value={formData.aliases}
-          onChange={(e) => setFormData({ ...formData, aliases: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, aliases: e.target.value })
+          }
           placeholder="例如：小明, 少年, 主角"
         />
       </div>
@@ -414,7 +600,9 @@ function CharacterForm({ character, onSubmit, onCancel }: {
           id="isActive"
           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
           checked={formData.isActive}
-          onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+          onChange={(e) =>
+            setFormData({ ...formData, isActive: e.target.checked })
+          }
         />
         <label htmlFor="isActive" className="ml-2 text-sm text-gray-700">
           启用此角色
@@ -430,13 +618,10 @@ function CharacterForm({ character, onSubmit, onCancel }: {
         >
           取消
         </Button>
-        <Button
-          type="submit"
-          className="flex-1"
-        >
-          {character ? '更新' : '创建'}
+        <Button type="submit" className="flex-1">
+          {character ? "更新" : "创建"}
         </Button>
       </div>
     </form>
-  )
+  );
 }

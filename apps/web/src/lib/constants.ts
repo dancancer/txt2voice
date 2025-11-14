@@ -14,9 +14,10 @@ export const CONFIG = {
 
   // 文本处理配置
   TEXT_PROCESSING: {
-    MAX_SEGMENT_LENGTH: 1000,
-    MIN_SEGMENT_LENGTH: 50,
-    DEFAULT_SEGMENT_LENGTH: 500,
+    MAX_SEGMENT_LENGTH: 600,  // 段落上限控制在500±100字的上限
+    MIN_SEGMENT_LENGTH: 400,  // 段落下限控制在500±100字的下限
+    DEFAULT_SEGMENT_LENGTH: 500,  // 目标长度
+    SEGMENT_TOLERANCE: 100,  // 分段均匀性容差
     LLM_CHUNK_SIZE: 8000,
     OVERLAP_SIZE: 200,
   },

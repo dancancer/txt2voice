@@ -1,6 +1,8 @@
 import { Prisma } from '@/generated/prisma'
 import { FileProcessingError } from './error-handler'
 import { smartSplitText, calculateTextLength, RecursiveCharacterTextSplitter } from './text-splitter'
+import { SmartTextSplitter, splitTextSmartly, calculateSmartLength, validateSegmentQuality, type TextSegment as SmartSegment } from './smart-text-splitter'
+import { CONFIG } from './constants'
 import { logger } from './logger'
 import * as iconv from 'iconv-lite'
 
@@ -9,6 +11,7 @@ export interface TextProcessingOptions {
   minSegmentLength?: number
   preserveFormatting?: boolean
   encoding?: BufferEncoding
+  useSmartSplitter?: boolean  // 是否使用智能分段器
 }
 
 export interface ProcessedText {
@@ -277,22 +280,116 @@ export function countWords(text: string): number {
 }
 
 /**
- * 智能文本分割（使用递归字符分割）
+ * 智能文本分割（使用新的智能分段器或传统递归字符分割）
  */
 export function segmentText(
   content: string,
   options: TextProcessingOptions = {}
 ): TextSegmentData[] {
   const {
-    maxSegmentLength = 1000,
-    minSegmentLength = 50
+    maxSegmentLength = CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH,
+    minSegmentLength = CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
+    useSmartSplitter = true  // 默认使用新的智能分段器
   } = options
 
   logger.info('Starting text segmentation', {
     contentLength: content.length,
     maxSegmentLength,
     minSegmentLength,
+    useSmartSplitter,
   })
+
+  let segments: TextSegmentData[]
+
+  if (useSmartSplitter) {
+    // 使用新的智能分段器
+    segments = segmentWithSmartSplitter(content, options)
+  } else {
+    // 使用传统的递归字符分割
+    segments = segmentWithTraditionalSplitter(content, options)
+  }
+
+  logger.info('Text segmentation completed', {
+    totalSegments: segments.length,
+    avgSegmentLength: segments.length > 0
+      ? Math.round(segments.reduce((sum, s) => sum + s.content.length, 0) / segments.length)
+      : 0,
+    method: useSmartSplitter ? 'smart_splitter' : 'traditional',
+  })
+
+  return segments
+}
+
+/**
+ * 使用智能分段器进行文本分割
+ */
+function segmentWithSmartSplitter(
+  content: string,
+  options: TextProcessingOptions
+): TextSegmentData[] {
+  const { maxSegmentLength = CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH } = options
+
+  // 创建智能分段器
+  const splitter = new SmartTextSplitter({
+    targetLength: CONFIG.TEXT_PROCESSING.DEFAULT_SEGMENT_LENGTH,
+    maxLength: maxSegmentLength,
+    minLength: CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
+    tolerance: CONFIG.TEXT_PROCESSING.SEGMENT_TOLERANCE,
+    preferSentenceBoundary: true,
+  })
+
+  // 执行分割
+  const smartSegments = splitter.split(content)
+
+  // 验证分段质量
+  const validation = validateSegmentQuality(smartSegments, {
+    targetLength: CONFIG.TEXT_PROCESSING.DEFAULT_SEGMENT_LENGTH,
+    maxLength: maxSegmentLength,
+    minLength: CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
+    tolerance: CONFIG.TEXT_PROCESSING.SEGMENT_TOLERANCE,
+  })
+
+  if (!validation.valid) {
+    logger.warn('Segment quality issues detected', {
+      issues: validation.issues,
+      stats: validation.stats,
+    })
+  }
+
+  logger.info('Smart splitting quality stats', validation.stats)
+
+  // 转换为 TextSegmentData 格式
+  return smartSegments.map((smartSegment) => {
+    const cleanedContent = smartSegment.content.trim()
+    return {
+      order: smartSegment.order,
+      content: cleanedContent,
+      wordCount: countWords(cleanedContent),
+      type: detectSegmentType(cleanedContent),
+      metadata: {
+        characterCount: cleanedContent.length,
+        smartLength: smartSegment.length,
+        breakReason: smartSegment.metadata?.breakReason,
+        hasDialogue: /[""「」].*?[""「」]/.test(cleanedContent),
+        hasDescription: /[，。！？；：]/.test(cleanedContent),
+        splitMethod: 'smart_splitter',
+        ...smartSegment.metadata,
+      }
+    }
+  })
+}
+
+/**
+ * 使用传统递归字符分割器进行文本分割
+ */
+function segmentWithTraditionalSplitter(
+  content: string,
+  options: TextProcessingOptions
+): TextSegmentData[] {
+  const {
+    maxSegmentLength = CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH,
+    minSegmentLength = CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH
+  } = options
 
   // 检测内容类型
   const contentType = detectContentType(content)
@@ -311,7 +408,7 @@ export function segmentText(
 
   for (const chunk of chunks) {
     const length = calculateTextLength(chunk)
-    
+
     // 只保留长度符合要求的段落
     if (length >= minSegmentLength) {
       segments.push(createTextSegment(chunk, segmentOrder++))
@@ -320,7 +417,7 @@ export function segmentText(
       const lastSegment = segments[segments.length - 1]
       const mergedContent = lastSegment.content + '\n\n' + chunk
       const mergedLength = calculateTextLength(mergedContent)
-      
+
       if (mergedLength <= maxSegmentLength * 1.2) { // 允许超出20%
         lastSegment.content = mergedContent
         lastSegment.wordCount = countWords(mergedContent)
@@ -338,13 +435,6 @@ export function segmentText(
       segments.push(createTextSegment(chunk, segmentOrder++))
     }
   }
-
-  logger.info('Text segmentation completed', {
-    totalSegments: segments.length,
-    avgSegmentLength: segments.length > 0 
-      ? Math.round(segments.reduce((sum, s) => sum + s.content.length, 0) / segments.length)
-      : 0,
-  })
 
   return segments
 }

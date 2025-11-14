@@ -15,6 +15,7 @@ export interface RecognitionOptions {
 
 export interface RecognitionRequest {
   text: string
+  book_id: string
   options?: RecognitionOptions
 }
 

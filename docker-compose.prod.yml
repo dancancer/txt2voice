@@ -1,0 +1,145 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: txt2voice-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: txt2voice
+      POSTGRES_PASSWORD: txt2voice_password
+      POSTGRES_DB: txt2voice
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U txt2voice -d txt2voice"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - txt2voice-network
+
+  # Redis Cache & Queue
+  redis:
+    image: redis:7-alpine
+    container_name: txt2voice-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - txt2voice-network
+
+  # Character Recognition Service
+  character-recognition:
+    build:
+      context: .
+      dockerfile: apps/character-recognition/Dockerfile
+    container_name: txt2voice-character-recognition
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 8001
+      DEBUG: ${DEBUG:-False}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.80}
+    volumes:
+      - character_models:/root/.hanlp  # 缓存 HanLP 模型
+      - sentence_models:/root/.cache  # 缓存句向量模型
+    ports:
+      - "8001:8001"
+    networks:
+      - txt2voice-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Next.js Web Application
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: txt2voice-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      # Database (容器内部连接)
+      DATABASE_URL: postgresql://txt2voice:txt2voice_password@postgres:5432/txt2voice
+      
+      # Redis (容器内部连接)
+      REDIS_URL: redis://redis:6379
+      
+      # Next.js (从 .env 读取，提供默认值)
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-change-this-secret-key-in-production}
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3001}
+      
+      # TTS Providers (从 .env 读取)
+      AZURE_SPEECH_KEY: ${AZURE_SPEECH_KEY:-}
+      AZURE_SPEECH_REGION: ${AZURE_SPEECH_REGION:-}
+      
+      # File Storage
+      UPLOAD_DIR: /app/apps/web/uploads
+      AUDIO_DIR: /app/apps/web/uploads
+      
+      # Application Settings
+      NODE_ENV: production
+      PORT: 3001
+      
+      # LLM Provider Configuration (从 .env 读取)
+      LLM_PROVIDER: ${LLM_PROVIDER:-custom}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
+      
+      # Character Recognition Service (容器内部连接)
+      CHARACTER_RECOGNITION_URL: http://character-recognition:8001
+    volumes:
+      - uploads_data:/app/apps/web/uploads
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      character-recognition:
+        condition: service_healthy
+    networks:
+      - txt2voice-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  txt2voice-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+  character_models:
+    driver: local
+  sentence_models:
+    driver: local

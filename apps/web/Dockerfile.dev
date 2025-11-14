@@ -11,10 +11,16 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json ./apps/web/
 
 # Install all dependencies (including dev dependencies)
-RUN pnpm install --filter=web... --frozen-lockfile
+RUN pnpm install --filter=web... --no-frozen-lockfile
 
-# Copy the entire workspace (source code will be mounted via volumes)
-COPY apps/web ./apps/web
+# Copy source code (excluding node_modules which will be mounted via volumes)
+COPY apps/web/src ./apps/web/src
+COPY apps/web/public ./apps/web/public
+COPY apps/web/prisma ./apps/web/prisma
+COPY apps/web/next.config.dev.js ./apps/web/next.config.js
+COPY apps/web/tsconfig.json ./apps/web/tsconfig.json
+COPY apps/web/tailwind.config.ts ./apps/web/tailwind.config.ts
+COPY apps/web/postcss.config.js ./apps/web/postcss.config.js
 
 WORKDIR /app/apps/web
 
@@ -32,5 +38,5 @@ ENV HOSTNAME "0.0.0.0"
 ENV NODE_ENV development
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Start Next.js in development mode
-CMD ["pnpm", "dev", "--hostname", "0.0.0.0", "-p", "3001"]
+# Start Next.js in development mode with Webpack (not Turbopack) for better Docker compatibility
+CMD ["pnpm", "next", "dev", "--hostname", "0.0.0.0", "-p", "3001"]

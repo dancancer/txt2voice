@@ -4,10 +4,10 @@
 
 ```bash
 # 1. 构建开发镜像
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml build web
+pnpm docker:build
 
 # 2. 启动所有服务
-npm run docker:dev
+pnpm docker:up
 
 # 3. 查看日志（可选）
 docker logs txt2voice-web -f
@@ -19,13 +19,13 @@ docker logs txt2voice-web -f
 
 ```bash
 # 启动
-npm run docker:dev
+pnpm docker:up
 
 # 停止
-npm run docker:dev:down
+pnpm docker:down
 
 # 查看日志
-npm run docker:logs
+pnpm docker:logs
 ```
 
 ## ✅ 热更新已启用
@@ -42,7 +42,7 @@ npm run docker:logs
 # - 修改 prisma/schema.prisma
 # - 修改 Dockerfile.dev
 
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml build web
+pnpm docker:build
 ```
 
 ## 🐛 故障排查
@@ -56,8 +56,8 @@ docker logs txt2voice-web --tail 100
 # 常见解决方案：
 # 1. 重新构建镜像
 # 2. 清理并重启
-npm run docker:dev:down
-npm run docker:dev
+pnpm docker:down
+pnpm docker:up
 ```
 
 ### 热更新不工作
@@ -79,7 +79,7 @@ docker restart txt2voice-web
 # 查找占用进程
 lsof -i :3001
 
-# 或修改 docker-compose.dev.yml 中的端口
+# 或修改 docker-compose.yml 中的端口
 ports:
   - "3002:3001"  # 改为其他端口
 ```
@@ -94,11 +94,12 @@ ports:
 
 - `apps/web/Dockerfile.dev` - 开发环境 Dockerfile
 - `apps/web/next.config.dev.js` - 开发环境 Next.js 配置
-- `docker-compose.dev.yml` - 开发环境 Docker Compose 配置
+- `docker-compose.yml` - 开发环境 Docker Compose 配置（默认）
+- `docker-compose.prod.yml` - 生产环境 Docker Compose 配置
 - `apps/web/prisma/schema.prisma` - 数据库 Schema（包含二进制目标配置）
 
 ## 💡 提示
 
 - **推荐**: 本地开发使用 `pnpm dev:local`（更快的热更新）
-- **Docker 开发**: 适合需要完整容器化环境的场景
-- **生产测试**: 使用 `npm run docker:up`（不支持热更新）
+- **Docker 开发**: 适合需要完整容器化环境的场景，使用 `pnpm docker:up`
+- **生产测试**: 使用 `pnpm docker:prod`（不支持热更新，优化性能）

@@ -269,6 +269,25 @@ exports.Prisma.ProcessingTaskScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.SpeakerProfileScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  gender: 'gender',
+  ageGroup: 'ageGroup',
+  toneStyle: 'toneStyle',
+  description: 'description',
+  referenceAudio: 'referenceAudio',
+  confidence: 'confidence',
+  embeddingVector: 'embeddingVector',
+  metadata: 'metadata',
+  isActive: 'isActive',
+  usageCount: 'usageCount',
+  lastUsedAt: 'lastUsedAt',
+  syncedAt: 'syncedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -310,7 +329,8 @@ exports.Prisma.ModelName = {
   ScriptSentence: 'ScriptSentence',
   AudioFile: 'AudioFile',
   CharacterMergeAudit: 'CharacterMergeAudit',
-  ProcessingTask: 'ProcessingTask'
+  ProcessingTask: 'ProcessingTask',
+  SpeakerProfile: 'SpeakerProfile'
 };
 
 /**

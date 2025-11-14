@@ -65,3 +65,4 @@ audio/
 # Prisma
 apps/*/prisma/migrations/
 !apps/*/prisma/migrations/.gitkeep
+docs/test.txt
