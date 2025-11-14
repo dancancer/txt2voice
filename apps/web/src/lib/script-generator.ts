@@ -417,7 +417,8 @@ ${segment.content}
         bookId,
         segment.id,
         result.dialogueLines,
-        characterProfiles
+        characterProfiles,
+        characterMap
       );
     }
 
@@ -431,7 +432,8 @@ ${segment.content}
     bookId: string,
     segmentId: string,
     dialogueLines: DialogueLine[],
-    characterProfiles: any[]
+    characterProfiles: any[],
+    characterMap: Map<string, string>
   ): Promise<void> {
     await prisma.$transaction(async (tx) => {
       // 删除该段落的现有台词记录
@@ -445,9 +447,44 @@ ${segment.content}
       // 保存新的台词记录
       for (const line of dialogueLines) {
         // 查找角色ID
-        const character = characterProfiles.find(
+        let character = characterProfiles.find(
           (char) => char.canonicalName === line.characterName
         );
+
+        if (
+          !character &&
+          line.characterName &&
+          line.characterName !== "旁白"
+        ) {
+          const newCharacter = await tx.characterProfile.create({
+            data: {
+              bookId,
+              canonicalName: line.characterName,
+              characteristics: {
+                description: `台本生成自动创建的角色：${line.characterName}`,
+                personality: [],
+                importance: "minor",
+                relationships: {},
+              },
+              voicePreferences: {
+                dialogueStyle: "自然",
+              },
+              genderHint: "unknown",
+              ageHint: null,
+              emotionBaseline: "neutral",
+              isActive: true,
+            },
+          });
+
+          character = {
+            ...newCharacter,
+            aliases: [],
+          };
+
+          characterProfiles.push(character);
+          this.addCharacterToMap(characterMap, character);
+          console.log(`自动创建新角色: ${line.characterName}`);
+        }
 
         let characterId: string | null = null;
         if (character) {
@@ -494,26 +531,36 @@ ${segment.content}
     const map = new Map<string, string>();
 
     for (const profile of characterProfiles) {
-      // 主名称映射
-      map.set(profile.canonicalName, profile.canonicalName);
-
-      // 别名映射
-      if (profile.aliases) {
-        for (const alias of profile.aliases) {
-          map.set(alias.alias, profile.canonicalName);
-        }
-      }
-
-      // 常见变体映射
-      const commonVariations = this.generateCommonVariations(
-        profile.canonicalName
-      );
-      for (const variation of commonVariations) {
-        map.set(variation, profile.canonicalName);
-      }
+      this.addCharacterToMap(map, profile);
     }
 
     return map;
+  }
+
+  private addCharacterToMap(
+    map: Map<string, string>,
+    profile: { canonicalName?: string; aliases?: Array<{ alias: string }> }
+  ): void {
+    if (!profile?.canonicalName) {
+      return;
+    }
+
+    map.set(profile.canonicalName, profile.canonicalName);
+
+    if (profile.aliases) {
+      for (const alias of profile.aliases) {
+        if (alias?.alias) {
+          map.set(alias.alias, profile.canonicalName);
+        }
+      }
+    }
+
+    const commonVariations = this.generateCommonVariations(
+      profile.canonicalName
+    );
+    for (const variation of commonVariations) {
+      map.set(variation, profile.canonicalName);
+    }
   }
 
   /**

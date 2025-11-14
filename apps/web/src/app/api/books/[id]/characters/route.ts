@@ -78,21 +78,23 @@ export const GET = withErrorHandler(
       take: limit * 2, // 获取更多数据以便在内存中正确排序
     });
 
-    // 解析 characteristics.description 中的提及数和对话数
-    const parseMentionsAndQuotes = (characteristics: any) => {
-      const description = characteristics?.description || '';
+    // 解析 characteristics.description 中的提及数和对话数，若没有则回退到字段值
+    const parseMentionsAndQuotes = (character: any) => {
+      const description = character.characteristics?.description || '';
       const mentionsMatch = description.match(/提及(\d+)次/);
       const quotesMatch = description.match(/对话(\d+)次/);
 
       return {
-        mentions: mentionsMatch ? parseInt(mentionsMatch[1]) : 0,
-        quotes: quotesMatch ? parseInt(quotesMatch[1]) : 0
+        mentions: mentionsMatch
+          ? parseInt(mentionsMatch[1])
+          : character.mentions || 0,
+        quotes: quotesMatch ? parseInt(quotesMatch[1]) : character.quotes || 0,
       };
     };
 
     // 在内存中解析并排序
     const charactersWithParsedData = characters.map((character) => {
-      const parsed = parseMentionsAndQuotes(character.characteristics);
+      const parsed = parseMentionsAndQuotes(character);
       return {
         ...character,
         parsedMentions: parsed.mentions,
@@ -170,10 +172,24 @@ export const POST = withErrorHandler(
     const {
       canonicalName,
       characteristics,
+      description,
       genderHint,
       ageHint,
       emotionBaseline,
+      aliases,
+      isActive,
+      mentions,
+      quotes,
     } = body;
+
+    if (!canonicalName || typeof canonicalName !== "string") {
+      throw new ValidationError("角色名称不能为空");
+    }
+
+    const normalizedName = canonicalName.trim();
+    if (!normalizedName) {
+      throw new ValidationError("角色名称不能为空");
+    }
 
     // 检查书籍是否存在
     const book = await prisma.book.findUnique({
@@ -188,7 +204,10 @@ export const POST = withErrorHandler(
     const existingCharacter = await prisma.characterProfile.findFirst({
       where: {
         bookId,
-        canonicalName: canonicalName.toLowerCase(),
+        canonicalName: {
+          equals: normalizedName,
+          mode: "insensitive",
+        },
       },
     });
 
@@ -196,17 +215,54 @@ export const POST = withErrorHandler(
       throw new ValidationError("角色名已存在");
     }
 
+    const aliasList = Array.isArray(aliases)
+      ? Array.from(
+          new Set(
+            aliases
+              .map((alias: string) => alias?.trim())
+              .filter((alias): alias is string => Boolean(alias))
+          )
+        )
+      : [];
+
+    const finalCharacteristics: Record<string, any> =
+      typeof characteristics === "object" && characteristics !== null
+        ? { ...characteristics }
+        : {};
+    if (description) {
+      finalCharacteristics.description = description;
+    }
+
     const character = await prisma.characterProfile.create({
       data: {
         bookId,
-        canonicalName: canonicalName.trim(),
-        characteristics: characteristics || {},
+        canonicalName: normalizedName,
+        characteristics: finalCharacteristics,
         genderHint: genderHint || "unknown",
         ageHint: ageHint,
         emotionBaseline: emotionBaseline || "neutral",
+        isActive: isActive ?? true,
+        mentions:
+          typeof mentions === "number" && !Number.isNaN(mentions) ? mentions : 0,
+        quotes:
+          typeof quotes === "number" && !Number.isNaN(quotes) ? quotes : 0,
+        aliases:
+          aliasList.length > 0
+            ? {
+                create: aliasList.map((alias) => ({
+                  alias,
+                })),
+              }
+            : undefined,
       },
       include: {
-        aliases: true,
+        aliases: {
+          select: {
+            id: true,
+            alias: true,
+            confidence: true,
+          },
+        },
         voiceBindings: {
           include: {
             voiceProfile: true,

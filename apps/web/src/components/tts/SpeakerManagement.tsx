@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,6 +91,8 @@ const translateToneStyle = (toneStyle: string) => {
   return toneStyleMap[toneStyle] || toneStyle;
 };
 
+const AUDIO_PAGE_SIZE = 9;
+
 export function SpeakerManagement() {
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [referenceAudios, setReferenceAudios] = useState<ReferenceAudio[]>([]);
@@ -101,6 +103,7 @@ export function SpeakerManagement() {
   const [filterActive, setFilterActive] = useState<string>("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [audioPage, setAudioPage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -110,6 +113,16 @@ export function SpeakerManagement() {
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+
+  const paginatedReferenceAudios = useMemo(() => {
+    const startIndex = (audioPage - 1) * AUDIO_PAGE_SIZE;
+    return referenceAudios.slice(startIndex, startIndex + AUDIO_PAGE_SIZE);
+  }, [referenceAudios, audioPage]);
+
+  const audioTotalPages = Math.max(
+    1,
+    Math.ceil(referenceAudios.length / AUDIO_PAGE_SIZE)
+  );
 
   // 新建说话人表单
   const [newSpeaker, setNewSpeaker] = useState({
@@ -152,12 +165,30 @@ export function SpeakerManagement() {
   // 获取参考音频列表
   const fetchReferenceAudios = async () => {
     try {
-      const response = await fetch("/api/tts/reference-audio");
-      const data = await response.json();
+      const allAudios: ReferenceAudio[] = [];
+      const limit = 20; // 与接口默认分页保持一致，方便累计所有页面
+      let page = 1;
+      let hasNext = true;
 
-      if (data.success) {
-        setReferenceAudios(data.data.audios);
+      while (hasNext) {
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: limit.toString(),
+        });
+
+        const response = await fetch(`/api/tts/reference-audio?${params}`);
+        const data = await response.json();
+
+        if (!data.success) {
+          break;
+        }
+
+        allAudios.push(...data.data.audios);
+        hasNext = data.data.pagination?.hasNext ?? false;
+        page += 1;
       }
+
+      setReferenceAudios(allAudios);
     } catch (error) {
       console.error("Failed to fetch reference audios:", error);
       toast.error("获取参考音频列表失败");
@@ -385,6 +416,12 @@ export function SpeakerManagement() {
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  useEffect(() => {
+    if (audioPage > audioTotalPages) {
+      setAudioPage(audioTotalPages);
+    }
+  }, [audioTotalPages, audioPage]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -990,14 +1027,41 @@ export function SpeakerManagement() {
               ))}
             </div>
           )}
+          {!loading && totalPages > 1 && (
+            <div className="flex justify-center items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+              >
+                上一页
+              </Button>
+              <span className="text-sm">
+                第 {currentPage} 页，共 {totalPages} 页
+              </span>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setCurrentPage(Math.min(totalPages, currentPage + 1))
+                }
+                disabled={currentPage === totalPages}
+              >
+                下一页
+              </Button>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="audios" className="space-y-4">
           {loading ? (
             <div className="text-center py-8">加载中...</div>
+          ) : referenceAudios.length === 0 ? (
+            <div className="text-center py-8 text-sm text-gray-500">
+              暂无参考音频
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {referenceAudios.map((audio) => (
+              {paginatedReferenceAudios.map((audio) => (
                 <Card key={audio.filename} className="relative">
                   <CardHeader>
                     <div className="flex justify-between items-start">
@@ -1078,33 +1142,34 @@ export function SpeakerManagement() {
               ))}
             </div>
           )}
+          {!loading && referenceAudios.length > 0 && audioTotalPages > 1 && (
+            <div className="flex justify-center items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setAudioPage(Math.max(1, audioPage - 1))}
+                disabled={audioPage === 1}
+              >
+                上一页
+              </Button>
+              <span className="text-sm">
+                参考音频 第 {audioPage} 页，共 {audioTotalPages} 页
+                {referenceAudios.length > 0 &&
+                  `（共 ${referenceAudios.length} 条）`}
+              </span>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  setAudioPage(Math.min(audioTotalPages, audioPage + 1))
+                }
+                disabled={audioPage === audioTotalPages}
+              >
+                下一页
+              </Button>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
-      {/* 分页控件 */}
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1}
-          >
-            上一页
-          </Button>
-          <span className="text-sm">
-            第 {currentPage} 页，共 {totalPages} 页
-          </span>
-          <Button
-            variant="outline"
-            onClick={() =>
-              setCurrentPage(Math.min(totalPages, currentPage + 1))
-            }
-            disabled={currentPage === totalPages}
-          >
-            下一页
-          </Button>
-        </div>
-      )}
     </div>
   );
 }

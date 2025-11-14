@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   FileText,
@@ -15,7 +22,10 @@ import {
   Download,
   Edit,
   Loader2,
+  Sparkles,
+  Eye,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function TextSegmentsPage() {
   const params = useParams();
@@ -40,6 +50,21 @@ export default function TextSegmentsPage() {
     hasPrev: false,
   });
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingSegment, setEditingSegment] = useState<any | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [scriptDialogOpen, setScriptDialogOpen] = useState(false);
+  const [scriptDialogSegmentId, setScriptDialogSegmentId] = useState<
+    string | null
+  >(null);
+  const [segmentScriptGenerating, setSegmentScriptGenerating] = useState<
+    Record<string, boolean>
+  >({});
+  const scriptDialogSegment = scriptDialogSegmentId
+    ? segments.find((segment) => segment.id === scriptDialogSegmentId) || null
+    : null;
 
   type LoadOptions = {
     showFullPageLoader?: boolean;
@@ -157,7 +182,70 @@ export default function TextSegmentsPage() {
     }));
   };
 
+  const openScriptDialog = (segmentId: string) => {
+    setScriptDialogSegmentId(segmentId);
+    setScriptDialogOpen(true);
+  };
+
+  const closeScriptDialog = () => {
+    setScriptDialogOpen(false);
+    setScriptDialogSegmentId(null);
+  };
+
+  const handleGenerateScriptForSegment = async (segmentId: string) => {
+    setSegmentScriptGenerating((prev) => ({
+      ...prev,
+      [segmentId]: true,
+    }));
+
+    try {
+      const response = await fetch(`/api/books/${bookId}/script/generate`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          segmentIds: [segmentId],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(
+          errorData?.message || "Failed to start script generation"
+        );
+      }
+
+      setSegments((prevSegments) =>
+        prevSegments.map((segment) =>
+          segment.id === segmentId
+            ? {
+                ...segment,
+                scriptSentences: [],
+                scriptSentencesCount: 0,
+              }
+            : segment
+        )
+      );
+      toast.success("已开始生成该段落的台本，请稍后刷新查看");
+    } catch (err) {
+      console.error("Failed to generate script for segment:", err);
+      toast.error(
+        err instanceof Error ? err.message : "段落台本生成失败，请稍后再试"
+      );
+    } finally {
+      setSegmentScriptGenerating((prev) => {
+        const updated = { ...prev };
+        delete updated[segmentId];
+        return updated;
+      });
+    }
+  };
+
   const SEGMENT_PREVIEW_THRESHOLD = 120;
+  const calculateWordCount = (text: string) => {
+    return text.replace(/\s+/g, "").length || 0;
+  };
 
   const getSegmentTypeColor = (type: string) => {
     switch (type) {
@@ -186,6 +274,86 @@ export default function TextSegmentsPage() {
         return "动作";
       default:
         return type || "普通";
+    }
+  };
+
+  const openEditDialog = (segment: any) => {
+    setEditingSegment(segment);
+    setEditContent(segment.content || "");
+    setEditError(null);
+    setEditDialogOpen(true);
+  };
+
+  const closeEditDialog = () => {
+    setEditingSegment(null);
+    setEditContent("");
+    setEditError(null);
+    setEditDialogOpen(false);
+  };
+
+  const handleSaveEditedSegment = async () => {
+    if (!editingSegment) return;
+    const trimmedContent = editContent.trim();
+
+    if (!trimmedContent) {
+      setEditError("段落内容不能为空");
+      return;
+    }
+
+    setSavingEdit(true);
+    setEditError(null);
+
+    try {
+      const payload = {
+        segments: [
+          {
+            id: editingSegment.id,
+            content: trimmedContent,
+            segmentIndex: editingSegment.segmentIndex,
+            startPosition: editingSegment.startPosition,
+            endPosition: editingSegment.endPosition,
+            wordCount: calculateWordCount(trimmedContent),
+            segmentType: editingSegment.segmentType,
+            orderIndex: editingSegment.orderIndex,
+            metadata: editingSegment.metadata || {},
+            status: editingSegment.status,
+          },
+        ],
+      };
+
+      const response = await fetch(`/api/books/${bookId}/segments`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update segment");
+      }
+
+      const data = await response.json();
+      const updatedSegment = data.data?.[0];
+
+      if (!updatedSegment) {
+        throw new Error("Invalid response when updating segment");
+      }
+
+      setSegments((prevSegments) =>
+        prevSegments.map((segment) =>
+          segment.id === updatedSegment.id ? updatedSegment : segment
+        )
+      );
+
+      toast.success("段落内容已更新");
+      closeEditDialog();
+    } catch (err) {
+      console.error("Failed to update segment:", err);
+      setEditError("保存失败，请稍后再试");
+      toast.error("段落更新失败");
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -320,6 +488,34 @@ export default function TextSegmentsPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openScriptDialog(segment.id)}
+                        disabled={
+                          (segment.scriptSentencesCount || 0) === 0 &&
+                          !segment.scriptSentences?.length
+                        }
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        查看台本
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          handleGenerateScriptForSegment(segment.id)
+                        }
+                        disabled={!!segmentScriptGenerating[segment.id]}
+                      >
+                        {segmentScriptGenerating[segment.id] ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4 mr-2" />
+                        )}
+                        {(segment.scriptSentencesCount || 0) > 0
+                          ? "重新生成台本"
+                          : "生成台本"}
+                      </Button>
+                      <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
@@ -332,9 +528,7 @@ export default function TextSegmentsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => {
-                          // TODO: Edit segment functionality
-                        }}
+                        onClick={() => openEditDialog(segment)}
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
@@ -387,6 +581,14 @@ export default function TextSegmentsPage() {
                           {segment.status === "processed" ? "已处理" : "待处理"}
                         </Badge>
                       </div>
+                    </div>
+                    <div className="flex items-center space-x-4 text-xs text-gray-500 mt-2">
+                      <span>
+                        台本: {segment.scriptSentencesCount || 0} 句
+                      </span>
+                      <span>
+                        音频: {segment.audioFilesCount || 0} 条
+                      </span>
                     </div>
                   </div>
                 </CardContent>
@@ -444,6 +646,141 @@ export default function TextSegmentsPage() {
           </Card>
         )}
       </div>
+
+      <Dialog
+        open={scriptDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeScriptDialog();
+          } else {
+            setScriptDialogOpen(true);
+          }
+        }}
+      >
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>段落台本预览</DialogTitle>
+          </DialogHeader>
+          {scriptDialogSegment ? (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-500">
+                段落 #
+                {scriptDialogSegment.orderIndex !== undefined
+                  ? scriptDialogSegment.orderIndex + 1
+                  : scriptDialogSegment.segmentIndex + 1}
+              </div>
+              <div className="bg-gray-50 rounded-md p-3 text-sm text-gray-700 max-h-40 overflow-y-auto whitespace-pre-wrap">
+                {scriptDialogSegment.content}
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-sm font-medium text-gray-900">
+                    台词列表
+                  </h4>
+                  <Badge variant="secondary">
+                    {scriptDialogSegment.scriptSentences?.length || 0} 句
+                  </Badge>
+                </div>
+                {scriptDialogSegment.scriptSentences &&
+                scriptDialogSegment.scriptSentences.length > 0 ? (
+                  <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+                    {scriptDialogSegment.scriptSentences.map(
+                      (sentence: any, index: number) => (
+                        <div
+                          key={sentence.id || index}
+                          className="border rounded-md p-3 bg-white"
+                        >
+                          <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                            <span>台词 {index + 1}</span>
+                            {sentence.character ? (
+                              <span className="text-gray-600">
+                                {sentence.character.canonicalName}
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">未分配角色</span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+                            {sentence.text}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm text-gray-500 bg-gray-50 border border-dashed rounded-md p-6 text-center">
+                    暂无台本内容，请先生成。
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end">
+                <Button variant="outline" onClick={closeScriptDialog}>
+                  关闭
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500">未找到段落信息</div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={editDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeEditDialog();
+          } else {
+            setEditDialogOpen(true);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>编辑段落内容</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {editingSegment && (
+              <div className="text-sm text-gray-500">
+                段落 #
+                {editingSegment.orderIndex !== undefined
+                  ? editingSegment.orderIndex + 1
+                  : editingSegment.segmentIndex + 1}
+              </div>
+            )}
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              rows={10}
+              className="min-h-[200px]"
+              placeholder="请输入段落内容"
+            />
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <span>字符数：{editContent.trim().length}</span>
+              {editingSegment && (
+                <span>类型：{getSegmentTypeText(editingSegment.segmentType)}</span>
+              )}
+            </div>
+            {editError && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-md px-3 py-2">
+                {editError}
+              </div>
+            )}
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={closeEditDialog} disabled={savingEdit}>
+                取消
+              </Button>
+              <Button
+                onClick={handleSaveEditedSegment}
+                disabled={savingEdit || editContent.trim().length === 0}
+              >
+                {savingEdit && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                保存
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

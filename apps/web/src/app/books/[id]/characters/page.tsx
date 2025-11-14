@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { booksApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import {
   Table,
   TableBody,
@@ -27,7 +28,9 @@ import {
   Search,
   Mic,
   FileText,
+  Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function CharacterProfilesPage() {
   const params = useParams();
@@ -49,6 +52,57 @@ export default function CharacterProfilesPage() {
     hasNext: false,
     hasPrev: false,
   });
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [actionLoading, setActionLoading] = useState<{
+    scriptExtraction: boolean;
+    recognition: boolean;
+  }>({
+    scriptExtraction: false,
+    recognition: false,
+  });
+  const [deletingCharacterId, setDeletingCharacterId] = useState<string | null>(
+    null
+  );
+  const [recognitionStatus, setRecognitionStatus] = useState<any | null>(null);
+  const [lastExtractionSummary, setLastExtractionSummary] = useState<
+    string | null
+  >(null);
+
+  const segmentsCount =
+    (book?.textSegments?.length ?? 0) || book?.stats?.segmentsCount || 0;
+  const hasTextSegments = segmentsCount > 0;
+  const scriptsCount =
+    (book?.scriptSentences?.length ?? 0) || book?.stats?.scriptsCount || 0;
+  const hasScripts = scriptsCount > 0;
+
+  const getRecognitionStatusText = (status?: string) => {
+    switch (status) {
+      case "processing":
+        return "识别进行中";
+      case "completed":
+        return "识别完成";
+      case "failed":
+        return "识别失败";
+      case "pending":
+        return "等待开始";
+      case "not_started":
+      default:
+        return "尚未启动";
+    }
+  };
+
+  const fetchRecognitionStatus = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `/api/books/${bookId}/characters/recognize`
+      );
+      if (!response.ok) return;
+      const data = await response.json();
+      setRecognitionStatus(data.data);
+    } catch (err) {
+      console.error("Failed to load character recognition status:", err);
+    }
+  }, [bookId]);
 
   useEffect(() => {
     loadBookAndCharacters(1, "");
@@ -61,6 +115,10 @@ export default function CharacterProfilesPage() {
     }, 500);
     return () => clearTimeout(timeoutId);
   }, [searchTerm]);
+
+  useEffect(() => {
+    fetchRecognitionStatus();
+  }, [fetchRecognitionStatus]);
 
   const loadBookAndCharacters = async (
     page: number = 1,
@@ -109,35 +167,152 @@ export default function CharacterProfilesPage() {
 
   const handleCreateCharacter = async (characterData: any) => {
     try {
-      // TODO: Implement character creation API
-      console.log("Creating character:", characterData);
+      setIsFormSubmitting(true);
+      const response = await fetch(`/api/books/${bookId}/characters`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          canonicalName: characterData.name,
+          description: characterData.description,
+          aliases: characterData.aliases,
+          isActive: characterData.isActive,
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "创建角色失败");
+      }
+      toast.success("角色创建成功");
       setShowAddCharacter(false);
       await loadBookAndCharacters(pagination.page, searchTerm);
     } catch (error) {
       console.error("Failed to create character:", error);
+      toast.error(
+        error instanceof Error ? error.message : "角色创建失败，请重试"
+      );
+    } finally {
+      setIsFormSubmitting(false);
     }
   };
 
   const handleUpdateCharacter = async (id: string, characterData: any) => {
     try {
-      // TODO: Implement character update API
-      console.log("Updating character:", id, characterData);
+      setIsFormSubmitting(true);
+      const response = await fetch(
+        `/api/books/${bookId}/characters/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: characterData.name,
+            description: characterData.description,
+            aliases: characterData.aliases,
+            isActive: characterData.isActive,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "更新角色失败");
+      }
+      toast.success("角色更新成功");
       setEditingCharacter(null);
       await loadBookAndCharacters(pagination.page, searchTerm);
     } catch (error) {
       console.error("Failed to update character:", error);
+      toast.error(
+        error instanceof Error ? error.message : "角色更新失败，请重试"
+      );
+    } finally {
+      setIsFormSubmitting(false);
     }
   };
 
   const handleDeleteCharacter = async (id: string) => {
-    if (confirm("确定要删除这个角色吗？")) {
-      try {
-        // TODO: Implement character delete API
-        console.log("Deleting character:", id);
-        await loadBookAndCharacters(pagination.page, searchTerm);
-      } catch (error) {
-        console.error("Failed to delete character:", error);
+    if (!confirm("确定要删除这个角色吗？")) {
+      return;
+    }
+    try {
+      setDeletingCharacterId(id);
+      const response = await fetch(
+        `/api/books/${bookId}/characters/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "删除角色失败");
       }
+      toast.success("角色已删除");
+      await loadBookAndCharacters(pagination.page, searchTerm);
+    } catch (error) {
+      console.error("Failed to delete character:", error);
+      toast.error(
+        error instanceof Error ? error.message : "删除角色失败，请重试"
+      );
+    } finally {
+      setDeletingCharacterId(null);
+    }
+  };
+
+  const handleExtractFromScript = async () => {
+    try {
+      setActionLoading((prev) => ({ ...prev, scriptExtraction: true }));
+      const response = await fetch(
+        `/api/books/${bookId}/characters/from-script`,
+        {
+          method: "POST",
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "台本抽取失败");
+      }
+      const summary = `新增 ${result.data.createdCount} 个角色，绑定 ${result.data.linkedSentences} 句台词`;
+      setLastExtractionSummary(summary);
+      toast.success(summary);
+      await loadBookAndCharacters(1, searchTerm);
+    } catch (error) {
+      console.error("Failed to extract characters from script:", error);
+      toast.error(
+        error instanceof Error ? error.message : "台本抽取失败，请稍后重试"
+      );
+    } finally {
+      setActionLoading((prev) => ({ ...prev, scriptExtraction: false }));
+    }
+  };
+
+  const handleStartRecognition = async () => {
+    try {
+      setActionLoading((prev) => ({ ...prev, recognition: true }));
+      const response = await fetch(
+        `/api/books/${bookId}/characters/recognize`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "角色识别启动失败");
+      }
+      toast.success("角色识别任务已启动");
+      await fetchRecognitionStatus();
+      await loadBookAndCharacters(pagination.page, searchTerm);
+    } catch (error) {
+      console.error("Failed to start recognition task:", error);
+      toast.error(
+        error instanceof Error ? error.message : "角色识别启动失败"
+      );
+    } finally {
+      setActionLoading((prev) => ({ ...prev, recognition: false }));
     }
   };
 
@@ -193,7 +368,7 @@ export default function CharacterProfilesPage() {
               </Badge>
               <Button
                 onClick={() => setShowAddCharacter(true)}
-                disabled={!book.textSegments || book.textSegments.length === 0}
+                disabled={!hasTextSegments}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 添加角色
@@ -230,16 +405,147 @@ export default function CharacterProfilesPage() {
                       个
                     </span>
                   </div>
-                  {book.textSegments && (
+                  {segmentsCount > 0 && (
                     <div className="flex items-center">
                       <FileText className="w-4 h-4 mr-2" />
-                      <span>{book.textSegments.length} 个文本段落</span>
+                      <span>{segmentsCount} 个文本段落</span>
                     </div>
                   )}
                 </div>
                 <div className="text-sm text-gray-500">
                   按提及次数、引用次数、对话次数降序排列
                 </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Character Actions */}
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <CardTitle>角色获取方式</CardTitle>
+            <p className="text-sm text-gray-500">
+              可手动维护角色，也可以从台本或识别服务中自动提取。
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="rounded-lg border p-4 bg-white flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-medium text-gray-900">手动添加角色</p>
+                    <p className="text-xs text-gray-500">
+                      自定义角色档案及别名
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-full bg-blue-50 text-blue-600">
+                    <User className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex-1 text-sm text-gray-500 mb-3">
+                  {hasTextSegments
+                    ? `已解析 ${segmentsCount} 个文本段落`
+                    : "请先完成文本处理"}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAddCharacter(true)}
+                  disabled={!hasTextSegments}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  新建角色
+                </Button>
+              </div>
+              <div className="rounded-lg border p-4 bg-white flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-medium text-gray-900">台本抽取</p>
+                    <p className="text-xs text-gray-500">
+                      读取台本说话人并生成角色
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-full bg-amber-50 text-amber-600">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500 flex-1 mb-3">
+                  {hasScripts
+                    ? `已有 ${scriptsCount} 句台词`
+                    : "尚未生成台本"}
+                  {lastExtractionSummary && (
+                    <p className="text-xs text-amber-600 mt-2">
+                      {lastExtractionSummary}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleExtractFromScript}
+                  disabled={
+                    !hasScripts || actionLoading.scriptExtraction || loading
+                  }
+                >
+                  {actionLoading.scriptExtraction ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      抽取中...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="w-4 h-4 mr-2" />
+                      从台本抽取
+                    </>
+                  )}
+                </Button>
+              </div>
+              <div className="rounded-lg border p-4 bg-white flex flex-col">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="font-medium text-gray-900">角色识别服务</p>
+                    <p className="text-xs text-gray-500">
+                      调用识别服务批量提取
+                    </p>
+                  </div>
+                  <div className="p-2 rounded-full bg-purple-50 text-purple-600">
+                    <Mic className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="text-sm text-gray-500 flex-1 mb-3 space-y-2">
+                  <div>
+                    当前状态：{" "}
+                    <span className="font-medium text-gray-900">
+                      {getRecognitionStatusText(recognitionStatus?.status)}
+                    </span>
+                  </div>
+                  {recognitionStatus?.message && (
+                    <p className="text-xs text-gray-500">
+                      {recognitionStatus.message}
+                    </p>
+                  )}
+                  {recognitionStatus?.status === "processing" && (
+                    <Progress value={recognitionStatus.progress || 0} />
+                  )}
+                </div>
+                <Button
+                  onClick={handleStartRecognition}
+                  disabled={
+                    !hasTextSegments ||
+                    actionLoading.recognition ||
+                    recognitionStatus?.status === "processing"
+                  }
+                >
+                  {actionLoading.recognition ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      正在启动...
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="w-4 h-4 mr-2" />
+                      启动识别
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -379,8 +685,13 @@ export default function CharacterProfilesPage() {
                                   handleDeleteCharacter(character.id)
                                 }
                                 className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
+                                disabled={deletingCharacterId === character.id}
                               >
-                                <Trash2 className="w-4 h-4" />
+                                {deletingCharacterId === character.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
                               </Button>
                             </div>
                           </TableCell>
@@ -466,14 +777,12 @@ export default function CharacterProfilesPage() {
               <div className="space-y-4">
                 <Button
                   onClick={() => setShowAddCharacter(true)}
-                  disabled={
-                    !book.textSegments || book.textSegments.length === 0
-                  }
+                  disabled={!hasTextSegments}
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   创建第一个角色
                 </Button>
-                {!book.textSegments || book.textSegments.length === 0 ? (
+                {!hasTextSegments ? (
                   <p className="text-sm text-gray-500">
                     请先处理文本段落，然后再创建角色配置
                   </p>
@@ -494,6 +803,7 @@ export default function CharacterProfilesPage() {
               </CardHeader>
               <CardContent>
                 <CharacterForm
+                  key={editingCharacter ? editingCharacter.id : "create"}
                   character={editingCharacter}
                   onSubmit={
                     editingCharacter
@@ -505,6 +815,7 @@ export default function CharacterProfilesPage() {
                     setShowAddCharacter(false);
                     setEditingCharacter(null);
                   }}
+                  isSubmitting={isFormSubmitting}
                 />
               </CardContent>
             </Card>
@@ -520,10 +831,12 @@ function CharacterForm({
   character,
   onSubmit,
   onCancel,
+  isSubmitting,
 }: {
   character?: any;
   onSubmit: (data: any) => void;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = useState({
     name: character?.canonicalName || character?.name || "",
@@ -539,6 +852,7 @@ function CharacterForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     onSubmit({
       ...formData,
       aliases: formData.aliases
@@ -618,8 +932,17 @@ function CharacterForm({
         >
           取消
         </Button>
-        <Button type="submit" className="flex-1">
-          {character ? "更新" : "创建"}
+        <Button type="submit" className="flex-1" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              保存中...
+            </>
+          ) : character ? (
+            "更新"
+          ) : (
+            "创建"
+          )}
         </Button>
       </div>
     </form>
