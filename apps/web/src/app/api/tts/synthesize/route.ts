@@ -69,7 +69,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       synthesisResult = await indexTTSService.synthesizeAndWait(
         synthesizeRequest,
         {
-          timeout: 120000, // 2分钟超时
+          timeout: 300000, // 5分钟超时，适配长文案
           interval: 3000, // 3秒检查一次
         }
       );

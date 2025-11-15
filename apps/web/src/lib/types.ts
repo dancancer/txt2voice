@@ -4,6 +4,8 @@ import {
   CharacterAlias as PrismaCharacterAlias,
   TTSVoiceProfile,
   CharacterVoiceBinding,
+  CharacterSpeakerBinding,
+  SpeakerProfile as PrismaSpeakerProfile,
   TextSegment as PrismaTextSegment,
   ScriptSentence as PrismaScriptSentence,
   AudioFile,
@@ -28,6 +30,7 @@ export interface BookWithDetails extends PrismaBook {
 export interface CharacterProfileWithDetails extends CharacterProfile {
   aliases: CharacterAlias[];
   voiceBindings: CharacterVoiceBinding[];
+  speakerBindings: CharacterSpeakerBinding[];
   scriptSentences: PrismaScriptSentence[];
   _count: {
     scriptSentences: number;
@@ -66,6 +69,12 @@ export interface CharacterVoiceBindingWithDetails
   voiceProfile: TTSVoiceProfile;
 }
 
+export interface CharacterSpeakerBindingWithDetails
+  extends CharacterSpeakerBinding {
+  character: CharacterProfile;
+  speakerProfile: PrismaSpeakerProfile;
+}
+
 // 以数据库字段为准的类型定义
 export interface CharacterProfile {
   id: string;
@@ -96,6 +105,7 @@ export interface CharacterProfile {
   mentions?: number; // 新增字段
   quotes?: number; // 新增字段
   aliases: CharacterAlias[];
+  speakerBindings?: CharacterSpeakerBinding[];
   createdAt: string;
   updatedAt: string;
 }
@@ -135,6 +145,12 @@ export interface ScriptSentence {
     content: string;
     orderIndex: number;
   };
+  audioFiles?: Array<{
+    id: string;
+    status: string;
+    duration?: number | string | null;
+    createdAt?: string;
+  }>;
 }
 
 // 兼容性类型（向后兼容）

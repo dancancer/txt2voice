@@ -9,6 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -31,6 +37,23 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+
+const INDEXTTS_BASE_URL = (
+  process.env.NEXT_PUBLIC_INDEXTTS_API_URL || "http://192.168.88.9:8001"
+).replace(/\/$/, "");
+
+const buildSpeakerPreviewSources = (referenceAudio?: string | null) => {
+  if (!referenceAudio) {
+    return [];
+  }
+  if (/^https?:\/\//.test(referenceAudio)) {
+    return [referenceAudio];
+  }
+  if (referenceAudio.startsWith("/")) {
+    return [`${INDEXTTS_BASE_URL}${referenceAudio}`];
+  }
+  return [`${INDEXTTS_BASE_URL}/uploads/${referenceAudio}`];
+};
 
 export default function CharacterProfilesPage() {
   const params = useParams();
@@ -67,6 +90,24 @@ export default function CharacterProfilesPage() {
   const [lastExtractionSummary, setLastExtractionSummary] = useState<
     string | null
   >(null);
+  const [speakerDialogOpen, setSpeakerDialogOpen] = useState(false);
+  const [speakerDialogCharacter, setSpeakerDialogCharacter] = useState<
+    any | null
+  >(null);
+  const [characterSpeakerBindings, setCharacterSpeakerBindings] = useState<
+    any[]
+  >([]);
+  const [availableSpeakers, setAvailableSpeakers] = useState<any[]>([]);
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState<string>("");
+  const [isSpeakerDialogLoading, setIsSpeakerDialogLoading] = useState(false);
+  const [isSpeakerListLoading, setIsSpeakerListLoading] = useState(false);
+  const [speakerActionLoading, setSpeakerActionLoading] = useState(false);
+  const [updatingBindingId, setUpdatingBindingId] = useState<string | null>(
+    null
+  );
+  const [removingBindingId, setRemovingBindingId] = useState<string | null>(
+    null
+  );
 
   const segmentsCount =
     (book?.textSegments?.length ?? 0) || book?.stats?.segmentsCount || 0;
@@ -93,9 +134,7 @@ export default function CharacterProfilesPage() {
 
   const fetchRecognitionStatus = useCallback(async () => {
     try {
-      const response = await fetch(
-        `/api/books/${bookId}/characters/recognize`
-      );
+      const response = await fetch(`/api/books/${bookId}/characters/recognize`);
       if (!response.ok) return;
       const data = await response.json();
       setRecognitionStatus(data.data);
@@ -164,6 +203,12 @@ export default function CharacterProfilesPage() {
   };
 
   const filteredCharacters = characters; // 移除前端过滤，使用后端搜索
+  const selectedSpeaker =
+    selectedSpeakerId.length > 0
+      ? availableSpeakers.find(
+          (speaker) => String(speaker.id) === selectedSpeakerId
+        )
+      : null;
 
   const handleCreateCharacter = async (characterData: any) => {
     try {
@@ -200,21 +245,18 @@ export default function CharacterProfilesPage() {
   const handleUpdateCharacter = async (id: string, characterData: any) => {
     try {
       setIsFormSubmitting(true);
-      const response = await fetch(
-        `/api/books/${bookId}/characters/${id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            name: characterData.name,
-            description: characterData.description,
-            aliases: characterData.aliases,
-            isActive: characterData.isActive,
-          }),
-        }
-      );
+      const response = await fetch(`/api/books/${bookId}/characters/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: characterData.name,
+          description: characterData.description,
+          aliases: characterData.aliases,
+          isActive: characterData.isActive,
+        }),
+      });
       const result = await response.json();
       if (!response.ok || !result.success) {
         throw new Error(result.error?.message || "更新角色失败");
@@ -232,18 +274,198 @@ export default function CharacterProfilesPage() {
     }
   };
 
+  const fetchCharacterSpeakerBindings = async (characterId: string) => {
+    setIsSpeakerDialogLoading(true);
+    try {
+      const response = await fetch(
+        `/api/books/${bookId}/characters/${characterId}/speakers`
+      );
+      if (!response.ok) {
+        throw new Error("加载角色说话人失败");
+      }
+      const result = await response.json();
+      const bindings = result.data?.speakerBindings || [];
+      setCharacterSpeakerBindings(bindings);
+      setCharacters((prev) =>
+        prev.map((character) =>
+          character.id === characterId
+            ? { ...character, speakerBindings: bindings }
+            : character
+        )
+      );
+    } catch (error) {
+      console.error("Failed to load character speakers:", error);
+      toast.error(
+        error instanceof Error ? error.message : "加载角色说话人失败"
+      );
+    } finally {
+      setIsSpeakerDialogLoading(false);
+    }
+  };
+
+  const fetchAvailableSpeakers = async (force = false) => {
+    if (!force && availableSpeakers.length > 0) {
+      return;
+    }
+    setIsSpeakerListLoading(true);
+    try {
+      const response = await fetch(`/api/tts/speakers?limit=100`);
+      if (!response.ok) {
+        throw new Error("获取说话人列表失败");
+      }
+      const data = await response.json();
+      setAvailableSpeakers(data.data?.speakers || []);
+    } catch (error) {
+      console.error("Failed to load speakers:", error);
+      toast.error(
+        error instanceof Error ? error.message : "获取说话人列表失败"
+      );
+    } finally {
+      setIsSpeakerListLoading(false);
+    }
+  };
+
+  const openSpeakerDialog = async (character: any) => {
+    setSpeakerDialogCharacter(character);
+    setSpeakerDialogOpen(true);
+    setSelectedSpeakerId("");
+    setCharacterSpeakerBindings([]);
+    await Promise.all([
+      fetchCharacterSpeakerBindings(character.id),
+      fetchAvailableSpeakers(),
+    ]);
+  };
+
+  const closeSpeakerDialog = () => {
+    setSpeakerDialogOpen(false);
+    setSpeakerDialogCharacter(null);
+    setCharacterSpeakerBindings([]);
+    setSelectedSpeakerId("");
+    setSpeakerActionLoading(false);
+    setUpdatingBindingId(null);
+    setRemovingBindingId(null);
+  };
+
+  const handleAddSpeakerBinding = async () => {
+    if (!speakerDialogCharacter) {
+      return;
+    }
+    const speakerProfileId = Number(selectedSpeakerId);
+    if (!selectedSpeakerId || Number.isNaN(speakerProfileId)) {
+      toast.error("请选择要关联的说话人");
+      return;
+    }
+    try {
+      setSpeakerActionLoading(true);
+      const response = await fetch(
+        `/api/books/${bookId}/characters/${speakerDialogCharacter.id}/speakers`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            speakerProfileId,
+            isPreferred: characterSpeakerBindings.length === 0,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "关联说话人失败");
+      }
+      toast.success("已关联说话人");
+      setSelectedSpeakerId("");
+      await fetchCharacterSpeakerBindings(speakerDialogCharacter.id);
+    } catch (error) {
+      console.error("Failed to bind speaker:", error);
+      toast.error(
+        error instanceof Error ? error.message : "关联说话人失败，请稍后重试"
+      );
+    } finally {
+      setSpeakerActionLoading(false);
+    }
+  };
+
+  const handleSetDefaultSpeaker = async (bindingId: string) => {
+    if (!speakerDialogCharacter) {
+      return;
+    }
+    try {
+      setUpdatingBindingId(bindingId);
+      const response = await fetch(
+        `/api/books/${bookId}/characters/${speakerDialogCharacter.id}/speakers`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            bindingId,
+            isPreferred: true,
+          }),
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "设置默认说话人失败");
+      }
+      toast.success("已设置默认说话人");
+      await fetchCharacterSpeakerBindings(speakerDialogCharacter.id);
+    } catch (error) {
+      console.error("Failed to set default speaker:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "设置默认说话人失败，请稍后重试"
+      );
+    } finally {
+      setUpdatingBindingId(null);
+    }
+  };
+
+  const handleRemoveSpeakerBinding = async (bindingId: string) => {
+    if (!speakerDialogCharacter) {
+      return;
+    }
+    if (!confirm("确定要解除这个说话人的关联吗？")) {
+      return;
+    }
+    try {
+      setRemovingBindingId(bindingId);
+      const response = await fetch(
+        `/api/books/${bookId}/characters/${
+          speakerDialogCharacter.id
+        }/speakers?bindingId=${encodeURIComponent(bindingId)}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const result = await response.json();
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "解除关联失败");
+      }
+      toast.success("说话人已解除关联");
+      await fetchCharacterSpeakerBindings(speakerDialogCharacter.id);
+    } catch (error) {
+      console.error("Failed to remove speaker binding:", error);
+      toast.error(
+        error instanceof Error ? error.message : "解除关联失败，请稍后重试"
+      );
+    } finally {
+      setRemovingBindingId(null);
+    }
+  };
+
   const handleDeleteCharacter = async (id: string) => {
     if (!confirm("确定要删除这个角色吗？")) {
       return;
     }
     try {
       setDeletingCharacterId(id);
-      const response = await fetch(
-        `/api/books/${bookId}/characters/${id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const response = await fetch(`/api/books/${bookId}/characters/${id}`, {
+        method: "DELETE",
+      });
       const result = await response.json();
       if (!response.ok || !result.success) {
         throw new Error(result.error?.message || "删除角色失败");
@@ -308,9 +530,7 @@ export default function CharacterProfilesPage() {
       await loadBookAndCharacters(pagination.page, searchTerm);
     } catch (error) {
       console.error("Failed to start recognition task:", error);
-      toast.error(
-        error instanceof Error ? error.message : "角色识别启动失败"
-      );
+      toast.error(error instanceof Error ? error.message : "角色识别启动失败");
     } finally {
       setActionLoading((prev) => ({ ...prev, recognition: false }));
     }
@@ -469,9 +689,7 @@ export default function CharacterProfilesPage() {
                   </div>
                 </div>
                 <div className="text-sm text-gray-500 flex-1 mb-3">
-                  {hasScripts
-                    ? `已有 ${scriptsCount} 句台词`
-                    : "尚未生成台本"}
+                  {hasScripts ? `已有 ${scriptsCount} 句台词` : "尚未生成台本"}
                   {lastExtractionSummary && (
                     <p className="text-xs text-amber-600 mt-2">
                       {lastExtractionSummary}
@@ -568,6 +786,7 @@ export default function CharacterProfilesPage() {
                         <TableHead className="min-w-[100px]">提及数</TableHead>
                         <TableHead className="min-w-[100px]">引用数</TableHead>
                         <TableHead className="min-w-[80px]">别名数</TableHead>
+                        <TableHead className="min-w-[140px]">说话人</TableHead>
                         <TableHead className="min-w-[120px]">
                           语音配置
                         </TableHead>
@@ -576,127 +795,187 @@ export default function CharacterProfilesPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredCharacters.map((character) => (
-                        <TableRow key={character.id}>
-                          <TableCell>
-                            <div className="max-w-[200px]">
-                              <div className="font-medium text-gray-900 truncate">
-                                {character.canonicalName || character.name}
-                              </div>
-                              {((character.characteristics as any)
-                                ?.description ||
-                                character.description) && (
-                                <div className="text-sm text-gray-500 mt-1 line-clamp-2">
-                                  {(character.characteristics as any)
-                                    ?.description || character.description}
+                      {filteredCharacters.map((character) => {
+                        const defaultSpeaker =
+                          character.speakerBindings?.find(
+                            (binding: any) => binding.isDefault
+                          ) || character.speakerBindings?.[0];
+
+                        return (
+                          <TableRow key={character.id}>
+                            <TableCell>
+                              <div className="max-w-[200px]">
+                                <div className="font-medium text-gray-900 truncate">
+                                  {character.canonicalName || character.name}
                                 </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm inline-block">
-                              {character.genderHint === "unknown"
-                                ? "未知"
-                                : character.genderHint === "male"
-                                ? "男"
-                                : character.genderHint === "female"
-                                ? "女"
-                                : character.genderHint}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium text-blue-600 inline-block">
-                              {character.scriptSentencesCount || 0}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium text-green-600 inline-block">
-                              {character.mentions}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="font-medium text-orange-600 inline-block">
-                              {character.quotes}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-gray-600 inline-block">
-                              {character.aliases?.length || 0}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <div className="inline-block">
-                              {character.voiceBindings?.length > 0 ? (
-                                <Badge
-                                  variant="outline"
-                                  className="text-green-600"
-                                >
-                                  <Volume2 className="w-3 h-3 mr-1" />
-                                  已配置
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="text-orange-600"
-                                >
-                                  <Settings className="w-3 h-3 mr-1" />
-                                  未配置
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="inline-block">
-                              <Badge
-                                variant={
-                                  character.isActive ? "default" : "secondary"
-                                }
-                              >
-                                {character.isActive ? "启用" : "禁用"}
-                              </Badge>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-1 min-w-[140px]">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setEditingCharacter(character)}
-                                className="h-8 w-8 p-0 flex-shrink-0"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  router.push(
-                                    `/books/${bookId}/audio?character=${character.id}`
-                                  )
-                                }
-                                className="h-8 w-8 p-0 flex-shrink-0"
-                              >
-                                <Settings className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleDeleteCharacter(character.id)
-                                }
-                                className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
-                                disabled={deletingCharacterId === character.id}
-                              >
-                                {deletingCharacterId === character.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-4 h-4" />
+                                {((character.characteristics as any)
+                                  ?.description ||
+                                  character.description) && (
+                                  <div className="text-sm text-gray-500 mt-1 line-clamp-2">
+                                    {(character.characteristics as any)
+                                      ?.description || character.description}
+                                  </div>
                                 )}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm inline-block">
+                                {character.genderHint === "unknown"
+                                  ? "未知"
+                                  : character.genderHint === "male"
+                                  ? "男"
+                                  : character.genderHint === "female"
+                                  ? "女"
+                                  : character.genderHint}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium text-blue-600 inline-block">
+                                {character.scriptSentencesCount || 0}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium text-green-600 inline-block">
+                                {character.mentions}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-medium text-orange-600 inline-block">
+                                {character.quotes}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-gray-600 inline-block">
+                                {character.aliases?.length || 0}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="inline-flex flex-col gap-1">
+                                {character.speakerBindings?.length > 0 ? (
+                                  <>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-indigo-600">
+                                        {defaultSpeaker?.speakerProfile?.name ||
+                                          `说话人 #${defaultSpeaker?.speakerProfile?.id}`}
+                                      </span>
+                                      {defaultSpeaker?.isDefault && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          默认
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {character.speakerBindings.length > 1 && (
+                                      <span className="text-xs text-gray-500">
+                                        共 {character.speakerBindings.length} 个
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-gray-500"
+                                  >
+                                    未关联
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="link"
+                                  size="sm"
+                                  className="px-0 text-indigo-600 hover:text-indigo-500"
+                                  onClick={() => openSpeakerDialog(character)}
+                                >
+                                  <Mic className="w-3 h-3 mr-1" />
+                                  配置说话人
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="inline-block">
+                                {character.voiceBindings?.length > 0 ? (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-green-600"
+                                  >
+                                    <Volume2 className="w-3 h-3 mr-1" />
+                                    已配置
+                                  </Badge>
+                                ) : (
+                                  <Badge
+                                    variant="outline"
+                                    className="text-orange-600"
+                                  >
+                                    <Settings className="w-3 h-3 mr-1" />
+                                    未配置
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="inline-block">
+                                <Badge
+                                  variant={
+                                    character.isActive ? "default" : "secondary"
+                                  }
+                                >
+                                  {character.isActive ? "启用" : "禁用"}
+                                </Badge>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-1 min-w-[140px]">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => openSpeakerDialog(character)}
+                                  className="h-8 w-8 p-0 flex-shrink-0"
+                                >
+                                  <Mic className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setEditingCharacter(character)}
+                                  className="h-8 w-8 p-0 flex-shrink-0"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    router.push(
+                                      `/books/${bookId}/audio?character=${character.id}`
+                                    )
+                                  }
+                                  className="h-8 w-8 p-0 flex-shrink-0"
+                                >
+                                  <Settings className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleDeleteCharacter(character.id)
+                                  }
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
+                                  disabled={
+                                    deletingCharacterId === character.id
+                                  }
+                                >
+                                  {deletingCharacterId === character.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -821,6 +1100,222 @@ export default function CharacterProfilesPage() {
             </Card>
           </div>
         )}
+
+        <Dialog
+          open={speakerDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              closeSpeakerDialog();
+            }
+          }}
+        >
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>角色说话人关联</DialogTitle>
+              <p className="text-sm text-gray-500">
+                {speakerDialogCharacter
+                  ? `为 ${
+                      speakerDialogCharacter.canonicalName ||
+                      speakerDialogCharacter.name
+                    } 配置说话人`
+                  : "选择角色以配置说话人"}
+              </p>
+            </DialogHeader>
+
+            {speakerDialogCharacter ? (
+              <div className="space-y-6">
+                {isSpeakerDialogLoading ? (
+                  <div className="flex items-center justify-center py-8 text-gray-500">
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    加载中...
+                  </div>
+                ) : characterSpeakerBindings.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-300 p-6 text-center text-sm text-gray-500">
+                    暂无说话人关联，请添加新的说话人。
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {characterSpeakerBindings.map((binding) => (
+                      <div
+                        key={binding.id}
+                        className="flex flex-col gap-3 rounded-lg border border-gray-200 p-3"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {binding.speakerProfile?.name ||
+                                `说话人 #${binding.speakerProfile?.id}`}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {[
+                                binding.speakerProfile?.gender || "未知",
+                                binding.speakerProfile?.ageGroup,
+                                binding.speakerProfile?.toneStyle,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                            {binding.isPreferred && (
+                              <Badge
+                                variant="secondary"
+                                className="mt-2 text-xs"
+                              >
+                                默认说话人
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!binding.isPreferred && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() =>
+                                  handleSetDefaultSpeaker(binding.id)
+                                }
+                                disabled={updatingBindingId === binding.id}
+                                className="flex items-center gap-1"
+                              >
+                                {updatingBindingId === binding.id ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <User className="w-3 h-3" />
+                                )}
+                                设为默认
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() =>
+                                handleRemoveSpeakerBinding(binding.id)
+                              }
+                              disabled={removingBindingId === binding.id}
+                              className="text-red-600 hover:text-red-800 flex items-center gap-1"
+                            >
+                              {removingBindingId === binding.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                              移除
+                            </Button>
+                          </div>
+                        </div>
+                        {binding.speakerProfile?.referenceAudio ? (
+                          <div className="space-y-1">
+                            <p className="text-xs text-gray-500 flex items-center gap-2">
+                              <Volume2 className="w-3 h-3" />
+                              示例音频预览
+                            </p>
+                            <audio controls preload="none" className="w-full">
+                              {buildSpeakerPreviewSources(
+                                binding.speakerProfile.referenceAudio
+                              ).map((src) => (
+                                <source key={src} src={src} />
+                              ))}
+                              您的浏览器不支持音频播放
+                            </audio>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400">暂无示例音频</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="border-t pt-4">
+                  <p className="text-sm font-medium text-gray-900 mb-2">
+                    添加说话人关联
+                  </p>
+                  {isSpeakerListLoading ? (
+                    <div className="text-sm text-gray-500">
+                      <Loader2 className="w-4 h-4 mr-2 inline animate-spin" />
+                      说话人列表加载中...
+                    </div>
+                  ) : availableSpeakers.length === 0 ? (
+                    <div className="text-sm text-gray-500">
+                      暂无说话人，请先在说话人管理页面创建。
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <select
+                          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          value={selectedSpeakerId}
+                          onChange={(e) => setSelectedSpeakerId(e.target.value)}
+                        >
+                          <option value="">选择说话人</option>
+                          {availableSpeakers.map((speaker) => (
+                            <option key={speaker.id} value={speaker.id}>
+                              {speaker.name || `说话人 #${speaker.id}`} ·{" "}
+                              {speaker.gender} · {speaker.ageGroup}
+                            </option>
+                          ))}
+                        </select>
+                        <Button
+                          onClick={handleAddSpeakerBinding}
+                          disabled={
+                            speakerActionLoading || !selectedSpeakerId.length
+                          }
+                          className="flex items-center justify-center gap-2"
+                        >
+                          {speakerActionLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              添加中...
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="w-4 h-4" />
+                              添加关联
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      {selectedSpeakerId.length > 0 && (
+                        <div className="mt-4 rounded-md border border-dashed border-gray-200 p-3 space-y-2">
+                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            <Volume2 className="w-4 h-4" />
+                            {selectedSpeaker?.name ||
+                              `说话人 #${
+                                selectedSpeaker?.id || selectedSpeakerId
+                              }`}
+                            <span className="text-xs text-gray-500 font-normal">
+                              示例音频
+                            </span>
+                          </div>
+                          {selectedSpeaker?.referenceAudio ? (
+                            <audio controls preload="none" className="w-full">
+                              {buildSpeakerPreviewSources(
+                                selectedSpeaker.referenceAudio
+                              ).map((src) => (
+                                <source key={src} src={src} />
+                              ))}
+                              您的浏览器不支持音频播放
+                            </audio>
+                          ) : (
+                            <p className="text-xs text-gray-500">
+                              该说话人暂无示例音频
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  <p className="text-xs text-gray-500 mt-2">
+                    说话人数据来源于说话人管理页面，可随时前往 /tts/speakers
+                    页面进行维护。
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                请选择角色后再配置说话人。
+              </p>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

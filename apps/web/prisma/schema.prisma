@@ -57,6 +57,7 @@ model CharacterProfile {
   mergeAuditsTarget CharacterMergeAudit[]   @relation("TargetCharacter")
   book              Book                    @relation(fields: [bookId], references: [id], onDelete: Cascade)
   voiceBindings     CharacterVoiceBinding[]
+  speakerBindings   CharacterSpeakerBinding[]
   scriptSentences   ScriptSentence[]
 
   @@index([bookId])
@@ -253,9 +254,26 @@ model SpeakerProfile {
   createdAt       DateTime  @default(now()) @map("created_at")
   updatedAt       DateTime  @updatedAt @map("updated_at")
   id              Int       @id @default(autoincrement()) @map("speaker_id")
+  characterBindings CharacterSpeakerBinding[]
 
   @@index([isActive])
   @@index([gender])
   @@index([ageGroup])
   @@map("speaker_profiles")
+}
+
+model CharacterSpeakerBinding {
+  id                String           @id @default(uuid())
+  characterId       String
+  speakerProfileId  Int
+  metadata          Json             @default("{}")
+  isDefault         Boolean          @default(true)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  character         CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  speakerProfile    SpeakerProfile   @relation(fields: [speakerProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, speakerProfileId])
+  @@index([characterId])
+  @@map("character_speaker_bindings")
 }

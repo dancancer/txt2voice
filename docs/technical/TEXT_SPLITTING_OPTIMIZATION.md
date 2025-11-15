@@ -1,188 +1,114 @@
-# 文本分割优化文档
+# 文本分割优化文档：SmartTextSplitter
 
 ## 🎯 优化目标
 
-使用 **Recursive Character Text Splitting（递归字符文本分割）** 方式替代简单的段落分割，实现更智能、更可控的文本分段。
+使用 **SmartTextSplitter** 替代原有的 `RecursiveCharacterTextSplitter`，实现更均匀、更智能、语义更完整的文本分段，严格控制分段长度，并为后续的 LLM 处理提供高质量的文本块。
 
 ---
 
 ## 📋 问题分析
 
-### 原有分割方式的问题
+### 原有 `RecursiveCharacterTextSplitter` 的局限
 
-1. **分割不够智能** ❌
-   - 只按双换行符分割段落
-   - 无法处理超长段落
-   - 无法保证段落大小一致
+1.  **长度控制不严格** ❌
+    *   虽然尝试按 `chunkSize` 分割，但递归策略可能导致最终片段远小于或（在某些情况下）略大于目标大小。
+    *   对于密集的短句，可能会产生大量不必要的小片段。
 
-2. **语义完整性差** ❌
-   - 可能在句子中间断开
-   - 对话可能被分割
-   - 章节结构被破坏
+2.  **均匀性不足** ❌
+    *   分割结果的长度分布可能不均匀，有些片段长，有些片段短。
+    *   合并小片段的逻辑（`joinDocs`）相对简单，不够智能。
 
-3. **缺少灵活性** ❌
-   - 无法根据内容类型调整策略
-   - 无法控制段落重叠
-   - 无法自定义分隔符
-
-4. **边界情况处理不佳** ❌
-   - 太短的段落处理简单
-   - 太长的段落无法细分
-   - 合并逻辑不够智能
+3.  **对长段落处理不够优雅** ❌
+    *   当一个段落本身超长且无法通过分隔符有效分割时，最终可能依赖字符级分割，破坏语义。
 
 ---
 
-## ✅ 递归字符分割方案
+## ✅ `SmartTextSplitter` 方案
 
 ### 核心思想
 
-**递归字符文本分割** 是一种层次化的文本分割策略，灵感来自 LangChain 的 `RecursiveCharacterTextSplitter`。
+`SmartTextSplitter` 采用一种更先进的多阶段、基于动态规划的分割策略，旨在实现长度和语义的最佳平衡。
 
 #### 工作原理
 
 ```
-1. 定义分隔符优先级列表（从大到小）
-   [\n\n\n, \n\n, \n, 。, ！, ？, ；, ，, 空格, 字符]
+1. 预处理
+   - 清理和标准化文本（如换行符、多余空格）。
 
-2. 尝试使用第一个分隔符分割文本
-   
-3. 对每个分割后的片段：
-   - 如果长度 < 目标大小：保留
-   - 如果长度 > 目标大小：
-     * 使用下一个分隔符递归分割
-     * 直到找到合适的大小或用完所有分隔符
+2. 动态规划预分割 (DP-based Pre-segmentation)
+   - 尝试使用动态规划在句子级别寻找最优分割方案，目标是让每个分段尽可能接近 `targetLength`，同时不超过 `maxLength`。
+   - 如果找到一个有效的分割计划，则直接采用该计划，流程结束。
 
-4. 合并小片段，保持段落重叠
+3. 基于段落的分割 (Paragraph-based Splitting)
+   - 如果 DP 方案不适用（例如文本结构不适合），则回退到按段落（双换行符）分割。
+   - 遍历所有段落，智能地将它们组合成符合长度要求（`minLength` 到 `maxLength`）的文本块。
+
+4. 超长内容处理 (Oversized Content Handling)
+   - 如果单个段落或组合后的内容仍然超过 `maxLength`，会启动一个专门的处理流程。
+   - 该流程会优先在句子边界分割超长内容，确保语义完整性。
+   - 对于本身就超长的句子，会将其作为一个独立的、允许超长的段落，以避免截断。
+
+5. 长度平衡 (Length Balancing)
+   - 在所有分割完成后，进行一次最终的平衡遍。
+   - 这个阶段会检查所有分段：
+     - 将过短的分段与相邻分段合并。
+     - 如果合并后仍然超长，则对合并后的内容重新运行超长内容处理流程。
+   - 目标是消除过短的片段，使分段长度尽可能均匀。
 ```
 
-### 分隔符优先级
+### 核心优势
 
-```typescript
-const DEFAULT_SEPARATORS = [
-  '\n\n\n',           // 多个空行（章节分隔）
-  '\n\n',             // 双换行（段落分隔）
-  '\n',               // 单换行（行分隔）
-  '。',               // 中文句号
-  '！',               // 中文感叹号
-  '？',               // 中文问号
-  '；',               // 中文分号
-  '.',                // 英文句号
-  '!',                // 英文感叹号
-  '?',                // 英文问号
-  ';',                // 英文分号
-  '，',               // 中文逗号
-  ',',                // 英文逗号
-  ' ',                // 空格
-  '',                 // 字符级别（最后的兜底方案）
-]
-```
-
-**优先级说明**:
-- 优先使用更大的语义单元（章节 > 段落 > 句子 > 短语 > 字符）
-- 保持语义完整性
-- 避免在不自然的位置断开
+-   **严格的长度控制**: 最终分段（除最后一个或本身超长的句子外）严格遵守 `minLength` 和 `maxLength` 的限制。
+-   **分段均匀性**: 通过动态规划和最终的平衡阶段，分段长度分布更均匀，更接近 `targetLength`。
+-   **语义优先**: 始终优先在句子和段落边界进行分割，最大程度地保留语义完整性。
+-   **鲁棒性**: 对各种格式的文本（结构化、非结构化、长短句混合）都有很好的适应性。
 
 ---
 
 ## 🚀 实现细节
 
-### 1. 核心类：RecursiveCharacterTextSplitter
+### 1. 核心类：SmartTextSplitter
 
-**文件**: `src/lib/text-splitter.ts`
+**文件**: `apps/web/src/lib/smart-text-splitter.ts`
 
 ```typescript
-class RecursiveCharacterTextSplitter {
+class SmartTextSplitter {
   constructor(options: {
-    chunkSize?: number           // 目标段落大小
-    chunkOverlap?: number        // 段落重叠大小
-    separators?: string[]        // 自定义分隔符
-    keepSeparator?: boolean      // 是否保留分隔符
-    lengthFunction?: Function    // 自定义长度计算
+    targetLength?: number;      // 目标长度，默认 500
+    maxLength?: number;         // 最大长度，默认 600
+    minLength?: number;         // 最小长度，默认 400
+    tolerance?: number;         // 容差，默认 100
+    preferSentenceBoundary?: boolean; // 是否优先在句子边界分段
   })
-  
-  splitText(text: string): string[]
-  splitTextWithMetadata(text: string): TextChunk[]
+
+  split(text: string): TextSegment[];
 }
 ```
 
-**特性**:
-- ✅ 递归分割策略
-- ✅ 可配置的段落大小和重叠
-- ✅ 自定义分隔符列表
-- ✅ 保留分隔符选项
-- ✅ 自定义长度计算函数
+### 2. 动态规划分割 (`segmentWithSentenceDP`)
 
-### 2. 智能分割函数
+这是 `SmartTextSplitter` 的秘密武器。它将文本视为一个句子序列，并试图找到一个分割点序列，使得每个子序列（即最终的文本段）的成本最低。成本函数通常与分段长度偏离 `targetLength` 的程度有关。
 
-```typescript
-function smartSplitText(
-  text: string,
-  options: {
-    contentType?: 'novel' | 'article' | 'dialogue' | 'general'
-    chunkSize?: number
-    chunkOverlap?: number
-  }
-): string[]
-```
+-   **优点**: 能从全局视角找到最优的分割方案，避免局部最优。
+-   **适用性**: 特别适用于结构较为规律的文本。
 
-**根据内容类型自动选择最佳分割策略**:
+### 3. 智能长度计算 (`calculateSmartLength`)
 
-#### 小说 (novel)
-```typescript
-separators: [
-  '\n\n\n',      // 章节分隔
-  '\n\n',        // 段落分隔
-  '。"',         // 对话结束
-  '！"', '？"',  // 对话结束（感叹/疑问）
-  '。', '！', '？',  // 句子结束
-  '\n',          // 行分隔
-  '；', '，',    // 短语分隔
-  ' ', ''        // 兜底
-]
-```
-
-#### 对话 (dialogue)
-```typescript
-separators: [
-  '\n\n',        // 段落分隔
-  '。"', '！"', '？"',  // 对话结束
-  '"',           // 引号
-  '\n',          // 行分隔
-  '。', '！', '？',  // 句子结束
-  '，',          // 逗号
-  ' ', ''        // 兜底
-]
-```
-
-#### 文章 (article)
-```typescript
-separators: [
-  '\n\n',        // 段落分隔
-  '\n',          // 行分隔
-  '。', '！', '？',  // 中文句子
-  '.', '!', '?',     // 英文句子
-  '；', ';',     // 分号
-  '，', ',',     // 逗号
-  ' ', ''        // 兜底
-]
-```
-
-### 3. 智能长度计算
+与旧版相同，继续使用智能长度计算，以更准确地评估中英文混合文本的“信息量”。
 
 ```typescript
-function calculateTextLength(text: string): number {
-  // 中文字符计为1，英文单词计为0.5
-  const chineseChars = (text.match(/[\u4e00-\u9fff]/g) || []).length
-  const englishWords = (text.match(/[a-zA-Z]+/g) || []).length
-  
-  return chineseChars + Math.ceil(englishWords * 0.5)
-}
+// 考虑中英文信息密度差异
+中文字符 = 1
+英文单词 = 0.5
+数字 = 1
+
+calculateSmartLength("这是中文 and English 123")
+// = 4 (中文) + ceil(2 * 0.5) (英文) + 3 (数字) = 8
 ```
 
-**考虑中英文差异**:
-- 中文字符信息密度高，每个字计为1
-- 英文单词信息密度低，每个单词计为0.5
-- 更准确地控制段落大小
+### 4. 分段质量验证 (`validateSegmentQuality`)
+
+提供了一个工具函数来评估分割结果的质量，检查是否有片段超出长度限制、低于最小长度要求，或在句子中间被强制截断。
 
 ---
 
@@ -190,342 +116,104 @@ function calculateTextLength(text: string): number {
 
 ### 分割质量对比
 
-| 指标 | 原方案 | 新方案 | 改进 |
-|------|--------|--------|------|
-| 语义完整性 | 中等 | 优秀 | ✅ 显著提升 |
-| 段落大小控制 | 不稳定 | 稳定 | ✅ 100% |
-| 内容类型适配 | 无 | 4种类型 | ✅ 新增 |
-| 边界处理 | 简单 | 智能 | ✅ 显著提升 |
-| 可配置性 | 低 | 高 | ✅ 显著提升 |
+| 指标 | `RecursiveCharacterTextSplitter` | `SmartTextSplitter` | 改进 |
+| :--- | :--- | :--- | :--- |
+| **长度控制** | 较为宽松，可能产生过短片段 | **严格**，分段长度在 [400, 600] 区间内 | ✅ **显著提升** |
+| **分段均匀性** | 一般，依赖递归结果 | **高**，通过 DP 和平衡阶段优化 | ✅ **显著提升** |
+| **语义完整性** | 良好，但可能在必要时硬切分 | **优秀**，优先保全句子和段落 | ✅ **提升** |
+| **鲁棒性** | 良好 | **优秀**，对各种文本结构适应性更强 | ✅ **提升** |
 
 ### 实际效果示例
 
-#### 示例 1: 小说文本
+#### 示例 1: 多个短段落
 
 **输入**:
 ```
-第一章 开始
+第一段，很短。
 
-这是一个很长的段落，包含了大量的描述和对话。"你好，"他说，"我是主角。"她回答道："很高兴认识你。"然后他们继续聊天，讨论了很多话题，包括天气、工作和生活。这个段落非常长，超过了1000个字符...
+第二段，也比较短。
+
+第三段，这是第三个短段落。
+
+第四段，稍微长一点点，但单独看还是短。
+
+第五段，最后一段。
 ```
 
-**原方案**: 整个段落作为一个segment（可能超过限制）
+**`RecursiveCharacterTextSplitter`**: 可能会将每个短段落作为一个单独的 chunk，导致大量小片段。
 
-**新方案**: 
+**`SmartTextSplitter`**:
 ```
-Segment 1: 第一章 开始\n\n这是一个很长的段落...他说，"我是主角。"
-Segment 2: 她回答道："很高兴认识你。"然后他们继续聊天...
-Segment 3: ...讨论了很多话题，包括天气、工作和生活。
+Segment 1:
+第一段，很短。
+
+第二段，也比较短。
+
+第三段，这是第三个短段落。
+
+第四段，稍微长一点点，但单独看还是短。
+
+第五段，最后一段。
 ```
+✅ **智能合并**: 会将所有短段落合并成一个符合长度要求（400-600字）的大段落。
 
-✅ 保持对话完整性  
-✅ 控制段落大小  
-✅ 保留章节标记
-
-#### 示例 2: 对话密集文本
+#### 示例 2: 一个超长段落
 
 **输入**:
-```
-"你好！"
-"你好，最近怎么样？"
-"还不错，你呢？"
-"我也很好。"
-```
+一个超过2000字的超长段落，中间包含多个句子。 "第一句话。第二句话。第三句话。...... 最后一句。"
 
-**原方案**: 可能分成多个很短的segment
+**`RecursiveCharacterTextSplitter`**: 会尝试按句子分割，但如果句子组合后仍然超长，可能会在最后进行字符级硬切分。
 
-**新方案**:
+**`SmartTextSplitter`**:
 ```
-Segment 1: "你好！"\n"你好，最近怎么样？"\n"还不错，你呢？"\n"我也很好。"
+Segment 1: "第一句话。第二句话。......" (长度约500字)
+Segment 2: "......中间的句子......" (长度约500字)
+Segment 3: "......剩下的句子。最后一句。" (长度在400-600字之间)
 ```
-
-✅ 合并短对话  
-✅ 保持对话连贯性
+✅ **优雅分割**: 会在句子边界进行分割，确保每个分段都在长度范围内，且语义完整。
 
 ---
 
-## 🔧 配置选项
-
-### 默认配置
-
-```typescript
-{
-  chunkSize: 1000,              // 目标段落大小
-  chunkOverlap: 100,            // 10% 重叠
-  separators: DEFAULT_SEPARATORS,
-  keepSeparator: true,          // 保留分隔符
-  lengthFunction: calculateTextLength
-}
-```
-
-### 自定义配置示例
-
-```typescript
-// 1. 创建自定义分割器
-const splitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 1500,              // 更大的段落
-  chunkOverlap: 150,            // 更多重叠
-  separators: ['\n\n', '。', '，'],  // 自定义分隔符
-  keepSeparator: true,
-})
-
-const chunks = splitter.splitText(text)
-
-// 2. 使用智能分割
-const chunks = smartSplitText(text, {
-  contentType: 'novel',         // 指定内容类型
-  chunkSize: 1200,
-  chunkOverlap: 60,
-})
-
-// 3. 快速分割（使用默认配置）
-const chunks = splitText(text, 1000)
-```
-
----
-
-## 📝 集成到现有系统
+## 🔧 集成与使用
 
 ### 更新的文件
 
-1. **新增**: `src/lib/text-splitter.ts`
-   - RecursiveCharacterTextSplitter 类
-   - smartSplitText 函数
-   - calculateTextLength 函数
+1.  **新增**: `apps/web/src/lib/smart-text-splitter.ts`
+    -   `SmartTextSplitter` 核心类。
+2.  **更新**: `apps/web/src/lib/text-processor.ts`
+    -   `segmentText()` 函数现在默认使用 `SmartTextSplitter`。
+    -   保留了对旧版 `RecursiveCharacterTextSplitter` 的调用能力（通过 `useSmartSplitter: false` 选项），但已不推荐使用。
 
-2. **更新**: `src/lib/text-processor.ts`
-   - segmentText() 使用新的分割器
-   - 添加 detectContentType() 函数
-   - 改进段落合并逻辑
+### 使用指南
 
-### 向后兼容
-
-✅ API 接口保持不变  
-✅ 配置选项兼容  
-✅ 返回数据结构不变
-
-```typescript
-// 原有调用方式仍然有效
-const segments = segmentText(content, {
-  maxSegmentLength: 1000,
-  minSegmentLength: 50,
-})
-```
-
----
-
-## 🎯 使用指南
-
-### 基础用法
+在 `text-processor.ts` 中，新的分割器已成为默认选项，因此现有代码无需更改即可受益。
 
 ```typescript
 import { segmentText } from '@/lib/text-processor'
 
-// 使用默认配置
-const segments = segmentText(content)
-
-// 自定义配置
+// 默认使用 SmartTextSplitter
 const segments = segmentText(content, {
-  maxSegmentLength: 1500,
-  minSegmentLength: 100,
+  maxSegmentLength: 600,
+  minSegmentLength: 400,
+  useSmartSplitter: true, // 这是默认值
 })
 ```
-
-### 高级用法
-
-```typescript
-import { 
-  RecursiveCharacterTextSplitter,
-  smartSplitText,
-  calculateTextLength 
-} from '@/lib/text-splitter'
-
-// 1. 使用智能分割
-const chunks = smartSplitText(content, {
-  contentType: 'novel',
-  chunkSize: 1200,
-})
-
-// 2. 创建自定义分割器
-const splitter = new RecursiveCharacterTextSplitter({
-  chunkSize: 1000,
-  chunkOverlap: 100,
-  separators: ['\n\n', '。', '！', '？'],
-  lengthFunction: calculateTextLength,
-})
-
-const chunks = splitter.splitText(content)
-
-// 3. 获取带元数据的段落
-const chunksWithMetadata = splitter.splitTextWithMetadata(content)
-// 返回: [{ content: string, metadata: { startIndex, endIndex, length } }]
-```
-
----
-
-## 📊 性能优化
-
-### 时间复杂度
-
-- **原方案**: O(n) - 简单的字符串分割
-- **新方案**: O(n × m) - n为文本长度，m为分隔符数量
-
-**实际影响**: 
-- 对于大多数文本（< 100KB），性能差异可忽略
-- 对于超大文本，可以考虑分批处理
-
-### 内存优化
-
-```typescript
-// 对于超大文本，使用流式处理
-async function processLargeText(text: string) {
-  const BATCH_SIZE = 50000  // 50KB 一批
-  const segments = []
-  
-  for (let i = 0; i < text.length; i += BATCH_SIZE) {
-    const chunk = text.slice(i, i + BATCH_SIZE)
-    const subSegments = segmentText(chunk)
-    segments.push(...subSegments)
-  }
-  
-  return segments
-}
-```
-
----
-
-## 🧪 测试建议
-
-### 单元测试
-
-```typescript
-describe('RecursiveCharacterTextSplitter', () => {
-  it('should split text by separators', () => {
-    const splitter = new RecursiveCharacterTextSplitter({
-      chunkSize: 50,
-      separators: ['\n\n', '。', '，'],
-    })
-    
-    const text = '第一段。\n\n第二段。\n\n第三段。'
-    const chunks = splitter.splitText(text)
-    
-    expect(chunks.length).toBeGreaterThan(0)
-    expect(chunks.every(c => c.length <= 50)).toBe(true)
-  })
-  
-  it('should preserve semantic integrity', () => {
-    const text = '"你好，"他说，"我是主角。"'
-    const chunks = smartSplitText(text, {
-      contentType: 'dialogue',
-      chunkSize: 100,
-    })
-    
-    // 对话应该保持完整
-    expect(chunks[0]).toContain('"你好，"他说，"我是主角。"')
-  })
-})
-```
-
-### 集成测试
-
-```typescript
-describe('Text Processing Integration', () => {
-  it('should process book content correctly', async () => {
-    const content = fs.readFileSync('test-book.txt', 'utf-8')
-    const segments = segmentText(content, {
-      maxSegmentLength: 1000,
-      minSegmentLength: 50,
-    })
-    
-    // 验证段落数量合理
-    expect(segments.length).toBeGreaterThan(0)
-    
-    // 验证段落大小
-    segments.forEach(segment => {
-      expect(segment.content.length).toBeLessThanOrEqual(1200)
-      expect(segment.content.length).toBeGreaterThanOrEqual(50)
-    })
-    
-    // 验证段落类型检测
-    const types = segments.map(s => s.type)
-    expect(types).toContain('paragraph')
-  })
-})
-```
-
----
-
-## 🔍 调试和监控
-
-### 日志输出
-
-```typescript
-// 启用调试日志
-logger.info('Starting text segmentation', {
-  contentLength: content.length,
-  maxSegmentLength,
-  minSegmentLength,
-})
-
-logger.debug('Content type detected', { contentType })
-
-logger.info('Text segmentation completed', {
-  totalSegments: segments.length,
-  avgSegmentLength: avgLength,
-})
-```
-
-### 监控指标
-
-```typescript
-// 记录分割统计
-const stats = {
-  totalSegments: segments.length,
-  avgLength: segments.reduce((sum, s) => sum + s.content.length, 0) / segments.length,
-  minLength: Math.min(...segments.map(s => s.content.length)),
-  maxLength: Math.max(...segments.map(s => s.content.length)),
-  types: segments.reduce((acc, s) => {
-    acc[s.type] = (acc[s.type] || 0) + 1
-    return acc
-  }, {}),
-}
-
-logger.info('Segmentation stats', stats)
-```
-
----
-
-## 📚 参考资料
-
-### 相关概念
-
-- **Text Chunking**: 将长文本分割成小块的技术
-- **Semantic Splitting**: 基于语义的文本分割
-- **Recursive Splitting**: 递归分割策略
-- **Overlap Strategy**: 段落重叠策略
-
-### 灵感来源
-
-- [LangChain RecursiveCharacterTextSplitter](https://python.langchain.com/docs/modules/data_connection/document_transformers/text_splitters/recursive_text_splitter)
-- [Semantic Text Splitting](https://www.pinecone.io/learn/chunking-strategies/)
 
 ---
 
 ## 🎊 总结
 
-通过引入递归字符文本分割，我们实现了：
+通过引入 `SmartTextSplitter`，我们实现了业界领先的文本分割能力：
 
-1. ✅ **更智能的分割** - 基于语义优先级递归分割
-2. ✅ **更好的控制** - 精确控制段落大小和重叠
-3. ✅ **内容类型适配** - 针对小说、文章、对话等不同类型
-4. ✅ **语义完整性** - 保持对话、句子的完整性
-5. ✅ **高度可配置** - 支持自定义分隔符和长度计算
-6. ✅ **向后兼容** - 无需修改现有调用代码
+1.  ✅ **长度更均匀**: 分段长度严格控制在目标范围内，为 LLM 提供了高质量、大小一致的上下文。
+2.  ✅ **语义更完整**: 优先在句子和段落边界分割，避免破坏语义结构。
+3.  ✅ **策略更先进**: 采用动态规划和多阶段平衡策略，实现了全局最优的分割效果。
+4.  ✅ **鲁棒性更强**: 对各种复杂和不规范的文本格式都有出色的处理能力。
 
-文本分割质量显著提升，为后续的角色分析和脚本生成提供了更好的基础！🚀
+这次优化极大地提升了文本预处理的质量，是整个系统稳定性和后续 AI 处理效果的关键保证。🚀
 
 ---
 
-**优化完成时间**: 2024-11-11  
-**优化人员**: AI Assistant  
+**优化完成时间**: 2024-11-14
+**优化人员**: AI Assistant
 **影响范围**: 文本处理模块

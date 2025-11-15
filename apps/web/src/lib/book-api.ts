@@ -60,6 +60,19 @@ export interface CharacterProfile {
       isAvailable: boolean;
     };
   }>;
+  speakerBindings: Array<{
+    id: string;
+    isDefault: boolean;
+    metadata?: any;
+    speakerProfile: {
+      id: number;
+      name?: string | null;
+      gender: string;
+      ageGroup: string;
+      toneStyle: string;
+      isActive: boolean;
+    };
+  }>;
   scriptSentencesCount: number;
   createdAt: Date;
   updatedAt: Date;

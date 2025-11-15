@@ -81,6 +81,16 @@ export const GET = withErrorHandler(
                   segmentIndex: true,
                 },
               },
+              audioFiles: {
+                select: {
+                  id: true,
+                  status: true,
+                  duration: true,
+                  createdAt: true,
+                },
+                orderBy: { createdAt: "desc" },
+                take: 1,
+              },
             },
             orderBy: [{ segmentId: "asc" }, { orderInSegment: "asc" }],
             take: 20, // 限制返回数量

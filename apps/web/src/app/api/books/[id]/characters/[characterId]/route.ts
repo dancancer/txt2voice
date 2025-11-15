@@ -52,6 +52,11 @@ export const GET = withErrorHandler(async (
           voiceProfile: true
         }
       },
+      speakerBindings: {
+        include: {
+          speakerProfile: true
+        }
+      },
       scriptSentences: {
         include: {
           segment: {
@@ -100,6 +105,12 @@ export const GET = withErrorHandler(async (
           style: (binding.voiceProfile.characteristics as any)?.style
         },
         isPreferred: binding.isDefault
+      })),
+      speakerBindings: character.speakerBindings.map(binding => ({
+        id: binding.id,
+        speakerProfile: binding.speakerProfile,
+        isPreferred: binding.isDefault,
+        metadata: binding.metadata
       })),
       scriptSentences: character.scriptSentences.map(sentence => ({
         id: sentence.id,

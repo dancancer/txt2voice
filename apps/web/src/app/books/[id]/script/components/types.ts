@@ -17,6 +17,11 @@ export interface ScriptSentence {
     content: string;
     orderIndex: number;
   };
+  audioFiles?: Array<{
+    id: string;
+    status: string;
+    duration?: number | string | null;
+  }>;
 }
 
 export interface CharacterProfile {

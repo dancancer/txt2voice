@@ -68,6 +68,20 @@ export const GET = withErrorHandler(
             },
           },
         },
+        speakerBindings: {
+          include: {
+            speakerProfile: {
+              select: {
+                id: true,
+                name: true,
+                gender: true,
+                ageGroup: true,
+                toneStyle: true,
+                isActive: true,
+              },
+            },
+          },
+        },
         _count: {
           select: {
             scriptSentences: true,
@@ -141,6 +155,12 @@ export const GET = withErrorHandler(
         customParameters: binding.customParameters,
         emotionMappings: binding.emotionMappings,
         voiceProfile: binding.voiceProfile,
+      })),
+      speakerBindings: character.speakerBindings.map((binding) => ({
+        id: binding.id,
+        isDefault: binding.isDefault,
+        metadata: binding.metadata,
+        speakerProfile: binding.speakerProfile,
       })),
       scriptSentencesCount: character._count.scriptSentences,
       createdAt: character.createdAt,
@@ -266,6 +286,11 @@ export const POST = withErrorHandler(
         voiceBindings: {
           include: {
             voiceProfile: true,
+          },
+        },
+        speakerBindings: {
+          include: {
+            speakerProfile: true,
           },
         },
       },

@@ -89,6 +89,9 @@ export const GET = withErrorHandler(
     // 格式化返回数据
     const formattedScripts = scripts.map((script) => ({
       id: script.id,
+      bookId: script.bookId,
+      segmentId: script.segmentId,
+      characterId: script.characterId,
       text: script.text,
       rawSpeaker: script.rawSpeaker,
       tone: script.tone,

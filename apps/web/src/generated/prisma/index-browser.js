@@ -150,10 +150,10 @@ exports.Prisma.CharacterProfileScalarFieldEnum = {
   ageHint: 'ageHint',
   emotionBaseline: 'emotionBaseline',
   isActive: 'isActive',
-  mentions: 'mentions',
-  quotes: 'quotes',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  mentions: 'mentions',
+  quotes: 'quotes'
 };
 
 exports.Prisma.CharacterAliasScalarFieldEnum = {
@@ -262,15 +262,14 @@ exports.Prisma.ProcessingTaskScalarFieldEnum = {
   processedItems: 'processedItems',
   taskData: 'taskData',
   errorMessage: 'errorMessage',
-  externalTaskId: 'externalTaskId',
   startedAt: 'startedAt',
   completedAt: 'completedAt',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  externalTaskId: 'externalTaskId'
 };
 
 exports.Prisma.SpeakerProfileScalarFieldEnum = {
-  id: 'id',
   name: 'name',
   gender: 'gender',
   ageGroup: 'ageGroup',
@@ -284,6 +283,17 @@ exports.Prisma.SpeakerProfileScalarFieldEnum = {
   usageCount: 'usageCount',
   lastUsedAt: 'lastUsedAt',
   syncedAt: 'syncedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  id: 'id'
+};
+
+exports.Prisma.CharacterSpeakerBindingScalarFieldEnum = {
+  id: 'id',
+  characterId: 'characterId',
+  speakerProfileId: 'speakerProfileId',
+  metadata: 'metadata',
+  isDefault: 'isDefault',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -330,7 +340,8 @@ exports.Prisma.ModelName = {
   AudioFile: 'AudioFile',
   CharacterMergeAudit: 'CharacterMergeAudit',
   ProcessingTask: 'ProcessingTask',
-  SpeakerProfile: 'SpeakerProfile'
+  SpeakerProfile: 'SpeakerProfile',
+  CharacterSpeakerBinding: 'CharacterSpeakerBinding'
 };
 
 /**

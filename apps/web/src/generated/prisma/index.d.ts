@@ -68,6 +68,11 @@ export type ProcessingTask = $Result.DefaultSelection<Prisma.$ProcessingTaskPayl
  * 
  */
 export type SpeakerProfile = $Result.DefaultSelection<Prisma.$SpeakerProfilePayload>
+/**
+ * Model CharacterSpeakerBinding
+ * 
+ */
+export type CharacterSpeakerBinding = $Result.DefaultSelection<Prisma.$CharacterSpeakerBindingPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -296,6 +301,16 @@ export class PrismaClient<
     * ```
     */
   get speakerProfile(): Prisma.SpeakerProfileDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.characterSpeakerBinding`: Exposes CRUD operations for the **CharacterSpeakerBinding** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CharacterSpeakerBindings
+    * const characterSpeakerBindings = await prisma.characterSpeakerBinding.findMany()
+    * ```
+    */
+  get characterSpeakerBinding(): Prisma.CharacterSpeakerBindingDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -747,7 +762,8 @@ export namespace Prisma {
     AudioFile: 'AudioFile',
     CharacterMergeAudit: 'CharacterMergeAudit',
     ProcessingTask: 'ProcessingTask',
-    SpeakerProfile: 'SpeakerProfile'
+    SpeakerProfile: 'SpeakerProfile',
+    CharacterSpeakerBinding: 'CharacterSpeakerBinding'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -766,7 +782,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "book" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile"
+      modelProps: "book" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1584,6 +1600,80 @@ export namespace Prisma {
           }
         }
       }
+      CharacterSpeakerBinding: {
+        payload: Prisma.$CharacterSpeakerBindingPayload<ExtArgs>
+        fields: Prisma.CharacterSpeakerBindingFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CharacterSpeakerBindingFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CharacterSpeakerBindingFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>
+          }
+          findFirst: {
+            args: Prisma.CharacterSpeakerBindingFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CharacterSpeakerBindingFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>
+          }
+          findMany: {
+            args: Prisma.CharacterSpeakerBindingFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>[]
+          }
+          create: {
+            args: Prisma.CharacterSpeakerBindingCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>
+          }
+          createMany: {
+            args: Prisma.CharacterSpeakerBindingCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CharacterSpeakerBindingCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>[]
+          }
+          delete: {
+            args: Prisma.CharacterSpeakerBindingDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>
+          }
+          update: {
+            args: Prisma.CharacterSpeakerBindingUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>
+          }
+          deleteMany: {
+            args: Prisma.CharacterSpeakerBindingDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CharacterSpeakerBindingUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CharacterSpeakerBindingUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>[]
+          }
+          upsert: {
+            args: Prisma.CharacterSpeakerBindingUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CharacterSpeakerBindingPayload>
+          }
+          aggregate: {
+            args: Prisma.CharacterSpeakerBindingAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCharacterSpeakerBinding>
+          }
+          groupBy: {
+            args: Prisma.CharacterSpeakerBindingGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CharacterSpeakerBindingGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CharacterSpeakerBindingCountArgs<ExtArgs>
+            result: $Utils.Optional<CharacterSpeakerBindingCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1691,6 +1781,7 @@ export namespace Prisma {
     characterMergeAudit?: CharacterMergeAuditOmit
     processingTask?: ProcessingTaskOmit
     speakerProfile?: SpeakerProfileOmit
+    characterSpeakerBinding?: CharacterSpeakerBindingOmit
   }
 
   /* Types for Logging */
@@ -1851,6 +1942,7 @@ export namespace Prisma {
     mergeAuditsSource: number
     mergeAuditsTarget: number
     voiceBindings: number
+    speakerBindings: number
     scriptSentences: number
   }
 
@@ -1859,6 +1951,7 @@ export namespace Prisma {
     mergeAuditsSource?: boolean | CharacterProfileCountOutputTypeCountMergeAuditsSourceArgs
     mergeAuditsTarget?: boolean | CharacterProfileCountOutputTypeCountMergeAuditsTargetArgs
     voiceBindings?: boolean | CharacterProfileCountOutputTypeCountVoiceBindingsArgs
+    speakerBindings?: boolean | CharacterProfileCountOutputTypeCountSpeakerBindingsArgs
     scriptSentences?: boolean | CharacterProfileCountOutputTypeCountScriptSentencesArgs
   }
 
@@ -1899,6 +1992,13 @@ export namespace Prisma {
    */
   export type CharacterProfileCountOutputTypeCountVoiceBindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CharacterVoiceBindingWhereInput
+  }
+
+  /**
+   * CharacterProfileCountOutputType without action
+   */
+  export type CharacterProfileCountOutputTypeCountSpeakerBindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CharacterSpeakerBindingWhereInput
   }
 
   /**
@@ -2017,6 +2117,37 @@ export namespace Prisma {
    */
   export type ScriptSentenceCountOutputTypeCountAudioFilesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AudioFileWhereInput
+  }
+
+
+  /**
+   * Count Type SpeakerProfileCountOutputType
+   */
+
+  export type SpeakerProfileCountOutputType = {
+    characterBindings: number
+  }
+
+  export type SpeakerProfileCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    characterBindings?: boolean | SpeakerProfileCountOutputTypeCountCharacterBindingsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * SpeakerProfileCountOutputType without action
+   */
+  export type SpeakerProfileCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SpeakerProfileCountOutputType
+     */
+    select?: SpeakerProfileCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * SpeakerProfileCountOutputType without action
+   */
+  export type SpeakerProfileCountOutputTypeCountCharacterBindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CharacterSpeakerBindingWhereInput
   }
 
 
@@ -3438,10 +3569,10 @@ export namespace Prisma {
     ageHint: number | null
     emotionBaseline: string | null
     isActive: boolean | null
-    mentions: number | null
-    quotes: number | null
     createdAt: Date | null
     updatedAt: Date | null
+    mentions: number | null
+    quotes: number | null
   }
 
   export type CharacterProfileMaxAggregateOutputType = {
@@ -3452,10 +3583,10 @@ export namespace Prisma {
     ageHint: number | null
     emotionBaseline: string | null
     isActive: boolean | null
-    mentions: number | null
-    quotes: number | null
     createdAt: Date | null
     updatedAt: Date | null
+    mentions: number | null
+    quotes: number | null
   }
 
   export type CharacterProfileCountAggregateOutputType = {
@@ -3469,10 +3600,10 @@ export namespace Prisma {
     ageHint: number
     emotionBaseline: number
     isActive: number
-    mentions: number
-    quotes: number
     createdAt: number
     updatedAt: number
+    mentions: number
+    quotes: number
     _all: number
   }
 
@@ -3497,10 +3628,10 @@ export namespace Prisma {
     ageHint?: true
     emotionBaseline?: true
     isActive?: true
-    mentions?: true
-    quotes?: true
     createdAt?: true
     updatedAt?: true
+    mentions?: true
+    quotes?: true
   }
 
   export type CharacterProfileMaxAggregateInputType = {
@@ -3511,10 +3642,10 @@ export namespace Prisma {
     ageHint?: true
     emotionBaseline?: true
     isActive?: true
-    mentions?: true
-    quotes?: true
     createdAt?: true
     updatedAt?: true
+    mentions?: true
+    quotes?: true
   }
 
   export type CharacterProfileCountAggregateInputType = {
@@ -3528,10 +3659,10 @@ export namespace Prisma {
     ageHint?: true
     emotionBaseline?: true
     isActive?: true
-    mentions?: true
-    quotes?: true
     createdAt?: true
     updatedAt?: true
+    mentions?: true
+    quotes?: true
     _all?: true
   }
 
@@ -3632,10 +3763,10 @@ export namespace Prisma {
     ageHint: number | null
     emotionBaseline: string
     isActive: boolean
-    mentions: number | null
-    quotes: number | null
     createdAt: Date
     updatedAt: Date
+    mentions: number | null
+    quotes: number | null
     _count: CharacterProfileCountAggregateOutputType | null
     _avg: CharacterProfileAvgAggregateOutputType | null
     _sum: CharacterProfileSumAggregateOutputType | null
@@ -3668,15 +3799,16 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
-    mentions?: boolean
-    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    mentions?: boolean
+    quotes?: boolean
     aliases?: boolean | CharacterProfile$aliasesArgs<ExtArgs>
     mergeAuditsSource?: boolean | CharacterProfile$mergeAuditsSourceArgs<ExtArgs>
     mergeAuditsTarget?: boolean | CharacterProfile$mergeAuditsTargetArgs<ExtArgs>
     book?: boolean | BookDefaultArgs<ExtArgs>
     voiceBindings?: boolean | CharacterProfile$voiceBindingsArgs<ExtArgs>
+    speakerBindings?: boolean | CharacterProfile$speakerBindingsArgs<ExtArgs>
     scriptSentences?: boolean | CharacterProfile$scriptSentencesArgs<ExtArgs>
     _count?: boolean | CharacterProfileCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["characterProfile"]>
@@ -3692,10 +3824,10 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
-    mentions?: boolean
-    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    mentions?: boolean
+    quotes?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["characterProfile"]>
 
@@ -3710,10 +3842,10 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
-    mentions?: boolean
-    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    mentions?: boolean
+    quotes?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["characterProfile"]>
 
@@ -3728,19 +3860,20 @@ export namespace Prisma {
     ageHint?: boolean
     emotionBaseline?: boolean
     isActive?: boolean
-    mentions?: boolean
-    quotes?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    mentions?: boolean
+    quotes?: boolean
   }
 
-  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "mentions" | "quotes" | "createdAt" | "updatedAt", ExtArgs["result"]["characterProfile"]>
+  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "createdAt" | "updatedAt" | "mentions" | "quotes", ExtArgs["result"]["characterProfile"]>
   export type CharacterProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aliases?: boolean | CharacterProfile$aliasesArgs<ExtArgs>
     mergeAuditsSource?: boolean | CharacterProfile$mergeAuditsSourceArgs<ExtArgs>
     mergeAuditsTarget?: boolean | CharacterProfile$mergeAuditsTargetArgs<ExtArgs>
     book?: boolean | BookDefaultArgs<ExtArgs>
     voiceBindings?: boolean | CharacterProfile$voiceBindingsArgs<ExtArgs>
+    speakerBindings?: boolean | CharacterProfile$speakerBindingsArgs<ExtArgs>
     scriptSentences?: boolean | CharacterProfile$scriptSentencesArgs<ExtArgs>
     _count?: boolean | CharacterProfileCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -3759,6 +3892,7 @@ export namespace Prisma {
       mergeAuditsTarget: Prisma.$CharacterMergeAuditPayload<ExtArgs>[]
       book: Prisma.$BookPayload<ExtArgs>
       voiceBindings: Prisma.$CharacterVoiceBindingPayload<ExtArgs>[]
+      speakerBindings: Prisma.$CharacterSpeakerBindingPayload<ExtArgs>[]
       scriptSentences: Prisma.$ScriptSentencePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -3772,10 +3906,10 @@ export namespace Prisma {
       ageHint: number | null
       emotionBaseline: string
       isActive: boolean
-      mentions: number | null
-      quotes: number | null
       createdAt: Date
       updatedAt: Date
+      mentions: number | null
+      quotes: number | null
     }, ExtArgs["result"]["characterProfile"]>
     composites: {}
   }
@@ -4175,6 +4309,7 @@ export namespace Prisma {
     mergeAuditsTarget<T extends CharacterProfile$mergeAuditsTargetArgs<ExtArgs> = {}>(args?: Subset<T, CharacterProfile$mergeAuditsTargetArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterMergeAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     book<T extends BookDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BookDefaultArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     voiceBindings<T extends CharacterProfile$voiceBindingsArgs<ExtArgs> = {}>(args?: Subset<T, CharacterProfile$voiceBindingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterVoiceBindingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    speakerBindings<T extends CharacterProfile$speakerBindingsArgs<ExtArgs> = {}>(args?: Subset<T, CharacterProfile$speakerBindingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     scriptSentences<T extends CharacterProfile$scriptSentencesArgs<ExtArgs> = {}>(args?: Subset<T, CharacterProfile$scriptSentencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScriptSentencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -4215,10 +4350,10 @@ export namespace Prisma {
     readonly ageHint: FieldRef<"CharacterProfile", 'Int'>
     readonly emotionBaseline: FieldRef<"CharacterProfile", 'String'>
     readonly isActive: FieldRef<"CharacterProfile", 'Boolean'>
-    readonly mentions: FieldRef<"CharacterProfile", 'Int'>
-    readonly quotes: FieldRef<"CharacterProfile", 'Int'>
     readonly createdAt: FieldRef<"CharacterProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"CharacterProfile", 'DateTime'>
+    readonly mentions: FieldRef<"CharacterProfile", 'Int'>
+    readonly quotes: FieldRef<"CharacterProfile", 'Int'>
   }
     
 
@@ -4708,6 +4843,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: CharacterVoiceBindingScalarFieldEnum | CharacterVoiceBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CharacterProfile.speakerBindings
+   */
+  export type CharacterProfile$speakerBindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    where?: CharacterSpeakerBindingWhereInput
+    orderBy?: CharacterSpeakerBindingOrderByWithRelationInput | CharacterSpeakerBindingOrderByWithRelationInput[]
+    cursor?: CharacterSpeakerBindingWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CharacterSpeakerBindingScalarFieldEnum | CharacterSpeakerBindingScalarFieldEnum[]
   }
 
   /**
@@ -13158,11 +13317,11 @@ export namespace Prisma {
     totalItems: number | null
     processedItems: number | null
     errorMessage: string | null
-    externalTaskId: string | null
     startedAt: Date | null
     completedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    externalTaskId: string | null
   }
 
   export type ProcessingTaskMaxAggregateOutputType = {
@@ -13174,11 +13333,11 @@ export namespace Prisma {
     totalItems: number | null
     processedItems: number | null
     errorMessage: string | null
-    externalTaskId: string | null
     startedAt: Date | null
     completedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    externalTaskId: string | null
   }
 
   export type ProcessingTaskCountAggregateOutputType = {
@@ -13191,11 +13350,11 @@ export namespace Prisma {
     processedItems: number
     taskData: number
     errorMessage: number
-    externalTaskId: number
     startedAt: number
     completedAt: number
     createdAt: number
     updatedAt: number
+    externalTaskId: number
     _all: number
   }
 
@@ -13221,11 +13380,11 @@ export namespace Prisma {
     totalItems?: true
     processedItems?: true
     errorMessage?: true
-    externalTaskId?: true
     startedAt?: true
     completedAt?: true
     createdAt?: true
     updatedAt?: true
+    externalTaskId?: true
   }
 
   export type ProcessingTaskMaxAggregateInputType = {
@@ -13237,11 +13396,11 @@ export namespace Prisma {
     totalItems?: true
     processedItems?: true
     errorMessage?: true
-    externalTaskId?: true
     startedAt?: true
     completedAt?: true
     createdAt?: true
     updatedAt?: true
+    externalTaskId?: true
   }
 
   export type ProcessingTaskCountAggregateInputType = {
@@ -13254,11 +13413,11 @@ export namespace Prisma {
     processedItems?: true
     taskData?: true
     errorMessage?: true
-    externalTaskId?: true
     startedAt?: true
     completedAt?: true
     createdAt?: true
     updatedAt?: true
+    externalTaskId?: true
     _all?: true
   }
 
@@ -13358,11 +13517,11 @@ export namespace Prisma {
     processedItems: number
     taskData: JsonValue
     errorMessage: string | null
-    externalTaskId: string | null
     startedAt: Date | null
     completedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    externalTaskId: string | null
     _count: ProcessingTaskCountAggregateOutputType | null
     _avg: ProcessingTaskAvgAggregateOutputType | null
     _sum: ProcessingTaskSumAggregateOutputType | null
@@ -13394,11 +13553,11 @@ export namespace Prisma {
     processedItems?: boolean
     taskData?: boolean
     errorMessage?: boolean
-    externalTaskId?: boolean
     startedAt?: boolean
     completedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    externalTaskId?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["processingTask"]>
 
@@ -13412,11 +13571,11 @@ export namespace Prisma {
     processedItems?: boolean
     taskData?: boolean
     errorMessage?: boolean
-    externalTaskId?: boolean
     startedAt?: boolean
     completedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    externalTaskId?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["processingTask"]>
 
@@ -13430,11 +13589,11 @@ export namespace Prisma {
     processedItems?: boolean
     taskData?: boolean
     errorMessage?: boolean
-    externalTaskId?: boolean
     startedAt?: boolean
     completedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    externalTaskId?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["processingTask"]>
 
@@ -13448,14 +13607,14 @@ export namespace Prisma {
     processedItems?: boolean
     taskData?: boolean
     errorMessage?: boolean
-    externalTaskId?: boolean
     startedAt?: boolean
     completedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    externalTaskId?: boolean
   }
 
-  export type ProcessingTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "taskType" | "status" | "progress" | "totalItems" | "processedItems" | "taskData" | "errorMessage" | "externalTaskId" | "startedAt" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["processingTask"]>
+  export type ProcessingTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "taskType" | "status" | "progress" | "totalItems" | "processedItems" | "taskData" | "errorMessage" | "startedAt" | "completedAt" | "createdAt" | "updatedAt" | "externalTaskId", ExtArgs["result"]["processingTask"]>
   export type ProcessingTaskInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
   }
@@ -13481,11 +13640,11 @@ export namespace Prisma {
       processedItems: number
       taskData: Prisma.JsonValue
       errorMessage: string | null
-      externalTaskId: string | null
       startedAt: Date | null
       completedAt: Date | null
       createdAt: Date
       updatedAt: Date
+      externalTaskId: string | null
     }, ExtArgs["result"]["processingTask"]>
     composites: {}
   }
@@ -13919,11 +14078,11 @@ export namespace Prisma {
     readonly processedItems: FieldRef<"ProcessingTask", 'Int'>
     readonly taskData: FieldRef<"ProcessingTask", 'Json'>
     readonly errorMessage: FieldRef<"ProcessingTask", 'String'>
-    readonly externalTaskId: FieldRef<"ProcessingTask", 'String'>
     readonly startedAt: FieldRef<"ProcessingTask", 'DateTime'>
     readonly completedAt: FieldRef<"ProcessingTask", 'DateTime'>
     readonly createdAt: FieldRef<"ProcessingTask", 'DateTime'>
     readonly updatedAt: FieldRef<"ProcessingTask", 'DateTime'>
+    readonly externalTaskId: FieldRef<"ProcessingTask", 'String'>
   }
     
 
@@ -14351,19 +14510,18 @@ export namespace Prisma {
   }
 
   export type SpeakerProfileAvgAggregateOutputType = {
-    id: number | null
     confidence: Decimal | null
     usageCount: number | null
+    id: number | null
   }
 
   export type SpeakerProfileSumAggregateOutputType = {
-    id: number | null
     confidence: Decimal | null
     usageCount: number | null
+    id: number | null
   }
 
   export type SpeakerProfileMinAggregateOutputType = {
-    id: number | null
     name: string | null
     gender: string | null
     ageGroup: string | null
@@ -14378,10 +14536,10 @@ export namespace Prisma {
     syncedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    id: number | null
   }
 
   export type SpeakerProfileMaxAggregateOutputType = {
-    id: number | null
     name: string | null
     gender: string | null
     ageGroup: string | null
@@ -14396,10 +14554,10 @@ export namespace Prisma {
     syncedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
+    id: number | null
   }
 
   export type SpeakerProfileCountAggregateOutputType = {
-    id: number
     name: number
     gender: number
     ageGroup: number
@@ -14415,24 +14573,24 @@ export namespace Prisma {
     syncedAt: number
     createdAt: number
     updatedAt: number
+    id: number
     _all: number
   }
 
 
   export type SpeakerProfileAvgAggregateInputType = {
-    id?: true
     confidence?: true
     usageCount?: true
+    id?: true
   }
 
   export type SpeakerProfileSumAggregateInputType = {
-    id?: true
     confidence?: true
     usageCount?: true
+    id?: true
   }
 
   export type SpeakerProfileMinAggregateInputType = {
-    id?: true
     name?: true
     gender?: true
     ageGroup?: true
@@ -14447,10 +14605,10 @@ export namespace Prisma {
     syncedAt?: true
     createdAt?: true
     updatedAt?: true
+    id?: true
   }
 
   export type SpeakerProfileMaxAggregateInputType = {
-    id?: true
     name?: true
     gender?: true
     ageGroup?: true
@@ -14465,10 +14623,10 @@ export namespace Prisma {
     syncedAt?: true
     createdAt?: true
     updatedAt?: true
+    id?: true
   }
 
   export type SpeakerProfileCountAggregateInputType = {
-    id?: true
     name?: true
     gender?: true
     ageGroup?: true
@@ -14484,6 +14642,7 @@ export namespace Prisma {
     syncedAt?: true
     createdAt?: true
     updatedAt?: true
+    id?: true
     _all?: true
   }
 
@@ -14574,7 +14733,6 @@ export namespace Prisma {
   }
 
   export type SpeakerProfileGroupByOutputType = {
-    id: number
     name: string | null
     gender: string
     ageGroup: string
@@ -14590,6 +14748,7 @@ export namespace Prisma {
     syncedAt: Date | null
     createdAt: Date
     updatedAt: Date
+    id: number
     _count: SpeakerProfileCountAggregateOutputType | null
     _avg: SpeakerProfileAvgAggregateOutputType | null
     _sum: SpeakerProfileSumAggregateOutputType | null
@@ -14612,7 +14771,6 @@ export namespace Prisma {
 
 
   export type SpeakerProfileSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
     name?: boolean
     gender?: boolean
     ageGroup?: boolean
@@ -14628,10 +14786,12 @@ export namespace Prisma {
     syncedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    id?: boolean
+    characterBindings?: boolean | SpeakerProfile$characterBindingsArgs<ExtArgs>
+    _count?: boolean | SpeakerProfileCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["speakerProfile"]>
 
   export type SpeakerProfileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
     name?: boolean
     gender?: boolean
     ageGroup?: boolean
@@ -14647,10 +14807,10 @@ export namespace Prisma {
     syncedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    id?: boolean
   }, ExtArgs["result"]["speakerProfile"]>
 
   export type SpeakerProfileSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
     name?: boolean
     gender?: boolean
     ageGroup?: boolean
@@ -14666,10 +14826,10 @@ export namespace Prisma {
     syncedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    id?: boolean
   }, ExtArgs["result"]["speakerProfile"]>
 
   export type SpeakerProfileSelectScalar = {
-    id?: boolean
     name?: boolean
     gender?: boolean
     ageGroup?: boolean
@@ -14685,15 +14845,23 @@ export namespace Prisma {
     syncedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    id?: boolean
   }
 
-  export type SpeakerProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "gender" | "ageGroup" | "toneStyle" | "description" | "referenceAudio" | "confidence" | "embeddingVector" | "metadata" | "isActive" | "usageCount" | "lastUsedAt" | "syncedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["speakerProfile"]>
+  export type SpeakerProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"name" | "gender" | "ageGroup" | "toneStyle" | "description" | "referenceAudio" | "confidence" | "embeddingVector" | "metadata" | "isActive" | "usageCount" | "lastUsedAt" | "syncedAt" | "createdAt" | "updatedAt" | "id", ExtArgs["result"]["speakerProfile"]>
+  export type SpeakerProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    characterBindings?: boolean | SpeakerProfile$characterBindingsArgs<ExtArgs>
+    _count?: boolean | SpeakerProfileCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type SpeakerProfileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type SpeakerProfileIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $SpeakerProfilePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "SpeakerProfile"
-    objects: {}
+    objects: {
+      characterBindings: Prisma.$CharacterSpeakerBindingPayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
-      id: number
       name: string | null
       gender: string
       ageGroup: string
@@ -14709,6 +14877,7 @@ export namespace Prisma {
       syncedAt: Date | null
       createdAt: Date
       updatedAt: Date
+      id: number
     }, ExtArgs["result"]["speakerProfile"]>
     composites: {}
   }
@@ -14792,8 +14961,8 @@ export namespace Prisma {
      * // Get first 10 SpeakerProfiles
      * const speakerProfiles = await prisma.speakerProfile.findMany({ take: 10 })
      * 
-     * // Only select the `id`
-     * const speakerProfileWithIdOnly = await prisma.speakerProfile.findMany({ select: { id: true } })
+     * // Only select the `name`
+     * const speakerProfileWithNameOnly = await prisma.speakerProfile.findMany({ select: { name: true } })
      * 
      */
     findMany<T extends SpeakerProfileFindManyArgs>(args?: SelectSubset<T, SpeakerProfileFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SpeakerProfilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
@@ -14837,9 +15006,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Create many SpeakerProfiles and only return the `id`
-     * const speakerProfileWithIdOnly = await prisma.speakerProfile.createManyAndReturn({
-     *   select: { id: true },
+     * // Create many SpeakerProfiles and only return the `name`
+     * const speakerProfileWithNameOnly = await prisma.speakerProfile.createManyAndReturn({
+     *   select: { name: true },
      *   data: [
      *     // ... provide data here
      *   ]
@@ -14928,9 +15097,9 @@ export namespace Prisma {
      *   ]
      * })
      * 
-     * // Update zero or more SpeakerProfiles and only return the `id`
-     * const speakerProfileWithIdOnly = await prisma.speakerProfile.updateManyAndReturn({
-     *   select: { id: true },
+     * // Update zero or more SpeakerProfiles and only return the `name`
+     * const speakerProfileWithNameOnly = await prisma.speakerProfile.updateManyAndReturn({
+     *   select: { name: true },
      *   where: {
      *     // ... provide filter here
      *   },
@@ -15103,6 +15272,7 @@ export namespace Prisma {
    */
   export interface Prisma__SpeakerProfileClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    characterBindings<T extends SpeakerProfile$characterBindingsArgs<ExtArgs> = {}>(args?: Subset<T, SpeakerProfile$characterBindingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -15132,7 +15302,6 @@ export namespace Prisma {
    * Fields of the SpeakerProfile model
    */
   interface SpeakerProfileFieldRefs {
-    readonly id: FieldRef<"SpeakerProfile", 'Int'>
     readonly name: FieldRef<"SpeakerProfile", 'String'>
     readonly gender: FieldRef<"SpeakerProfile", 'String'>
     readonly ageGroup: FieldRef<"SpeakerProfile", 'String'>
@@ -15148,6 +15317,7 @@ export namespace Prisma {
     readonly syncedAt: FieldRef<"SpeakerProfile", 'DateTime'>
     readonly createdAt: FieldRef<"SpeakerProfile", 'DateTime'>
     readonly updatedAt: FieldRef<"SpeakerProfile", 'DateTime'>
+    readonly id: FieldRef<"SpeakerProfile", 'Int'>
   }
     
 
@@ -15164,6 +15334,10 @@ export namespace Prisma {
      * Omit specific fields from the SpeakerProfile
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
     /**
      * Filter, which SpeakerProfile to fetch.
      */
@@ -15183,6 +15357,10 @@ export namespace Prisma {
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
+    /**
      * Filter, which SpeakerProfile to fetch.
      */
     where: SpeakerProfileWhereUniqueInput
@@ -15200,6 +15378,10 @@ export namespace Prisma {
      * Omit specific fields from the SpeakerProfile
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
     /**
      * Filter, which SpeakerProfile to fetch.
      */
@@ -15249,6 +15431,10 @@ export namespace Prisma {
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
+    /**
      * Filter, which SpeakerProfile to fetch.
      */
     where?: SpeakerProfileWhereInput
@@ -15297,6 +15483,10 @@ export namespace Prisma {
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
+    /**
      * Filter, which SpeakerProfiles to fetch.
      */
     where?: SpeakerProfileWhereInput
@@ -15339,6 +15529,10 @@ export namespace Prisma {
      * Omit specific fields from the SpeakerProfile
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
     /**
      * The data needed to create a SpeakerProfile.
      */
@@ -15387,6 +15581,10 @@ export namespace Prisma {
      * Omit specific fields from the SpeakerProfile
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
     /**
      * The data needed to update a SpeakerProfile.
      */
@@ -15454,6 +15652,10 @@ export namespace Prisma {
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
+    /**
      * The filter to search for the SpeakerProfile to update in case it exists.
      */
     where: SpeakerProfileWhereUniqueInput
@@ -15480,6 +15682,10 @@ export namespace Prisma {
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
+    /**
      * Filter which SpeakerProfile to delete.
      */
     where: SpeakerProfileWhereUniqueInput
@@ -15500,6 +15706,30 @@ export namespace Prisma {
   }
 
   /**
+   * SpeakerProfile.characterBindings
+   */
+  export type SpeakerProfile$characterBindingsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    where?: CharacterSpeakerBindingWhereInput
+    orderBy?: CharacterSpeakerBindingOrderByWithRelationInput | CharacterSpeakerBindingOrderByWithRelationInput[]
+    cursor?: CharacterSpeakerBindingWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: CharacterSpeakerBindingScalarFieldEnum | CharacterSpeakerBindingScalarFieldEnum[]
+  }
+
+  /**
    * SpeakerProfile without action
    */
   export type SpeakerProfileDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -15511,6 +15741,1132 @@ export namespace Prisma {
      * Omit specific fields from the SpeakerProfile
      */
     omit?: SpeakerProfileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SpeakerProfileInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CharacterSpeakerBinding
+   */
+
+  export type AggregateCharacterSpeakerBinding = {
+    _count: CharacterSpeakerBindingCountAggregateOutputType | null
+    _avg: CharacterSpeakerBindingAvgAggregateOutputType | null
+    _sum: CharacterSpeakerBindingSumAggregateOutputType | null
+    _min: CharacterSpeakerBindingMinAggregateOutputType | null
+    _max: CharacterSpeakerBindingMaxAggregateOutputType | null
+  }
+
+  export type CharacterSpeakerBindingAvgAggregateOutputType = {
+    speakerProfileId: number | null
+  }
+
+  export type CharacterSpeakerBindingSumAggregateOutputType = {
+    speakerProfileId: number | null
+  }
+
+  export type CharacterSpeakerBindingMinAggregateOutputType = {
+    id: string | null
+    characterId: string | null
+    speakerProfileId: number | null
+    isDefault: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CharacterSpeakerBindingMaxAggregateOutputType = {
+    id: string | null
+    characterId: string | null
+    speakerProfileId: number | null
+    isDefault: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CharacterSpeakerBindingCountAggregateOutputType = {
+    id: number
+    characterId: number
+    speakerProfileId: number
+    metadata: number
+    isDefault: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CharacterSpeakerBindingAvgAggregateInputType = {
+    speakerProfileId?: true
+  }
+
+  export type CharacterSpeakerBindingSumAggregateInputType = {
+    speakerProfileId?: true
+  }
+
+  export type CharacterSpeakerBindingMinAggregateInputType = {
+    id?: true
+    characterId?: true
+    speakerProfileId?: true
+    isDefault?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CharacterSpeakerBindingMaxAggregateInputType = {
+    id?: true
+    characterId?: true
+    speakerProfileId?: true
+    isDefault?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CharacterSpeakerBindingCountAggregateInputType = {
+    id?: true
+    characterId?: true
+    speakerProfileId?: true
+    metadata?: true
+    isDefault?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CharacterSpeakerBindingAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CharacterSpeakerBinding to aggregate.
+     */
+    where?: CharacterSpeakerBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CharacterSpeakerBindings to fetch.
+     */
+    orderBy?: CharacterSpeakerBindingOrderByWithRelationInput | CharacterSpeakerBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CharacterSpeakerBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CharacterSpeakerBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CharacterSpeakerBindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CharacterSpeakerBindings
+    **/
+    _count?: true | CharacterSpeakerBindingCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CharacterSpeakerBindingAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CharacterSpeakerBindingSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CharacterSpeakerBindingMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CharacterSpeakerBindingMaxAggregateInputType
+  }
+
+  export type GetCharacterSpeakerBindingAggregateType<T extends CharacterSpeakerBindingAggregateArgs> = {
+        [P in keyof T & keyof AggregateCharacterSpeakerBinding]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCharacterSpeakerBinding[P]>
+      : GetScalarType<T[P], AggregateCharacterSpeakerBinding[P]>
+  }
+
+
+
+
+  export type CharacterSpeakerBindingGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CharacterSpeakerBindingWhereInput
+    orderBy?: CharacterSpeakerBindingOrderByWithAggregationInput | CharacterSpeakerBindingOrderByWithAggregationInput[]
+    by: CharacterSpeakerBindingScalarFieldEnum[] | CharacterSpeakerBindingScalarFieldEnum
+    having?: CharacterSpeakerBindingScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CharacterSpeakerBindingCountAggregateInputType | true
+    _avg?: CharacterSpeakerBindingAvgAggregateInputType
+    _sum?: CharacterSpeakerBindingSumAggregateInputType
+    _min?: CharacterSpeakerBindingMinAggregateInputType
+    _max?: CharacterSpeakerBindingMaxAggregateInputType
+  }
+
+  export type CharacterSpeakerBindingGroupByOutputType = {
+    id: string
+    characterId: string
+    speakerProfileId: number
+    metadata: JsonValue
+    isDefault: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: CharacterSpeakerBindingCountAggregateOutputType | null
+    _avg: CharacterSpeakerBindingAvgAggregateOutputType | null
+    _sum: CharacterSpeakerBindingSumAggregateOutputType | null
+    _min: CharacterSpeakerBindingMinAggregateOutputType | null
+    _max: CharacterSpeakerBindingMaxAggregateOutputType | null
+  }
+
+  type GetCharacterSpeakerBindingGroupByPayload<T extends CharacterSpeakerBindingGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CharacterSpeakerBindingGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CharacterSpeakerBindingGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CharacterSpeakerBindingGroupByOutputType[P]>
+            : GetScalarType<T[P], CharacterSpeakerBindingGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CharacterSpeakerBindingSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    characterId?: boolean
+    speakerProfileId?: boolean
+    metadata?: boolean
+    isDefault?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    character?: boolean | CharacterProfileDefaultArgs<ExtArgs>
+    speakerProfile?: boolean | SpeakerProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["characterSpeakerBinding"]>
+
+  export type CharacterSpeakerBindingSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    characterId?: boolean
+    speakerProfileId?: boolean
+    metadata?: boolean
+    isDefault?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    character?: boolean | CharacterProfileDefaultArgs<ExtArgs>
+    speakerProfile?: boolean | SpeakerProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["characterSpeakerBinding"]>
+
+  export type CharacterSpeakerBindingSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    characterId?: boolean
+    speakerProfileId?: boolean
+    metadata?: boolean
+    isDefault?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    character?: boolean | CharacterProfileDefaultArgs<ExtArgs>
+    speakerProfile?: boolean | SpeakerProfileDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["characterSpeakerBinding"]>
+
+  export type CharacterSpeakerBindingSelectScalar = {
+    id?: boolean
+    characterId?: boolean
+    speakerProfileId?: boolean
+    metadata?: boolean
+    isDefault?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CharacterSpeakerBindingOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "characterId" | "speakerProfileId" | "metadata" | "isDefault" | "createdAt" | "updatedAt", ExtArgs["result"]["characterSpeakerBinding"]>
+  export type CharacterSpeakerBindingInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    character?: boolean | CharacterProfileDefaultArgs<ExtArgs>
+    speakerProfile?: boolean | SpeakerProfileDefaultArgs<ExtArgs>
+  }
+  export type CharacterSpeakerBindingIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    character?: boolean | CharacterProfileDefaultArgs<ExtArgs>
+    speakerProfile?: boolean | SpeakerProfileDefaultArgs<ExtArgs>
+  }
+  export type CharacterSpeakerBindingIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    character?: boolean | CharacterProfileDefaultArgs<ExtArgs>
+    speakerProfile?: boolean | SpeakerProfileDefaultArgs<ExtArgs>
+  }
+
+  export type $CharacterSpeakerBindingPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CharacterSpeakerBinding"
+    objects: {
+      character: Prisma.$CharacterProfilePayload<ExtArgs>
+      speakerProfile: Prisma.$SpeakerProfilePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      characterId: string
+      speakerProfileId: number
+      metadata: Prisma.JsonValue
+      isDefault: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["characterSpeakerBinding"]>
+    composites: {}
+  }
+
+  type CharacterSpeakerBindingGetPayload<S extends boolean | null | undefined | CharacterSpeakerBindingDefaultArgs> = $Result.GetResult<Prisma.$CharacterSpeakerBindingPayload, S>
+
+  type CharacterSpeakerBindingCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CharacterSpeakerBindingFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CharacterSpeakerBindingCountAggregateInputType | true
+    }
+
+  export interface CharacterSpeakerBindingDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CharacterSpeakerBinding'], meta: { name: 'CharacterSpeakerBinding' } }
+    /**
+     * Find zero or one CharacterSpeakerBinding that matches the filter.
+     * @param {CharacterSpeakerBindingFindUniqueArgs} args - Arguments to find a CharacterSpeakerBinding
+     * @example
+     * // Get one CharacterSpeakerBinding
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CharacterSpeakerBindingFindUniqueArgs>(args: SelectSubset<T, CharacterSpeakerBindingFindUniqueArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CharacterSpeakerBinding that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CharacterSpeakerBindingFindUniqueOrThrowArgs} args - Arguments to find a CharacterSpeakerBinding
+     * @example
+     * // Get one CharacterSpeakerBinding
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CharacterSpeakerBindingFindUniqueOrThrowArgs>(args: SelectSubset<T, CharacterSpeakerBindingFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CharacterSpeakerBinding that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CharacterSpeakerBindingFindFirstArgs} args - Arguments to find a CharacterSpeakerBinding
+     * @example
+     * // Get one CharacterSpeakerBinding
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CharacterSpeakerBindingFindFirstArgs>(args?: SelectSubset<T, CharacterSpeakerBindingFindFirstArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CharacterSpeakerBinding that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CharacterSpeakerBindingFindFirstOrThrowArgs} args - Arguments to find a CharacterSpeakerBinding
+     * @example
+     * // Get one CharacterSpeakerBinding
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CharacterSpeakerBindingFindFirstOrThrowArgs>(args?: SelectSubset<T, CharacterSpeakerBindingFindFirstOrThrowArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CharacterSpeakerBindings that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CharacterSpeakerBindingFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CharacterSpeakerBindings
+     * const characterSpeakerBindings = await prisma.characterSpeakerBinding.findMany()
+     * 
+     * // Get first 10 CharacterSpeakerBindings
+     * const characterSpeakerBindings = await prisma.characterSpeakerBinding.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const characterSpeakerBindingWithIdOnly = await prisma.characterSpeakerBinding.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CharacterSpeakerBindingFindManyArgs>(args?: SelectSubset<T, CharacterSpeakerBindingFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CharacterSpeakerBinding.
+     * @param {CharacterSpeakerBindingCreateArgs} args - Arguments to create a CharacterSpeakerBinding.
+     * @example
+     * // Create one CharacterSpeakerBinding
+     * const CharacterSpeakerBinding = await prisma.characterSpeakerBinding.create({
+     *   data: {
+     *     // ... data to create a CharacterSpeakerBinding
+     *   }
+     * })
+     * 
+     */
+    create<T extends CharacterSpeakerBindingCreateArgs>(args: SelectSubset<T, CharacterSpeakerBindingCreateArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CharacterSpeakerBindings.
+     * @param {CharacterSpeakerBindingCreateManyArgs} args - Arguments to create many CharacterSpeakerBindings.
+     * @example
+     * // Create many CharacterSpeakerBindings
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CharacterSpeakerBindingCreateManyArgs>(args?: SelectSubset<T, CharacterSpeakerBindingCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CharacterSpeakerBindings and returns the data saved in the database.
+     * @param {CharacterSpeakerBindingCreateManyAndReturnArgs} args - Arguments to create many CharacterSpeakerBindings.
+     * @example
+     * // Create many CharacterSpeakerBindings
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CharacterSpeakerBindings and only return the `id`
+     * const characterSpeakerBindingWithIdOnly = await prisma.characterSpeakerBinding.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CharacterSpeakerBindingCreateManyAndReturnArgs>(args?: SelectSubset<T, CharacterSpeakerBindingCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CharacterSpeakerBinding.
+     * @param {CharacterSpeakerBindingDeleteArgs} args - Arguments to delete one CharacterSpeakerBinding.
+     * @example
+     * // Delete one CharacterSpeakerBinding
+     * const CharacterSpeakerBinding = await prisma.characterSpeakerBinding.delete({
+     *   where: {
+     *     // ... filter to delete one CharacterSpeakerBinding
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CharacterSpeakerBindingDeleteArgs>(args: SelectSubset<T, CharacterSpeakerBindingDeleteArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CharacterSpeakerBinding.
+     * @param {CharacterSpeakerBindingUpdateArgs} args - Arguments to update one CharacterSpeakerBinding.
+     * @example
+     * // Update one CharacterSpeakerBinding
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CharacterSpeakerBindingUpdateArgs>(args: SelectSubset<T, CharacterSpeakerBindingUpdateArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CharacterSpeakerBindings.
+     * @param {CharacterSpeakerBindingDeleteManyArgs} args - Arguments to filter CharacterSpeakerBindings to delete.
+     * @example
+     * // Delete a few CharacterSpeakerBindings
+     * const { count } = await prisma.characterSpeakerBinding.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CharacterSpeakerBindingDeleteManyArgs>(args?: SelectSubset<T, CharacterSpeakerBindingDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CharacterSpeakerBindings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CharacterSpeakerBindingUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CharacterSpeakerBindings
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CharacterSpeakerBindingUpdateManyArgs>(args: SelectSubset<T, CharacterSpeakerBindingUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CharacterSpeakerBindings and returns the data updated in the database.
+     * @param {CharacterSpeakerBindingUpdateManyAndReturnArgs} args - Arguments to update many CharacterSpeakerBindings.
+     * @example
+     * // Update many CharacterSpeakerBindings
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CharacterSpeakerBindings and only return the `id`
+     * const characterSpeakerBindingWithIdOnly = await prisma.characterSpeakerBinding.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CharacterSpeakerBindingUpdateManyAndReturnArgs>(args: SelectSubset<T, CharacterSpeakerBindingUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CharacterSpeakerBinding.
+     * @param {CharacterSpeakerBindingUpsertArgs} args - Arguments to update or create a CharacterSpeakerBinding.
+     * @example
+     * // Update or create a CharacterSpeakerBinding
+     * const characterSpeakerBinding = await prisma.characterSpeakerBinding.upsert({
+     *   create: {
+     *     // ... data to create a CharacterSpeakerBinding
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CharacterSpeakerBinding we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CharacterSpeakerBindingUpsertArgs>(args: SelectSubset<T, CharacterSpeakerBindingUpsertArgs<ExtArgs>>): Prisma__CharacterSpeakerBindingClient<$Result.GetResult<Prisma.$CharacterSpeakerBindingPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CharacterSpeakerBindings.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CharacterSpeakerBindingCountArgs} args - Arguments to filter CharacterSpeakerBindings to count.
+     * @example
+     * // Count the number of CharacterSpeakerBindings
+     * const count = await prisma.characterSpeakerBinding.count({
+     *   where: {
+     *     // ... the filter for the CharacterSpeakerBindings we want to count
+     *   }
+     * })
+    **/
+    count<T extends CharacterSpeakerBindingCountArgs>(
+      args?: Subset<T, CharacterSpeakerBindingCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CharacterSpeakerBindingCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CharacterSpeakerBinding.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CharacterSpeakerBindingAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CharacterSpeakerBindingAggregateArgs>(args: Subset<T, CharacterSpeakerBindingAggregateArgs>): Prisma.PrismaPromise<GetCharacterSpeakerBindingAggregateType<T>>
+
+    /**
+     * Group by CharacterSpeakerBinding.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CharacterSpeakerBindingGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CharacterSpeakerBindingGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CharacterSpeakerBindingGroupByArgs['orderBy'] }
+        : { orderBy?: CharacterSpeakerBindingGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CharacterSpeakerBindingGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCharacterSpeakerBindingGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CharacterSpeakerBinding model
+   */
+  readonly fields: CharacterSpeakerBindingFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CharacterSpeakerBinding.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CharacterSpeakerBindingClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    character<T extends CharacterProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, CharacterProfileDefaultArgs<ExtArgs>>): Prisma__CharacterProfileClient<$Result.GetResult<Prisma.$CharacterProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    speakerProfile<T extends SpeakerProfileDefaultArgs<ExtArgs> = {}>(args?: Subset<T, SpeakerProfileDefaultArgs<ExtArgs>>): Prisma__SpeakerProfileClient<$Result.GetResult<Prisma.$SpeakerProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CharacterSpeakerBinding model
+   */
+  interface CharacterSpeakerBindingFieldRefs {
+    readonly id: FieldRef<"CharacterSpeakerBinding", 'String'>
+    readonly characterId: FieldRef<"CharacterSpeakerBinding", 'String'>
+    readonly speakerProfileId: FieldRef<"CharacterSpeakerBinding", 'Int'>
+    readonly metadata: FieldRef<"CharacterSpeakerBinding", 'Json'>
+    readonly isDefault: FieldRef<"CharacterSpeakerBinding", 'Boolean'>
+    readonly createdAt: FieldRef<"CharacterSpeakerBinding", 'DateTime'>
+    readonly updatedAt: FieldRef<"CharacterSpeakerBinding", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CharacterSpeakerBinding findUnique
+   */
+  export type CharacterSpeakerBindingFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CharacterSpeakerBinding to fetch.
+     */
+    where: CharacterSpeakerBindingWhereUniqueInput
+  }
+
+  /**
+   * CharacterSpeakerBinding findUniqueOrThrow
+   */
+  export type CharacterSpeakerBindingFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CharacterSpeakerBinding to fetch.
+     */
+    where: CharacterSpeakerBindingWhereUniqueInput
+  }
+
+  /**
+   * CharacterSpeakerBinding findFirst
+   */
+  export type CharacterSpeakerBindingFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CharacterSpeakerBinding to fetch.
+     */
+    where?: CharacterSpeakerBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CharacterSpeakerBindings to fetch.
+     */
+    orderBy?: CharacterSpeakerBindingOrderByWithRelationInput | CharacterSpeakerBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CharacterSpeakerBindings.
+     */
+    cursor?: CharacterSpeakerBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CharacterSpeakerBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CharacterSpeakerBindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CharacterSpeakerBindings.
+     */
+    distinct?: CharacterSpeakerBindingScalarFieldEnum | CharacterSpeakerBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CharacterSpeakerBinding findFirstOrThrow
+   */
+  export type CharacterSpeakerBindingFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CharacterSpeakerBinding to fetch.
+     */
+    where?: CharacterSpeakerBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CharacterSpeakerBindings to fetch.
+     */
+    orderBy?: CharacterSpeakerBindingOrderByWithRelationInput | CharacterSpeakerBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CharacterSpeakerBindings.
+     */
+    cursor?: CharacterSpeakerBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CharacterSpeakerBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CharacterSpeakerBindings.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CharacterSpeakerBindings.
+     */
+    distinct?: CharacterSpeakerBindingScalarFieldEnum | CharacterSpeakerBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CharacterSpeakerBinding findMany
+   */
+  export type CharacterSpeakerBindingFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * Filter, which CharacterSpeakerBindings to fetch.
+     */
+    where?: CharacterSpeakerBindingWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CharacterSpeakerBindings to fetch.
+     */
+    orderBy?: CharacterSpeakerBindingOrderByWithRelationInput | CharacterSpeakerBindingOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CharacterSpeakerBindings.
+     */
+    cursor?: CharacterSpeakerBindingWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CharacterSpeakerBindings from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CharacterSpeakerBindings.
+     */
+    skip?: number
+    distinct?: CharacterSpeakerBindingScalarFieldEnum | CharacterSpeakerBindingScalarFieldEnum[]
+  }
+
+  /**
+   * CharacterSpeakerBinding create
+   */
+  export type CharacterSpeakerBindingCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * The data needed to create a CharacterSpeakerBinding.
+     */
+    data: XOR<CharacterSpeakerBindingCreateInput, CharacterSpeakerBindingUncheckedCreateInput>
+  }
+
+  /**
+   * CharacterSpeakerBinding createMany
+   */
+  export type CharacterSpeakerBindingCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CharacterSpeakerBindings.
+     */
+    data: CharacterSpeakerBindingCreateManyInput | CharacterSpeakerBindingCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CharacterSpeakerBinding createManyAndReturn
+   */
+  export type CharacterSpeakerBindingCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * The data used to create many CharacterSpeakerBindings.
+     */
+    data: CharacterSpeakerBindingCreateManyInput | CharacterSpeakerBindingCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CharacterSpeakerBinding update
+   */
+  export type CharacterSpeakerBindingUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * The data needed to update a CharacterSpeakerBinding.
+     */
+    data: XOR<CharacterSpeakerBindingUpdateInput, CharacterSpeakerBindingUncheckedUpdateInput>
+    /**
+     * Choose, which CharacterSpeakerBinding to update.
+     */
+    where: CharacterSpeakerBindingWhereUniqueInput
+  }
+
+  /**
+   * CharacterSpeakerBinding updateMany
+   */
+  export type CharacterSpeakerBindingUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CharacterSpeakerBindings.
+     */
+    data: XOR<CharacterSpeakerBindingUpdateManyMutationInput, CharacterSpeakerBindingUncheckedUpdateManyInput>
+    /**
+     * Filter which CharacterSpeakerBindings to update
+     */
+    where?: CharacterSpeakerBindingWhereInput
+    /**
+     * Limit how many CharacterSpeakerBindings to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CharacterSpeakerBinding updateManyAndReturn
+   */
+  export type CharacterSpeakerBindingUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * The data used to update CharacterSpeakerBindings.
+     */
+    data: XOR<CharacterSpeakerBindingUpdateManyMutationInput, CharacterSpeakerBindingUncheckedUpdateManyInput>
+    /**
+     * Filter which CharacterSpeakerBindings to update
+     */
+    where?: CharacterSpeakerBindingWhereInput
+    /**
+     * Limit how many CharacterSpeakerBindings to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * CharacterSpeakerBinding upsert
+   */
+  export type CharacterSpeakerBindingUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * The filter to search for the CharacterSpeakerBinding to update in case it exists.
+     */
+    where: CharacterSpeakerBindingWhereUniqueInput
+    /**
+     * In case the CharacterSpeakerBinding found by the `where` argument doesn't exist, create a new CharacterSpeakerBinding with this data.
+     */
+    create: XOR<CharacterSpeakerBindingCreateInput, CharacterSpeakerBindingUncheckedCreateInput>
+    /**
+     * In case the CharacterSpeakerBinding was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CharacterSpeakerBindingUpdateInput, CharacterSpeakerBindingUncheckedUpdateInput>
+  }
+
+  /**
+   * CharacterSpeakerBinding delete
+   */
+  export type CharacterSpeakerBindingDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
+    /**
+     * Filter which CharacterSpeakerBinding to delete.
+     */
+    where: CharacterSpeakerBindingWhereUniqueInput
+  }
+
+  /**
+   * CharacterSpeakerBinding deleteMany
+   */
+  export type CharacterSpeakerBindingDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CharacterSpeakerBindings to delete
+     */
+    where?: CharacterSpeakerBindingWhereInput
+    /**
+     * Limit how many CharacterSpeakerBindings to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CharacterSpeakerBinding without action
+   */
+  export type CharacterSpeakerBindingDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CharacterSpeakerBinding
+     */
+    select?: CharacterSpeakerBindingSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CharacterSpeakerBinding
+     */
+    omit?: CharacterSpeakerBindingOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: CharacterSpeakerBindingInclude<ExtArgs> | null
   }
 
 
@@ -15560,10 +16916,10 @@ export namespace Prisma {
     ageHint: 'ageHint',
     emotionBaseline: 'emotionBaseline',
     isActive: 'isActive',
-    mentions: 'mentions',
-    quotes: 'quotes',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    mentions: 'mentions',
+    quotes: 'quotes'
   };
 
   export type CharacterProfileScalarFieldEnum = (typeof CharacterProfileScalarFieldEnum)[keyof typeof CharacterProfileScalarFieldEnum]
@@ -15696,18 +17052,17 @@ export namespace Prisma {
     processedItems: 'processedItems',
     taskData: 'taskData',
     errorMessage: 'errorMessage',
-    externalTaskId: 'externalTaskId',
     startedAt: 'startedAt',
     completedAt: 'completedAt',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    externalTaskId: 'externalTaskId'
   };
 
   export type ProcessingTaskScalarFieldEnum = (typeof ProcessingTaskScalarFieldEnum)[keyof typeof ProcessingTaskScalarFieldEnum]
 
 
   export const SpeakerProfileScalarFieldEnum: {
-    id: 'id',
     name: 'name',
     gender: 'gender',
     ageGroup: 'ageGroup',
@@ -15722,10 +17077,24 @@ export namespace Prisma {
     lastUsedAt: 'lastUsedAt',
     syncedAt: 'syncedAt',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    id: 'id'
   };
 
   export type SpeakerProfileScalarFieldEnum = (typeof SpeakerProfileScalarFieldEnum)[keyof typeof SpeakerProfileScalarFieldEnum]
+
+
+  export const CharacterSpeakerBindingScalarFieldEnum: {
+    id: 'id',
+    characterId: 'characterId',
+    speakerProfileId: 'speakerProfileId',
+    metadata: 'metadata',
+    isDefault: 'isDefault',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CharacterSpeakerBindingScalarFieldEnum = (typeof CharacterSpeakerBindingScalarFieldEnum)[keyof typeof CharacterSpeakerBindingScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -16039,15 +17408,16 @@ export namespace Prisma {
     ageHint?: IntNullableFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringFilter<"CharacterProfile"> | string
     isActive?: BoolFilter<"CharacterProfile"> | boolean
-    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
-    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeFilter<"CharacterProfile"> | Date | string
+    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     aliases?: CharacterAliasListRelationFilter
     mergeAuditsSource?: CharacterMergeAuditListRelationFilter
     mergeAuditsTarget?: CharacterMergeAuditListRelationFilter
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
     voiceBindings?: CharacterVoiceBindingListRelationFilter
+    speakerBindings?: CharacterSpeakerBindingListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
   }
 
@@ -16062,15 +17432,16 @@ export namespace Prisma {
     ageHint?: SortOrderInput | SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
-    mentions?: SortOrderInput | SortOrder
-    quotes?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    mentions?: SortOrderInput | SortOrder
+    quotes?: SortOrderInput | SortOrder
     aliases?: CharacterAliasOrderByRelationAggregateInput
     mergeAuditsSource?: CharacterMergeAuditOrderByRelationAggregateInput
     mergeAuditsTarget?: CharacterMergeAuditOrderByRelationAggregateInput
     book?: BookOrderByWithRelationInput
     voiceBindings?: CharacterVoiceBindingOrderByRelationAggregateInput
+    speakerBindings?: CharacterSpeakerBindingOrderByRelationAggregateInput
     scriptSentences?: ScriptSentenceOrderByRelationAggregateInput
   }
 
@@ -16088,15 +17459,16 @@ export namespace Prisma {
     ageHint?: IntNullableFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringFilter<"CharacterProfile"> | string
     isActive?: BoolFilter<"CharacterProfile"> | boolean
-    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
-    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeFilter<"CharacterProfile"> | Date | string
+    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     aliases?: CharacterAliasListRelationFilter
     mergeAuditsSource?: CharacterMergeAuditListRelationFilter
     mergeAuditsTarget?: CharacterMergeAuditListRelationFilter
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
     voiceBindings?: CharacterVoiceBindingListRelationFilter
+    speakerBindings?: CharacterSpeakerBindingListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
   }, "id">
 
@@ -16111,10 +17483,10 @@ export namespace Prisma {
     ageHint?: SortOrderInput | SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
-    mentions?: SortOrderInput | SortOrder
-    quotes?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    mentions?: SortOrderInput | SortOrder
+    quotes?: SortOrderInput | SortOrder
     _count?: CharacterProfileCountOrderByAggregateInput
     _avg?: CharacterProfileAvgOrderByAggregateInput
     _max?: CharacterProfileMaxOrderByAggregateInput
@@ -16136,10 +17508,10 @@ export namespace Prisma {
     ageHint?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringWithAggregatesFilter<"CharacterProfile"> | string
     isActive?: BoolWithAggregatesFilter<"CharacterProfile"> | boolean
-    mentions?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
-    quotes?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeWithAggregatesFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CharacterProfile"> | Date | string
+    mentions?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableWithAggregatesFilter<"CharacterProfile"> | number | null
   }
 
   export type CharacterAliasWhereInput = {
@@ -16787,11 +18159,11 @@ export namespace Prisma {
     processedItems?: IntFilter<"ProcessingTask"> | number
     taskData?: JsonFilter<"ProcessingTask">
     errorMessage?: StringNullableFilter<"ProcessingTask"> | string | null
-    externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
     startedAt?: DateTimeNullableFilter<"ProcessingTask"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"ProcessingTask"> | Date | string | null
     createdAt?: DateTimeFilter<"ProcessingTask"> | Date | string
     updatedAt?: DateTimeFilter<"ProcessingTask"> | Date | string
+    externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
   }
 
@@ -16805,11 +18177,11 @@ export namespace Prisma {
     processedItems?: SortOrder
     taskData?: SortOrder
     errorMessage?: SortOrderInput | SortOrder
-    externalTaskId?: SortOrderInput | SortOrder
     startedAt?: SortOrderInput | SortOrder
     completedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    externalTaskId?: SortOrderInput | SortOrder
     book?: BookOrderByWithRelationInput
   }
 
@@ -16826,11 +18198,11 @@ export namespace Prisma {
     processedItems?: IntFilter<"ProcessingTask"> | number
     taskData?: JsonFilter<"ProcessingTask">
     errorMessage?: StringNullableFilter<"ProcessingTask"> | string | null
-    externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
     startedAt?: DateTimeNullableFilter<"ProcessingTask"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"ProcessingTask"> | Date | string | null
     createdAt?: DateTimeFilter<"ProcessingTask"> | Date | string
     updatedAt?: DateTimeFilter<"ProcessingTask"> | Date | string
+    externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
   }, "id">
 
@@ -16844,11 +18216,11 @@ export namespace Prisma {
     processedItems?: SortOrder
     taskData?: SortOrder
     errorMessage?: SortOrderInput | SortOrder
-    externalTaskId?: SortOrderInput | SortOrder
     startedAt?: SortOrderInput | SortOrder
     completedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    externalTaskId?: SortOrderInput | SortOrder
     _count?: ProcessingTaskCountOrderByAggregateInput
     _avg?: ProcessingTaskAvgOrderByAggregateInput
     _max?: ProcessingTaskMaxOrderByAggregateInput
@@ -16869,18 +18241,17 @@ export namespace Prisma {
     processedItems?: IntWithAggregatesFilter<"ProcessingTask"> | number
     taskData?: JsonWithAggregatesFilter<"ProcessingTask">
     errorMessage?: StringNullableWithAggregatesFilter<"ProcessingTask"> | string | null
-    externalTaskId?: StringNullableWithAggregatesFilter<"ProcessingTask"> | string | null
     startedAt?: DateTimeNullableWithAggregatesFilter<"ProcessingTask"> | Date | string | null
     completedAt?: DateTimeNullableWithAggregatesFilter<"ProcessingTask"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ProcessingTask"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ProcessingTask"> | Date | string
+    externalTaskId?: StringNullableWithAggregatesFilter<"ProcessingTask"> | string | null
   }
 
   export type SpeakerProfileWhereInput = {
     AND?: SpeakerProfileWhereInput | SpeakerProfileWhereInput[]
     OR?: SpeakerProfileWhereInput[]
     NOT?: SpeakerProfileWhereInput | SpeakerProfileWhereInput[]
-    id?: IntFilter<"SpeakerProfile"> | number
     name?: StringNullableFilter<"SpeakerProfile"> | string | null
     gender?: StringFilter<"SpeakerProfile"> | string
     ageGroup?: StringFilter<"SpeakerProfile"> | string
@@ -16896,10 +18267,11 @@ export namespace Prisma {
     syncedAt?: DateTimeNullableFilter<"SpeakerProfile"> | Date | string | null
     createdAt?: DateTimeFilter<"SpeakerProfile"> | Date | string
     updatedAt?: DateTimeFilter<"SpeakerProfile"> | Date | string
+    id?: IntFilter<"SpeakerProfile"> | number
+    characterBindings?: CharacterSpeakerBindingListRelationFilter
   }
 
   export type SpeakerProfileOrderByWithRelationInput = {
-    id?: SortOrder
     name?: SortOrderInput | SortOrder
     gender?: SortOrder
     ageGroup?: SortOrder
@@ -16915,6 +18287,8 @@ export namespace Prisma {
     syncedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    id?: SortOrder
+    characterBindings?: CharacterSpeakerBindingOrderByRelationAggregateInput
   }
 
   export type SpeakerProfileWhereUniqueInput = Prisma.AtLeast<{
@@ -16937,10 +18311,10 @@ export namespace Prisma {
     syncedAt?: DateTimeNullableFilter<"SpeakerProfile"> | Date | string | null
     createdAt?: DateTimeFilter<"SpeakerProfile"> | Date | string
     updatedAt?: DateTimeFilter<"SpeakerProfile"> | Date | string
+    characterBindings?: CharacterSpeakerBindingListRelationFilter
   }, "id">
 
   export type SpeakerProfileOrderByWithAggregationInput = {
-    id?: SortOrder
     name?: SortOrderInput | SortOrder
     gender?: SortOrder
     ageGroup?: SortOrder
@@ -16956,6 +18330,7 @@ export namespace Prisma {
     syncedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    id?: SortOrder
     _count?: SpeakerProfileCountOrderByAggregateInput
     _avg?: SpeakerProfileAvgOrderByAggregateInput
     _max?: SpeakerProfileMaxOrderByAggregateInput
@@ -16967,7 +18342,6 @@ export namespace Prisma {
     AND?: SpeakerProfileScalarWhereWithAggregatesInput | SpeakerProfileScalarWhereWithAggregatesInput[]
     OR?: SpeakerProfileScalarWhereWithAggregatesInput[]
     NOT?: SpeakerProfileScalarWhereWithAggregatesInput | SpeakerProfileScalarWhereWithAggregatesInput[]
-    id?: IntWithAggregatesFilter<"SpeakerProfile"> | number
     name?: StringNullableWithAggregatesFilter<"SpeakerProfile"> | string | null
     gender?: StringWithAggregatesFilter<"SpeakerProfile"> | string
     ageGroup?: StringWithAggregatesFilter<"SpeakerProfile"> | string
@@ -16983,6 +18357,78 @@ export namespace Prisma {
     syncedAt?: DateTimeNullableWithAggregatesFilter<"SpeakerProfile"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"SpeakerProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"SpeakerProfile"> | Date | string
+    id?: IntWithAggregatesFilter<"SpeakerProfile"> | number
+  }
+
+  export type CharacterSpeakerBindingWhereInput = {
+    AND?: CharacterSpeakerBindingWhereInput | CharacterSpeakerBindingWhereInput[]
+    OR?: CharacterSpeakerBindingWhereInput[]
+    NOT?: CharacterSpeakerBindingWhereInput | CharacterSpeakerBindingWhereInput[]
+    id?: StringFilter<"CharacterSpeakerBinding"> | string
+    characterId?: StringFilter<"CharacterSpeakerBinding"> | string
+    speakerProfileId?: IntFilter<"CharacterSpeakerBinding"> | number
+    metadata?: JsonFilter<"CharacterSpeakerBinding">
+    isDefault?: BoolFilter<"CharacterSpeakerBinding"> | boolean
+    createdAt?: DateTimeFilter<"CharacterSpeakerBinding"> | Date | string
+    updatedAt?: DateTimeFilter<"CharacterSpeakerBinding"> | Date | string
+    character?: XOR<CharacterProfileScalarRelationFilter, CharacterProfileWhereInput>
+    speakerProfile?: XOR<SpeakerProfileScalarRelationFilter, SpeakerProfileWhereInput>
+  }
+
+  export type CharacterSpeakerBindingOrderByWithRelationInput = {
+    id?: SortOrder
+    characterId?: SortOrder
+    speakerProfileId?: SortOrder
+    metadata?: SortOrder
+    isDefault?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    character?: CharacterProfileOrderByWithRelationInput
+    speakerProfile?: SpeakerProfileOrderByWithRelationInput
+  }
+
+  export type CharacterSpeakerBindingWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    characterId_speakerProfileId?: CharacterSpeakerBindingCharacterIdSpeakerProfileIdCompoundUniqueInput
+    AND?: CharacterSpeakerBindingWhereInput | CharacterSpeakerBindingWhereInput[]
+    OR?: CharacterSpeakerBindingWhereInput[]
+    NOT?: CharacterSpeakerBindingWhereInput | CharacterSpeakerBindingWhereInput[]
+    characterId?: StringFilter<"CharacterSpeakerBinding"> | string
+    speakerProfileId?: IntFilter<"CharacterSpeakerBinding"> | number
+    metadata?: JsonFilter<"CharacterSpeakerBinding">
+    isDefault?: BoolFilter<"CharacterSpeakerBinding"> | boolean
+    createdAt?: DateTimeFilter<"CharacterSpeakerBinding"> | Date | string
+    updatedAt?: DateTimeFilter<"CharacterSpeakerBinding"> | Date | string
+    character?: XOR<CharacterProfileScalarRelationFilter, CharacterProfileWhereInput>
+    speakerProfile?: XOR<SpeakerProfileScalarRelationFilter, SpeakerProfileWhereInput>
+  }, "id" | "characterId_speakerProfileId">
+
+  export type CharacterSpeakerBindingOrderByWithAggregationInput = {
+    id?: SortOrder
+    characterId?: SortOrder
+    speakerProfileId?: SortOrder
+    metadata?: SortOrder
+    isDefault?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CharacterSpeakerBindingCountOrderByAggregateInput
+    _avg?: CharacterSpeakerBindingAvgOrderByAggregateInput
+    _max?: CharacterSpeakerBindingMaxOrderByAggregateInput
+    _min?: CharacterSpeakerBindingMinOrderByAggregateInput
+    _sum?: CharacterSpeakerBindingSumOrderByAggregateInput
+  }
+
+  export type CharacterSpeakerBindingScalarWhereWithAggregatesInput = {
+    AND?: CharacterSpeakerBindingScalarWhereWithAggregatesInput | CharacterSpeakerBindingScalarWhereWithAggregatesInput[]
+    OR?: CharacterSpeakerBindingScalarWhereWithAggregatesInput[]
+    NOT?: CharacterSpeakerBindingScalarWhereWithAggregatesInput | CharacterSpeakerBindingScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CharacterSpeakerBinding"> | string
+    characterId?: StringWithAggregatesFilter<"CharacterSpeakerBinding"> | string
+    speakerProfileId?: IntWithAggregatesFilter<"CharacterSpeakerBinding"> | number
+    metadata?: JsonWithAggregatesFilter<"CharacterSpeakerBinding">
+    isDefault?: BoolWithAggregatesFilter<"CharacterSpeakerBinding"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"CharacterSpeakerBinding"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CharacterSpeakerBinding"> | Date | string
   }
 
   export type BookCreateInput = {
@@ -17145,15 +18591,16 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditCreateNestedManyWithoutTargetCharacterInput
     book: BookCreateNestedOneWithoutCharacterProfilesInput
     voiceBindings?: CharacterVoiceBindingCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutCharacterInput
   }
 
@@ -17168,14 +18615,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedCreateNestedManyWithoutTargetCharacterInput
     voiceBindings?: CharacterVoiceBindingUncheckedCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput
   }
 
@@ -17189,15 +18637,16 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUpdateManyWithoutTargetCharacterNestedInput
     book?: BookUpdateOneRequiredWithoutCharacterProfilesNestedInput
     voiceBindings?: CharacterVoiceBindingUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutCharacterNestedInput
   }
 
@@ -17212,14 +18661,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedUpdateManyWithoutTargetCharacterNestedInput
     voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput
   }
 
@@ -17234,10 +18684,10 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
   }
 
   export type CharacterProfileUpdateManyMutationInput = {
@@ -17250,10 +18700,10 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type CharacterProfileUncheckedUpdateManyInput = {
@@ -17267,10 +18717,10 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type CharacterAliasCreateInput = {
@@ -17960,11 +19410,11 @@ export namespace Prisma {
     processedItems?: number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: string | null
-    externalTaskId?: string | null
     startedAt?: Date | string | null
     completedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    externalTaskId?: string | null
     book: BookCreateNestedOneWithoutProcessingTasksInput
   }
 
@@ -17978,11 +19428,11 @@ export namespace Prisma {
     processedItems?: number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: string | null
-    externalTaskId?: string | null
     startedAt?: Date | string | null
     completedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    externalTaskId?: string | null
   }
 
   export type ProcessingTaskUpdateInput = {
@@ -17994,11 +19444,11 @@ export namespace Prisma {
     processedItems?: IntFieldUpdateOperationsInput | number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
-    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     book?: BookUpdateOneRequiredWithoutProcessingTasksNestedInput
   }
 
@@ -18012,11 +19462,11 @@ export namespace Prisma {
     processedItems?: IntFieldUpdateOperationsInput | number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
-    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProcessingTaskCreateManyInput = {
@@ -18029,11 +19479,11 @@ export namespace Prisma {
     processedItems?: number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: string | null
-    externalTaskId?: string | null
     startedAt?: Date | string | null
     completedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    externalTaskId?: string | null
   }
 
   export type ProcessingTaskUpdateManyMutationInput = {
@@ -18045,11 +19495,11 @@ export namespace Prisma {
     processedItems?: IntFieldUpdateOperationsInput | number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
-    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProcessingTaskUncheckedUpdateManyInput = {
@@ -18062,11 +19512,11 @@ export namespace Prisma {
     processedItems?: IntFieldUpdateOperationsInput | number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
-    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type SpeakerProfileCreateInput = {
@@ -18085,10 +19535,10 @@ export namespace Prisma {
     syncedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    characterBindings?: CharacterSpeakerBindingCreateNestedManyWithoutSpeakerProfileInput
   }
 
   export type SpeakerProfileUncheckedCreateInput = {
-    id?: number
     name?: string | null
     gender?: string
     ageGroup?: string
@@ -18104,6 +19554,8 @@ export namespace Prisma {
     syncedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    id?: number
+    characterBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutSpeakerProfileInput
   }
 
   export type SpeakerProfileUpdateInput = {
@@ -18122,10 +19574,10 @@ export namespace Prisma {
     syncedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    characterBindings?: CharacterSpeakerBindingUpdateManyWithoutSpeakerProfileNestedInput
   }
 
   export type SpeakerProfileUncheckedUpdateInput = {
-    id?: IntFieldUpdateOperationsInput | number
     name?: NullableStringFieldUpdateOperationsInput | string | null
     gender?: StringFieldUpdateOperationsInput | string
     ageGroup?: StringFieldUpdateOperationsInput | string
@@ -18141,10 +19593,11 @@ export namespace Prisma {
     syncedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    id?: IntFieldUpdateOperationsInput | number
+    characterBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutSpeakerProfileNestedInput
   }
 
   export type SpeakerProfileCreateManyInput = {
-    id?: number
     name?: string | null
     gender?: string
     ageGroup?: string
@@ -18160,6 +19613,7 @@ export namespace Prisma {
     syncedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    id?: number
   }
 
   export type SpeakerProfileUpdateManyMutationInput = {
@@ -18181,7 +19635,6 @@ export namespace Prisma {
   }
 
   export type SpeakerProfileUncheckedUpdateManyInput = {
-    id?: IntFieldUpdateOperationsInput | number
     name?: NullableStringFieldUpdateOperationsInput | string | null
     gender?: StringFieldUpdateOperationsInput | string
     ageGroup?: StringFieldUpdateOperationsInput | string
@@ -18195,6 +19648,75 @@ export namespace Prisma {
     usageCount?: IntFieldUpdateOperationsInput | number
     lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     syncedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    id?: IntFieldUpdateOperationsInput | number
+  }
+
+  export type CharacterSpeakerBindingCreateInput = {
+    id?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    character: CharacterProfileCreateNestedOneWithoutSpeakerBindingsInput
+    speakerProfile: SpeakerProfileCreateNestedOneWithoutCharacterBindingsInput
+  }
+
+  export type CharacterSpeakerBindingUncheckedCreateInput = {
+    id?: string
+    characterId: string
+    speakerProfileId: number
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CharacterSpeakerBindingUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    character?: CharacterProfileUpdateOneRequiredWithoutSpeakerBindingsNestedInput
+    speakerProfile?: SpeakerProfileUpdateOneRequiredWithoutCharacterBindingsNestedInput
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    characterId?: StringFieldUpdateOperationsInput | string
+    speakerProfileId?: IntFieldUpdateOperationsInput | number
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CharacterSpeakerBindingCreateManyInput = {
+    id?: string
+    characterId: string
+    speakerProfileId: number
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CharacterSpeakerBindingUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    characterId?: StringFieldUpdateOperationsInput | string
+    speakerProfileId?: IntFieldUpdateOperationsInput | number
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18573,11 +20095,21 @@ export namespace Prisma {
     none?: CharacterVoiceBindingWhereInput
   }
 
+  export type CharacterSpeakerBindingListRelationFilter = {
+    every?: CharacterSpeakerBindingWhereInput
+    some?: CharacterSpeakerBindingWhereInput
+    none?: CharacterSpeakerBindingWhereInput
+  }
+
   export type CharacterAliasOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
   export type CharacterVoiceBindingOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type CharacterSpeakerBindingOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -18592,10 +20124,10 @@ export namespace Prisma {
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
-    mentions?: SortOrder
-    quotes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
   }
 
   export type CharacterProfileAvgOrderByAggregateInput = {
@@ -18612,10 +20144,10 @@ export namespace Prisma {
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
-    mentions?: SortOrder
-    quotes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
   }
 
   export type CharacterProfileMinOrderByAggregateInput = {
@@ -18626,10 +20158,10 @@ export namespace Prisma {
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
     isActive?: SortOrder
-    mentions?: SortOrder
-    quotes?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    mentions?: SortOrder
+    quotes?: SortOrder
   }
 
   export type CharacterProfileSumOrderByAggregateInput = {
@@ -19142,11 +20674,11 @@ export namespace Prisma {
     processedItems?: SortOrder
     taskData?: SortOrder
     errorMessage?: SortOrder
-    externalTaskId?: SortOrder
     startedAt?: SortOrder
     completedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    externalTaskId?: SortOrder
   }
 
   export type ProcessingTaskAvgOrderByAggregateInput = {
@@ -19164,11 +20696,11 @@ export namespace Prisma {
     totalItems?: SortOrder
     processedItems?: SortOrder
     errorMessage?: SortOrder
-    externalTaskId?: SortOrder
     startedAt?: SortOrder
     completedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    externalTaskId?: SortOrder
   }
 
   export type ProcessingTaskMinOrderByAggregateInput = {
@@ -19180,11 +20712,11 @@ export namespace Prisma {
     totalItems?: SortOrder
     processedItems?: SortOrder
     errorMessage?: SortOrder
-    externalTaskId?: SortOrder
     startedAt?: SortOrder
     completedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    externalTaskId?: SortOrder
   }
 
   export type ProcessingTaskSumOrderByAggregateInput = {
@@ -19215,7 +20747,6 @@ export namespace Prisma {
   }
 
   export type SpeakerProfileCountOrderByAggregateInput = {
-    id?: SortOrder
     name?: SortOrder
     gender?: SortOrder
     ageGroup?: SortOrder
@@ -19231,16 +20762,16 @@ export namespace Prisma {
     syncedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    id?: SortOrder
   }
 
   export type SpeakerProfileAvgOrderByAggregateInput = {
-    id?: SortOrder
     confidence?: SortOrder
     usageCount?: SortOrder
+    id?: SortOrder
   }
 
   export type SpeakerProfileMaxOrderByAggregateInput = {
-    id?: SortOrder
     name?: SortOrder
     gender?: SortOrder
     ageGroup?: SortOrder
@@ -19255,10 +20786,10 @@ export namespace Prisma {
     syncedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    id?: SortOrder
   }
 
   export type SpeakerProfileMinOrderByAggregateInput = {
-    id?: SortOrder
     name?: SortOrder
     gender?: SortOrder
     ageGroup?: SortOrder
@@ -19273,12 +20804,13 @@ export namespace Prisma {
     syncedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    id?: SortOrder
   }
 
   export type SpeakerProfileSumOrderByAggregateInput = {
-    id?: SortOrder
     confidence?: SortOrder
     usageCount?: SortOrder
+    id?: SortOrder
   }
 
   export type BytesNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -19289,6 +20821,52 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedBytesNullableFilter<$PrismaModel>
     _max?: NestedBytesNullableFilter<$PrismaModel>
+  }
+
+  export type SpeakerProfileScalarRelationFilter = {
+    is?: SpeakerProfileWhereInput
+    isNot?: SpeakerProfileWhereInput
+  }
+
+  export type CharacterSpeakerBindingCharacterIdSpeakerProfileIdCompoundUniqueInput = {
+    characterId: string
+    speakerProfileId: number
+  }
+
+  export type CharacterSpeakerBindingCountOrderByAggregateInput = {
+    id?: SortOrder
+    characterId?: SortOrder
+    speakerProfileId?: SortOrder
+    metadata?: SortOrder
+    isDefault?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CharacterSpeakerBindingAvgOrderByAggregateInput = {
+    speakerProfileId?: SortOrder
+  }
+
+  export type CharacterSpeakerBindingMaxOrderByAggregateInput = {
+    id?: SortOrder
+    characterId?: SortOrder
+    speakerProfileId?: SortOrder
+    isDefault?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CharacterSpeakerBindingMinOrderByAggregateInput = {
+    id?: SortOrder
+    characterId?: SortOrder
+    speakerProfileId?: SortOrder
+    isDefault?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CharacterSpeakerBindingSumOrderByAggregateInput = {
+    speakerProfileId?: SortOrder
   }
 
   export type AudioFileCreateNestedManyWithoutBookInput = {
@@ -19613,6 +21191,13 @@ export namespace Prisma {
     connect?: CharacterVoiceBindingWhereUniqueInput | CharacterVoiceBindingWhereUniqueInput[]
   }
 
+  export type CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutCharacterInput, CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput> | CharacterSpeakerBindingCreateWithoutCharacterInput[] | CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput | CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput[]
+    createMany?: CharacterSpeakerBindingCreateManyCharacterInputEnvelope
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+  }
+
   export type ScriptSentenceCreateNestedManyWithoutCharacterInput = {
     create?: XOR<ScriptSentenceCreateWithoutCharacterInput, ScriptSentenceUncheckedCreateWithoutCharacterInput> | ScriptSentenceCreateWithoutCharacterInput[] | ScriptSentenceUncheckedCreateWithoutCharacterInput[]
     connectOrCreate?: ScriptSentenceCreateOrConnectWithoutCharacterInput | ScriptSentenceCreateOrConnectWithoutCharacterInput[]
@@ -19646,6 +21231,13 @@ export namespace Prisma {
     connectOrCreate?: CharacterVoiceBindingCreateOrConnectWithoutCharacterInput | CharacterVoiceBindingCreateOrConnectWithoutCharacterInput[]
     createMany?: CharacterVoiceBindingCreateManyCharacterInputEnvelope
     connect?: CharacterVoiceBindingWhereUniqueInput | CharacterVoiceBindingWhereUniqueInput[]
+  }
+
+  export type CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutCharacterInput, CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput> | CharacterSpeakerBindingCreateWithoutCharacterInput[] | CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput | CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput[]
+    createMany?: CharacterSpeakerBindingCreateManyCharacterInputEnvelope
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
   }
 
   export type ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput = {
@@ -19723,6 +21315,20 @@ export namespace Prisma {
     deleteMany?: CharacterVoiceBindingScalarWhereInput | CharacterVoiceBindingScalarWhereInput[]
   }
 
+  export type CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutCharacterInput, CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput> | CharacterSpeakerBindingCreateWithoutCharacterInput[] | CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput | CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput[]
+    upsert?: CharacterSpeakerBindingUpsertWithWhereUniqueWithoutCharacterInput | CharacterSpeakerBindingUpsertWithWhereUniqueWithoutCharacterInput[]
+    createMany?: CharacterSpeakerBindingCreateManyCharacterInputEnvelope
+    set?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    disconnect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    delete?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    update?: CharacterSpeakerBindingUpdateWithWhereUniqueWithoutCharacterInput | CharacterSpeakerBindingUpdateWithWhereUniqueWithoutCharacterInput[]
+    updateMany?: CharacterSpeakerBindingUpdateManyWithWhereWithoutCharacterInput | CharacterSpeakerBindingUpdateManyWithWhereWithoutCharacterInput[]
+    deleteMany?: CharacterSpeakerBindingScalarWhereInput | CharacterSpeakerBindingScalarWhereInput[]
+  }
+
   export type ScriptSentenceUpdateManyWithoutCharacterNestedInput = {
     create?: XOR<ScriptSentenceCreateWithoutCharacterInput, ScriptSentenceUncheckedCreateWithoutCharacterInput> | ScriptSentenceCreateWithoutCharacterInput[] | ScriptSentenceUncheckedCreateWithoutCharacterInput[]
     connectOrCreate?: ScriptSentenceCreateOrConnectWithoutCharacterInput | ScriptSentenceCreateOrConnectWithoutCharacterInput[]
@@ -19791,6 +21397,20 @@ export namespace Prisma {
     update?: CharacterVoiceBindingUpdateWithWhereUniqueWithoutCharacterInput | CharacterVoiceBindingUpdateWithWhereUniqueWithoutCharacterInput[]
     updateMany?: CharacterVoiceBindingUpdateManyWithWhereWithoutCharacterInput | CharacterVoiceBindingUpdateManyWithWhereWithoutCharacterInput[]
     deleteMany?: CharacterVoiceBindingScalarWhereInput | CharacterVoiceBindingScalarWhereInput[]
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutCharacterInput, CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput> | CharacterSpeakerBindingCreateWithoutCharacterInput[] | CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput | CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput[]
+    upsert?: CharacterSpeakerBindingUpsertWithWhereUniqueWithoutCharacterInput | CharacterSpeakerBindingUpsertWithWhereUniqueWithoutCharacterInput[]
+    createMany?: CharacterSpeakerBindingCreateManyCharacterInputEnvelope
+    set?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    disconnect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    delete?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    update?: CharacterSpeakerBindingUpdateWithWhereUniqueWithoutCharacterInput | CharacterSpeakerBindingUpdateWithWhereUniqueWithoutCharacterInput[]
+    updateMany?: CharacterSpeakerBindingUpdateManyWithWhereWithoutCharacterInput | CharacterSpeakerBindingUpdateManyWithWhereWithoutCharacterInput[]
+    deleteMany?: CharacterSpeakerBindingScalarWhereInput | CharacterSpeakerBindingScalarWhereInput[]
   }
 
   export type ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput = {
@@ -20255,8 +21875,78 @@ export namespace Prisma {
     update?: XOR<XOR<BookUpdateToOneWithWhereWithoutProcessingTasksInput, BookUpdateWithoutProcessingTasksInput>, BookUncheckedUpdateWithoutProcessingTasksInput>
   }
 
+  export type CharacterSpeakerBindingCreateNestedManyWithoutSpeakerProfileInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput> | CharacterSpeakerBindingCreateWithoutSpeakerProfileInput[] | CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput | CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput[]
+    createMany?: CharacterSpeakerBindingCreateManySpeakerProfileInputEnvelope
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+  }
+
+  export type CharacterSpeakerBindingUncheckedCreateNestedManyWithoutSpeakerProfileInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput> | CharacterSpeakerBindingCreateWithoutSpeakerProfileInput[] | CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput | CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput[]
+    createMany?: CharacterSpeakerBindingCreateManySpeakerProfileInputEnvelope
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+  }
+
   export type NullableBytesFieldUpdateOperationsInput = {
     set?: Bytes | null
+  }
+
+  export type CharacterSpeakerBindingUpdateManyWithoutSpeakerProfileNestedInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput> | CharacterSpeakerBindingCreateWithoutSpeakerProfileInput[] | CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput | CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput[]
+    upsert?: CharacterSpeakerBindingUpsertWithWhereUniqueWithoutSpeakerProfileInput | CharacterSpeakerBindingUpsertWithWhereUniqueWithoutSpeakerProfileInput[]
+    createMany?: CharacterSpeakerBindingCreateManySpeakerProfileInputEnvelope
+    set?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    disconnect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    delete?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    update?: CharacterSpeakerBindingUpdateWithWhereUniqueWithoutSpeakerProfileInput | CharacterSpeakerBindingUpdateWithWhereUniqueWithoutSpeakerProfileInput[]
+    updateMany?: CharacterSpeakerBindingUpdateManyWithWhereWithoutSpeakerProfileInput | CharacterSpeakerBindingUpdateManyWithWhereWithoutSpeakerProfileInput[]
+    deleteMany?: CharacterSpeakerBindingScalarWhereInput | CharacterSpeakerBindingScalarWhereInput[]
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateManyWithoutSpeakerProfileNestedInput = {
+    create?: XOR<CharacterSpeakerBindingCreateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput> | CharacterSpeakerBindingCreateWithoutSpeakerProfileInput[] | CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput[]
+    connectOrCreate?: CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput | CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput[]
+    upsert?: CharacterSpeakerBindingUpsertWithWhereUniqueWithoutSpeakerProfileInput | CharacterSpeakerBindingUpsertWithWhereUniqueWithoutSpeakerProfileInput[]
+    createMany?: CharacterSpeakerBindingCreateManySpeakerProfileInputEnvelope
+    set?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    disconnect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    delete?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    connect?: CharacterSpeakerBindingWhereUniqueInput | CharacterSpeakerBindingWhereUniqueInput[]
+    update?: CharacterSpeakerBindingUpdateWithWhereUniqueWithoutSpeakerProfileInput | CharacterSpeakerBindingUpdateWithWhereUniqueWithoutSpeakerProfileInput[]
+    updateMany?: CharacterSpeakerBindingUpdateManyWithWhereWithoutSpeakerProfileInput | CharacterSpeakerBindingUpdateManyWithWhereWithoutSpeakerProfileInput[]
+    deleteMany?: CharacterSpeakerBindingScalarWhereInput | CharacterSpeakerBindingScalarWhereInput[]
+  }
+
+  export type CharacterProfileCreateNestedOneWithoutSpeakerBindingsInput = {
+    create?: XOR<CharacterProfileCreateWithoutSpeakerBindingsInput, CharacterProfileUncheckedCreateWithoutSpeakerBindingsInput>
+    connectOrCreate?: CharacterProfileCreateOrConnectWithoutSpeakerBindingsInput
+    connect?: CharacterProfileWhereUniqueInput
+  }
+
+  export type SpeakerProfileCreateNestedOneWithoutCharacterBindingsInput = {
+    create?: XOR<SpeakerProfileCreateWithoutCharacterBindingsInput, SpeakerProfileUncheckedCreateWithoutCharacterBindingsInput>
+    connectOrCreate?: SpeakerProfileCreateOrConnectWithoutCharacterBindingsInput
+    connect?: SpeakerProfileWhereUniqueInput
+  }
+
+  export type CharacterProfileUpdateOneRequiredWithoutSpeakerBindingsNestedInput = {
+    create?: XOR<CharacterProfileCreateWithoutSpeakerBindingsInput, CharacterProfileUncheckedCreateWithoutSpeakerBindingsInput>
+    connectOrCreate?: CharacterProfileCreateOrConnectWithoutSpeakerBindingsInput
+    upsert?: CharacterProfileUpsertWithoutSpeakerBindingsInput
+    connect?: CharacterProfileWhereUniqueInput
+    update?: XOR<XOR<CharacterProfileUpdateToOneWithWhereWithoutSpeakerBindingsInput, CharacterProfileUpdateWithoutSpeakerBindingsInput>, CharacterProfileUncheckedUpdateWithoutSpeakerBindingsInput>
+  }
+
+  export type SpeakerProfileUpdateOneRequiredWithoutCharacterBindingsNestedInput = {
+    create?: XOR<SpeakerProfileCreateWithoutCharacterBindingsInput, SpeakerProfileUncheckedCreateWithoutCharacterBindingsInput>
+    connectOrCreate?: SpeakerProfileCreateOrConnectWithoutCharacterBindingsInput
+    upsert?: SpeakerProfileUpsertWithoutCharacterBindingsInput
+    connect?: SpeakerProfileWhereUniqueInput
+    update?: XOR<XOR<SpeakerProfileUpdateToOneWithWhereWithoutCharacterBindingsInput, SpeakerProfileUpdateWithoutCharacterBindingsInput>, SpeakerProfileUncheckedUpdateWithoutCharacterBindingsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -20688,14 +22378,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditCreateNestedManyWithoutTargetCharacterInput
     voiceBindings?: CharacterVoiceBindingCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutCharacterInput
   }
 
@@ -20709,14 +22400,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedCreateNestedManyWithoutTargetCharacterInput
     voiceBindings?: CharacterVoiceBindingUncheckedCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput
   }
 
@@ -20739,11 +22431,11 @@ export namespace Prisma {
     processedItems?: number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: string | null
-    externalTaskId?: string | null
     startedAt?: Date | string | null
     completedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    externalTaskId?: string | null
   }
 
   export type ProcessingTaskUncheckedCreateWithoutBookInput = {
@@ -20755,11 +22447,11 @@ export namespace Prisma {
     processedItems?: number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: string | null
-    externalTaskId?: string | null
     startedAt?: Date | string | null
     completedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    externalTaskId?: string | null
   }
 
   export type ProcessingTaskCreateOrConnectWithoutBookInput = {
@@ -20951,10 +22643,10 @@ export namespace Prisma {
     ageHint?: IntNullableFilter<"CharacterProfile"> | number | null
     emotionBaseline?: StringFilter<"CharacterProfile"> | string
     isActive?: BoolFilter<"CharacterProfile"> | boolean
-    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
-    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
     createdAt?: DateTimeFilter<"CharacterProfile"> | Date | string
     updatedAt?: DateTimeFilter<"CharacterProfile"> | Date | string
+    mentions?: IntNullableFilter<"CharacterProfile"> | number | null
+    quotes?: IntNullableFilter<"CharacterProfile"> | number | null
   }
 
   export type ProcessingTaskUpsertWithWhereUniqueWithoutBookInput = {
@@ -20986,11 +22678,11 @@ export namespace Prisma {
     processedItems?: IntFilter<"ProcessingTask"> | number
     taskData?: JsonFilter<"ProcessingTask">
     errorMessage?: StringNullableFilter<"ProcessingTask"> | string | null
-    externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
     startedAt?: DateTimeNullableFilter<"ProcessingTask"> | Date | string | null
     completedAt?: DateTimeNullableFilter<"ProcessingTask"> | Date | string | null
     createdAt?: DateTimeFilter<"ProcessingTask"> | Date | string
     updatedAt?: DateTimeFilter<"ProcessingTask"> | Date | string
+    externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
   }
 
   export type ScriptSentenceUpsertWithWhereUniqueWithoutBookInput = {
@@ -21224,6 +22916,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type CharacterSpeakerBindingCreateWithoutCharacterInput = {
+    id?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    speakerProfile: SpeakerProfileCreateNestedOneWithoutCharacterBindingsInput
+  }
+
+  export type CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput = {
+    id?: string
+    speakerProfileId: number
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CharacterSpeakerBindingCreateOrConnectWithoutCharacterInput = {
+    where: CharacterSpeakerBindingWhereUniqueInput
+    create: XOR<CharacterSpeakerBindingCreateWithoutCharacterInput, CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput>
+  }
+
+  export type CharacterSpeakerBindingCreateManyCharacterInputEnvelope = {
+    data: CharacterSpeakerBindingCreateManyCharacterInput | CharacterSpeakerBindingCreateManyCharacterInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ScriptSentenceCreateWithoutCharacterInput = {
     id?: string
     rawSpeaker?: string | null
@@ -21411,6 +23131,35 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"CharacterVoiceBinding"> | Date | string
   }
 
+  export type CharacterSpeakerBindingUpsertWithWhereUniqueWithoutCharacterInput = {
+    where: CharacterSpeakerBindingWhereUniqueInput
+    update: XOR<CharacterSpeakerBindingUpdateWithoutCharacterInput, CharacterSpeakerBindingUncheckedUpdateWithoutCharacterInput>
+    create: XOR<CharacterSpeakerBindingCreateWithoutCharacterInput, CharacterSpeakerBindingUncheckedCreateWithoutCharacterInput>
+  }
+
+  export type CharacterSpeakerBindingUpdateWithWhereUniqueWithoutCharacterInput = {
+    where: CharacterSpeakerBindingWhereUniqueInput
+    data: XOR<CharacterSpeakerBindingUpdateWithoutCharacterInput, CharacterSpeakerBindingUncheckedUpdateWithoutCharacterInput>
+  }
+
+  export type CharacterSpeakerBindingUpdateManyWithWhereWithoutCharacterInput = {
+    where: CharacterSpeakerBindingScalarWhereInput
+    data: XOR<CharacterSpeakerBindingUpdateManyMutationInput, CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterInput>
+  }
+
+  export type CharacterSpeakerBindingScalarWhereInput = {
+    AND?: CharacterSpeakerBindingScalarWhereInput | CharacterSpeakerBindingScalarWhereInput[]
+    OR?: CharacterSpeakerBindingScalarWhereInput[]
+    NOT?: CharacterSpeakerBindingScalarWhereInput | CharacterSpeakerBindingScalarWhereInput[]
+    id?: StringFilter<"CharacterSpeakerBinding"> | string
+    characterId?: StringFilter<"CharacterSpeakerBinding"> | string
+    speakerProfileId?: IntFilter<"CharacterSpeakerBinding"> | number
+    metadata?: JsonFilter<"CharacterSpeakerBinding">
+    isDefault?: BoolFilter<"CharacterSpeakerBinding"> | boolean
+    createdAt?: DateTimeFilter<"CharacterSpeakerBinding"> | Date | string
+    updatedAt?: DateTimeFilter<"CharacterSpeakerBinding"> | Date | string
+  }
+
   export type ScriptSentenceUpsertWithWhereUniqueWithoutCharacterInput = {
     where: ScriptSentenceWhereUniqueInput
     update: XOR<ScriptSentenceUpdateWithoutCharacterInput, ScriptSentenceUncheckedUpdateWithoutCharacterInput>
@@ -21437,14 +23186,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditCreateNestedManyWithoutTargetCharacterInput
     book: BookCreateNestedOneWithoutCharacterProfilesInput
     voiceBindings?: CharacterVoiceBindingCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutCharacterInput
   }
 
@@ -21459,13 +23209,14 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedCreateNestedManyWithoutTargetCharacterInput
     voiceBindings?: CharacterVoiceBindingUncheckedCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput
   }
 
@@ -21495,14 +23246,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUpdateManyWithoutTargetCharacterNestedInput
     book?: BookUpdateOneRequiredWithoutCharacterProfilesNestedInput
     voiceBindings?: CharacterVoiceBindingUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutCharacterNestedInput
   }
 
@@ -21517,13 +23269,14 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedUpdateManyWithoutTargetCharacterNestedInput
     voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput
   }
 
@@ -21645,14 +23398,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditCreateNestedManyWithoutTargetCharacterInput
     book: BookCreateNestedOneWithoutCharacterProfilesInput
+    speakerBindings?: CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutCharacterInput
   }
 
@@ -21667,13 +23421,14 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedCreateNestedManyWithoutTargetCharacterInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput
   }
 
@@ -21744,14 +23499,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUpdateManyWithoutTargetCharacterNestedInput
     book?: BookUpdateOneRequiredWithoutCharacterProfilesNestedInput
+    speakerBindings?: CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutCharacterNestedInput
   }
 
@@ -21766,13 +23522,14 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedUpdateManyWithoutTargetCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput
   }
 
@@ -22156,15 +23913,16 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditCreateNestedManyWithoutTargetCharacterInput
     book: BookCreateNestedOneWithoutCharacterProfilesInput
     voiceBindings?: CharacterVoiceBindingCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput
   }
 
   export type CharacterProfileUncheckedCreateWithoutScriptSentencesInput = {
@@ -22178,14 +23936,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedCreateNestedManyWithoutTargetCharacterInput
     voiceBindings?: CharacterVoiceBindingUncheckedCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput
   }
 
   export type CharacterProfileCreateOrConnectWithoutScriptSentencesInput = {
@@ -22324,15 +24083,16 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUpdateManyWithoutTargetCharacterNestedInput
     book?: BookUpdateOneRequiredWithoutCharacterProfilesNestedInput
     voiceBindings?: CharacterVoiceBindingUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput
   }
 
   export type CharacterProfileUncheckedUpdateWithoutScriptSentencesInput = {
@@ -22346,14 +24106,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedUpdateManyWithoutTargetCharacterNestedInput
     voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput
   }
 
   export type TextSegmentUpsertWithoutScriptSentencesInput = {
@@ -22812,14 +24573,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditCreateNestedManyWithoutTargetCharacterInput
     book: BookCreateNestedOneWithoutCharacterProfilesInput
     voiceBindings?: CharacterVoiceBindingCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutCharacterInput
   }
 
@@ -22834,13 +24596,14 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedCreateNestedManyWithoutTargetCharacterInput
     voiceBindings?: CharacterVoiceBindingUncheckedCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput
   }
 
@@ -22859,14 +24622,15 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
     book: BookCreateNestedOneWithoutCharacterProfilesInput
     voiceBindings?: CharacterVoiceBindingCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutCharacterInput
   }
 
@@ -22881,13 +24645,14 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
     aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
     voiceBindings?: CharacterVoiceBindingUncheckedCreateNestedManyWithoutCharacterInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedCreateNestedManyWithoutCharacterInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput
   }
 
@@ -22974,14 +24739,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUpdateManyWithoutTargetCharacterNestedInput
     book?: BookUpdateOneRequiredWithoutCharacterProfilesNestedInput
     voiceBindings?: CharacterVoiceBindingUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutCharacterNestedInput
   }
 
@@ -22996,13 +24762,14 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedUpdateManyWithoutTargetCharacterNestedInput
     voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput
   }
 
@@ -23027,14 +24794,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
     book?: BookUpdateOneRequiredWithoutCharacterProfilesNestedInput
     voiceBindings?: CharacterVoiceBindingUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutCharacterNestedInput
   }
 
@@ -23049,13 +24817,14 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
     voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput
   }
 
@@ -23167,6 +24936,244 @@ export namespace Prisma {
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
   }
 
+  export type CharacterSpeakerBindingCreateWithoutSpeakerProfileInput = {
+    id?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    character: CharacterProfileCreateNestedOneWithoutSpeakerBindingsInput
+  }
+
+  export type CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput = {
+    id?: string
+    characterId: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CharacterSpeakerBindingCreateOrConnectWithoutSpeakerProfileInput = {
+    where: CharacterSpeakerBindingWhereUniqueInput
+    create: XOR<CharacterSpeakerBindingCreateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput>
+  }
+
+  export type CharacterSpeakerBindingCreateManySpeakerProfileInputEnvelope = {
+    data: CharacterSpeakerBindingCreateManySpeakerProfileInput | CharacterSpeakerBindingCreateManySpeakerProfileInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type CharacterSpeakerBindingUpsertWithWhereUniqueWithoutSpeakerProfileInput = {
+    where: CharacterSpeakerBindingWhereUniqueInput
+    update: XOR<CharacterSpeakerBindingUpdateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedUpdateWithoutSpeakerProfileInput>
+    create: XOR<CharacterSpeakerBindingCreateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedCreateWithoutSpeakerProfileInput>
+  }
+
+  export type CharacterSpeakerBindingUpdateWithWhereUniqueWithoutSpeakerProfileInput = {
+    where: CharacterSpeakerBindingWhereUniqueInput
+    data: XOR<CharacterSpeakerBindingUpdateWithoutSpeakerProfileInput, CharacterSpeakerBindingUncheckedUpdateWithoutSpeakerProfileInput>
+  }
+
+  export type CharacterSpeakerBindingUpdateManyWithWhereWithoutSpeakerProfileInput = {
+    where: CharacterSpeakerBindingScalarWhereInput
+    data: XOR<CharacterSpeakerBindingUpdateManyMutationInput, CharacterSpeakerBindingUncheckedUpdateManyWithoutSpeakerProfileInput>
+  }
+
+  export type CharacterProfileCreateWithoutSpeakerBindingsInput = {
+    id?: string
+    canonicalName: string
+    characteristics?: JsonNullValueInput | InputJsonValue
+    voicePreferences?: JsonNullValueInput | InputJsonValue
+    emotionProfile?: JsonNullValueInput | InputJsonValue
+    genderHint?: string
+    ageHint?: number | null
+    emotionBaseline?: string
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
+    aliases?: CharacterAliasCreateNestedManyWithoutCharacterInput
+    mergeAuditsSource?: CharacterMergeAuditCreateNestedManyWithoutSourceCharacterInput
+    mergeAuditsTarget?: CharacterMergeAuditCreateNestedManyWithoutTargetCharacterInput
+    book: BookCreateNestedOneWithoutCharacterProfilesInput
+    voiceBindings?: CharacterVoiceBindingCreateNestedManyWithoutCharacterInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutCharacterInput
+  }
+
+  export type CharacterProfileUncheckedCreateWithoutSpeakerBindingsInput = {
+    id?: string
+    bookId: string
+    canonicalName: string
+    characteristics?: JsonNullValueInput | InputJsonValue
+    voicePreferences?: JsonNullValueInput | InputJsonValue
+    emotionProfile?: JsonNullValueInput | InputJsonValue
+    genderHint?: string
+    ageHint?: number | null
+    emotionBaseline?: string
+    isActive?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
+    aliases?: CharacterAliasUncheckedCreateNestedManyWithoutCharacterInput
+    mergeAuditsSource?: CharacterMergeAuditUncheckedCreateNestedManyWithoutSourceCharacterInput
+    mergeAuditsTarget?: CharacterMergeAuditUncheckedCreateNestedManyWithoutTargetCharacterInput
+    voiceBindings?: CharacterVoiceBindingUncheckedCreateNestedManyWithoutCharacterInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutCharacterInput
+  }
+
+  export type CharacterProfileCreateOrConnectWithoutSpeakerBindingsInput = {
+    where: CharacterProfileWhereUniqueInput
+    create: XOR<CharacterProfileCreateWithoutSpeakerBindingsInput, CharacterProfileUncheckedCreateWithoutSpeakerBindingsInput>
+  }
+
+  export type SpeakerProfileCreateWithoutCharacterBindingsInput = {
+    name?: string | null
+    gender?: string
+    ageGroup?: string
+    toneStyle?: string
+    description?: string | null
+    referenceAudio?: string | null
+    confidence?: Decimal | DecimalJsLike | number | string | null
+    embeddingVector?: Bytes | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    usageCount?: number
+    lastUsedAt?: Date | string | null
+    syncedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SpeakerProfileUncheckedCreateWithoutCharacterBindingsInput = {
+    name?: string | null
+    gender?: string
+    ageGroup?: string
+    toneStyle?: string
+    description?: string | null
+    referenceAudio?: string | null
+    confidence?: Decimal | DecimalJsLike | number | string | null
+    embeddingVector?: Bytes | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    usageCount?: number
+    lastUsedAt?: Date | string | null
+    syncedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    id?: number
+  }
+
+  export type SpeakerProfileCreateOrConnectWithoutCharacterBindingsInput = {
+    where: SpeakerProfileWhereUniqueInput
+    create: XOR<SpeakerProfileCreateWithoutCharacterBindingsInput, SpeakerProfileUncheckedCreateWithoutCharacterBindingsInput>
+  }
+
+  export type CharacterProfileUpsertWithoutSpeakerBindingsInput = {
+    update: XOR<CharacterProfileUpdateWithoutSpeakerBindingsInput, CharacterProfileUncheckedUpdateWithoutSpeakerBindingsInput>
+    create: XOR<CharacterProfileCreateWithoutSpeakerBindingsInput, CharacterProfileUncheckedCreateWithoutSpeakerBindingsInput>
+    where?: CharacterProfileWhereInput
+  }
+
+  export type CharacterProfileUpdateToOneWithWhereWithoutSpeakerBindingsInput = {
+    where?: CharacterProfileWhereInput
+    data: XOR<CharacterProfileUpdateWithoutSpeakerBindingsInput, CharacterProfileUncheckedUpdateWithoutSpeakerBindingsInput>
+  }
+
+  export type CharacterProfileUpdateWithoutSpeakerBindingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    canonicalName?: StringFieldUpdateOperationsInput | string
+    characteristics?: JsonNullValueInput | InputJsonValue
+    voicePreferences?: JsonNullValueInput | InputJsonValue
+    emotionProfile?: JsonNullValueInput | InputJsonValue
+    genderHint?: StringFieldUpdateOperationsInput | string
+    ageHint?: NullableIntFieldUpdateOperationsInput | number | null
+    emotionBaseline?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
+    aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
+    mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
+    mergeAuditsTarget?: CharacterMergeAuditUpdateManyWithoutTargetCharacterNestedInput
+    book?: BookUpdateOneRequiredWithoutCharacterProfilesNestedInput
+    voiceBindings?: CharacterVoiceBindingUpdateManyWithoutCharacterNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutCharacterNestedInput
+  }
+
+  export type CharacterProfileUncheckedUpdateWithoutSpeakerBindingsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    canonicalName?: StringFieldUpdateOperationsInput | string
+    characteristics?: JsonNullValueInput | InputJsonValue
+    voicePreferences?: JsonNullValueInput | InputJsonValue
+    emotionProfile?: JsonNullValueInput | InputJsonValue
+    genderHint?: StringFieldUpdateOperationsInput | string
+    ageHint?: NullableIntFieldUpdateOperationsInput | number | null
+    emotionBaseline?: StringFieldUpdateOperationsInput | string
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
+    aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
+    mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
+    mergeAuditsTarget?: CharacterMergeAuditUncheckedUpdateManyWithoutTargetCharacterNestedInput
+    voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutCharacterNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput
+  }
+
+  export type SpeakerProfileUpsertWithoutCharacterBindingsInput = {
+    update: XOR<SpeakerProfileUpdateWithoutCharacterBindingsInput, SpeakerProfileUncheckedUpdateWithoutCharacterBindingsInput>
+    create: XOR<SpeakerProfileCreateWithoutCharacterBindingsInput, SpeakerProfileUncheckedCreateWithoutCharacterBindingsInput>
+    where?: SpeakerProfileWhereInput
+  }
+
+  export type SpeakerProfileUpdateToOneWithWhereWithoutCharacterBindingsInput = {
+    where?: SpeakerProfileWhereInput
+    data: XOR<SpeakerProfileUpdateWithoutCharacterBindingsInput, SpeakerProfileUncheckedUpdateWithoutCharacterBindingsInput>
+  }
+
+  export type SpeakerProfileUpdateWithoutCharacterBindingsInput = {
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    gender?: StringFieldUpdateOperationsInput | string
+    ageGroup?: StringFieldUpdateOperationsInput | string
+    toneStyle?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceAudio?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    embeddingVector?: NullableBytesFieldUpdateOperationsInput | Bytes | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    usageCount?: IntFieldUpdateOperationsInput | number
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    syncedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SpeakerProfileUncheckedUpdateWithoutCharacterBindingsInput = {
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    gender?: StringFieldUpdateOperationsInput | string
+    ageGroup?: StringFieldUpdateOperationsInput | string
+    toneStyle?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    referenceAudio?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    embeddingVector?: NullableBytesFieldUpdateOperationsInput | Bytes | null
+    metadata?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    usageCount?: IntFieldUpdateOperationsInput | number
+    lastUsedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    syncedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    id?: IntFieldUpdateOperationsInput | number
+  }
+
   export type AudioFileCreateManyBookInput = {
     id?: string
     sentenceId?: string | null
@@ -23204,10 +25211,10 @@ export namespace Prisma {
     ageHint?: number | null
     emotionBaseline?: string
     isActive?: boolean
-    mentions?: number | null
-    quotes?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    mentions?: number | null
+    quotes?: number | null
   }
 
   export type ProcessingTaskCreateManyBookInput = {
@@ -23219,11 +25226,11 @@ export namespace Prisma {
     processedItems?: number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: string | null
-    externalTaskId?: string | null
     startedAt?: Date | string | null
     completedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    externalTaskId?: string | null
   }
 
   export type ScriptSentenceCreateManyBookInput = {
@@ -23345,14 +25352,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUpdateManyWithoutTargetCharacterNestedInput
     voiceBindings?: CharacterVoiceBindingUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutCharacterNestedInput
   }
 
@@ -23366,14 +25374,15 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     aliases?: CharacterAliasUncheckedUpdateManyWithoutCharacterNestedInput
     mergeAuditsSource?: CharacterMergeAuditUncheckedUpdateManyWithoutSourceCharacterNestedInput
     mergeAuditsTarget?: CharacterMergeAuditUncheckedUpdateManyWithoutTargetCharacterNestedInput
     voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutCharacterNestedInput
+    speakerBindings?: CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutCharacterNestedInput
   }
 
@@ -23387,10 +25396,10 @@ export namespace Prisma {
     ageHint?: NullableIntFieldUpdateOperationsInput | number | null
     emotionBaseline?: StringFieldUpdateOperationsInput | string
     isActive?: BoolFieldUpdateOperationsInput | boolean
-    mentions?: NullableIntFieldUpdateOperationsInput | number | null
-    quotes?: NullableIntFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    mentions?: NullableIntFieldUpdateOperationsInput | number | null
+    quotes?: NullableIntFieldUpdateOperationsInput | number | null
   }
 
   export type ProcessingTaskUpdateWithoutBookInput = {
@@ -23402,11 +25411,11 @@ export namespace Prisma {
     processedItems?: IntFieldUpdateOperationsInput | number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
-    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProcessingTaskUncheckedUpdateWithoutBookInput = {
@@ -23418,11 +25427,11 @@ export namespace Prisma {
     processedItems?: IntFieldUpdateOperationsInput | number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
-    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ProcessingTaskUncheckedUpdateManyWithoutBookInput = {
@@ -23434,11 +25443,11 @@ export namespace Prisma {
     processedItems?: IntFieldUpdateOperationsInput | number
     taskData?: JsonNullValueInput | InputJsonValue
     errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
-    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
   }
 
   export type ScriptSentenceUpdateWithoutBookInput = {
@@ -23567,6 +25576,15 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type CharacterSpeakerBindingCreateManyCharacterInput = {
+    id?: string
+    speakerProfileId: number
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ScriptSentenceCreateManyCharacterInput = {
     id?: string
     bookId: string
@@ -23684,6 +25702,33 @@ export namespace Prisma {
     voiceProfileId?: StringFieldUpdateOperationsInput | string
     customParameters?: NullableJsonNullValueInput | InputJsonValue
     emotionMappings?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CharacterSpeakerBindingUpdateWithoutCharacterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    speakerProfile?: SpeakerProfileUpdateOneRequiredWithoutCharacterBindingsNestedInput
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateWithoutCharacterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    speakerProfileId?: IntFieldUpdateOperationsInput | number
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateManyWithoutCharacterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    speakerProfileId?: IntFieldUpdateOperationsInput | number
+    metadata?: JsonNullValueInput | InputJsonValue
     isDefault?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24043,6 +26088,42 @@ export namespace Prisma {
     retryCount?: IntFieldUpdateOperationsInput | number
     provider?: NullableStringFieldUpdateOperationsInput | string | null
     voiceProfileId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CharacterSpeakerBindingCreateManySpeakerProfileInput = {
+    id?: string
+    characterId: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CharacterSpeakerBindingUpdateWithoutSpeakerProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    character?: CharacterProfileUpdateOneRequiredWithoutSpeakerBindingsNestedInput
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateWithoutSpeakerProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    characterId?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CharacterSpeakerBindingUncheckedUpdateManyWithoutSpeakerProfileInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    characterId?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

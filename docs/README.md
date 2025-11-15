@@ -30,7 +30,7 @@
 | 文档 | 说明 |
 |------|------|
 | [CHARACTER_ANALYSIS_OPTIMIZATION.md](./technical/CHARACTER_ANALYSIS_OPTIMIZATION.md) | 角色分析功能优化 |
-| [TEXT_SPLITTING_OPTIMIZATION.md](./technical/TEXT_SPLITTING_OPTIMIZATION.md) | 文本分割优化（递归字符分割） |
+| [TEXT_SPLITTING_OPTIMIZATION.md](./technical/TEXT_SPLITTING_OPTIMIZATION.md) | 文本分割优化（SmartTextSplitter） |
 | [TEXT_SPLITTING_SUMMARY.md](./technical/TEXT_SPLITTING_SUMMARY.md) | 文本分割优化总结 |
 | [NAVIGATION_OPTIMIZATION.md](./technical/NAVIGATION_OPTIMIZATION.md) | 页面导航优化 |
 | [NAVIGATION_SUMMARY.md](./technical/NAVIGATION_SUMMARY.md) | 页面导航优化总结 |

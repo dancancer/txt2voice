@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { booksApi } from "@/lib/api";
+import { getBookScripts } from "@/lib/book-api";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScriptSentence, CharacterProfile } from "@/lib/types";
@@ -25,6 +26,7 @@ export default function ScriptGenerationPage() {
   const router = useRouter();
   const bookId = params.id as string;
 
+  const SCRIPT_FETCH_PAGE_SIZE = 100;
   const [book, setBook] = useState<any>(null);
   const [segments, setSegments] = useState<any[]>([]);
   const [characters, setCharacters] = useState<CharacterProfile[]>([]);
@@ -58,21 +60,50 @@ export default function ScriptGenerationPage() {
   );
   const [showScriptPreview, setShowScriptPreview] = useState(false);
 
+  const fetchAllScriptSentences = useCallback(async () => {
+    const sentences: ScriptSentence[] = [];
+    let page = 1;
+
+    while (true) {
+      const result = await getBookScripts(bookId, {
+        page,
+        limit: SCRIPT_FETCH_PAGE_SIZE,
+      });
+
+      if (!result.success) {
+        throw new Error("获取台词列表失败");
+      }
+
+      const pageData = (result.data?.data || []) as ScriptSentence[];
+      sentences.push(...pageData);
+
+      const pagination = result.data?.pagination;
+      if (!pagination || page >= Math.max(1, pagination.totalPages)) {
+        break;
+      }
+
+      page += 1;
+    }
+
+    return sentences;
+  }, [bookId]);
+
   const loadBookAndData = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await booksApi.getBook(bookId, ['segments', 'scripts', 'characters']);
+      const response = await booksApi.getBook(bookId, ["segments", "characters"]);
       setBook(response.data);
       setSegments(response.data.textSegments || []);
       setCharacters(response.data.characterProfiles || []);
-      setScriptSentences(response.data.scriptSentences || []);
+      const scripts = await fetchAllScriptSentences();
+      setScriptSentences(scripts);
     } catch (err) {
       console.error("Failed to load book and script data:", err);
       setError("加载台本数据失败");
     } finally {
       setLoading(false);
     }
-  }, [bookId]);
+  }, [bookId, fetchAllScriptSentences]);
 
   useEffect(() => {
     loadBookAndData();
@@ -175,13 +206,34 @@ export default function ScriptGenerationPage() {
 
   const handleCharacterAssignment = async () => {
     try {
-      console.log("Assigning characters:", scriptSentences);
+      const payload = {
+        scriptSentences: scriptSentences.map((sentence) => ({
+          id: sentence.id,
+          characterProfileId: sentence.characterId || null,
+        })),
+      };
+
+      const response = await fetch(`/api/books/${bookId}/script`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error?.message || "保存角色分配失败");
+      }
+
       setShowCharacterAssignment(false);
       await loadBookAndData();
       alert("角色分配已保存");
     } catch (error) {
       console.error("Failed to assign characters:", error);
-      alert("保存角色分配失败");
+      alert(
+        error instanceof Error ? error.message : "保存角色分配失败，请稍后重试"
+      );
     }
   };
 
@@ -207,6 +259,31 @@ export default function ScriptGenerationPage() {
       }
     }
   };
+
+  const handleAudioGenerated = useCallback(
+    (
+      sentenceId: string,
+      audio: { audioFileId?: string; playbackUrl?: string }
+    ) => {
+      if (!audio.audioFileId) return;
+      setScriptSentences((prev) =>
+        prev.map((sentence) =>
+          sentence.id === sentenceId
+            ? {
+                ...sentence,
+                audioFiles: [
+                  {
+                    id: audio.audioFileId!,
+                    status: "completed",
+                  },
+                ],
+              }
+            : sentence
+        )
+      );
+    },
+    []
+  );
 
   const regenerateScript = async () => {
     if (confirm("重新生成台本将覆盖现有内容，确定要继续吗？")) {
@@ -425,9 +502,26 @@ export default function ScriptGenerationPage() {
     sentenceId: string,
     characterId: string
   ) => {
-    const newSentences = scriptSentences.map((s) =>
-      s.id === sentenceId ? { ...s, characterId } : s
+    const normalizedCharacterId = characterId || null;
+    const selectedCharacter = characters.find(
+      (character) => character.id === normalizedCharacterId
     );
+
+    const newSentences = scriptSentences.map((sentence) =>
+      sentence.id === sentenceId
+        ? {
+            ...sentence,
+            characterId: normalizedCharacterId,
+            character: selectedCharacter
+              ? {
+                  id: selectedCharacter.id,
+                  canonicalName: selectedCharacter.canonicalName,
+                }
+              : null,
+          }
+        : sentence
+    );
+
     setScriptSentences(newSentences);
   };
 
@@ -514,9 +608,11 @@ export default function ScriptGenerationPage() {
                 />
 
                 <ScriptSentencesList
+                  bookId={bookId}
                   scriptSentences={scriptSentences}
                   onEdit={setEditingSentence}
                   onDelete={handleSentenceDelete}
+                  onAudioGenerated={handleAudioGenerated}
                 />
               </>
             )}

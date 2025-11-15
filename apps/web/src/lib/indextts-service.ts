@@ -101,8 +101,18 @@ export class IndexTTSService {
       process.env.INDEXTTS_API_URL ||
       "http://192.168.88.9:8001";
     this.apiKey = config?.apiKey || process.env.INDEXTTS_API_KEY;
-    this.timeout =
-      config?.timeout || parseInt(process.env.INDEXTTS_TIMEOUT || "30000");
+    const defaultTimeout = 300000; // allow long-running syntheses (~5 minutes)
+    const envTimeoutRaw = process.env.INDEXTTS_TIMEOUT;
+    const envTimeoutValue =
+      envTimeoutRaw !== undefined ? parseInt(envTimeoutRaw, 10) : undefined;
+
+    const resolvedTimeout =
+      config?.timeout ||
+      (Number.isFinite(envTimeoutValue) ? (envTimeoutValue as number) : undefined) ||
+      defaultTimeout;
+
+    // 保证服务端至少有默认的超时时间，避免环境变量仍旧配置较小值
+    this.timeout = Math.max(resolvedTimeout, defaultTimeout);
   }
 
   private async makeRequest<T>(
@@ -110,6 +120,7 @@ export class IndexTTSService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const requestStartedAt = Date.now();
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -138,6 +149,17 @@ export class IndexTTSService {
 
       return await response.json();
     } catch (error) {
+      const elapsed = Date.now() - requestStartedAt;
+      console.warn(
+        `[IndexTTS] Request failed`,
+        JSON.stringify({
+          endpoint,
+          configuredTimeoutMs: this.timeout,
+          elapsedMs: elapsed,
+          errorName: error instanceof Error ? error.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error)
+        })
+      );
       if (error instanceof TTSError) {
         throw error;
       }
@@ -280,25 +302,41 @@ export class IndexTTSService {
    * 语音合成
    */
   async synthesize(request: SynthesizeRequest): Promise<SynthesizeResult> {
-    const response = await this.makeRequest<{
-      success: boolean;
-      data: SynthesizeResult;
-    }>("/api/tts/synthesize", {
+    // FastAPI 服务使用 snake_case 字段命名，因此在发送前需转换请求结构
+    const payload: Record<string, any> = {
+      text: request.text,
+      reference_audio: request.referenceAudio,
+      emo_control_method: request.emoControlMethod,
+      emotion_weight: request.emotionWeight,
+      sample: request.sample,
+      temperature: request.temperature,
+      beam_search: request.beamSearch,
+      top_k: request.topK,
+      top_p: request.topP,
+    };
+
+    if (request.emotionReference) {
+      payload.emotion_reference = request.emotionReference;
+    }
+
+    if (request.emotionVector) {
+      payload.emotion_vector = request.emotionVector;
+    }
+
+    const response = await this.makeRequest<any>("/api/tts/synthesize", {
       method: "POST",
-      body: JSON.stringify(request),
+      body: JSON.stringify(payload),
     });
-    return response.data;
+
+    return this.normalizeSynthesisResult(response);
   }
 
   /**
    * 获取合成任务状态
    */
   async getSynthesisTask(taskId: string): Promise<SynthesizeResult> {
-    const response = await this.makeRequest<{
-      success: boolean;
-      data: SynthesizeResult;
-    }>(`/api/tts/tasks/${taskId}`);
-    return response.data;
+    const response = await this.makeRequest<any>(`/api/tts/tasks/${taskId}`);
+    return this.normalizeSynthesisResult(response);
   }
 
   /**
@@ -418,6 +456,46 @@ export class IndexTTSService {
     }
 
     return { valid: true };
+  }
+
+  private normalizeSynthesisResult(response: any): SynthesizeResult {
+    const rawResult =
+      response && typeof response === "object" && "data" in response
+        ? response.data
+        : response;
+
+    if (!rawResult) {
+      throw new TTSError(
+        "IndexTTS API returned empty response",
+        "TTS_SERVICE_DOWN",
+        "indextts",
+        true
+      );
+    }
+
+    const rawAudioUrl = rawResult.audioUrl || rawResult.audio_url;
+
+    return {
+      taskId: rawResult.taskId || rawResult.task_id || "",
+      status: rawResult.status || "pending",
+      audioUrl: rawAudioUrl ? this.buildAbsoluteUrl(rawAudioUrl) : undefined,
+      duration: rawResult.duration,
+      errorMessage: rawResult.errorMessage || rawResult.error_message,
+      metadata: rawResult.metadata,
+    };
+  }
+
+  private buildAbsoluteUrl(path: string): string {
+    if (!path) {
+      return path;
+    }
+
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+      return path;
+    }
+
+    const normalized = path.startsWith("/") ? path.slice(1) : path;
+    return `${this.baseUrl}/${normalized}`;
   }
 }
 
