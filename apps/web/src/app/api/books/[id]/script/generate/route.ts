@@ -476,6 +476,7 @@ async function runScriptGeneration(
         script = await scriptGenerator.generatePartialScript(bookId, options, {
           startFromSegmentId: extraParams.startFromSegmentId,
           startFromOrderIndex: extraParams.startFromOrderIndex,
+          limitToSegments: extraParams.limitToSegments,
         });
         // 手动限制段落数量
         script.segments = script.segments.slice(0, extraParams.limitToSegments);

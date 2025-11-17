@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, ValidationError } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { saveRecognitionResults } from '@/lib/character-recognition-persistence'
 
 /**
  * POST /api/books/[id]/characters/recognize/callback
@@ -144,59 +145,4 @@ async function handleRecognitionComplete(bookId: string, taskId: string, recogni
     logger.error('处理识别结果失败', error)
     throw error
   }
-}
-
-/**
- * 保存识别结果到数据库
- */
-async function saveRecognitionResults(bookId: string, result: any): Promise<void> {
-  await prisma.$transaction(async (tx) => {
-    // 删除旧的角色配置（如果存在）
-    await tx.characterProfile.deleteMany({
-      where: { bookId }
-    })
-
-    // 保存角色配置
-    for (const character of result.characters) {
-      // 推断重要性
-      const importance = character.quotes >= 10 ? 'main' :
-        character.quotes >= 5 ? 'supporting' : 'minor'
-
-      const profile = await tx.characterProfile.create({
-        data: {
-          bookId,
-          canonicalName: character.name,
-          characteristics: {
-            description: `提及${character.mentions}次，对话${character.quotes}次`,
-            importance,
-            firstAppearance: character.first_appearance_idx,
-            roles: character.roles || []
-          },
-          voicePreferences: {},
-          emotionProfile: {},
-          genderHint: character.gender || 'unknown',
-          ageHint: null,
-          emotionBaseline: 'neutral',
-          isActive: true
-        }
-      })
-
-      // 保存角色别名
-      if (character.aliases && character.aliases.length > 0) {
-        await tx.characterAlias.createMany({
-          data: character.aliases.map((alias: string) => ({
-            characterId: profile.id,
-            alias
-          })),
-          skipDuplicates: true
-        })
-      }
-    }
-
-    logger.info('角色识别结果已保存', {
-      bookId,
-      characterCount: result.characters.length,
-      aliasCount: Object.keys(result.alias_map).length
-    })
-  })
 }

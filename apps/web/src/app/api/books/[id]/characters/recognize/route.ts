@@ -4,6 +4,7 @@ import prisma from '@/lib/prisma'
 import { characterRecognitionClient, CharacterRecognitionError } from '@/lib/character-recognition-client'
 import { mergeTaskData, updateProcessingTaskProgress as updateTaskProgress } from '@/lib/processing-task-utils'
 import { logger } from '@/lib/logger'
+import { saveRecognitionResults } from '@/lib/character-recognition-persistence'
 
 /**
  * POST /api/books/[id]/characters/recognize
@@ -30,7 +31,8 @@ export const POST = withErrorHandler(async (
     throw new ValidationError('书籍不存在')
   }
 
-  if (book.status !== 'processed' && book.status !== 'uploaded') {
+  const allowedStatuses = new Set(['processed', 'analyzed', 'script_generated', 'completed'])
+  if (!allowedStatuses.has(book.status)) {
     throw new ValidationError('请先处理文件内容')
   }
 
@@ -387,94 +389,4 @@ async function handleRecognitionComplete(bookId: string, taskId: string, recogni
     logger.error('处理识别结果失败', error)
     throw error
   }
-}
-
-/**
- * 保存识别结果到数据库
- */
-async function saveRecognitionResults(bookId: string, result: any): Promise<void> {
-  // 添加调试日志
-  logger.info('开始保存识别结果', {
-    bookId,
-    characterCount: result.characters?.length || 0,
-    firstCharacter: result.characters?.[0] ? {
-      id: result.characters[0].id,
-      name: result.characters[0].name,
-      canonical_name: result.characters[0].canonical_name,
-      canonicalName: result.characters[0].canonicalName
-    } : null
-  })
-
-  await prisma.$transaction(async (tx) => {
-    // 删除旧的角色配置（如果存在）
-    await tx.characterProfile.deleteMany({
-      where: { bookId }
-    })
-
-    // 保存角色配置
-    for (const character of result.characters) {
-      // 推断重要性
-      const importance = character.quotes >= 10 ? 'main' :
-        character.quotes >= 5 ? 'supporting' : 'minor'
-
-      // 处理 canonicalName，优先使用 canonical_name，然后是 name，最后使用 id
-      let canonicalName = character.canonical_name || character.name || character.id
-
-      if (!canonicalName) {
-        logger.error('角色缺少有效名称', {
-          characterId: character.id,
-          character: JSON.stringify(character)
-        })
-        continue // 跳过无效角色
-      }
-
-      logger.info('保存角色', {
-        characterId: character.id,
-        canonicalName,
-        originalFields: {
-          canonical_name: character.canonical_name,
-          name: character.name,
-          id: character.id
-        }
-      })
-
-      const profile = await tx.characterProfile.create({
-        data: {
-          bookId,
-          canonicalName,
-          characteristics: {
-            description: `提及${character.mentions}次，对话${character.quotes}次`,
-            importance,
-            firstAppearance: character.first_appearance_idx,
-            roles: character.roles || []
-          },
-          voicePreferences: {},
-          emotionProfile: {},
-          genderHint: character.gender || 'unknown',
-          ageHint: null,
-          emotionBaseline: 'neutral',
-          isActive: true
-        }
-      })
-
-      // 保存角色别名
-      if (character.aliases && character.aliases.length > 0) {
-        await tx.characterAlias.createMany({
-          data: character.aliases.map((alias: string) => ({
-            characterId: profile.id,
-            alias
-          })),
-          skipDuplicates: true
-        })
-      }
-    }
-
-    // 保存别名映射关系（用于后续查询）
-    // 这里可以根据需要保存到额外的表或缓存中
-    logger.info('角色识别结果已保存', {
-      bookId,
-      characterCount: result.characters.length,
-      aliasCount: Object.keys(result.alias_map).length
-    })
-  })
 }

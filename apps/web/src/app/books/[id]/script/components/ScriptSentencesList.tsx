@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScriptSentence } from "@/lib/types";
@@ -35,20 +35,16 @@ export function ScriptSentencesList({
     Math.ceil((scriptSentences?.length || 0) / PAGE_SIZE)
   );
 
-  useEffect(() => {
-    // Reset to first page when data changes or clamp if current page exceeds the last one
-    setCurrentPage((prevPage) =>
-      Math.min(prevPage, totalPages === 0 ? 1 : totalPages)
-    );
-  }, [totalPages, scriptSentences]);
+  const effectivePage = Math.min(currentPage, totalPages || 1);
 
   const paginatedSentences = useMemo(() => {
-    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    const startIndex = (effectivePage - 1) * PAGE_SIZE;
     return scriptSentences.slice(startIndex, startIndex + PAGE_SIZE);
-  }, [scriptSentences, currentPage]);
+  }, [scriptSentences, effectivePage]);
 
-  const startItem = scriptSentences.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const endItem = Math.min(currentPage * PAGE_SIZE, scriptSentences.length);
+  const startItem =
+    scriptSentences.length === 0 ? 0 : (effectivePage - 1) * PAGE_SIZE + 1;
+  const endItem = Math.min(effectivePage * PAGE_SIZE, scriptSentences.length);
 
   const handlePageChange = (direction: "prev" | "next") => {
     setCurrentPage((prev) => {
@@ -71,7 +67,7 @@ export function ScriptSentencesList({
               key={sentence.id}
               sentence={sentence}
               bookId={bookId}
-              index={(currentPage - 1) * PAGE_SIZE + index}
+              index={(effectivePage - 1) * PAGE_SIZE + index}
               onEdit={onEdit}
               onDelete={onDelete}
               onAudioGenerated={onAudioGenerated}
@@ -95,18 +91,18 @@ export function ScriptSentencesList({
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange("prev")}
-                disabled={currentPage === 1}
+                disabled={effectivePage === 1}
               >
                 上一页
               </Button>
               <span className="text-sm text-gray-600">
-                第 {currentPage} 页 / 共 {totalPages} 页
+                第 {effectivePage} 页 / 共 {totalPages} 页
               </span>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange("next")}
-                disabled={currentPage === totalPages}
+                disabled={effectivePage === totalPages}
               >
                 下一页
               </Button>

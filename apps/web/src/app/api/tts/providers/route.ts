@@ -5,6 +5,7 @@ import { ttsServiceManager } from "@/lib/tts-service";
 // GET /api/tts/providers - 获取可用的 TTS 提供商
 export const GET = withErrorHandler(async () => {
   try {
+    await ttsServiceManager.ready();
     const providers = ttsServiceManager.getAvailableProviders();
 
     return NextResponse.json({

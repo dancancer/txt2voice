@@ -143,9 +143,48 @@ export default function CharacterProfilesPage() {
     }
   }, [bookId]);
 
+  const loadBookAndCharacters = useCallback(
+    async (page: number = 1, search: string = "") => {
+      try {
+        setLoading(true);
+        // 加载书籍信息
+        const bookResponse = await booksApi.getBook(bookId);
+        setBook(bookResponse.data);
+
+        // 加载角色列表（包含分页和搜索）
+        const params = new URLSearchParams({
+          page: page.toString(),
+          limit: "20",
+          ...(search && { search }),
+        });
+
+        const charactersResponse = await fetch(
+          `/api/books/${bookId}/characters?${params}`
+        );
+        if (charactersResponse.ok) {
+          const charactersData = await charactersResponse.json();
+          // API返回格式: { success: true, data: { data: [...], pagination: {...} } }
+          setCharacters(charactersData.data?.data || []);
+          if (charactersData.data?.pagination) {
+            setPagination(charactersData.data.pagination);
+          }
+        } else {
+          console.error("Failed to load characters");
+          setCharacters([]);
+        }
+      } catch (err) {
+        console.error("Failed to load book and characters:", err);
+        setError("加载角色配置失败");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [bookId]
+  );
+
   useEffect(() => {
     loadBookAndCharacters(1, "");
-  }, [bookId]);
+  }, [bookId, loadBookAndCharacters]);
 
   useEffect(() => {
     // 防抖搜索
@@ -153,50 +192,11 @@ export default function CharacterProfilesPage() {
       loadBookAndCharacters(1, searchTerm);
     }, 500);
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, loadBookAndCharacters]);
 
   useEffect(() => {
     fetchRecognitionStatus();
   }, [fetchRecognitionStatus]);
-
-  const loadBookAndCharacters = async (
-    page: number = 1,
-    search: string = ""
-  ) => {
-    try {
-      setLoading(true);
-      // 加载书籍信息
-      const bookResponse = await booksApi.getBook(bookId);
-      setBook(bookResponse.data);
-
-      // 加载角色列表（包含分页和搜索）
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: "20",
-        ...(search && { search }),
-      });
-
-      const charactersResponse = await fetch(
-        `/api/books/${bookId}/characters?${params}`
-      );
-      if (charactersResponse.ok) {
-        const charactersData = await charactersResponse.json();
-        // API返回格式: { success: true, data: { data: [...], pagination: {...} } }
-        setCharacters(charactersData.data?.data || []);
-        if (charactersData.data?.pagination) {
-          setPagination(charactersData.data.pagination);
-        }
-      } else {
-        console.error("Failed to load characters");
-        setCharacters([]);
-      }
-    } catch (err) {
-      console.error("Failed to load book and characters:", err);
-      setError("加载角色配置失败");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePageChange = (newPage: number) => {
     loadBookAndCharacters(newPage, searchTerm);

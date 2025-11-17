@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Play, Pause, Upload, Trash2, Mic } from "lucide-react";
 import { toast } from "sonner";
+import { normalizeDurationSeconds } from "@/lib/audio-utils";
 
 interface AudioFile {
   filename: string;
@@ -379,7 +380,8 @@ export function AudioList({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const formatDuration = (seconds: number) => {
+  const formatDuration = (rawDuration?: number) => {
+    const seconds = normalizeDurationSeconds(rawDuration, 1000);
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { booksApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -64,37 +64,7 @@ export default function AudioPlaybackPage() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadBookAndAudioFiles();
-  }, [bookId]);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
-    const handleEnded = () => handleTrackEnd();
-
-    audio.addEventListener("timeupdate", updateTime);
-    audio.addEventListener("loadedmetadata", updateDuration);
-    audio.addEventListener("ended", handleEnded);
-
-    return () => {
-      audio.removeEventListener("timeupdate", updateTime);
-      audio.removeEventListener("loadedmetadata", updateDuration);
-      audio.removeEventListener("ended", handleEnded);
-    };
-  }, [currentTrackIndex]);
-
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-      audioRef.current.playbackRate = playbackSpeed;
-    }
-  }, [volume, isMuted, playbackSpeed]);
-
-  const loadBookAndAudioFiles = async () => {
+  const loadBookAndAudioFiles = useCallback(async () => {
     try {
       setLoading(true);
       const response = await booksApi.getBook(bookId);
@@ -115,7 +85,48 @@ export default function AudioPlaybackPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [bookId]);
+
+  useEffect(() => {
+    loadBookAndAudioFiles();
+  }, [loadBookAndAudioFiles]);
+
+  const handleTrackEnd = useCallback(() => {
+    setCurrentTrackIndex((prev) => {
+      if (prev < audioFiles.length - 1) {
+        return prev + 1;
+      }
+      setIsPlaying(false);
+      setCurrentTime(0);
+      return prev;
+    });
+  }, [audioFiles.length]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const handleEnded = () => handleTrackEnd();
+
+    audio.addEventListener("timeupdate", updateTime);
+    audio.addEventListener("loadedmetadata", updateDuration);
+    audio.addEventListener("ended", handleEnded);
+
+    return () => {
+      audio.removeEventListener("timeupdate", updateTime);
+      audio.removeEventListener("loadedmetadata", updateDuration);
+      audio.removeEventListener("ended", handleEnded);
+    };
+  }, [handleTrackEnd]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+      audioRef.current.playbackRate = playbackSpeed;
+    }
+  }, [volume, isMuted, playbackSpeed]);
 
   const handlePlayPause = () => {
     const audio = audioRef.current;
@@ -127,15 +138,6 @@ export default function AudioPlaybackPage() {
       audio.play();
     }
     setIsPlaying(!isPlaying);
-  };
-
-  const handleTrackEnd = () => {
-    if (currentTrackIndex < audioFiles.length - 1) {
-      setCurrentTrackIndex(currentTrackIndex + 1);
-    } else {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    }
   };
 
   const handlePreviousTrack = () => {

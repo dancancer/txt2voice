@@ -418,9 +418,13 @@ export class EdgeTTSService {
 export class TTSServiceManager {
   private providers: Map<string, TTSProvider> = new Map();
   private services: Map<string, any> = new Map();
+  private initializationPromise: Promise<void>;
 
   constructor() {
-    this.initializeProviders();
+    this.initializationPromise = this.initializeProviders().catch((error) => {
+      console.error("Failed to initialize TTS providers", error);
+      throw error;
+    });
   }
 
   private async initializeProviders() {
@@ -572,6 +576,10 @@ export class TTSServiceManager {
     }
 
     return service.synthesize(request);
+  }
+
+  async ready(): Promise<void> {
+    await this.initializationPromise;
   }
 }
 

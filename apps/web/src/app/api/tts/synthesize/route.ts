@@ -101,6 +101,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         }
       }
     } else {
+      await ttsServiceManager.ready();
       // 使用其他 TTS 提供商
       const ttsProvider = ttsServiceManager.getProvider(provider);
       if (!ttsProvider) {

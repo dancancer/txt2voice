@@ -58,6 +58,7 @@ export const GET = withErrorHandler(async (
   // 如果有详细声音信息，获取TTS服务信息
   let enhancedBindings = voiceBindings
   if (includeVoiceDetails) {
+    await ttsServiceManager.ready()
     enhancedBindings = await Promise.all(voiceBindings.map(async (binding) => {
       const provider = ttsServiceManager.getProvider(binding.voiceProfile.provider)
       const voice = provider ? await ttsServiceManager.getVoice(

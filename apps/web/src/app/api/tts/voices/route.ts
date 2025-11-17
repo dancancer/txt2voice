@@ -31,6 +31,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const includeCustom = searchParams.get('includeCustom') !== 'false'
   const search = searchParams.get('search')
 
+  await ttsServiceManager.ready()
   // 获取系统内置声音
   const providers = ttsServiceManager.getAvailableProviders()
   let systemVoices: any[] = []
@@ -151,6 +152,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const body = await request.json()
   const validatedData = voiceProfileSchema.parse(body)
 
+  await ttsServiceManager.ready()
   // 检查提供商是否支持该声音
   const provider = ttsServiceManager.getProvider(validatedData.provider)
   if (!provider) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronRight, BookOpen, FolderOpen, Folder, FileText } from "lucide-react";
@@ -28,32 +28,48 @@ export function DocumentTree({
   selectedNode,
   onSelect,
 }: DocumentTreeProps) {
-  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
+  const [manualExpandedChapters, setManualExpandedChapters] = useState<Set<string>>(new Set());
+  const [autoCollapsedChapters, setAutoCollapsedChapters] = useState<Set<string>>(new Set());
 
-  // Auto-expand chapter when segment is selected
-  useEffect(() => {
-    if (selectedNode.type === "segment") {
-      // Find which chapter contains this segment
-      for (const chapter of chapters) {
-        if (chapter.segments.some(seg => seg.id === selectedNode.id)) {
-          setExpandedChapters(prev => new Set(prev).add(chapter.id));
-          break;
-        }
-      }
+  const autoExpandedChapterId = useMemo(() => {
+    if (selectedNode.type !== "segment") {
+      return null;
     }
+    const chapter = chapters.find((chap) =>
+      chap.segments.some((seg) => seg.id === selectedNode.id)
+    );
+    return chapter?.id ?? null;
   }, [selectedNode, chapters]);
 
-  const toggleChapter = (chapterId: string, event: React.MouseEvent) => {
+  const toggleChapter = (
+    chapterId: string,
+    event: React.MouseEvent,
+    options: { isManuallyExpanded: boolean; isAutoOnlyExpanded: boolean }
+  ) => {
     event.stopPropagation();
-    setExpandedChapters((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(chapterId)) {
-        newSet.delete(chapterId);
-      } else {
-        newSet.add(chapterId);
+    setManualExpandedChapters((prev) => {
+      const next = new Set(prev);
+      if (options.isManuallyExpanded) {
+        next.delete(chapterId);
+        return next;
       }
-      return newSet;
+      if (options.isAutoOnlyExpanded) {
+        return next;
+      }
+      next.add(chapterId);
+      return next;
     });
+    if (chapterId === autoExpandedChapterId) {
+      setAutoCollapsedChapters((prev) => {
+        const next = new Set(prev);
+        if (options.isAutoOnlyExpanded) {
+          next.add(chapterId);
+        } else {
+          next.delete(chapterId);
+        }
+        return next;
+      });
+    }
   };
 
   return (
@@ -81,7 +97,12 @@ export function DocumentTree({
         {/* Chapters Tree */}
         <div className="ml-2">
           {chapters.map((chapter) => {
-            const isExpanded = expandedChapters.has(chapter.id);
+            const isManuallyExpanded = manualExpandedChapters.has(chapter.id);
+            const isAutoExpanded =
+              chapter.id === autoExpandedChapterId &&
+              !autoCollapsedChapters.has(chapter.id);
+            const isExpanded = isManuallyExpanded || isAutoExpanded;
+            const isAutoOnlyExpanded = !isManuallyExpanded && isAutoExpanded;
             const isSelected = selectedNode.type === "chapter" && selectedNode.id === chapter.id;
 
             return (
@@ -96,7 +117,12 @@ export function DocumentTree({
                   }`}
                 >
                   <button
-                    onClick={(e) => toggleChapter(chapter.id, e)}
+                    onClick={(e) =>
+                      toggleChapter(chapter.id, e, {
+                        isManuallyExpanded,
+                        isAutoOnlyExpanded,
+                      })
+                    }
                     className="flex-shrink-0 p-0.5 hover:bg-gray-200 rounded"
                   >
                     {isExpanded ? (

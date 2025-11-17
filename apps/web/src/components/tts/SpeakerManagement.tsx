@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { IndexTTSService, indexTTSService } from "@/lib/indextts-service";
+import { normalizeDurationSeconds } from "@/lib/audio-utils";
 
 interface Speaker {
   id: string;
@@ -114,15 +115,16 @@ export function SpeakerManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
-  const paginatedReferenceAudios = useMemo(() => {
-    const startIndex = (audioPage - 1) * AUDIO_PAGE_SIZE;
-    return referenceAudios.slice(startIndex, startIndex + AUDIO_PAGE_SIZE);
-  }, [referenceAudios, audioPage]);
-
   const audioTotalPages = Math.max(
     1,
     Math.ceil(referenceAudios.length / AUDIO_PAGE_SIZE)
   );
+  const clampedAudioPage = Math.min(audioPage, audioTotalPages);
+
+  const paginatedReferenceAudios = useMemo(() => {
+    const startIndex = (clampedAudioPage - 1) * AUDIO_PAGE_SIZE;
+    return referenceAudios.slice(startIndex, startIndex + AUDIO_PAGE_SIZE);
+  }, [referenceAudios, clampedAudioPage]);
 
   // 新建说话人表单
   const [newSpeaker, setNewSpeaker] = useState({
@@ -138,7 +140,7 @@ export function SpeakerManagement() {
   const [editingSpeaker, setEditingSpeaker] = useState<Speaker | null>(null);
 
   // 获取说话人列表
-  const fetchSpeakers = async () => {
+  const fetchSpeakers = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -160,10 +162,10 @@ export function SpeakerManagement() {
       console.error("Failed to fetch speakers:", error);
       toast.error("获取说话人列表失败");
     }
-  };
+  }, [currentPage, filterActive, filterAgeGroup, filterGender, searchTerm]);
 
   // 获取参考音频列表
-  const fetchReferenceAudios = async () => {
+  const fetchReferenceAudios = useCallback(async () => {
     try {
       const allAudios: ReferenceAudio[] = [];
       const limit = 20; // 与接口默认分页保持一致，方便累计所有页面
@@ -193,7 +195,7 @@ export function SpeakerManagement() {
       console.error("Failed to fetch reference audios:", error);
       toast.error("获取参考音频列表失败");
     }
-  };
+  }, []);
 
   // 创建说话人
   const createSpeaker = async () => {
@@ -411,17 +413,12 @@ export function SpeakerManagement() {
   };
 
   // 格式化时长
-  const formatDuration = (seconds: number) => {
+  const formatDuration = (rawDuration?: number) => {
+    const seconds = normalizeDurationSeconds(rawDuration, 1000);
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
-
-  useEffect(() => {
-    if (audioPage > audioTotalPages) {
-      setAudioPage(audioTotalPages);
-    }
-  }, [audioTotalPages, audioPage]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -431,7 +428,7 @@ export function SpeakerManagement() {
     };
 
     loadData();
-  }, [currentPage, searchTerm, filterGender, filterAgeGroup, filterActive]);
+  }, [fetchSpeakers, fetchReferenceAudios]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">

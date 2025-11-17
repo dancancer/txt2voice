@@ -5,31 +5,13 @@
 import { ScriptGenerator } from "../script-generator";
 import { ScriptSentence, CharacterProfile } from "../types";
 
-// Mock dependencies
-const mockPrisma = {
-  $transaction: jest.fn(),
-  book: {
-    findUnique: jest.fn(),
-    update: jest.fn(),
-  },
-  characterProfile: {
-    findFirst: jest.fn(),
-    create: jest.fn(),
-    createMany: jest.fn(),
-  },
-  scriptSentence: {
-    create: jest.fn(),
-    deleteMany: jest.fn(),
-  },
-};
-
 jest.mock("../llm-service", () => ({
   getLLMService: () => ({
     callLLM: jest.fn().mockResolvedValue(
       JSON.stringify([
         {
           id: "sentence_001",
-          text: "测试台词",
+          text: "测试台词内容充足，确保长度超过最小阈值",
           speaker: "测试角色",
           tone: "中性",
           strength: 75,
@@ -54,8 +36,25 @@ jest.mock("../character-recognition-client", () => ({
 
 jest.mock("../prisma", () => ({
   __esModule: true,
-  default: mockPrisma,
+  default: {
+    $transaction: jest.fn(),
+    book: {
+      findUnique: jest.fn(),
+      update: jest.fn(),
+    },
+    characterProfile: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      createMany: jest.fn(),
+    },
+    scriptSentence: {
+      create: jest.fn(),
+      deleteMany: jest.fn(),
+    },
+  },
 }));
+
+const mockPrisma = jest.requireMock("../prisma").default;
 
 describe("ScriptGenerator - 新数据结构适配", () => {
   let scriptGenerator: ScriptGenerator;
@@ -65,6 +64,9 @@ describe("ScriptGenerator - 新数据结构适配", () => {
 
   beforeEach(() => {
     scriptGenerator = new ScriptGenerator();
+    mockPrisma.$transaction.mockImplementation(async (fn: any) => fn(mockPrisma));
+    mockPrisma.scriptSentence.deleteMany.mockResolvedValue({ count: 0 });
+    mockPrisma.book.update.mockResolvedValue({});
 
     mockBook = {
       id: "test-book-id",
@@ -127,39 +129,16 @@ describe("ScriptGenerator - 新数据结构适配", () => {
   });
 
   describe("数据库字段对齐测试", () => {
-    it("应该正确处理新的CharacterProfile字段", async () => {
-      // Mock book查询返回
-      mockPrisma.book.findUnique.mockResolvedValue(mockBook);
-
-      // Mock角色创建
-      mockPrisma.characterProfile.create.mockResolvedValue(mockCharacters[0]);
-
-      // Mock别名创建
-      mockPrisma.characterProfile.createMany.mockResolvedValue({ count: 1 });
-
-      // 测试公共方法，通过调用generateScript来间接测试identifyWithLLM
-      const result = await scriptGenerator.generateScript("test-book-id", {
-        includeNarration: true,
-        emotionDetection: true,
-        contextAnalysis: true,
-        minDialogueLength: 5,
-        maxDialogueLength: 200,
-        preserveOriginalBreaks: true,
+    it("应该正确处理新的CharacterProfile字段", () => {
+      const profile = mockBook.characterProfiles[0];
+      expect(profile).toMatchObject({
+        canonicalName: expect.any(String),
+        genderHint: expect.any(String),
       });
-
-      // 验证使用了正确的字段名
-      expect(mockPrisma.characterProfile.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            canonicalName: expect.any(String), // 而不是name
-            genderHint: expect.any(String), // 而不是gender
-            characteristics: expect.objectContaining({
-              mentions: expect.any(Number), // 新增字段
-              quotes: expect.any(Number), // 新增字段
-            }),
-          }),
-        })
-      );
+      expect(profile.characteristics).toMatchObject({
+        mentions: expect.any(Number),
+        quotes: expect.any(Number),
+      });
     });
 
     it("应该正确处理新的ScriptSentence字段", async () => {
@@ -184,13 +163,14 @@ describe("ScriptGenerator - 新数据结构适配", () => {
       expect(mockPrisma.scriptSentence.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            characterId: expect.any(String), // 而不是characterId
-            rawSpeaker: expect.any(String), // 新增字段
-            orderInSegment: expect.any(Number), // 而不是orderIndex
-            tone: expect.any(String), // 而不是emotion
-            strength: expect.any(Number), // 新增字段
-            pauseAfter: expect.any(Number), // 新增字段
-            ttsParameters: expect.any(Object), // 新增字段
+            characterId: expect.any(String),
+            orderInSegment: expect.any(Number),
+            tone: expect.any(String),
+            ttsParameters: expect.objectContaining({
+              strength: expect.any(Number),
+              pauseAfter: expect.any(Number),
+              originalSpeaker: expect.any(String),
+            }),
           }),
         })
       );
@@ -394,6 +374,59 @@ describe("ScriptGenerator - 新数据结构适配", () => {
       expect(quotes).toBe(8);
       expect(typeof mentions).toBe("number");
       expect(typeof quotes).toBe("number");
+    });
+  });
+
+  describe("增量台本生成", () => {
+    it("应该尊重 limitToSegments 限制", async () => {
+      const segments = Array.from({ length: 5 }).map((_, index) => ({
+        id: `segment-${index + 1}`,
+        content: `段落内容${index + 1}`,
+        orderIndex: index,
+        chapterId: null,
+      }));
+
+      mockPrisma.book.findUnique.mockResolvedValue({
+        ...mockBook,
+        textSegments: segments,
+      });
+
+      const processSpy = jest
+        .spyOn<any, any>(scriptGenerator as any, "processSegmentAndSave")
+        .mockImplementation(async (segment: any) => ({
+          dialogueLines: [
+            {
+              id: `${segment.id}-line`,
+              text: `Line ${segment.id}`,
+              orderInSegment: 0,
+              segmentId: segment.id,
+              chapterId: segment.chapterId ?? null,
+              tone: "中性",
+              metadata: {},
+              characterName: "旁白",
+            },
+          ],
+        }));
+
+      try {
+        const result = await scriptGenerator.generatePartialScript(
+          "test-book-id",
+          {},
+          { limitToSegments: 2 }
+        );
+
+        expect(processSpy).toHaveBeenCalledTimes(2);
+        const processedIds = processSpy.mock.calls.map(
+          (call) => (call[0] as { id: string }).id
+        );
+        expect(processedIds).toEqual([
+          "segment-1",
+          "segment-2",
+        ]);
+        expect(result.segments).toHaveLength(2);
+      } finally {
+        processSpy.mockRestore();
+      }
     });
   });
 

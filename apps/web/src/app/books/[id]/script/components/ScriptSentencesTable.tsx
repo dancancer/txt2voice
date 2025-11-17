@@ -70,10 +70,10 @@ export function ScriptSentencesTable({
               </TableRow>
             ) : (
               sentences.map((sentence, index) => {
-                const hasAudio = sentence.audioFiles && sentence.audioFiles.length > 0;
-                const audioCompleted = hasAudio && sentence.audioFiles.some(
-                  (file) => file.status === "completed"
-                );
+                const hasAudio = (sentence.audioFiles?.length ?? 0) > 0;
+                const audioCompleted =
+                  hasAudio &&
+                  sentence.audioFiles!.some((file) => file.status === "completed");
 
                 return (
                   <TableRow key={sentence.id} className="hover:bg-gray-50">

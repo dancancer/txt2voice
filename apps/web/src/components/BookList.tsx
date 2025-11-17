@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Book } from '@/store/useAppStore'
 import { useAppStore } from '@/store/useAppStore'
 import { booksApi } from '@/lib/api'
@@ -50,12 +50,7 @@ export function BookList({
   const [hasMore, setHasMore] = useState(true)
 
   // Load books on mount and when component re-renders with new key
-  useEffect(() => {
-    loadBooks(true) // Always reset and reload when component mounts
-  }, [])
-
-  // Load books from API
-  const loadBooks = async (reset = false) => {
+  const loadBooks = useCallback(async (reset = false) => {
     try {
       setLoading(true)
       setError(null)
@@ -81,7 +76,11 @@ export function BookList({
     } finally {
       setLoading(false)
     }
-  }
+  }, [books, page, setBooks, setError, setLoading])
+
+  useEffect(() => {
+    loadBooks(true) // Always reset and reload when component mounts
+  }, [loadBooks])
 
   // Handle book deletion
   const handleBookDelete = (id: string) => {

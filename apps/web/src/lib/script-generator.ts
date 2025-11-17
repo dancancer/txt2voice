@@ -1150,29 +1150,46 @@ ${sampleTexts}
 
     // 确定起始段落
     let startIndex = 0;
-    if (params.startFromOrderIndex !== null) {
+    let hasExplicitStart = false;
+
+    if (typeof params.startFromOrderIndex === "number") {
+      hasExplicitStart = true;
       startIndex = book.textSegments.findIndex(
         (seg) => seg.orderIndex === params.startFromOrderIndex
       );
-      if (startIndex === -1) {
-        startIndex = book.textSegments.findIndex(
-          (seg) => seg.id === params.startFromSegmentId
-        );
-      }
-      if (startIndex === -1) {
-        throw new TTSError(
-          "未找到指定的起始段落",
-          "TTS_SERVICE_DOWN",
-          "script-generator"
-        );
-      }
+    }
+
+    if (
+      (startIndex === -1 || !hasExplicitStart) &&
+      params.startFromSegmentId
+    ) {
+      hasExplicitStart = true;
+      startIndex = book.textSegments.findIndex(
+        (seg) => seg.id === params.startFromSegmentId
+      );
+    }
+
+    if (hasExplicitStart && startIndex === -1) {
+      throw new TTSError(
+        "未找到指定的起始段落",
+        "TTS_SERVICE_DOWN",
+        "script-generator"
+      );
     }
 
     // 计算实际要处理的段落数量
-    // const endIndex = params.limitToSegments
-    //   ? Math.min(startIndex + params.limitToSegments, book.textSegments.length)
-    //   : book.textSegments.length;
-    const endIndex = 2;
+    const hasLimit =
+      typeof params.limitToSegments === "number" && params.limitToSegments > 0;
+    const endIndex = hasLimit
+      ? Math.min(startIndex + params.limitToSegments!, book.textSegments.length)
+      : book.textSegments.length;
+    if (startIndex >= endIndex) {
+      throw new TTSError(
+        "没有可处理的文本段落",
+        "TTS_SERVICE_DOWN",
+        "script-generator"
+      );
+    }
     const totalSegments = endIndex - startIndex;
 
     console.log(

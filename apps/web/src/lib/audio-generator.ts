@@ -1,5 +1,5 @@
 import { TTSError } from './error-handler'
-import { ttsServiceManager, TTSRequest, TTSVoice } from './tts-service'
+import { ttsServiceManager, TTSRequest } from './tts-service'
 import prisma, { Prisma } from './prisma'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
@@ -369,6 +369,7 @@ export class AudioGenerator {
     voiceProfile: any,
     request: AudioGenerationRequest
   ): Promise<TTSRequest> {
+    await ttsServiceManager.ready()
     // 获取TTS声音信息
     const voice = await ttsServiceManager.getVoice(voiceProfile.provider, voiceProfile.voiceId)
     if (!voice) {
@@ -429,6 +430,11 @@ export class AudioGenerator {
     const stats = await import('fs').then(fs => fs.statSync(filePath))
     const fileSize = stats.size
 
+    const durationSeconds = this.resolveAudioDurationSeconds(
+      scriptSentence.text,
+      ttsResponse?.duration
+    )
+
     // 创建数据库记录
     const audioFile = await prisma.audioFile.create({
       data: {
@@ -440,7 +446,7 @@ export class AudioGenerator {
         filePath,
         fileName: filename,
         fileSize: BigInt(fileSize),
-        duration: this.estimateAudioDuration(scriptSentence.text),
+        duration: durationSeconds,
         format: request.outputFormat || 'mp3',
         status: 'completed'
       }
@@ -450,7 +456,7 @@ export class AudioGenerator {
   }
 
   /**
-   * 估算音频时长（简单估算）
+   * 估算音频时长（秒）
    */
   private estimateAudioDuration(text: string): number {
     // 中文字符每秒约3-4个，英文单词每秒约2-3个
@@ -459,8 +465,21 @@ export class AudioGenerator {
 
     const chineseDuration = chineseChars / 3.5 // 中文每秒3.5字
     const englishDuration = englishWords / 2.5 // 英文每秒2.5词
+    const totalSeconds = chineseDuration + englishDuration || 0.5
 
-    return Math.ceil((chineseDuration + englishDuration) * 1000) // 转换为毫秒
+    return Number(totalSeconds.toFixed(2))
+  }
+
+  /**
+   * 解析最终写入数据库的音频时长（秒）
+   */
+  private resolveAudioDurationSeconds(text: string, reportedDuration?: number): number {
+    const durationSeconds =
+      typeof reportedDuration === 'number' && reportedDuration > 0
+        ? reportedDuration
+        : this.estimateAudioDuration(text)
+
+    return Number(Math.min(durationSeconds, 999.99).toFixed(2))
   }
 
   /**
