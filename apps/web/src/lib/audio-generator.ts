@@ -78,6 +78,12 @@ export class AudioGenerator {
               }
             }
           },
+          segment: {
+            select: {
+              id: true,
+              chapterId: true
+            }
+          },
           book: true
         }
       })
@@ -209,6 +215,82 @@ export class AudioGenerator {
   }
 
   /**
+   * 为特定章节生成音频
+   */
+  async generateChapterAudio(
+    bookId: string,
+    chapterId: string,
+    options: AudioGenerationOptions = {}
+  ): Promise<{ total: number; success: number; failed: number; results: AudioGenerationResult[] }> {
+    // 获取章节的所有台词
+    const scriptSentences = await prisma.scriptSentence.findMany({
+      where: {
+        bookId,
+        chapterId
+      },
+      include: {
+        character: {
+          include: {
+            voiceBindings: {
+              include: {
+                voiceProfile: true
+              }
+            }
+          }
+        },
+        segment: {
+          select: {
+            id: true,
+            chapterId: true,
+            chapterOrderIndex: true
+          }
+        }
+      },
+      orderBy: [
+        { segment: { chapterOrderIndex: 'asc' } },
+        { orderInSegment: 'asc' }
+      ]
+    })
+
+    if (scriptSentences.length === 0) {
+      throw new TTSError('该章节没有可生成的台词', 'TTS_SERVICE_DOWN', 'audio-generator')
+    }
+
+    // 构建生成请求
+    const requests: AudioGenerationRequest[] = scriptSentences.map(sentence => {
+      let voiceProfileId: string | undefined
+
+      if (sentence.character) {
+        const preferredBinding = sentence.character.voiceBindings.find((b: any) => b.isDefault)
+        if (preferredBinding) {
+          voiceProfileId = preferredBinding.voiceProfileId
+        } else if (sentence.character.voiceBindings.length > 0) {
+          voiceProfileId = sentence.character.voiceBindings[0].voiceProfileId
+        }
+      }
+
+      return {
+        scriptSentenceId: sentence.id,
+        voiceProfileId,
+        outputFormat: 'mp3'
+      }
+    })
+
+    // 批量生成
+    const results = await this.generateBatchAudio(requests, options)
+
+    const success = results.filter(r => r.success).length
+    const failed = results.filter(r => !r.success).length
+
+    return {
+      total: results.length,
+      success,
+      failed,
+      results
+    }
+  }
+
+  /**
    * 为整本书生成音频
    */
   async generateBookAudio(
@@ -226,6 +308,12 @@ export class AudioGenerator {
                 voiceProfile: true
               }
             }
+          }
+        },
+        segment: {
+          select: {
+            id: true,
+            chapterId: true
           }
         }
       },
@@ -346,6 +434,7 @@ export class AudioGenerator {
       data: {
         sentenceId: scriptSentence.id,
         segmentId: scriptSentence.segmentId,
+        chapterId: scriptSentence.chapterId ?? scriptSentence.segment?.chapterId,
         bookId: scriptSentence.bookId,
         voiceProfileId: voiceProfile.id,
         filePath,

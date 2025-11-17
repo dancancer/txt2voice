@@ -88,7 +88,7 @@ export function BookNavigation({ bookId, currentTab }: BookNavigationProps) {
       <div className="container mx-auto px-4">
         {/* 标签页导航 */}
         <div className="flex items-center overflow-x-auto">
-          <div className="flex flex-1 flex-wrap gap-2  p-2">
+          <div className="flex flex-1 flex-wrap gap-2  p-2 max-w-7xl">
             {bookTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = selectedTab === tab.id;

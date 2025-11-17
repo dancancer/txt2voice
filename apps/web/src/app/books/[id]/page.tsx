@@ -375,10 +375,10 @@ export default function BookDetailPage() {
                     {(book.textSegments?.length || 0) > 0 && (
                       <Button
                         variant="outline"
-                        onClick={() => router.push(`/books/${bookId}/segments`)}
+                        onClick={() => router.push(`/books/${bookId}/script`)}
                       >
                         <FileText className="w-4 h-4 mr-2" />
-                        查看文本段落
+                        查看章节结构
                       </Button>
                     )}
                     {(book.textSegments?.length || 0) > 0 && (

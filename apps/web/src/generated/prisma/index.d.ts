@@ -19,6 +19,11 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type Book = $Result.DefaultSelection<Prisma.$BookPayload>
 /**
+ * Model Chapter
+ * 
+ */
+export type Chapter = $Result.DefaultSelection<Prisma.$ChapterPayload>
+/**
  * Model CharacterProfile
  * 
  */
@@ -201,6 +206,16 @@ export class PrismaClient<
     * ```
     */
   get book(): Prisma.BookDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.chapter`: Exposes CRUD operations for the **Chapter** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more Chapters
+    * const chapters = await prisma.chapter.findMany()
+    * ```
+    */
+  get chapter(): Prisma.ChapterDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.characterProfile`: Exposes CRUD operations for the **CharacterProfile** model.
@@ -753,6 +768,7 @@ export namespace Prisma {
 
   export const ModelName: {
     Book: 'Book',
+    Chapter: 'Chapter',
     CharacterProfile: 'CharacterProfile',
     CharacterAlias: 'CharacterAlias',
     TTSVoiceProfile: 'TTSVoiceProfile',
@@ -782,7 +798,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "book" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding"
+      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -857,6 +873,80 @@ export namespace Prisma {
           count: {
             args: Prisma.BookCountArgs<ExtArgs>
             result: $Utils.Optional<BookCountAggregateOutputType> | number
+          }
+        }
+      }
+      Chapter: {
+        payload: Prisma.$ChapterPayload<ExtArgs>
+        fields: Prisma.ChapterFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ChapterFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ChapterFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>
+          }
+          findFirst: {
+            args: Prisma.ChapterFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ChapterFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>
+          }
+          findMany: {
+            args: Prisma.ChapterFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>[]
+          }
+          create: {
+            args: Prisma.ChapterCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>
+          }
+          createMany: {
+            args: Prisma.ChapterCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ChapterCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>[]
+          }
+          delete: {
+            args: Prisma.ChapterDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>
+          }
+          update: {
+            args: Prisma.ChapterUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>
+          }
+          deleteMany: {
+            args: Prisma.ChapterDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ChapterUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ChapterUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>[]
+          }
+          upsert: {
+            args: Prisma.ChapterUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ChapterPayload>
+          }
+          aggregate: {
+            args: Prisma.ChapterAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateChapter>
+          }
+          groupBy: {
+            args: Prisma.ChapterGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ChapterGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ChapterCountArgs<ExtArgs>
+            result: $Utils.Optional<ChapterCountAggregateOutputType> | number
           }
         }
       }
@@ -1771,6 +1861,7 @@ export namespace Prisma {
   }
   export type GlobalOmitConfig = {
     book?: BookOmit
+    chapter?: ChapterOmit
     characterProfile?: CharacterProfileOmit
     characterAlias?: CharacterAliasOmit
     tTSVoiceProfile?: TTSVoiceProfileOmit
@@ -1868,6 +1959,7 @@ export namespace Prisma {
     processingTasks: number
     scriptSentences: number
     textSegments: number
+    chapters: number
   }
 
   export type BookCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -1877,6 +1969,7 @@ export namespace Prisma {
     processingTasks?: boolean | BookCountOutputTypeCountProcessingTasksArgs
     scriptSentences?: boolean | BookCountOutputTypeCountScriptSentencesArgs
     textSegments?: boolean | BookCountOutputTypeCountTextSegmentsArgs
+    chapters?: boolean | BookCountOutputTypeCountChaptersArgs
   }
 
   // Custom InputTypes
@@ -1930,6 +2023,62 @@ export namespace Prisma {
    */
   export type BookCountOutputTypeCountTextSegmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: TextSegmentWhereInput
+  }
+
+  /**
+   * BookCountOutputType without action
+   */
+  export type BookCountOutputTypeCountChaptersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ChapterWhereInput
+  }
+
+
+  /**
+   * Count Type ChapterCountOutputType
+   */
+
+  export type ChapterCountOutputType = {
+    segments: number
+    scriptSentences: number
+    audioFiles: number
+  }
+
+  export type ChapterCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    segments?: boolean | ChapterCountOutputTypeCountSegmentsArgs
+    scriptSentences?: boolean | ChapterCountOutputTypeCountScriptSentencesArgs
+    audioFiles?: boolean | ChapterCountOutputTypeCountAudioFilesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ChapterCountOutputType without action
+   */
+  export type ChapterCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ChapterCountOutputType
+     */
+    select?: ChapterCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ChapterCountOutputType without action
+   */
+  export type ChapterCountOutputTypeCountSegmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TextSegmentWhereInput
+  }
+
+  /**
+   * ChapterCountOutputType without action
+   */
+  export type ChapterCountOutputTypeCountScriptSentencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ScriptSentenceWhereInput
+  }
+
+  /**
+   * ChapterCountOutputType without action
+   */
+  export type ChapterCountOutputTypeCountAudioFilesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AudioFileWhereInput
   }
 
 
@@ -2172,6 +2321,7 @@ export namespace Prisma {
     totalWords: number | null
     totalCharacters: number | null
     totalSegments: number | null
+    totalChapters: number | null
   }
 
   export type BookSumAggregateOutputType = {
@@ -2179,6 +2329,7 @@ export namespace Prisma {
     totalWords: number | null
     totalCharacters: number | null
     totalSegments: number | null
+    totalChapters: number | null
   }
 
   export type BookMinAggregateOutputType = {
@@ -2191,6 +2342,7 @@ export namespace Prisma {
     totalWords: number | null
     totalCharacters: number | null
     totalSegments: number | null
+    totalChapters: number | null
     encoding: string | null
     fileFormat: string | null
     status: string | null
@@ -2208,6 +2360,7 @@ export namespace Prisma {
     totalWords: number | null
     totalCharacters: number | null
     totalSegments: number | null
+    totalChapters: number | null
     encoding: string | null
     fileFormat: string | null
     status: string | null
@@ -2225,6 +2378,7 @@ export namespace Prisma {
     totalWords: number
     totalCharacters: number
     totalSegments: number
+    totalChapters: number
     encoding: number
     fileFormat: number
     status: number
@@ -2240,6 +2394,7 @@ export namespace Prisma {
     totalWords?: true
     totalCharacters?: true
     totalSegments?: true
+    totalChapters?: true
   }
 
   export type BookSumAggregateInputType = {
@@ -2247,6 +2402,7 @@ export namespace Prisma {
     totalWords?: true
     totalCharacters?: true
     totalSegments?: true
+    totalChapters?: true
   }
 
   export type BookMinAggregateInputType = {
@@ -2259,6 +2415,7 @@ export namespace Prisma {
     totalWords?: true
     totalCharacters?: true
     totalSegments?: true
+    totalChapters?: true
     encoding?: true
     fileFormat?: true
     status?: true
@@ -2276,6 +2433,7 @@ export namespace Prisma {
     totalWords?: true
     totalCharacters?: true
     totalSegments?: true
+    totalChapters?: true
     encoding?: true
     fileFormat?: true
     status?: true
@@ -2293,6 +2451,7 @@ export namespace Prisma {
     totalWords?: true
     totalCharacters?: true
     totalSegments?: true
+    totalChapters?: true
     encoding?: true
     fileFormat?: true
     status?: true
@@ -2398,6 +2557,7 @@ export namespace Prisma {
     totalWords: number | null
     totalCharacters: number
     totalSegments: number
+    totalChapters: number
     encoding: string | null
     fileFormat: string | null
     status: string
@@ -2435,6 +2595,7 @@ export namespace Prisma {
     totalWords?: boolean
     totalCharacters?: boolean
     totalSegments?: boolean
+    totalChapters?: boolean
     encoding?: boolean
     fileFormat?: boolean
     status?: boolean
@@ -2447,6 +2608,7 @@ export namespace Prisma {
     processingTasks?: boolean | Book$processingTasksArgs<ExtArgs>
     scriptSentences?: boolean | Book$scriptSentencesArgs<ExtArgs>
     textSegments?: boolean | Book$textSegmentsArgs<ExtArgs>
+    chapters?: boolean | Book$chaptersArgs<ExtArgs>
     _count?: boolean | BookCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["book"]>
 
@@ -2460,6 +2622,7 @@ export namespace Prisma {
     totalWords?: boolean
     totalCharacters?: boolean
     totalSegments?: boolean
+    totalChapters?: boolean
     encoding?: boolean
     fileFormat?: boolean
     status?: boolean
@@ -2478,6 +2641,7 @@ export namespace Prisma {
     totalWords?: boolean
     totalCharacters?: boolean
     totalSegments?: boolean
+    totalChapters?: boolean
     encoding?: boolean
     fileFormat?: boolean
     status?: boolean
@@ -2496,6 +2660,7 @@ export namespace Prisma {
     totalWords?: boolean
     totalCharacters?: boolean
     totalSegments?: boolean
+    totalChapters?: boolean
     encoding?: boolean
     fileFormat?: boolean
     status?: boolean
@@ -2504,7 +2669,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type BookOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "author" | "originalFilename" | "uploadedFilePath" | "fileSize" | "totalWords" | "totalCharacters" | "totalSegments" | "encoding" | "fileFormat" | "status" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["book"]>
+  export type BookOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "author" | "originalFilename" | "uploadedFilePath" | "fileSize" | "totalWords" | "totalCharacters" | "totalSegments" | "totalChapters" | "encoding" | "fileFormat" | "status" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["book"]>
   export type BookInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     audioFiles?: boolean | Book$audioFilesArgs<ExtArgs>
     mergeAudits?: boolean | Book$mergeAuditsArgs<ExtArgs>
@@ -2512,6 +2677,7 @@ export namespace Prisma {
     processingTasks?: boolean | Book$processingTasksArgs<ExtArgs>
     scriptSentences?: boolean | Book$scriptSentencesArgs<ExtArgs>
     textSegments?: boolean | Book$textSegmentsArgs<ExtArgs>
+    chapters?: boolean | Book$chaptersArgs<ExtArgs>
     _count?: boolean | BookCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type BookIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -2526,6 +2692,7 @@ export namespace Prisma {
       processingTasks: Prisma.$ProcessingTaskPayload<ExtArgs>[]
       scriptSentences: Prisma.$ScriptSentencePayload<ExtArgs>[]
       textSegments: Prisma.$TextSegmentPayload<ExtArgs>[]
+      chapters: Prisma.$ChapterPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2537,6 +2704,7 @@ export namespace Prisma {
       totalWords: number | null
       totalCharacters: number
       totalSegments: number
+      totalChapters: number
       encoding: string | null
       fileFormat: string | null
       status: string
@@ -2943,6 +3111,7 @@ export namespace Prisma {
     processingTasks<T extends Book$processingTasksArgs<ExtArgs> = {}>(args?: Subset<T, Book$processingTasksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProcessingTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     scriptSentences<T extends Book$scriptSentencesArgs<ExtArgs> = {}>(args?: Subset<T, Book$scriptSentencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScriptSentencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     textSegments<T extends Book$textSegmentsArgs<ExtArgs> = {}>(args?: Subset<T, Book$textSegmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TextSegmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    chapters<T extends Book$chaptersArgs<ExtArgs> = {}>(args?: Subset<T, Book$chaptersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2981,6 +3150,7 @@ export namespace Prisma {
     readonly totalWords: FieldRef<"Book", 'Int'>
     readonly totalCharacters: FieldRef<"Book", 'Int'>
     readonly totalSegments: FieldRef<"Book", 'Int'>
+    readonly totalChapters: FieldRef<"Book", 'Int'>
     readonly encoding: FieldRef<"Book", 'String'>
     readonly fileFormat: FieldRef<"Book", 'String'>
     readonly status: FieldRef<"Book", 'String'>
@@ -3519,6 +3689,30 @@ export namespace Prisma {
   }
 
   /**
+   * Book.chapters
+   */
+  export type Book$chaptersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    where?: ChapterWhereInput
+    orderBy?: ChapterOrderByWithRelationInput | ChapterOrderByWithRelationInput[]
+    cursor?: ChapterWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ChapterScalarFieldEnum | ChapterScalarFieldEnum[]
+  }
+
+  /**
    * Book without action
    */
   export type BookDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -3534,6 +3728,1317 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: BookInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model Chapter
+   */
+
+  export type AggregateChapter = {
+    _count: ChapterCountAggregateOutputType | null
+    _avg: ChapterAvgAggregateOutputType | null
+    _sum: ChapterSumAggregateOutputType | null
+    _min: ChapterMinAggregateOutputType | null
+    _max: ChapterMaxAggregateOutputType | null
+  }
+
+  export type ChapterAvgAggregateOutputType = {
+    chapterIndex: number | null
+    startPosition: number | null
+    endPosition: number | null
+    wordCount: number | null
+    characterCount: number | null
+    totalSegments: number | null
+  }
+
+  export type ChapterSumAggregateOutputType = {
+    chapterIndex: number | null
+    startPosition: number | null
+    endPosition: number | null
+    wordCount: number | null
+    characterCount: number | null
+    totalSegments: number | null
+  }
+
+  export type ChapterMinAggregateOutputType = {
+    id: string | null
+    bookId: string | null
+    chapterIndex: number | null
+    title: string | null
+    rawTitle: string | null
+    startPosition: number | null
+    endPosition: number | null
+    wordCount: number | null
+    characterCount: number | null
+    totalSegments: number | null
+    status: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ChapterMaxAggregateOutputType = {
+    id: string | null
+    bookId: string | null
+    chapterIndex: number | null
+    title: string | null
+    rawTitle: string | null
+    startPosition: number | null
+    endPosition: number | null
+    wordCount: number | null
+    characterCount: number | null
+    totalSegments: number | null
+    status: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ChapterCountAggregateOutputType = {
+    id: number
+    bookId: number
+    chapterIndex: number
+    title: number
+    rawTitle: number
+    startPosition: number
+    endPosition: number
+    wordCount: number
+    characterCount: number
+    totalSegments: number
+    status: number
+    metadata: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ChapterAvgAggregateInputType = {
+    chapterIndex?: true
+    startPosition?: true
+    endPosition?: true
+    wordCount?: true
+    characterCount?: true
+    totalSegments?: true
+  }
+
+  export type ChapterSumAggregateInputType = {
+    chapterIndex?: true
+    startPosition?: true
+    endPosition?: true
+    wordCount?: true
+    characterCount?: true
+    totalSegments?: true
+  }
+
+  export type ChapterMinAggregateInputType = {
+    id?: true
+    bookId?: true
+    chapterIndex?: true
+    title?: true
+    rawTitle?: true
+    startPosition?: true
+    endPosition?: true
+    wordCount?: true
+    characterCount?: true
+    totalSegments?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ChapterMaxAggregateInputType = {
+    id?: true
+    bookId?: true
+    chapterIndex?: true
+    title?: true
+    rawTitle?: true
+    startPosition?: true
+    endPosition?: true
+    wordCount?: true
+    characterCount?: true
+    totalSegments?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ChapterCountAggregateInputType = {
+    id?: true
+    bookId?: true
+    chapterIndex?: true
+    title?: true
+    rawTitle?: true
+    startPosition?: true
+    endPosition?: true
+    wordCount?: true
+    characterCount?: true
+    totalSegments?: true
+    status?: true
+    metadata?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ChapterAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Chapter to aggregate.
+     */
+    where?: ChapterWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Chapters to fetch.
+     */
+    orderBy?: ChapterOrderByWithRelationInput | ChapterOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ChapterWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Chapters from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Chapters.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned Chapters
+    **/
+    _count?: true | ChapterCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ChapterAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ChapterSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ChapterMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ChapterMaxAggregateInputType
+  }
+
+  export type GetChapterAggregateType<T extends ChapterAggregateArgs> = {
+        [P in keyof T & keyof AggregateChapter]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateChapter[P]>
+      : GetScalarType<T[P], AggregateChapter[P]>
+  }
+
+
+
+
+  export type ChapterGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ChapterWhereInput
+    orderBy?: ChapterOrderByWithAggregationInput | ChapterOrderByWithAggregationInput[]
+    by: ChapterScalarFieldEnum[] | ChapterScalarFieldEnum
+    having?: ChapterScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ChapterCountAggregateInputType | true
+    _avg?: ChapterAvgAggregateInputType
+    _sum?: ChapterSumAggregateInputType
+    _min?: ChapterMinAggregateInputType
+    _max?: ChapterMaxAggregateInputType
+  }
+
+  export type ChapterGroupByOutputType = {
+    id: string
+    bookId: string
+    chapterIndex: number
+    title: string
+    rawTitle: string | null
+    startPosition: number
+    endPosition: number
+    wordCount: number | null
+    characterCount: number | null
+    totalSegments: number
+    status: string
+    metadata: JsonValue | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ChapterCountAggregateOutputType | null
+    _avg: ChapterAvgAggregateOutputType | null
+    _sum: ChapterSumAggregateOutputType | null
+    _min: ChapterMinAggregateOutputType | null
+    _max: ChapterMaxAggregateOutputType | null
+  }
+
+  type GetChapterGroupByPayload<T extends ChapterGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ChapterGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ChapterGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ChapterGroupByOutputType[P]>
+            : GetScalarType<T[P], ChapterGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ChapterSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bookId?: boolean
+    chapterIndex?: boolean
+    title?: boolean
+    rawTitle?: boolean
+    startPosition?: boolean
+    endPosition?: boolean
+    wordCount?: boolean
+    characterCount?: boolean
+    totalSegments?: boolean
+    status?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    segments?: boolean | Chapter$segmentsArgs<ExtArgs>
+    scriptSentences?: boolean | Chapter$scriptSentencesArgs<ExtArgs>
+    audioFiles?: boolean | Chapter$audioFilesArgs<ExtArgs>
+    _count?: boolean | ChapterCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["chapter"]>
+
+  export type ChapterSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bookId?: boolean
+    chapterIndex?: boolean
+    title?: boolean
+    rawTitle?: boolean
+    startPosition?: boolean
+    endPosition?: boolean
+    wordCount?: boolean
+    characterCount?: boolean
+    totalSegments?: boolean
+    status?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["chapter"]>
+
+  export type ChapterSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bookId?: boolean
+    chapterIndex?: boolean
+    title?: boolean
+    rawTitle?: boolean
+    startPosition?: boolean
+    endPosition?: boolean
+    wordCount?: boolean
+    characterCount?: boolean
+    totalSegments?: boolean
+    status?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["chapter"]>
+
+  export type ChapterSelectScalar = {
+    id?: boolean
+    bookId?: boolean
+    chapterIndex?: boolean
+    title?: boolean
+    rawTitle?: boolean
+    startPosition?: boolean
+    endPosition?: boolean
+    wordCount?: boolean
+    characterCount?: boolean
+    totalSegments?: boolean
+    status?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ChapterOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "chapterIndex" | "title" | "rawTitle" | "startPosition" | "endPosition" | "wordCount" | "characterCount" | "totalSegments" | "status" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["chapter"]>
+  export type ChapterInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    segments?: boolean | Chapter$segmentsArgs<ExtArgs>
+    scriptSentences?: boolean | Chapter$scriptSentencesArgs<ExtArgs>
+    audioFiles?: boolean | Chapter$audioFilesArgs<ExtArgs>
+    _count?: boolean | ChapterCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ChapterIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }
+  export type ChapterIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }
+
+  export type $ChapterPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "Chapter"
+    objects: {
+      book: Prisma.$BookPayload<ExtArgs>
+      segments: Prisma.$TextSegmentPayload<ExtArgs>[]
+      scriptSentences: Prisma.$ScriptSentencePayload<ExtArgs>[]
+      audioFiles: Prisma.$AudioFilePayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      bookId: string
+      chapterIndex: number
+      title: string
+      rawTitle: string | null
+      startPosition: number
+      endPosition: number
+      wordCount: number | null
+      characterCount: number | null
+      totalSegments: number
+      status: string
+      metadata: Prisma.JsonValue | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["chapter"]>
+    composites: {}
+  }
+
+  type ChapterGetPayload<S extends boolean | null | undefined | ChapterDefaultArgs> = $Result.GetResult<Prisma.$ChapterPayload, S>
+
+  type ChapterCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ChapterFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ChapterCountAggregateInputType | true
+    }
+
+  export interface ChapterDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Chapter'], meta: { name: 'Chapter' } }
+    /**
+     * Find zero or one Chapter that matches the filter.
+     * @param {ChapterFindUniqueArgs} args - Arguments to find a Chapter
+     * @example
+     * // Get one Chapter
+     * const chapter = await prisma.chapter.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ChapterFindUniqueArgs>(args: SelectSubset<T, ChapterFindUniqueArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one Chapter that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ChapterFindUniqueOrThrowArgs} args - Arguments to find a Chapter
+     * @example
+     * // Get one Chapter
+     * const chapter = await prisma.chapter.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ChapterFindUniqueOrThrowArgs>(args: SelectSubset<T, ChapterFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Chapter that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChapterFindFirstArgs} args - Arguments to find a Chapter
+     * @example
+     * // Get one Chapter
+     * const chapter = await prisma.chapter.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ChapterFindFirstArgs>(args?: SelectSubset<T, ChapterFindFirstArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first Chapter that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChapterFindFirstOrThrowArgs} args - Arguments to find a Chapter
+     * @example
+     * // Get one Chapter
+     * const chapter = await prisma.chapter.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ChapterFindFirstOrThrowArgs>(args?: SelectSubset<T, ChapterFindFirstOrThrowArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more Chapters that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChapterFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all Chapters
+     * const chapters = await prisma.chapter.findMany()
+     * 
+     * // Get first 10 Chapters
+     * const chapters = await prisma.chapter.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const chapterWithIdOnly = await prisma.chapter.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ChapterFindManyArgs>(args?: SelectSubset<T, ChapterFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a Chapter.
+     * @param {ChapterCreateArgs} args - Arguments to create a Chapter.
+     * @example
+     * // Create one Chapter
+     * const Chapter = await prisma.chapter.create({
+     *   data: {
+     *     // ... data to create a Chapter
+     *   }
+     * })
+     * 
+     */
+    create<T extends ChapterCreateArgs>(args: SelectSubset<T, ChapterCreateArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many Chapters.
+     * @param {ChapterCreateManyArgs} args - Arguments to create many Chapters.
+     * @example
+     * // Create many Chapters
+     * const chapter = await prisma.chapter.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ChapterCreateManyArgs>(args?: SelectSubset<T, ChapterCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many Chapters and returns the data saved in the database.
+     * @param {ChapterCreateManyAndReturnArgs} args - Arguments to create many Chapters.
+     * @example
+     * // Create many Chapters
+     * const chapter = await prisma.chapter.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many Chapters and only return the `id`
+     * const chapterWithIdOnly = await prisma.chapter.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ChapterCreateManyAndReturnArgs>(args?: SelectSubset<T, ChapterCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a Chapter.
+     * @param {ChapterDeleteArgs} args - Arguments to delete one Chapter.
+     * @example
+     * // Delete one Chapter
+     * const Chapter = await prisma.chapter.delete({
+     *   where: {
+     *     // ... filter to delete one Chapter
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ChapterDeleteArgs>(args: SelectSubset<T, ChapterDeleteArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one Chapter.
+     * @param {ChapterUpdateArgs} args - Arguments to update one Chapter.
+     * @example
+     * // Update one Chapter
+     * const chapter = await prisma.chapter.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ChapterUpdateArgs>(args: SelectSubset<T, ChapterUpdateArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more Chapters.
+     * @param {ChapterDeleteManyArgs} args - Arguments to filter Chapters to delete.
+     * @example
+     * // Delete a few Chapters
+     * const { count } = await prisma.chapter.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ChapterDeleteManyArgs>(args?: SelectSubset<T, ChapterDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Chapters.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChapterUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many Chapters
+     * const chapter = await prisma.chapter.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ChapterUpdateManyArgs>(args: SelectSubset<T, ChapterUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more Chapters and returns the data updated in the database.
+     * @param {ChapterUpdateManyAndReturnArgs} args - Arguments to update many Chapters.
+     * @example
+     * // Update many Chapters
+     * const chapter = await prisma.chapter.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more Chapters and only return the `id`
+     * const chapterWithIdOnly = await prisma.chapter.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ChapterUpdateManyAndReturnArgs>(args: SelectSubset<T, ChapterUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one Chapter.
+     * @param {ChapterUpsertArgs} args - Arguments to update or create a Chapter.
+     * @example
+     * // Update or create a Chapter
+     * const chapter = await prisma.chapter.upsert({
+     *   create: {
+     *     // ... data to create a Chapter
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the Chapter we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ChapterUpsertArgs>(args: SelectSubset<T, ChapterUpsertArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of Chapters.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChapterCountArgs} args - Arguments to filter Chapters to count.
+     * @example
+     * // Count the number of Chapters
+     * const count = await prisma.chapter.count({
+     *   where: {
+     *     // ... the filter for the Chapters we want to count
+     *   }
+     * })
+    **/
+    count<T extends ChapterCountArgs>(
+      args?: Subset<T, ChapterCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ChapterCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a Chapter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChapterAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ChapterAggregateArgs>(args: Subset<T, ChapterAggregateArgs>): Prisma.PrismaPromise<GetChapterAggregateType<T>>
+
+    /**
+     * Group by Chapter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ChapterGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ChapterGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ChapterGroupByArgs['orderBy'] }
+        : { orderBy?: ChapterGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ChapterGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetChapterGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the Chapter model
+   */
+  readonly fields: ChapterFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for Chapter.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ChapterClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    book<T extends BookDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BookDefaultArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    segments<T extends Chapter$segmentsArgs<ExtArgs> = {}>(args?: Subset<T, Chapter$segmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TextSegmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    scriptSentences<T extends Chapter$scriptSentencesArgs<ExtArgs> = {}>(args?: Subset<T, Chapter$scriptSentencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScriptSentencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    audioFiles<T extends Chapter$audioFilesArgs<ExtArgs> = {}>(args?: Subset<T, Chapter$audioFilesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AudioFilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the Chapter model
+   */
+  interface ChapterFieldRefs {
+    readonly id: FieldRef<"Chapter", 'String'>
+    readonly bookId: FieldRef<"Chapter", 'String'>
+    readonly chapterIndex: FieldRef<"Chapter", 'Int'>
+    readonly title: FieldRef<"Chapter", 'String'>
+    readonly rawTitle: FieldRef<"Chapter", 'String'>
+    readonly startPosition: FieldRef<"Chapter", 'Int'>
+    readonly endPosition: FieldRef<"Chapter", 'Int'>
+    readonly wordCount: FieldRef<"Chapter", 'Int'>
+    readonly characterCount: FieldRef<"Chapter", 'Int'>
+    readonly totalSegments: FieldRef<"Chapter", 'Int'>
+    readonly status: FieldRef<"Chapter", 'String'>
+    readonly metadata: FieldRef<"Chapter", 'Json'>
+    readonly createdAt: FieldRef<"Chapter", 'DateTime'>
+    readonly updatedAt: FieldRef<"Chapter", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * Chapter findUnique
+   */
+  export type ChapterFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * Filter, which Chapter to fetch.
+     */
+    where: ChapterWhereUniqueInput
+  }
+
+  /**
+   * Chapter findUniqueOrThrow
+   */
+  export type ChapterFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * Filter, which Chapter to fetch.
+     */
+    where: ChapterWhereUniqueInput
+  }
+
+  /**
+   * Chapter findFirst
+   */
+  export type ChapterFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * Filter, which Chapter to fetch.
+     */
+    where?: ChapterWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Chapters to fetch.
+     */
+    orderBy?: ChapterOrderByWithRelationInput | ChapterOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Chapters.
+     */
+    cursor?: ChapterWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Chapters from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Chapters.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Chapters.
+     */
+    distinct?: ChapterScalarFieldEnum | ChapterScalarFieldEnum[]
+  }
+
+  /**
+   * Chapter findFirstOrThrow
+   */
+  export type ChapterFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * Filter, which Chapter to fetch.
+     */
+    where?: ChapterWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Chapters to fetch.
+     */
+    orderBy?: ChapterOrderByWithRelationInput | ChapterOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for Chapters.
+     */
+    cursor?: ChapterWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Chapters from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Chapters.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of Chapters.
+     */
+    distinct?: ChapterScalarFieldEnum | ChapterScalarFieldEnum[]
+  }
+
+  /**
+   * Chapter findMany
+   */
+  export type ChapterFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * Filter, which Chapters to fetch.
+     */
+    where?: ChapterWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of Chapters to fetch.
+     */
+    orderBy?: ChapterOrderByWithRelationInput | ChapterOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing Chapters.
+     */
+    cursor?: ChapterWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` Chapters from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` Chapters.
+     */
+    skip?: number
+    distinct?: ChapterScalarFieldEnum | ChapterScalarFieldEnum[]
+  }
+
+  /**
+   * Chapter create
+   */
+  export type ChapterCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * The data needed to create a Chapter.
+     */
+    data: XOR<ChapterCreateInput, ChapterUncheckedCreateInput>
+  }
+
+  /**
+   * Chapter createMany
+   */
+  export type ChapterCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many Chapters.
+     */
+    data: ChapterCreateManyInput | ChapterCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * Chapter createManyAndReturn
+   */
+  export type ChapterCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * The data used to create many Chapters.
+     */
+    data: ChapterCreateManyInput | ChapterCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Chapter update
+   */
+  export type ChapterUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * The data needed to update a Chapter.
+     */
+    data: XOR<ChapterUpdateInput, ChapterUncheckedUpdateInput>
+    /**
+     * Choose, which Chapter to update.
+     */
+    where: ChapterWhereUniqueInput
+  }
+
+  /**
+   * Chapter updateMany
+   */
+  export type ChapterUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update Chapters.
+     */
+    data: XOR<ChapterUpdateManyMutationInput, ChapterUncheckedUpdateManyInput>
+    /**
+     * Filter which Chapters to update
+     */
+    where?: ChapterWhereInput
+    /**
+     * Limit how many Chapters to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * Chapter updateManyAndReturn
+   */
+  export type ChapterUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * The data used to update Chapters.
+     */
+    data: XOR<ChapterUpdateManyMutationInput, ChapterUncheckedUpdateManyInput>
+    /**
+     * Filter which Chapters to update
+     */
+    where?: ChapterWhereInput
+    /**
+     * Limit how many Chapters to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * Chapter upsert
+   */
+  export type ChapterUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * The filter to search for the Chapter to update in case it exists.
+     */
+    where: ChapterWhereUniqueInput
+    /**
+     * In case the Chapter found by the `where` argument doesn't exist, create a new Chapter with this data.
+     */
+    create: XOR<ChapterCreateInput, ChapterUncheckedCreateInput>
+    /**
+     * In case the Chapter was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ChapterUpdateInput, ChapterUncheckedUpdateInput>
+  }
+
+  /**
+   * Chapter delete
+   */
+  export type ChapterDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    /**
+     * Filter which Chapter to delete.
+     */
+    where: ChapterWhereUniqueInput
+  }
+
+  /**
+   * Chapter deleteMany
+   */
+  export type ChapterDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which Chapters to delete
+     */
+    where?: ChapterWhereInput
+    /**
+     * Limit how many Chapters to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * Chapter.segments
+   */
+  export type Chapter$segmentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TextSegment
+     */
+    select?: TextSegmentSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TextSegment
+     */
+    omit?: TextSegmentOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TextSegmentInclude<ExtArgs> | null
+    where?: TextSegmentWhereInput
+    orderBy?: TextSegmentOrderByWithRelationInput | TextSegmentOrderByWithRelationInput[]
+    cursor?: TextSegmentWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TextSegmentScalarFieldEnum | TextSegmentScalarFieldEnum[]
+  }
+
+  /**
+   * Chapter.scriptSentences
+   */
+  export type Chapter$scriptSentencesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ScriptSentence
+     */
+    select?: ScriptSentenceSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ScriptSentence
+     */
+    omit?: ScriptSentenceOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ScriptSentenceInclude<ExtArgs> | null
+    where?: ScriptSentenceWhereInput
+    orderBy?: ScriptSentenceOrderByWithRelationInput | ScriptSentenceOrderByWithRelationInput[]
+    cursor?: ScriptSentenceWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ScriptSentenceScalarFieldEnum | ScriptSentenceScalarFieldEnum[]
+  }
+
+  /**
+   * Chapter.audioFiles
+   */
+  export type Chapter$audioFilesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AudioFile
+     */
+    select?: AudioFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AudioFile
+     */
+    omit?: AudioFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AudioFileInclude<ExtArgs> | null
+    where?: AudioFileWhereInput
+    orderBy?: AudioFileOrderByWithRelationInput | AudioFileOrderByWithRelationInput[]
+    cursor?: AudioFileWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AudioFileScalarFieldEnum | AudioFileScalarFieldEnum[]
+  }
+
+  /**
+   * Chapter without action
+   */
+  export type ChapterDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
   }
 
 
@@ -8373,6 +9878,7 @@ export namespace Prisma {
     endPosition: number | null
     wordCount: number | null
     orderIndex: number | null
+    chapterOrderIndex: number | null
   }
 
   export type TextSegmentSumAggregateOutputType = {
@@ -8381,11 +9887,13 @@ export namespace Prisma {
     endPosition: number | null
     wordCount: number | null
     orderIndex: number | null
+    chapterOrderIndex: number | null
   }
 
   export type TextSegmentMinAggregateOutputType = {
     id: string | null
     bookId: string | null
+    chapterId: string | null
     segmentIndex: number | null
     startPosition: number | null
     endPosition: number | null
@@ -8393,6 +9901,7 @@ export namespace Prisma {
     wordCount: number | null
     segmentType: string | null
     orderIndex: number | null
+    chapterOrderIndex: number | null
     status: string | null
     createdAt: Date | null
   }
@@ -8400,6 +9909,7 @@ export namespace Prisma {
   export type TextSegmentMaxAggregateOutputType = {
     id: string | null
     bookId: string | null
+    chapterId: string | null
     segmentIndex: number | null
     startPosition: number | null
     endPosition: number | null
@@ -8407,6 +9917,7 @@ export namespace Prisma {
     wordCount: number | null
     segmentType: string | null
     orderIndex: number | null
+    chapterOrderIndex: number | null
     status: string | null
     createdAt: Date | null
   }
@@ -8414,6 +9925,7 @@ export namespace Prisma {
   export type TextSegmentCountAggregateOutputType = {
     id: number
     bookId: number
+    chapterId: number
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -8421,6 +9933,7 @@ export namespace Prisma {
     wordCount: number
     segmentType: number
     orderIndex: number
+    chapterOrderIndex: number
     metadata: number
     status: number
     createdAt: number
@@ -8434,6 +9947,7 @@ export namespace Prisma {
     endPosition?: true
     wordCount?: true
     orderIndex?: true
+    chapterOrderIndex?: true
   }
 
   export type TextSegmentSumAggregateInputType = {
@@ -8442,11 +9956,13 @@ export namespace Prisma {
     endPosition?: true
     wordCount?: true
     orderIndex?: true
+    chapterOrderIndex?: true
   }
 
   export type TextSegmentMinAggregateInputType = {
     id?: true
     bookId?: true
+    chapterId?: true
     segmentIndex?: true
     startPosition?: true
     endPosition?: true
@@ -8454,6 +9970,7 @@ export namespace Prisma {
     wordCount?: true
     segmentType?: true
     orderIndex?: true
+    chapterOrderIndex?: true
     status?: true
     createdAt?: true
   }
@@ -8461,6 +9978,7 @@ export namespace Prisma {
   export type TextSegmentMaxAggregateInputType = {
     id?: true
     bookId?: true
+    chapterId?: true
     segmentIndex?: true
     startPosition?: true
     endPosition?: true
@@ -8468,6 +9986,7 @@ export namespace Prisma {
     wordCount?: true
     segmentType?: true
     orderIndex?: true
+    chapterOrderIndex?: true
     status?: true
     createdAt?: true
   }
@@ -8475,6 +9994,7 @@ export namespace Prisma {
   export type TextSegmentCountAggregateInputType = {
     id?: true
     bookId?: true
+    chapterId?: true
     segmentIndex?: true
     startPosition?: true
     endPosition?: true
@@ -8482,6 +10002,7 @@ export namespace Prisma {
     wordCount?: true
     segmentType?: true
     orderIndex?: true
+    chapterOrderIndex?: true
     metadata?: true
     status?: true
     createdAt?: true
@@ -8577,6 +10098,7 @@ export namespace Prisma {
   export type TextSegmentGroupByOutputType = {
     id: string
     bookId: string
+    chapterId: string | null
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -8584,6 +10106,7 @@ export namespace Prisma {
     wordCount: number | null
     segmentType: string | null
     orderIndex: number
+    chapterOrderIndex: number | null
     metadata: JsonValue | null
     status: string
     createdAt: Date
@@ -8611,6 +10134,7 @@ export namespace Prisma {
   export type TextSegmentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     bookId?: boolean
+    chapterId?: boolean
     segmentIndex?: boolean
     startPosition?: boolean
     endPosition?: boolean
@@ -8618,18 +10142,21 @@ export namespace Prisma {
     wordCount?: boolean
     segmentType?: boolean
     orderIndex?: boolean
+    chapterOrderIndex?: boolean
     metadata?: boolean
     status?: boolean
     createdAt?: boolean
     audioFiles?: boolean | TextSegment$audioFilesArgs<ExtArgs>
     scriptSentences?: boolean | TextSegment$scriptSentencesArgs<ExtArgs>
     book?: boolean | BookDefaultArgs<ExtArgs>
+    chapter?: boolean | TextSegment$chapterArgs<ExtArgs>
     _count?: boolean | TextSegmentCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["textSegment"]>
 
   export type TextSegmentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     bookId?: boolean
+    chapterId?: boolean
     segmentIndex?: boolean
     startPosition?: boolean
     endPosition?: boolean
@@ -8637,15 +10164,18 @@ export namespace Prisma {
     wordCount?: boolean
     segmentType?: boolean
     orderIndex?: boolean
+    chapterOrderIndex?: boolean
     metadata?: boolean
     status?: boolean
     createdAt?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
+    chapter?: boolean | TextSegment$chapterArgs<ExtArgs>
   }, ExtArgs["result"]["textSegment"]>
 
   export type TextSegmentSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     bookId?: boolean
+    chapterId?: boolean
     segmentIndex?: boolean
     startPosition?: boolean
     endPosition?: boolean
@@ -8653,15 +10183,18 @@ export namespace Prisma {
     wordCount?: boolean
     segmentType?: boolean
     orderIndex?: boolean
+    chapterOrderIndex?: boolean
     metadata?: boolean
     status?: boolean
     createdAt?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
+    chapter?: boolean | TextSegment$chapterArgs<ExtArgs>
   }, ExtArgs["result"]["textSegment"]>
 
   export type TextSegmentSelectScalar = {
     id?: boolean
     bookId?: boolean
+    chapterId?: boolean
     segmentIndex?: boolean
     startPosition?: boolean
     endPosition?: boolean
@@ -8669,23 +10202,27 @@ export namespace Prisma {
     wordCount?: boolean
     segmentType?: boolean
     orderIndex?: boolean
+    chapterOrderIndex?: boolean
     metadata?: boolean
     status?: boolean
     createdAt?: boolean
   }
 
-  export type TextSegmentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "segmentIndex" | "startPosition" | "endPosition" | "content" | "wordCount" | "segmentType" | "orderIndex" | "metadata" | "status" | "createdAt", ExtArgs["result"]["textSegment"]>
+  export type TextSegmentOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "chapterId" | "segmentIndex" | "startPosition" | "endPosition" | "content" | "wordCount" | "segmentType" | "orderIndex" | "chapterOrderIndex" | "metadata" | "status" | "createdAt", ExtArgs["result"]["textSegment"]>
   export type TextSegmentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     audioFiles?: boolean | TextSegment$audioFilesArgs<ExtArgs>
     scriptSentences?: boolean | TextSegment$scriptSentencesArgs<ExtArgs>
     book?: boolean | BookDefaultArgs<ExtArgs>
+    chapter?: boolean | TextSegment$chapterArgs<ExtArgs>
     _count?: boolean | TextSegmentCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type TextSegmentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
+    chapter?: boolean | TextSegment$chapterArgs<ExtArgs>
   }
   export type TextSegmentIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
+    chapter?: boolean | TextSegment$chapterArgs<ExtArgs>
   }
 
   export type $TextSegmentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -8694,10 +10231,12 @@ export namespace Prisma {
       audioFiles: Prisma.$AudioFilePayload<ExtArgs>[]
       scriptSentences: Prisma.$ScriptSentencePayload<ExtArgs>[]
       book: Prisma.$BookPayload<ExtArgs>
+      chapter: Prisma.$ChapterPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       bookId: string
+      chapterId: string | null
       segmentIndex: number
       startPosition: number
       endPosition: number
@@ -8705,6 +10244,7 @@ export namespace Prisma {
       wordCount: number | null
       segmentType: string | null
       orderIndex: number
+      chapterOrderIndex: number | null
       metadata: Prisma.JsonValue | null
       status: string
       createdAt: Date
@@ -9105,6 +10645,7 @@ export namespace Prisma {
     audioFiles<T extends TextSegment$audioFilesArgs<ExtArgs> = {}>(args?: Subset<T, TextSegment$audioFilesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AudioFilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     scriptSentences<T extends TextSegment$scriptSentencesArgs<ExtArgs> = {}>(args?: Subset<T, TextSegment$scriptSentencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScriptSentencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     book<T extends BookDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BookDefaultArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    chapter<T extends TextSegment$chapterArgs<ExtArgs> = {}>(args?: Subset<T, TextSegment$chapterArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -9136,6 +10677,7 @@ export namespace Prisma {
   interface TextSegmentFieldRefs {
     readonly id: FieldRef<"TextSegment", 'String'>
     readonly bookId: FieldRef<"TextSegment", 'String'>
+    readonly chapterId: FieldRef<"TextSegment", 'String'>
     readonly segmentIndex: FieldRef<"TextSegment", 'Int'>
     readonly startPosition: FieldRef<"TextSegment", 'Int'>
     readonly endPosition: FieldRef<"TextSegment", 'Int'>
@@ -9143,6 +10685,7 @@ export namespace Prisma {
     readonly wordCount: FieldRef<"TextSegment", 'Int'>
     readonly segmentType: FieldRef<"TextSegment", 'String'>
     readonly orderIndex: FieldRef<"TextSegment", 'Int'>
+    readonly chapterOrderIndex: FieldRef<"TextSegment", 'Int'>
     readonly metadata: FieldRef<"TextSegment", 'Json'>
     readonly status: FieldRef<"TextSegment", 'String'>
     readonly createdAt: FieldRef<"TextSegment", 'DateTime'>
@@ -9590,6 +11133,25 @@ export namespace Prisma {
   }
 
   /**
+   * TextSegment.chapter
+   */
+  export type TextSegment$chapterArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    where?: ChapterWhereInput
+  }
+
+  /**
    * TextSegment without action
    */
   export type TextSegmentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9636,6 +11198,7 @@ export namespace Prisma {
     id: string | null
     bookId: string | null
     segmentId: string | null
+    chapterId: string | null
     characterId: string | null
     rawSpeaker: string | null
     text: string | null
@@ -9650,6 +11213,7 @@ export namespace Prisma {
     id: string | null
     bookId: string | null
     segmentId: string | null
+    chapterId: string | null
     characterId: string | null
     rawSpeaker: string | null
     text: string | null
@@ -9664,6 +11228,7 @@ export namespace Prisma {
     id: number
     bookId: number
     segmentId: number
+    chapterId: number
     characterId: number
     rawSpeaker: number
     text: number
@@ -9693,6 +11258,7 @@ export namespace Prisma {
     id?: true
     bookId?: true
     segmentId?: true
+    chapterId?: true
     characterId?: true
     rawSpeaker?: true
     text?: true
@@ -9707,6 +11273,7 @@ export namespace Prisma {
     id?: true
     bookId?: true
     segmentId?: true
+    chapterId?: true
     characterId?: true
     rawSpeaker?: true
     text?: true
@@ -9721,6 +11288,7 @@ export namespace Prisma {
     id?: true
     bookId?: true
     segmentId?: true
+    chapterId?: true
     characterId?: true
     rawSpeaker?: true
     text?: true
@@ -9823,6 +11391,7 @@ export namespace Prisma {
     id: string
     bookId: string
     segmentId: string
+    chapterId: string | null
     characterId: string | null
     rawSpeaker: string | null
     text: string
@@ -9857,6 +11426,7 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     characterId?: boolean
     rawSpeaker?: boolean
     text?: boolean
@@ -9870,6 +11440,7 @@ export namespace Prisma {
     book?: boolean | BookDefaultArgs<ExtArgs>
     character?: boolean | ScriptSentence$characterArgs<ExtArgs>
     segment?: boolean | TextSegmentDefaultArgs<ExtArgs>
+    chapter?: boolean | ScriptSentence$chapterArgs<ExtArgs>
     _count?: boolean | ScriptSentenceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["scriptSentence"]>
 
@@ -9877,6 +11448,7 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     characterId?: boolean
     rawSpeaker?: boolean
     text?: boolean
@@ -9889,12 +11461,14 @@ export namespace Prisma {
     book?: boolean | BookDefaultArgs<ExtArgs>
     character?: boolean | ScriptSentence$characterArgs<ExtArgs>
     segment?: boolean | TextSegmentDefaultArgs<ExtArgs>
+    chapter?: boolean | ScriptSentence$chapterArgs<ExtArgs>
   }, ExtArgs["result"]["scriptSentence"]>
 
   export type ScriptSentenceSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     bookId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     characterId?: boolean
     rawSpeaker?: boolean
     text?: boolean
@@ -9907,12 +11481,14 @@ export namespace Prisma {
     book?: boolean | BookDefaultArgs<ExtArgs>
     character?: boolean | ScriptSentence$characterArgs<ExtArgs>
     segment?: boolean | TextSegmentDefaultArgs<ExtArgs>
+    chapter?: boolean | ScriptSentence$chapterArgs<ExtArgs>
   }, ExtArgs["result"]["scriptSentence"]>
 
   export type ScriptSentenceSelectScalar = {
     id?: boolean
     bookId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     characterId?: boolean
     rawSpeaker?: boolean
     text?: boolean
@@ -9924,23 +11500,26 @@ export namespace Prisma {
     createdAt?: boolean
   }
 
-  export type ScriptSentenceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "segmentId" | "characterId" | "rawSpeaker" | "text" | "orderInSegment" | "tone" | "strength" | "pauseAfter" | "ttsParameters" | "createdAt", ExtArgs["result"]["scriptSentence"]>
+  export type ScriptSentenceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "segmentId" | "chapterId" | "characterId" | "rawSpeaker" | "text" | "orderInSegment" | "tone" | "strength" | "pauseAfter" | "ttsParameters" | "createdAt", ExtArgs["result"]["scriptSentence"]>
   export type ScriptSentenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     audioFiles?: boolean | ScriptSentence$audioFilesArgs<ExtArgs>
     book?: boolean | BookDefaultArgs<ExtArgs>
     character?: boolean | ScriptSentence$characterArgs<ExtArgs>
     segment?: boolean | TextSegmentDefaultArgs<ExtArgs>
+    chapter?: boolean | ScriptSentence$chapterArgs<ExtArgs>
     _count?: boolean | ScriptSentenceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ScriptSentenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
     character?: boolean | ScriptSentence$characterArgs<ExtArgs>
     segment?: boolean | TextSegmentDefaultArgs<ExtArgs>
+    chapter?: boolean | ScriptSentence$chapterArgs<ExtArgs>
   }
   export type ScriptSentenceIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
     character?: boolean | ScriptSentence$characterArgs<ExtArgs>
     segment?: boolean | TextSegmentDefaultArgs<ExtArgs>
+    chapter?: boolean | ScriptSentence$chapterArgs<ExtArgs>
   }
 
   export type $ScriptSentencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9950,11 +11529,13 @@ export namespace Prisma {
       book: Prisma.$BookPayload<ExtArgs>
       character: Prisma.$CharacterProfilePayload<ExtArgs> | null
       segment: Prisma.$TextSegmentPayload<ExtArgs>
+      chapter: Prisma.$ChapterPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       bookId: string
       segmentId: string
+      chapterId: string | null
       characterId: string | null
       rawSpeaker: string | null
       text: string
@@ -10362,6 +11943,7 @@ export namespace Prisma {
     book<T extends BookDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BookDefaultArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
     character<T extends ScriptSentence$characterArgs<ExtArgs> = {}>(args?: Subset<T, ScriptSentence$characterArgs<ExtArgs>>): Prisma__CharacterProfileClient<$Result.GetResult<Prisma.$CharacterProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     segment<T extends TextSegmentDefaultArgs<ExtArgs> = {}>(args?: Subset<T, TextSegmentDefaultArgs<ExtArgs>>): Prisma__TextSegmentClient<$Result.GetResult<Prisma.$TextSegmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    chapter<T extends ScriptSentence$chapterArgs<ExtArgs> = {}>(args?: Subset<T, ScriptSentence$chapterArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -10394,6 +11976,7 @@ export namespace Prisma {
     readonly id: FieldRef<"ScriptSentence", 'String'>
     readonly bookId: FieldRef<"ScriptSentence", 'String'>
     readonly segmentId: FieldRef<"ScriptSentence", 'String'>
+    readonly chapterId: FieldRef<"ScriptSentence", 'String'>
     readonly characterId: FieldRef<"ScriptSentence", 'String'>
     readonly rawSpeaker: FieldRef<"ScriptSentence", 'String'>
     readonly text: FieldRef<"ScriptSentence", 'String'>
@@ -10842,6 +12425,25 @@ export namespace Prisma {
   }
 
   /**
+   * ScriptSentence.chapter
+   */
+  export type ScriptSentence$chapterArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    where?: ChapterWhereInput
+  }
+
+  /**
    * ScriptSentence without action
    */
   export type ScriptSentenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -10889,6 +12491,7 @@ export namespace Prisma {
     bookId: string | null
     sentenceId: string | null
     segmentId: string | null
+    chapterId: string | null
     filePath: string | null
     fileName: string | null
     duration: Decimal | null
@@ -10908,6 +12511,7 @@ export namespace Prisma {
     bookId: string | null
     sentenceId: string | null
     segmentId: string | null
+    chapterId: string | null
     filePath: string | null
     fileName: string | null
     duration: Decimal | null
@@ -10927,6 +12531,7 @@ export namespace Prisma {
     bookId: number
     sentenceId: number
     segmentId: number
+    chapterId: number
     filePath: number
     fileName: number
     duration: number
@@ -10960,6 +12565,7 @@ export namespace Prisma {
     bookId?: true
     sentenceId?: true
     segmentId?: true
+    chapterId?: true
     filePath?: true
     fileName?: true
     duration?: true
@@ -10979,6 +12585,7 @@ export namespace Prisma {
     bookId?: true
     sentenceId?: true
     segmentId?: true
+    chapterId?: true
     filePath?: true
     fileName?: true
     duration?: true
@@ -10998,6 +12605,7 @@ export namespace Prisma {
     bookId?: true
     sentenceId?: true
     segmentId?: true
+    chapterId?: true
     filePath?: true
     fileName?: true
     duration?: true
@@ -11104,6 +12712,7 @@ export namespace Prisma {
     bookId: string
     sentenceId: string | null
     segmentId: string | null
+    chapterId: string | null
     filePath: string
     fileName: string | null
     duration: Decimal | null
@@ -11142,6 +12751,7 @@ export namespace Prisma {
     bookId?: boolean
     sentenceId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     filePath?: boolean
     fileName?: boolean
     duration?: boolean
@@ -11158,6 +12768,7 @@ export namespace Prisma {
     segment?: boolean | AudioFile$segmentArgs<ExtArgs>
     scriptSentence?: boolean | AudioFile$scriptSentenceArgs<ExtArgs>
     voiceProfile?: boolean | AudioFile$voiceProfileArgs<ExtArgs>
+    chapter?: boolean | AudioFile$chapterArgs<ExtArgs>
   }, ExtArgs["result"]["audioFile"]>
 
   export type AudioFileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -11165,6 +12776,7 @@ export namespace Prisma {
     bookId?: boolean
     sentenceId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     filePath?: boolean
     fileName?: boolean
     duration?: boolean
@@ -11181,6 +12793,7 @@ export namespace Prisma {
     segment?: boolean | AudioFile$segmentArgs<ExtArgs>
     scriptSentence?: boolean | AudioFile$scriptSentenceArgs<ExtArgs>
     voiceProfile?: boolean | AudioFile$voiceProfileArgs<ExtArgs>
+    chapter?: boolean | AudioFile$chapterArgs<ExtArgs>
   }, ExtArgs["result"]["audioFile"]>
 
   export type AudioFileSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -11188,6 +12801,7 @@ export namespace Prisma {
     bookId?: boolean
     sentenceId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     filePath?: boolean
     fileName?: boolean
     duration?: boolean
@@ -11204,6 +12818,7 @@ export namespace Prisma {
     segment?: boolean | AudioFile$segmentArgs<ExtArgs>
     scriptSentence?: boolean | AudioFile$scriptSentenceArgs<ExtArgs>
     voiceProfile?: boolean | AudioFile$voiceProfileArgs<ExtArgs>
+    chapter?: boolean | AudioFile$chapterArgs<ExtArgs>
   }, ExtArgs["result"]["audioFile"]>
 
   export type AudioFileSelectScalar = {
@@ -11211,6 +12826,7 @@ export namespace Prisma {
     bookId?: boolean
     sentenceId?: boolean
     segmentId?: boolean
+    chapterId?: boolean
     filePath?: boolean
     fileName?: boolean
     duration?: boolean
@@ -11225,24 +12841,27 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type AudioFileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "sentenceId" | "segmentId" | "filePath" | "fileName" | "duration" | "fileSize" | "format" | "status" | "errorMessage" | "retryCount" | "provider" | "voiceProfileId" | "createdAt" | "updatedAt", ExtArgs["result"]["audioFile"]>
+  export type AudioFileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "sentenceId" | "segmentId" | "chapterId" | "filePath" | "fileName" | "duration" | "fileSize" | "format" | "status" | "errorMessage" | "retryCount" | "provider" | "voiceProfileId" | "createdAt" | "updatedAt", ExtArgs["result"]["audioFile"]>
   export type AudioFileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
     segment?: boolean | AudioFile$segmentArgs<ExtArgs>
     scriptSentence?: boolean | AudioFile$scriptSentenceArgs<ExtArgs>
     voiceProfile?: boolean | AudioFile$voiceProfileArgs<ExtArgs>
+    chapter?: boolean | AudioFile$chapterArgs<ExtArgs>
   }
   export type AudioFileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
     segment?: boolean | AudioFile$segmentArgs<ExtArgs>
     scriptSentence?: boolean | AudioFile$scriptSentenceArgs<ExtArgs>
     voiceProfile?: boolean | AudioFile$voiceProfileArgs<ExtArgs>
+    chapter?: boolean | AudioFile$chapterArgs<ExtArgs>
   }
   export type AudioFileIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
     segment?: boolean | AudioFile$segmentArgs<ExtArgs>
     scriptSentence?: boolean | AudioFile$scriptSentenceArgs<ExtArgs>
     voiceProfile?: boolean | AudioFile$voiceProfileArgs<ExtArgs>
+    chapter?: boolean | AudioFile$chapterArgs<ExtArgs>
   }
 
   export type $AudioFilePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -11252,12 +12871,14 @@ export namespace Prisma {
       segment: Prisma.$TextSegmentPayload<ExtArgs> | null
       scriptSentence: Prisma.$ScriptSentencePayload<ExtArgs> | null
       voiceProfile: Prisma.$TTSVoiceProfilePayload<ExtArgs> | null
+      chapter: Prisma.$ChapterPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       bookId: string
       sentenceId: string | null
       segmentId: string | null
+      chapterId: string | null
       filePath: string
       fileName: string | null
       duration: Prisma.Decimal | null
@@ -11668,6 +13289,7 @@ export namespace Prisma {
     segment<T extends AudioFile$segmentArgs<ExtArgs> = {}>(args?: Subset<T, AudioFile$segmentArgs<ExtArgs>>): Prisma__TextSegmentClient<$Result.GetResult<Prisma.$TextSegmentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     scriptSentence<T extends AudioFile$scriptSentenceArgs<ExtArgs> = {}>(args?: Subset<T, AudioFile$scriptSentenceArgs<ExtArgs>>): Prisma__ScriptSentenceClient<$Result.GetResult<Prisma.$ScriptSentencePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     voiceProfile<T extends AudioFile$voiceProfileArgs<ExtArgs> = {}>(args?: Subset<T, AudioFile$voiceProfileArgs<ExtArgs>>): Prisma__TTSVoiceProfileClient<$Result.GetResult<Prisma.$TTSVoiceProfilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    chapter<T extends AudioFile$chapterArgs<ExtArgs> = {}>(args?: Subset<T, AudioFile$chapterArgs<ExtArgs>>): Prisma__ChapterClient<$Result.GetResult<Prisma.$ChapterPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -11701,6 +13323,7 @@ export namespace Prisma {
     readonly bookId: FieldRef<"AudioFile", 'String'>
     readonly sentenceId: FieldRef<"AudioFile", 'String'>
     readonly segmentId: FieldRef<"AudioFile", 'String'>
+    readonly chapterId: FieldRef<"AudioFile", 'String'>
     readonly filePath: FieldRef<"AudioFile", 'String'>
     readonly fileName: FieldRef<"AudioFile", 'String'>
     readonly duration: FieldRef<"AudioFile", 'Decimal'>
@@ -12163,6 +13786,25 @@ export namespace Prisma {
      */
     include?: TTSVoiceProfileInclude<ExtArgs> | null
     where?: TTSVoiceProfileWhereInput
+  }
+
+  /**
+   * AudioFile.chapter
+   */
+  export type AudioFile$chapterArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Chapter
+     */
+    select?: ChapterSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Chapter
+     */
+    omit?: ChapterOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ChapterInclude<ExtArgs> | null
+    where?: ChapterWhereInput
   }
 
   /**
@@ -16894,6 +18536,7 @@ export namespace Prisma {
     totalWords: 'totalWords',
     totalCharacters: 'totalCharacters',
     totalSegments: 'totalSegments',
+    totalChapters: 'totalChapters',
     encoding: 'encoding',
     fileFormat: 'fileFormat',
     status: 'status',
@@ -16903,6 +18546,26 @@ export namespace Prisma {
   };
 
   export type BookScalarFieldEnum = (typeof BookScalarFieldEnum)[keyof typeof BookScalarFieldEnum]
+
+
+  export const ChapterScalarFieldEnum: {
+    id: 'id',
+    bookId: 'bookId',
+    chapterIndex: 'chapterIndex',
+    title: 'title',
+    rawTitle: 'rawTitle',
+    startPosition: 'startPosition',
+    endPosition: 'endPosition',
+    wordCount: 'wordCount',
+    characterCount: 'characterCount',
+    totalSegments: 'totalSegments',
+    status: 'status',
+    metadata: 'metadata',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ChapterScalarFieldEnum = (typeof ChapterScalarFieldEnum)[keyof typeof ChapterScalarFieldEnum]
 
 
   export const CharacterProfileScalarFieldEnum: {
@@ -16974,6 +18637,7 @@ export namespace Prisma {
   export const TextSegmentScalarFieldEnum: {
     id: 'id',
     bookId: 'bookId',
+    chapterId: 'chapterId',
     segmentIndex: 'segmentIndex',
     startPosition: 'startPosition',
     endPosition: 'endPosition',
@@ -16981,6 +18645,7 @@ export namespace Prisma {
     wordCount: 'wordCount',
     segmentType: 'segmentType',
     orderIndex: 'orderIndex',
+    chapterOrderIndex: 'chapterOrderIndex',
     metadata: 'metadata',
     status: 'status',
     createdAt: 'createdAt'
@@ -16993,6 +18658,7 @@ export namespace Prisma {
     id: 'id',
     bookId: 'bookId',
     segmentId: 'segmentId',
+    chapterId: 'chapterId',
     characterId: 'characterId',
     rawSpeaker: 'rawSpeaker',
     text: 'text',
@@ -17012,6 +18678,7 @@ export namespace Prisma {
     bookId: 'bookId',
     sentenceId: 'sentenceId',
     segmentId: 'segmentId',
+    chapterId: 'chapterId',
     filePath: 'filePath',
     fileName: 'fileName',
     duration: 'duration',
@@ -17285,6 +18952,7 @@ export namespace Prisma {
     totalWords?: IntNullableFilter<"Book"> | number | null
     totalCharacters?: IntFilter<"Book"> | number
     totalSegments?: IntFilter<"Book"> | number
+    totalChapters?: IntFilter<"Book"> | number
     encoding?: StringNullableFilter<"Book"> | string | null
     fileFormat?: StringNullableFilter<"Book"> | string | null
     status?: StringFilter<"Book"> | string
@@ -17297,6 +18965,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
     textSegments?: TextSegmentListRelationFilter
+    chapters?: ChapterListRelationFilter
   }
 
   export type BookOrderByWithRelationInput = {
@@ -17309,6 +18978,7 @@ export namespace Prisma {
     totalWords?: SortOrderInput | SortOrder
     totalCharacters?: SortOrder
     totalSegments?: SortOrder
+    totalChapters?: SortOrder
     encoding?: SortOrderInput | SortOrder
     fileFormat?: SortOrderInput | SortOrder
     status?: SortOrder
@@ -17321,6 +18991,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskOrderByRelationAggregateInput
     scriptSentences?: ScriptSentenceOrderByRelationAggregateInput
     textSegments?: TextSegmentOrderByRelationAggregateInput
+    chapters?: ChapterOrderByRelationAggregateInput
   }
 
   export type BookWhereUniqueInput = Prisma.AtLeast<{
@@ -17336,6 +19007,7 @@ export namespace Prisma {
     totalWords?: IntNullableFilter<"Book"> | number | null
     totalCharacters?: IntFilter<"Book"> | number
     totalSegments?: IntFilter<"Book"> | number
+    totalChapters?: IntFilter<"Book"> | number
     encoding?: StringNullableFilter<"Book"> | string | null
     fileFormat?: StringNullableFilter<"Book"> | string | null
     status?: StringFilter<"Book"> | string
@@ -17348,6 +19020,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
     textSegments?: TextSegmentListRelationFilter
+    chapters?: ChapterListRelationFilter
   }, "id">
 
   export type BookOrderByWithAggregationInput = {
@@ -17360,6 +19033,7 @@ export namespace Prisma {
     totalWords?: SortOrderInput | SortOrder
     totalCharacters?: SortOrder
     totalSegments?: SortOrder
+    totalChapters?: SortOrder
     encoding?: SortOrderInput | SortOrder
     fileFormat?: SortOrderInput | SortOrder
     status?: SortOrder
@@ -17386,12 +19060,125 @@ export namespace Prisma {
     totalWords?: IntNullableWithAggregatesFilter<"Book"> | number | null
     totalCharacters?: IntWithAggregatesFilter<"Book"> | number
     totalSegments?: IntWithAggregatesFilter<"Book"> | number
+    totalChapters?: IntWithAggregatesFilter<"Book"> | number
     encoding?: StringNullableWithAggregatesFilter<"Book"> | string | null
     fileFormat?: StringNullableWithAggregatesFilter<"Book"> | string | null
     status?: StringWithAggregatesFilter<"Book"> | string
     metadata?: JsonWithAggregatesFilter<"Book">
     createdAt?: DateTimeWithAggregatesFilter<"Book"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Book"> | Date | string
+  }
+
+  export type ChapterWhereInput = {
+    AND?: ChapterWhereInput | ChapterWhereInput[]
+    OR?: ChapterWhereInput[]
+    NOT?: ChapterWhereInput | ChapterWhereInput[]
+    id?: StringFilter<"Chapter"> | string
+    bookId?: StringFilter<"Chapter"> | string
+    chapterIndex?: IntFilter<"Chapter"> | number
+    title?: StringFilter<"Chapter"> | string
+    rawTitle?: StringNullableFilter<"Chapter"> | string | null
+    startPosition?: IntFilter<"Chapter"> | number
+    endPosition?: IntFilter<"Chapter"> | number
+    wordCount?: IntNullableFilter<"Chapter"> | number | null
+    characterCount?: IntNullableFilter<"Chapter"> | number | null
+    totalSegments?: IntFilter<"Chapter"> | number
+    status?: StringFilter<"Chapter"> | string
+    metadata?: JsonNullableFilter<"Chapter">
+    createdAt?: DateTimeFilter<"Chapter"> | Date | string
+    updatedAt?: DateTimeFilter<"Chapter"> | Date | string
+    book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    segments?: TextSegmentListRelationFilter
+    scriptSentences?: ScriptSentenceListRelationFilter
+    audioFiles?: AudioFileListRelationFilter
+  }
+
+  export type ChapterOrderByWithRelationInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    chapterIndex?: SortOrder
+    title?: SortOrder
+    rawTitle?: SortOrderInput | SortOrder
+    startPosition?: SortOrder
+    endPosition?: SortOrder
+    wordCount?: SortOrderInput | SortOrder
+    characterCount?: SortOrderInput | SortOrder
+    totalSegments?: SortOrder
+    status?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    book?: BookOrderByWithRelationInput
+    segments?: TextSegmentOrderByRelationAggregateInput
+    scriptSentences?: ScriptSentenceOrderByRelationAggregateInput
+    audioFiles?: AudioFileOrderByRelationAggregateInput
+  }
+
+  export type ChapterWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    bookId_chapterIndex?: ChapterBookIdChapterIndexCompoundUniqueInput
+    AND?: ChapterWhereInput | ChapterWhereInput[]
+    OR?: ChapterWhereInput[]
+    NOT?: ChapterWhereInput | ChapterWhereInput[]
+    bookId?: StringFilter<"Chapter"> | string
+    chapterIndex?: IntFilter<"Chapter"> | number
+    title?: StringFilter<"Chapter"> | string
+    rawTitle?: StringNullableFilter<"Chapter"> | string | null
+    startPosition?: IntFilter<"Chapter"> | number
+    endPosition?: IntFilter<"Chapter"> | number
+    wordCount?: IntNullableFilter<"Chapter"> | number | null
+    characterCount?: IntNullableFilter<"Chapter"> | number | null
+    totalSegments?: IntFilter<"Chapter"> | number
+    status?: StringFilter<"Chapter"> | string
+    metadata?: JsonNullableFilter<"Chapter">
+    createdAt?: DateTimeFilter<"Chapter"> | Date | string
+    updatedAt?: DateTimeFilter<"Chapter"> | Date | string
+    book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    segments?: TextSegmentListRelationFilter
+    scriptSentences?: ScriptSentenceListRelationFilter
+    audioFiles?: AudioFileListRelationFilter
+  }, "id" | "bookId_chapterIndex">
+
+  export type ChapterOrderByWithAggregationInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    chapterIndex?: SortOrder
+    title?: SortOrder
+    rawTitle?: SortOrderInput | SortOrder
+    startPosition?: SortOrder
+    endPosition?: SortOrder
+    wordCount?: SortOrderInput | SortOrder
+    characterCount?: SortOrderInput | SortOrder
+    totalSegments?: SortOrder
+    status?: SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ChapterCountOrderByAggregateInput
+    _avg?: ChapterAvgOrderByAggregateInput
+    _max?: ChapterMaxOrderByAggregateInput
+    _min?: ChapterMinOrderByAggregateInput
+    _sum?: ChapterSumOrderByAggregateInput
+  }
+
+  export type ChapterScalarWhereWithAggregatesInput = {
+    AND?: ChapterScalarWhereWithAggregatesInput | ChapterScalarWhereWithAggregatesInput[]
+    OR?: ChapterScalarWhereWithAggregatesInput[]
+    NOT?: ChapterScalarWhereWithAggregatesInput | ChapterScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"Chapter"> | string
+    bookId?: StringWithAggregatesFilter<"Chapter"> | string
+    chapterIndex?: IntWithAggregatesFilter<"Chapter"> | number
+    title?: StringWithAggregatesFilter<"Chapter"> | string
+    rawTitle?: StringNullableWithAggregatesFilter<"Chapter"> | string | null
+    startPosition?: IntWithAggregatesFilter<"Chapter"> | number
+    endPosition?: IntWithAggregatesFilter<"Chapter"> | number
+    wordCount?: IntNullableWithAggregatesFilter<"Chapter"> | number | null
+    characterCount?: IntNullableWithAggregatesFilter<"Chapter"> | number | null
+    totalSegments?: IntWithAggregatesFilter<"Chapter"> | number
+    status?: StringWithAggregatesFilter<"Chapter"> | string
+    metadata?: JsonNullableWithAggregatesFilter<"Chapter">
+    createdAt?: DateTimeWithAggregatesFilter<"Chapter"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"Chapter"> | Date | string
   }
 
   export type CharacterProfileWhereInput = {
@@ -17761,6 +19548,7 @@ export namespace Prisma {
     NOT?: TextSegmentWhereInput | TextSegmentWhereInput[]
     id?: StringFilter<"TextSegment"> | string
     bookId?: StringFilter<"TextSegment"> | string
+    chapterId?: StringNullableFilter<"TextSegment"> | string | null
     segmentIndex?: IntFilter<"TextSegment"> | number
     startPosition?: IntFilter<"TextSegment"> | number
     endPosition?: IntFilter<"TextSegment"> | number
@@ -17768,17 +19556,20 @@ export namespace Prisma {
     wordCount?: IntNullableFilter<"TextSegment"> | number | null
     segmentType?: StringNullableFilter<"TextSegment"> | string | null
     orderIndex?: IntFilter<"TextSegment"> | number
+    chapterOrderIndex?: IntNullableFilter<"TextSegment"> | number | null
     metadata?: JsonNullableFilter<"TextSegment">
     status?: StringFilter<"TextSegment"> | string
     createdAt?: DateTimeFilter<"TextSegment"> | Date | string
     audioFiles?: AudioFileListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    chapter?: XOR<ChapterNullableScalarRelationFilter, ChapterWhereInput> | null
   }
 
   export type TextSegmentOrderByWithRelationInput = {
     id?: SortOrder
     bookId?: SortOrder
+    chapterId?: SortOrderInput | SortOrder
     segmentIndex?: SortOrder
     startPosition?: SortOrder
     endPosition?: SortOrder
@@ -17786,12 +19577,14 @@ export namespace Prisma {
     wordCount?: SortOrderInput | SortOrder
     segmentType?: SortOrderInput | SortOrder
     orderIndex?: SortOrder
+    chapterOrderIndex?: SortOrderInput | SortOrder
     metadata?: SortOrderInput | SortOrder
     status?: SortOrder
     createdAt?: SortOrder
     audioFiles?: AudioFileOrderByRelationAggregateInput
     scriptSentences?: ScriptSentenceOrderByRelationAggregateInput
     book?: BookOrderByWithRelationInput
+    chapter?: ChapterOrderByWithRelationInput
   }
 
   export type TextSegmentWhereUniqueInput = Prisma.AtLeast<{
@@ -17800,6 +19593,7 @@ export namespace Prisma {
     OR?: TextSegmentWhereInput[]
     NOT?: TextSegmentWhereInput | TextSegmentWhereInput[]
     bookId?: StringFilter<"TextSegment"> | string
+    chapterId?: StringNullableFilter<"TextSegment"> | string | null
     segmentIndex?: IntFilter<"TextSegment"> | number
     startPosition?: IntFilter<"TextSegment"> | number
     endPosition?: IntFilter<"TextSegment"> | number
@@ -17807,17 +19601,20 @@ export namespace Prisma {
     wordCount?: IntNullableFilter<"TextSegment"> | number | null
     segmentType?: StringNullableFilter<"TextSegment"> | string | null
     orderIndex?: IntFilter<"TextSegment"> | number
+    chapterOrderIndex?: IntNullableFilter<"TextSegment"> | number | null
     metadata?: JsonNullableFilter<"TextSegment">
     status?: StringFilter<"TextSegment"> | string
     createdAt?: DateTimeFilter<"TextSegment"> | Date | string
     audioFiles?: AudioFileListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    chapter?: XOR<ChapterNullableScalarRelationFilter, ChapterWhereInput> | null
   }, "id">
 
   export type TextSegmentOrderByWithAggregationInput = {
     id?: SortOrder
     bookId?: SortOrder
+    chapterId?: SortOrderInput | SortOrder
     segmentIndex?: SortOrder
     startPosition?: SortOrder
     endPosition?: SortOrder
@@ -17825,6 +19622,7 @@ export namespace Prisma {
     wordCount?: SortOrderInput | SortOrder
     segmentType?: SortOrderInput | SortOrder
     orderIndex?: SortOrder
+    chapterOrderIndex?: SortOrderInput | SortOrder
     metadata?: SortOrderInput | SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -17841,6 +19639,7 @@ export namespace Prisma {
     NOT?: TextSegmentScalarWhereWithAggregatesInput | TextSegmentScalarWhereWithAggregatesInput[]
     id?: StringWithAggregatesFilter<"TextSegment"> | string
     bookId?: StringWithAggregatesFilter<"TextSegment"> | string
+    chapterId?: StringNullableWithAggregatesFilter<"TextSegment"> | string | null
     segmentIndex?: IntWithAggregatesFilter<"TextSegment"> | number
     startPosition?: IntWithAggregatesFilter<"TextSegment"> | number
     endPosition?: IntWithAggregatesFilter<"TextSegment"> | number
@@ -17848,6 +19647,7 @@ export namespace Prisma {
     wordCount?: IntNullableWithAggregatesFilter<"TextSegment"> | number | null
     segmentType?: StringNullableWithAggregatesFilter<"TextSegment"> | string | null
     orderIndex?: IntWithAggregatesFilter<"TextSegment"> | number
+    chapterOrderIndex?: IntNullableWithAggregatesFilter<"TextSegment"> | number | null
     metadata?: JsonNullableWithAggregatesFilter<"TextSegment">
     status?: StringWithAggregatesFilter<"TextSegment"> | string
     createdAt?: DateTimeWithAggregatesFilter<"TextSegment"> | Date | string
@@ -17860,6 +19660,7 @@ export namespace Prisma {
     id?: StringFilter<"ScriptSentence"> | string
     bookId?: StringFilter<"ScriptSentence"> | string
     segmentId?: StringFilter<"ScriptSentence"> | string
+    chapterId?: StringNullableFilter<"ScriptSentence"> | string | null
     characterId?: StringNullableFilter<"ScriptSentence"> | string | null
     rawSpeaker?: StringNullableFilter<"ScriptSentence"> | string | null
     text?: StringFilter<"ScriptSentence"> | string
@@ -17873,12 +19674,14 @@ export namespace Prisma {
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
     character?: XOR<CharacterProfileNullableScalarRelationFilter, CharacterProfileWhereInput> | null
     segment?: XOR<TextSegmentScalarRelationFilter, TextSegmentWhereInput>
+    chapter?: XOR<ChapterNullableScalarRelationFilter, ChapterWhereInput> | null
   }
 
   export type ScriptSentenceOrderByWithRelationInput = {
     id?: SortOrder
     bookId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrderInput | SortOrder
     characterId?: SortOrderInput | SortOrder
     rawSpeaker?: SortOrderInput | SortOrder
     text?: SortOrder
@@ -17892,6 +19695,7 @@ export namespace Prisma {
     book?: BookOrderByWithRelationInput
     character?: CharacterProfileOrderByWithRelationInput
     segment?: TextSegmentOrderByWithRelationInput
+    chapter?: ChapterOrderByWithRelationInput
   }
 
   export type ScriptSentenceWhereUniqueInput = Prisma.AtLeast<{
@@ -17901,6 +19705,7 @@ export namespace Prisma {
     NOT?: ScriptSentenceWhereInput | ScriptSentenceWhereInput[]
     bookId?: StringFilter<"ScriptSentence"> | string
     segmentId?: StringFilter<"ScriptSentence"> | string
+    chapterId?: StringNullableFilter<"ScriptSentence"> | string | null
     characterId?: StringNullableFilter<"ScriptSentence"> | string | null
     rawSpeaker?: StringNullableFilter<"ScriptSentence"> | string | null
     text?: StringFilter<"ScriptSentence"> | string
@@ -17914,12 +19719,14 @@ export namespace Prisma {
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
     character?: XOR<CharacterProfileNullableScalarRelationFilter, CharacterProfileWhereInput> | null
     segment?: XOR<TextSegmentScalarRelationFilter, TextSegmentWhereInput>
+    chapter?: XOR<ChapterNullableScalarRelationFilter, ChapterWhereInput> | null
   }, "id">
 
   export type ScriptSentenceOrderByWithAggregationInput = {
     id?: SortOrder
     bookId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrderInput | SortOrder
     characterId?: SortOrderInput | SortOrder
     rawSpeaker?: SortOrderInput | SortOrder
     text?: SortOrder
@@ -17943,6 +19750,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"ScriptSentence"> | string
     bookId?: StringWithAggregatesFilter<"ScriptSentence"> | string
     segmentId?: StringWithAggregatesFilter<"ScriptSentence"> | string
+    chapterId?: StringNullableWithAggregatesFilter<"ScriptSentence"> | string | null
     characterId?: StringNullableWithAggregatesFilter<"ScriptSentence"> | string | null
     rawSpeaker?: StringNullableWithAggregatesFilter<"ScriptSentence"> | string | null
     text?: StringWithAggregatesFilter<"ScriptSentence"> | string
@@ -17962,6 +19770,7 @@ export namespace Prisma {
     bookId?: StringFilter<"AudioFile"> | string
     sentenceId?: StringNullableFilter<"AudioFile"> | string | null
     segmentId?: StringNullableFilter<"AudioFile"> | string | null
+    chapterId?: StringNullableFilter<"AudioFile"> | string | null
     filePath?: StringFilter<"AudioFile"> | string
     fileName?: StringNullableFilter<"AudioFile"> | string | null
     duration?: DecimalNullableFilter<"AudioFile"> | Decimal | DecimalJsLike | number | string | null
@@ -17978,6 +19787,7 @@ export namespace Prisma {
     segment?: XOR<TextSegmentNullableScalarRelationFilter, TextSegmentWhereInput> | null
     scriptSentence?: XOR<ScriptSentenceNullableScalarRelationFilter, ScriptSentenceWhereInput> | null
     voiceProfile?: XOR<TTSVoiceProfileNullableScalarRelationFilter, TTSVoiceProfileWhereInput> | null
+    chapter?: XOR<ChapterNullableScalarRelationFilter, ChapterWhereInput> | null
   }
 
   export type AudioFileOrderByWithRelationInput = {
@@ -17985,6 +19795,7 @@ export namespace Prisma {
     bookId?: SortOrder
     sentenceId?: SortOrderInput | SortOrder
     segmentId?: SortOrderInput | SortOrder
+    chapterId?: SortOrderInput | SortOrder
     filePath?: SortOrder
     fileName?: SortOrderInput | SortOrder
     duration?: SortOrderInput | SortOrder
@@ -18001,6 +19812,7 @@ export namespace Prisma {
     segment?: TextSegmentOrderByWithRelationInput
     scriptSentence?: ScriptSentenceOrderByWithRelationInput
     voiceProfile?: TTSVoiceProfileOrderByWithRelationInput
+    chapter?: ChapterOrderByWithRelationInput
   }
 
   export type AudioFileWhereUniqueInput = Prisma.AtLeast<{
@@ -18011,6 +19823,7 @@ export namespace Prisma {
     bookId?: StringFilter<"AudioFile"> | string
     sentenceId?: StringNullableFilter<"AudioFile"> | string | null
     segmentId?: StringNullableFilter<"AudioFile"> | string | null
+    chapterId?: StringNullableFilter<"AudioFile"> | string | null
     filePath?: StringFilter<"AudioFile"> | string
     fileName?: StringNullableFilter<"AudioFile"> | string | null
     duration?: DecimalNullableFilter<"AudioFile"> | Decimal | DecimalJsLike | number | string | null
@@ -18027,6 +19840,7 @@ export namespace Prisma {
     segment?: XOR<TextSegmentNullableScalarRelationFilter, TextSegmentWhereInput> | null
     scriptSentence?: XOR<ScriptSentenceNullableScalarRelationFilter, ScriptSentenceWhereInput> | null
     voiceProfile?: XOR<TTSVoiceProfileNullableScalarRelationFilter, TTSVoiceProfileWhereInput> | null
+    chapter?: XOR<ChapterNullableScalarRelationFilter, ChapterWhereInput> | null
   }, "id">
 
   export type AudioFileOrderByWithAggregationInput = {
@@ -18034,6 +19848,7 @@ export namespace Prisma {
     bookId?: SortOrder
     sentenceId?: SortOrderInput | SortOrder
     segmentId?: SortOrderInput | SortOrder
+    chapterId?: SortOrderInput | SortOrder
     filePath?: SortOrder
     fileName?: SortOrderInput | SortOrder
     duration?: SortOrderInput | SortOrder
@@ -18061,6 +19876,7 @@ export namespace Prisma {
     bookId?: StringWithAggregatesFilter<"AudioFile"> | string
     sentenceId?: StringNullableWithAggregatesFilter<"AudioFile"> | string | null
     segmentId?: StringNullableWithAggregatesFilter<"AudioFile"> | string | null
+    chapterId?: StringNullableWithAggregatesFilter<"AudioFile"> | string | null
     filePath?: StringWithAggregatesFilter<"AudioFile"> | string
     fileName?: StringNullableWithAggregatesFilter<"AudioFile"> | string | null
     duration?: DecimalNullableWithAggregatesFilter<"AudioFile"> | Decimal | DecimalJsLike | number | string | null
@@ -18441,6 +20257,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -18453,6 +20270,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateInput = {
@@ -18465,6 +20283,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -18477,6 +20296,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookUpdateInput = {
@@ -18489,6 +20309,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -18501,6 +20322,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateInput = {
@@ -18513,6 +20335,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -18525,6 +20348,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type BookCreateManyInput = {
@@ -18537,6 +20361,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -18555,6 +20380,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -18573,10 +20399,141 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
     metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ChapterCreateInput = {
+    id?: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book: BookCreateNestedOneWithoutChaptersInput
+    segments?: TextSegmentCreateNestedManyWithoutChapterInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterUncheckedCreateInput = {
+    id?: string
+    bookId: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    segments?: TextSegmentUncheckedCreateNestedManyWithoutChapterInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneRequiredWithoutChaptersNestedInput
+    segments?: TextSegmentUpdateManyWithoutChapterNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUpdateManyWithoutChapterNestedInput
+  }
+
+  export type ChapterUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    segments?: TextSegmentUncheckedUpdateManyWithoutChapterNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutChapterNestedInput
+  }
+
+  export type ChapterCreateManyInput = {
+    id?: string
+    bookId: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ChapterUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ChapterUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -18996,17 +20953,20 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
     audioFiles?: AudioFileCreateNestedManyWithoutSegmentInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutSegmentInput
     book: BookCreateNestedOneWithoutTextSegmentsInput
+    chapter?: ChapterCreateNestedOneWithoutSegmentsInput
   }
 
   export type TextSegmentUncheckedCreateInput = {
     id?: string
     bookId: string
+    chapterId?: string | null
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -19014,6 +20974,7 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
@@ -19030,17 +20991,20 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     audioFiles?: AudioFileUpdateManyWithoutSegmentNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutSegmentNestedInput
     book?: BookUpdateOneRequiredWithoutTextSegmentsNestedInput
+    chapter?: ChapterUpdateOneWithoutSegmentsNestedInput
   }
 
   export type TextSegmentUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentIndex?: IntFieldUpdateOperationsInput | number
     startPosition?: IntFieldUpdateOperationsInput | number
     endPosition?: IntFieldUpdateOperationsInput | number
@@ -19048,6 +21012,7 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19058,6 +21023,7 @@ export namespace Prisma {
   export type TextSegmentCreateManyInput = {
     id?: string
     bookId: string
+    chapterId?: string | null
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -19065,6 +21031,7 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
@@ -19079,6 +21046,7 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19087,6 +21055,7 @@ export namespace Prisma {
   export type TextSegmentUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentIndex?: IntFieldUpdateOperationsInput | number
     startPosition?: IntFieldUpdateOperationsInput | number
     endPosition?: IntFieldUpdateOperationsInput | number
@@ -19094,6 +21063,7 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -19113,12 +21083,14 @@ export namespace Prisma {
     book: BookCreateNestedOneWithoutScriptSentencesInput
     character?: CharacterProfileCreateNestedOneWithoutScriptSentencesInput
     segment: TextSegmentCreateNestedOneWithoutScriptSentencesInput
+    chapter?: ChapterCreateNestedOneWithoutScriptSentencesInput
   }
 
   export type ScriptSentenceUncheckedCreateInput = {
     id?: string
     bookId: string
     segmentId: string
+    chapterId?: string | null
     characterId?: string | null
     rawSpeaker?: string | null
     text: string
@@ -19145,12 +21117,14 @@ export namespace Prisma {
     book?: BookUpdateOneRequiredWithoutScriptSentencesNestedInput
     character?: CharacterProfileUpdateOneWithoutScriptSentencesNestedInput
     segment?: TextSegmentUpdateOneRequiredWithoutScriptSentencesNestedInput
+    chapter?: ChapterUpdateOneWithoutScriptSentencesNestedInput
   }
 
   export type ScriptSentenceUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     segmentId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     characterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
@@ -19167,6 +21141,7 @@ export namespace Prisma {
     id?: string
     bookId: string
     segmentId: string
+    chapterId?: string | null
     characterId?: string | null
     rawSpeaker?: string | null
     text: string
@@ -19194,6 +21169,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     segmentId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     characterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
@@ -19222,6 +21198,7 @@ export namespace Prisma {
     segment?: TextSegmentCreateNestedOneWithoutAudioFilesInput
     scriptSentence?: ScriptSentenceCreateNestedOneWithoutAudioFilesInput
     voiceProfile?: TTSVoiceProfileCreateNestedOneWithoutAudioFilesInput
+    chapter?: ChapterCreateNestedOneWithoutAudioFilesInput
   }
 
   export type AudioFileUncheckedCreateInput = {
@@ -19229,6 +21206,7 @@ export namespace Prisma {
     bookId: string
     sentenceId?: string | null
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -19260,6 +21238,7 @@ export namespace Prisma {
     segment?: TextSegmentUpdateOneWithoutAudioFilesNestedInput
     scriptSentence?: ScriptSentenceUpdateOneWithoutAudioFilesNestedInput
     voiceProfile?: TTSVoiceProfileUpdateOneWithoutAudioFilesNestedInput
+    chapter?: ChapterUpdateOneWithoutAudioFilesNestedInput
   }
 
   export type AudioFileUncheckedUpdateInput = {
@@ -19267,6 +21246,7 @@ export namespace Prisma {
     bookId?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -19286,6 +21266,7 @@ export namespace Prisma {
     bookId: string
     sentenceId?: string | null
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -19320,6 +21301,7 @@ export namespace Prisma {
     bookId?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -19854,6 +21836,12 @@ export namespace Prisma {
     none?: TextSegmentWhereInput
   }
 
+  export type ChapterListRelationFilter = {
+    every?: ChapterWhereInput
+    some?: ChapterWhereInput
+    none?: ChapterWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -19883,6 +21871,10 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type ChapterOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type BookCountOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
@@ -19893,6 +21885,7 @@ export namespace Prisma {
     totalWords?: SortOrder
     totalCharacters?: SortOrder
     totalSegments?: SortOrder
+    totalChapters?: SortOrder
     encoding?: SortOrder
     fileFormat?: SortOrder
     status?: SortOrder
@@ -19906,6 +21899,7 @@ export namespace Prisma {
     totalWords?: SortOrder
     totalCharacters?: SortOrder
     totalSegments?: SortOrder
+    totalChapters?: SortOrder
   }
 
   export type BookMaxOrderByAggregateInput = {
@@ -19918,6 +21912,7 @@ export namespace Prisma {
     totalWords?: SortOrder
     totalCharacters?: SortOrder
     totalSegments?: SortOrder
+    totalChapters?: SortOrder
     encoding?: SortOrder
     fileFormat?: SortOrder
     status?: SortOrder
@@ -19935,6 +21930,7 @@ export namespace Prisma {
     totalWords?: SortOrder
     totalCharacters?: SortOrder
     totalSegments?: SortOrder
+    totalChapters?: SortOrder
     encoding?: SortOrder
     fileFormat?: SortOrder
     status?: SortOrder
@@ -19947,6 +21943,7 @@ export namespace Prisma {
     totalWords?: SortOrder
     totalCharacters?: SortOrder
     totalSegments?: SortOrder
+    totalChapters?: SortOrder
   }
 
   export type StringWithAggregatesFilter<$PrismaModel = never> = {
@@ -20072,6 +22069,132 @@ export namespace Prisma {
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
+  export type JsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
+
+  export type BookScalarRelationFilter = {
+    is?: BookWhereInput
+    isNot?: BookWhereInput
+  }
+
+  export type ChapterBookIdChapterIndexCompoundUniqueInput = {
+    bookId: string
+    chapterIndex: number
+  }
+
+  export type ChapterCountOrderByAggregateInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    chapterIndex?: SortOrder
+    title?: SortOrder
+    rawTitle?: SortOrder
+    startPosition?: SortOrder
+    endPosition?: SortOrder
+    wordCount?: SortOrder
+    characterCount?: SortOrder
+    totalSegments?: SortOrder
+    status?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ChapterAvgOrderByAggregateInput = {
+    chapterIndex?: SortOrder
+    startPosition?: SortOrder
+    endPosition?: SortOrder
+    wordCount?: SortOrder
+    characterCount?: SortOrder
+    totalSegments?: SortOrder
+  }
+
+  export type ChapterMaxOrderByAggregateInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    chapterIndex?: SortOrder
+    title?: SortOrder
+    rawTitle?: SortOrder
+    startPosition?: SortOrder
+    endPosition?: SortOrder
+    wordCount?: SortOrder
+    characterCount?: SortOrder
+    totalSegments?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ChapterMinOrderByAggregateInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    chapterIndex?: SortOrder
+    title?: SortOrder
+    rawTitle?: SortOrder
+    startPosition?: SortOrder
+    endPosition?: SortOrder
+    wordCount?: SortOrder
+    characterCount?: SortOrder
+    totalSegments?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ChapterSumOrderByAggregateInput = {
+    chapterIndex?: SortOrder
+    startPosition?: SortOrder
+    endPosition?: SortOrder
+    wordCount?: SortOrder
+    characterCount?: SortOrder
+    totalSegments?: SortOrder
+  }
+  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
+        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
+
+  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedJsonNullableFilter<$PrismaModel>
+    _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
 
   export type BoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
@@ -20082,11 +22205,6 @@ export namespace Prisma {
     every?: CharacterAliasWhereInput
     some?: CharacterAliasWhereInput
     none?: CharacterAliasWhereInput
-  }
-
-  export type BookScalarRelationFilter = {
-    is?: BookWhereInput
-    isNot?: BookWhereInput
   }
 
   export type CharacterVoiceBindingListRelationFilter = {
@@ -20244,29 +22362,6 @@ export namespace Prisma {
     _min?: NestedDecimalFilter<$PrismaModel>
     _max?: NestedDecimalFilter<$PrismaModel>
   }
-  export type JsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-  }
 
   export type TTSVoiceProfileCountOrderByAggregateInput = {
     id?: SortOrder
@@ -20322,32 +22417,6 @@ export namespace Prisma {
     usageCount?: SortOrder
     rating?: SortOrder
   }
-  export type JsonNullableWithAggregatesFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>,
-        Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<JsonNullableWithAggregatesFilterBase<$PrismaModel>>, 'path'>>
-
-  export type JsonNullableWithAggregatesFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedJsonNullableFilter<$PrismaModel>
-    _max?: NestedJsonNullableFilter<$PrismaModel>
-  }
 
   export type TTSVoiceProfileScalarRelationFilter = {
     is?: TTSVoiceProfileWhereInput
@@ -20388,9 +22457,15 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type ChapterNullableScalarRelationFilter = {
+    is?: ChapterWhereInput | null
+    isNot?: ChapterWhereInput | null
+  }
+
   export type TextSegmentCountOrderByAggregateInput = {
     id?: SortOrder
     bookId?: SortOrder
+    chapterId?: SortOrder
     segmentIndex?: SortOrder
     startPosition?: SortOrder
     endPosition?: SortOrder
@@ -20398,6 +22473,7 @@ export namespace Prisma {
     wordCount?: SortOrder
     segmentType?: SortOrder
     orderIndex?: SortOrder
+    chapterOrderIndex?: SortOrder
     metadata?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
@@ -20409,11 +22485,13 @@ export namespace Prisma {
     endPosition?: SortOrder
     wordCount?: SortOrder
     orderIndex?: SortOrder
+    chapterOrderIndex?: SortOrder
   }
 
   export type TextSegmentMaxOrderByAggregateInput = {
     id?: SortOrder
     bookId?: SortOrder
+    chapterId?: SortOrder
     segmentIndex?: SortOrder
     startPosition?: SortOrder
     endPosition?: SortOrder
@@ -20421,6 +22499,7 @@ export namespace Prisma {
     wordCount?: SortOrder
     segmentType?: SortOrder
     orderIndex?: SortOrder
+    chapterOrderIndex?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
   }
@@ -20428,6 +22507,7 @@ export namespace Prisma {
   export type TextSegmentMinOrderByAggregateInput = {
     id?: SortOrder
     bookId?: SortOrder
+    chapterId?: SortOrder
     segmentIndex?: SortOrder
     startPosition?: SortOrder
     endPosition?: SortOrder
@@ -20435,6 +22515,7 @@ export namespace Prisma {
     wordCount?: SortOrder
     segmentType?: SortOrder
     orderIndex?: SortOrder
+    chapterOrderIndex?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
   }
@@ -20445,6 +22526,7 @@ export namespace Prisma {
     endPosition?: SortOrder
     wordCount?: SortOrder
     orderIndex?: SortOrder
+    chapterOrderIndex?: SortOrder
   }
 
   export type DecimalNullableFilter<$PrismaModel = never> = {
@@ -20472,6 +22554,7 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrder
     characterId?: SortOrder
     rawSpeaker?: SortOrder
     text?: SortOrder
@@ -20493,6 +22576,7 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrder
     characterId?: SortOrder
     rawSpeaker?: SortOrder
     text?: SortOrder
@@ -20507,6 +22591,7 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrder
     characterId?: SortOrder
     rawSpeaker?: SortOrder
     text?: SortOrder
@@ -20559,6 +22644,7 @@ export namespace Prisma {
     bookId?: SortOrder
     sentenceId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrder
     filePath?: SortOrder
     fileName?: SortOrder
     duration?: SortOrder
@@ -20584,6 +22670,7 @@ export namespace Prisma {
     bookId?: SortOrder
     sentenceId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrder
     filePath?: SortOrder
     fileName?: SortOrder
     duration?: SortOrder
@@ -20603,6 +22690,7 @@ export namespace Prisma {
     bookId?: SortOrder
     sentenceId?: SortOrder
     segmentId?: SortOrder
+    chapterId?: SortOrder
     filePath?: SortOrder
     fileName?: SortOrder
     duration?: SortOrder
@@ -20911,6 +22999,13 @@ export namespace Prisma {
     connect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
   }
 
+  export type ChapterCreateNestedManyWithoutBookInput = {
+    create?: XOR<ChapterCreateWithoutBookInput, ChapterUncheckedCreateWithoutBookInput> | ChapterCreateWithoutBookInput[] | ChapterUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: ChapterCreateOrConnectWithoutBookInput | ChapterCreateOrConnectWithoutBookInput[]
+    createMany?: ChapterCreateManyBookInputEnvelope
+    connect?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+  }
+
   export type AudioFileUncheckedCreateNestedManyWithoutBookInput = {
     create?: XOR<AudioFileCreateWithoutBookInput, AudioFileUncheckedCreateWithoutBookInput> | AudioFileCreateWithoutBookInput[] | AudioFileUncheckedCreateWithoutBookInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutBookInput | AudioFileCreateOrConnectWithoutBookInput[]
@@ -20951,6 +23046,13 @@ export namespace Prisma {
     connectOrCreate?: TextSegmentCreateOrConnectWithoutBookInput | TextSegmentCreateOrConnectWithoutBookInput[]
     createMany?: TextSegmentCreateManyBookInputEnvelope
     connect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+  }
+
+  export type ChapterUncheckedCreateNestedManyWithoutBookInput = {
+    create?: XOR<ChapterCreateWithoutBookInput, ChapterUncheckedCreateWithoutBookInput> | ChapterCreateWithoutBookInput[] | ChapterUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: ChapterCreateOrConnectWithoutBookInput | ChapterCreateOrConnectWithoutBookInput[]
+    createMany?: ChapterCreateManyBookInputEnvelope
+    connect?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -21073,6 +23175,20 @@ export namespace Prisma {
     deleteMany?: TextSegmentScalarWhereInput | TextSegmentScalarWhereInput[]
   }
 
+  export type ChapterUpdateManyWithoutBookNestedInput = {
+    create?: XOR<ChapterCreateWithoutBookInput, ChapterUncheckedCreateWithoutBookInput> | ChapterCreateWithoutBookInput[] | ChapterUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: ChapterCreateOrConnectWithoutBookInput | ChapterCreateOrConnectWithoutBookInput[]
+    upsert?: ChapterUpsertWithWhereUniqueWithoutBookInput | ChapterUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: ChapterCreateManyBookInputEnvelope
+    set?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    disconnect?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    delete?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    connect?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    update?: ChapterUpdateWithWhereUniqueWithoutBookInput | ChapterUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: ChapterUpdateManyWithWhereWithoutBookInput | ChapterUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: ChapterScalarWhereInput | ChapterScalarWhereInput[]
+  }
+
   export type AudioFileUncheckedUpdateManyWithoutBookNestedInput = {
     create?: XOR<AudioFileCreateWithoutBookInput, AudioFileUncheckedCreateWithoutBookInput> | AudioFileCreateWithoutBookInput[] | AudioFileUncheckedCreateWithoutBookInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutBookInput | AudioFileCreateOrConnectWithoutBookInput[]
@@ -21155,6 +23271,160 @@ export namespace Prisma {
     update?: TextSegmentUpdateWithWhereUniqueWithoutBookInput | TextSegmentUpdateWithWhereUniqueWithoutBookInput[]
     updateMany?: TextSegmentUpdateManyWithWhereWithoutBookInput | TextSegmentUpdateManyWithWhereWithoutBookInput[]
     deleteMany?: TextSegmentScalarWhereInput | TextSegmentScalarWhereInput[]
+  }
+
+  export type ChapterUncheckedUpdateManyWithoutBookNestedInput = {
+    create?: XOR<ChapterCreateWithoutBookInput, ChapterUncheckedCreateWithoutBookInput> | ChapterCreateWithoutBookInput[] | ChapterUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: ChapterCreateOrConnectWithoutBookInput | ChapterCreateOrConnectWithoutBookInput[]
+    upsert?: ChapterUpsertWithWhereUniqueWithoutBookInput | ChapterUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: ChapterCreateManyBookInputEnvelope
+    set?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    disconnect?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    delete?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    connect?: ChapterWhereUniqueInput | ChapterWhereUniqueInput[]
+    update?: ChapterUpdateWithWhereUniqueWithoutBookInput | ChapterUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: ChapterUpdateManyWithWhereWithoutBookInput | ChapterUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: ChapterScalarWhereInput | ChapterScalarWhereInput[]
+  }
+
+  export type BookCreateNestedOneWithoutChaptersInput = {
+    create?: XOR<BookCreateWithoutChaptersInput, BookUncheckedCreateWithoutChaptersInput>
+    connectOrCreate?: BookCreateOrConnectWithoutChaptersInput
+    connect?: BookWhereUniqueInput
+  }
+
+  export type TextSegmentCreateNestedManyWithoutChapterInput = {
+    create?: XOR<TextSegmentCreateWithoutChapterInput, TextSegmentUncheckedCreateWithoutChapterInput> | TextSegmentCreateWithoutChapterInput[] | TextSegmentUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: TextSegmentCreateOrConnectWithoutChapterInput | TextSegmentCreateOrConnectWithoutChapterInput[]
+    createMany?: TextSegmentCreateManyChapterInputEnvelope
+    connect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+  }
+
+  export type ScriptSentenceCreateNestedManyWithoutChapterInput = {
+    create?: XOR<ScriptSentenceCreateWithoutChapterInput, ScriptSentenceUncheckedCreateWithoutChapterInput> | ScriptSentenceCreateWithoutChapterInput[] | ScriptSentenceUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: ScriptSentenceCreateOrConnectWithoutChapterInput | ScriptSentenceCreateOrConnectWithoutChapterInput[]
+    createMany?: ScriptSentenceCreateManyChapterInputEnvelope
+    connect?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+  }
+
+  export type AudioFileCreateNestedManyWithoutChapterInput = {
+    create?: XOR<AudioFileCreateWithoutChapterInput, AudioFileUncheckedCreateWithoutChapterInput> | AudioFileCreateWithoutChapterInput[] | AudioFileUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: AudioFileCreateOrConnectWithoutChapterInput | AudioFileCreateOrConnectWithoutChapterInput[]
+    createMany?: AudioFileCreateManyChapterInputEnvelope
+    connect?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+  }
+
+  export type TextSegmentUncheckedCreateNestedManyWithoutChapterInput = {
+    create?: XOR<TextSegmentCreateWithoutChapterInput, TextSegmentUncheckedCreateWithoutChapterInput> | TextSegmentCreateWithoutChapterInput[] | TextSegmentUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: TextSegmentCreateOrConnectWithoutChapterInput | TextSegmentCreateOrConnectWithoutChapterInput[]
+    createMany?: TextSegmentCreateManyChapterInputEnvelope
+    connect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+  }
+
+  export type ScriptSentenceUncheckedCreateNestedManyWithoutChapterInput = {
+    create?: XOR<ScriptSentenceCreateWithoutChapterInput, ScriptSentenceUncheckedCreateWithoutChapterInput> | ScriptSentenceCreateWithoutChapterInput[] | ScriptSentenceUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: ScriptSentenceCreateOrConnectWithoutChapterInput | ScriptSentenceCreateOrConnectWithoutChapterInput[]
+    createMany?: ScriptSentenceCreateManyChapterInputEnvelope
+    connect?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+  }
+
+  export type AudioFileUncheckedCreateNestedManyWithoutChapterInput = {
+    create?: XOR<AudioFileCreateWithoutChapterInput, AudioFileUncheckedCreateWithoutChapterInput> | AudioFileCreateWithoutChapterInput[] | AudioFileUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: AudioFileCreateOrConnectWithoutChapterInput | AudioFileCreateOrConnectWithoutChapterInput[]
+    createMany?: AudioFileCreateManyChapterInputEnvelope
+    connect?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+  }
+
+  export type BookUpdateOneRequiredWithoutChaptersNestedInput = {
+    create?: XOR<BookCreateWithoutChaptersInput, BookUncheckedCreateWithoutChaptersInput>
+    connectOrCreate?: BookCreateOrConnectWithoutChaptersInput
+    upsert?: BookUpsertWithoutChaptersInput
+    connect?: BookWhereUniqueInput
+    update?: XOR<XOR<BookUpdateToOneWithWhereWithoutChaptersInput, BookUpdateWithoutChaptersInput>, BookUncheckedUpdateWithoutChaptersInput>
+  }
+
+  export type TextSegmentUpdateManyWithoutChapterNestedInput = {
+    create?: XOR<TextSegmentCreateWithoutChapterInput, TextSegmentUncheckedCreateWithoutChapterInput> | TextSegmentCreateWithoutChapterInput[] | TextSegmentUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: TextSegmentCreateOrConnectWithoutChapterInput | TextSegmentCreateOrConnectWithoutChapterInput[]
+    upsert?: TextSegmentUpsertWithWhereUniqueWithoutChapterInput | TextSegmentUpsertWithWhereUniqueWithoutChapterInput[]
+    createMany?: TextSegmentCreateManyChapterInputEnvelope
+    set?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    disconnect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    delete?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    connect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    update?: TextSegmentUpdateWithWhereUniqueWithoutChapterInput | TextSegmentUpdateWithWhereUniqueWithoutChapterInput[]
+    updateMany?: TextSegmentUpdateManyWithWhereWithoutChapterInput | TextSegmentUpdateManyWithWhereWithoutChapterInput[]
+    deleteMany?: TextSegmentScalarWhereInput | TextSegmentScalarWhereInput[]
+  }
+
+  export type ScriptSentenceUpdateManyWithoutChapterNestedInput = {
+    create?: XOR<ScriptSentenceCreateWithoutChapterInput, ScriptSentenceUncheckedCreateWithoutChapterInput> | ScriptSentenceCreateWithoutChapterInput[] | ScriptSentenceUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: ScriptSentenceCreateOrConnectWithoutChapterInput | ScriptSentenceCreateOrConnectWithoutChapterInput[]
+    upsert?: ScriptSentenceUpsertWithWhereUniqueWithoutChapterInput | ScriptSentenceUpsertWithWhereUniqueWithoutChapterInput[]
+    createMany?: ScriptSentenceCreateManyChapterInputEnvelope
+    set?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    disconnect?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    delete?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    connect?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    update?: ScriptSentenceUpdateWithWhereUniqueWithoutChapterInput | ScriptSentenceUpdateWithWhereUniqueWithoutChapterInput[]
+    updateMany?: ScriptSentenceUpdateManyWithWhereWithoutChapterInput | ScriptSentenceUpdateManyWithWhereWithoutChapterInput[]
+    deleteMany?: ScriptSentenceScalarWhereInput | ScriptSentenceScalarWhereInput[]
+  }
+
+  export type AudioFileUpdateManyWithoutChapterNestedInput = {
+    create?: XOR<AudioFileCreateWithoutChapterInput, AudioFileUncheckedCreateWithoutChapterInput> | AudioFileCreateWithoutChapterInput[] | AudioFileUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: AudioFileCreateOrConnectWithoutChapterInput | AudioFileCreateOrConnectWithoutChapterInput[]
+    upsert?: AudioFileUpsertWithWhereUniqueWithoutChapterInput | AudioFileUpsertWithWhereUniqueWithoutChapterInput[]
+    createMany?: AudioFileCreateManyChapterInputEnvelope
+    set?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    disconnect?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    delete?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    connect?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    update?: AudioFileUpdateWithWhereUniqueWithoutChapterInput | AudioFileUpdateWithWhereUniqueWithoutChapterInput[]
+    updateMany?: AudioFileUpdateManyWithWhereWithoutChapterInput | AudioFileUpdateManyWithWhereWithoutChapterInput[]
+    deleteMany?: AudioFileScalarWhereInput | AudioFileScalarWhereInput[]
+  }
+
+  export type TextSegmentUncheckedUpdateManyWithoutChapterNestedInput = {
+    create?: XOR<TextSegmentCreateWithoutChapterInput, TextSegmentUncheckedCreateWithoutChapterInput> | TextSegmentCreateWithoutChapterInput[] | TextSegmentUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: TextSegmentCreateOrConnectWithoutChapterInput | TextSegmentCreateOrConnectWithoutChapterInput[]
+    upsert?: TextSegmentUpsertWithWhereUniqueWithoutChapterInput | TextSegmentUpsertWithWhereUniqueWithoutChapterInput[]
+    createMany?: TextSegmentCreateManyChapterInputEnvelope
+    set?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    disconnect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    delete?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    connect?: TextSegmentWhereUniqueInput | TextSegmentWhereUniqueInput[]
+    update?: TextSegmentUpdateWithWhereUniqueWithoutChapterInput | TextSegmentUpdateWithWhereUniqueWithoutChapterInput[]
+    updateMany?: TextSegmentUpdateManyWithWhereWithoutChapterInput | TextSegmentUpdateManyWithWhereWithoutChapterInput[]
+    deleteMany?: TextSegmentScalarWhereInput | TextSegmentScalarWhereInput[]
+  }
+
+  export type ScriptSentenceUncheckedUpdateManyWithoutChapterNestedInput = {
+    create?: XOR<ScriptSentenceCreateWithoutChapterInput, ScriptSentenceUncheckedCreateWithoutChapterInput> | ScriptSentenceCreateWithoutChapterInput[] | ScriptSentenceUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: ScriptSentenceCreateOrConnectWithoutChapterInput | ScriptSentenceCreateOrConnectWithoutChapterInput[]
+    upsert?: ScriptSentenceUpsertWithWhereUniqueWithoutChapterInput | ScriptSentenceUpsertWithWhereUniqueWithoutChapterInput[]
+    createMany?: ScriptSentenceCreateManyChapterInputEnvelope
+    set?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    disconnect?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    delete?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    connect?: ScriptSentenceWhereUniqueInput | ScriptSentenceWhereUniqueInput[]
+    update?: ScriptSentenceUpdateWithWhereUniqueWithoutChapterInput | ScriptSentenceUpdateWithWhereUniqueWithoutChapterInput[]
+    updateMany?: ScriptSentenceUpdateManyWithWhereWithoutChapterInput | ScriptSentenceUpdateManyWithWhereWithoutChapterInput[]
+    deleteMany?: ScriptSentenceScalarWhereInput | ScriptSentenceScalarWhereInput[]
+  }
+
+  export type AudioFileUncheckedUpdateManyWithoutChapterNestedInput = {
+    create?: XOR<AudioFileCreateWithoutChapterInput, AudioFileUncheckedCreateWithoutChapterInput> | AudioFileCreateWithoutChapterInput[] | AudioFileUncheckedCreateWithoutChapterInput[]
+    connectOrCreate?: AudioFileCreateOrConnectWithoutChapterInput | AudioFileCreateOrConnectWithoutChapterInput[]
+    upsert?: AudioFileUpsertWithWhereUniqueWithoutChapterInput | AudioFileUpsertWithWhereUniqueWithoutChapterInput[]
+    createMany?: AudioFileCreateManyChapterInputEnvelope
+    set?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    disconnect?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    delete?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    connect?: AudioFileWhereUniqueInput | AudioFileWhereUniqueInput[]
+    update?: AudioFileUpdateWithWhereUniqueWithoutChapterInput | AudioFileUpdateWithWhereUniqueWithoutChapterInput[]
+    updateMany?: AudioFileUpdateManyWithWhereWithoutChapterInput | AudioFileUpdateManyWithWhereWithoutChapterInput[]
+    deleteMany?: AudioFileScalarWhereInput | AudioFileScalarWhereInput[]
   }
 
   export type CharacterAliasCreateNestedManyWithoutCharacterInput = {
@@ -21581,6 +23851,12 @@ export namespace Prisma {
     connect?: BookWhereUniqueInput
   }
 
+  export type ChapterCreateNestedOneWithoutSegmentsInput = {
+    create?: XOR<ChapterCreateWithoutSegmentsInput, ChapterUncheckedCreateWithoutSegmentsInput>
+    connectOrCreate?: ChapterCreateOrConnectWithoutSegmentsInput
+    connect?: ChapterWhereUniqueInput
+  }
+
   export type AudioFileUncheckedCreateNestedManyWithoutSegmentInput = {
     create?: XOR<AudioFileCreateWithoutSegmentInput, AudioFileUncheckedCreateWithoutSegmentInput> | AudioFileCreateWithoutSegmentInput[] | AudioFileUncheckedCreateWithoutSegmentInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutSegmentInput | AudioFileCreateOrConnectWithoutSegmentInput[]
@@ -21629,6 +23905,16 @@ export namespace Prisma {
     upsert?: BookUpsertWithoutTextSegmentsInput
     connect?: BookWhereUniqueInput
     update?: XOR<XOR<BookUpdateToOneWithWhereWithoutTextSegmentsInput, BookUpdateWithoutTextSegmentsInput>, BookUncheckedUpdateWithoutTextSegmentsInput>
+  }
+
+  export type ChapterUpdateOneWithoutSegmentsNestedInput = {
+    create?: XOR<ChapterCreateWithoutSegmentsInput, ChapterUncheckedCreateWithoutSegmentsInput>
+    connectOrCreate?: ChapterCreateOrConnectWithoutSegmentsInput
+    upsert?: ChapterUpsertWithoutSegmentsInput
+    disconnect?: ChapterWhereInput | boolean
+    delete?: ChapterWhereInput | boolean
+    connect?: ChapterWhereUniqueInput
+    update?: XOR<XOR<ChapterUpdateToOneWithWhereWithoutSegmentsInput, ChapterUpdateWithoutSegmentsInput>, ChapterUncheckedUpdateWithoutSegmentsInput>
   }
 
   export type AudioFileUncheckedUpdateManyWithoutSegmentNestedInput = {
@@ -21682,6 +23968,12 @@ export namespace Prisma {
     create?: XOR<TextSegmentCreateWithoutScriptSentencesInput, TextSegmentUncheckedCreateWithoutScriptSentencesInput>
     connectOrCreate?: TextSegmentCreateOrConnectWithoutScriptSentencesInput
     connect?: TextSegmentWhereUniqueInput
+  }
+
+  export type ChapterCreateNestedOneWithoutScriptSentencesInput = {
+    create?: XOR<ChapterCreateWithoutScriptSentencesInput, ChapterUncheckedCreateWithoutScriptSentencesInput>
+    connectOrCreate?: ChapterCreateOrConnectWithoutScriptSentencesInput
+    connect?: ChapterWhereUniqueInput
   }
 
   export type AudioFileUncheckedCreateNestedManyWithoutScriptSentenceInput = {
@@ -21739,6 +24031,16 @@ export namespace Prisma {
     update?: XOR<XOR<TextSegmentUpdateToOneWithWhereWithoutScriptSentencesInput, TextSegmentUpdateWithoutScriptSentencesInput>, TextSegmentUncheckedUpdateWithoutScriptSentencesInput>
   }
 
+  export type ChapterUpdateOneWithoutScriptSentencesNestedInput = {
+    create?: XOR<ChapterCreateWithoutScriptSentencesInput, ChapterUncheckedCreateWithoutScriptSentencesInput>
+    connectOrCreate?: ChapterCreateOrConnectWithoutScriptSentencesInput
+    upsert?: ChapterUpsertWithoutScriptSentencesInput
+    disconnect?: ChapterWhereInput | boolean
+    delete?: ChapterWhereInput | boolean
+    connect?: ChapterWhereUniqueInput
+    update?: XOR<XOR<ChapterUpdateToOneWithWhereWithoutScriptSentencesInput, ChapterUpdateWithoutScriptSentencesInput>, ChapterUncheckedUpdateWithoutScriptSentencesInput>
+  }
+
   export type AudioFileUncheckedUpdateManyWithoutScriptSentenceNestedInput = {
     create?: XOR<AudioFileCreateWithoutScriptSentenceInput, AudioFileUncheckedCreateWithoutScriptSentenceInput> | AudioFileCreateWithoutScriptSentenceInput[] | AudioFileUncheckedCreateWithoutScriptSentenceInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutScriptSentenceInput | AudioFileCreateOrConnectWithoutScriptSentenceInput[]
@@ -21777,6 +24079,12 @@ export namespace Prisma {
     connect?: TTSVoiceProfileWhereUniqueInput
   }
 
+  export type ChapterCreateNestedOneWithoutAudioFilesInput = {
+    create?: XOR<ChapterCreateWithoutAudioFilesInput, ChapterUncheckedCreateWithoutAudioFilesInput>
+    connectOrCreate?: ChapterCreateOrConnectWithoutAudioFilesInput
+    connect?: ChapterWhereUniqueInput
+  }
+
   export type BookUpdateOneRequiredWithoutAudioFilesNestedInput = {
     create?: XOR<BookCreateWithoutAudioFilesInput, BookUncheckedCreateWithoutAudioFilesInput>
     connectOrCreate?: BookCreateOrConnectWithoutAudioFilesInput
@@ -21813,6 +24121,16 @@ export namespace Prisma {
     delete?: TTSVoiceProfileWhereInput | boolean
     connect?: TTSVoiceProfileWhereUniqueInput
     update?: XOR<XOR<TTSVoiceProfileUpdateToOneWithWhereWithoutAudioFilesInput, TTSVoiceProfileUpdateWithoutAudioFilesInput>, TTSVoiceProfileUncheckedUpdateWithoutAudioFilesInput>
+  }
+
+  export type ChapterUpdateOneWithoutAudioFilesNestedInput = {
+    create?: XOR<ChapterCreateWithoutAudioFilesInput, ChapterUncheckedCreateWithoutAudioFilesInput>
+    connectOrCreate?: ChapterCreateOrConnectWithoutAudioFilesInput
+    upsert?: ChapterUpsertWithoutAudioFilesInput
+    disconnect?: ChapterWhereInput | boolean
+    delete?: ChapterWhereInput | boolean
+    connect?: ChapterWhereUniqueInput
+    update?: XOR<XOR<ChapterUpdateToOneWithWhereWithoutAudioFilesInput, ChapterUpdateWithoutAudioFilesInput>, ChapterUncheckedUpdateWithoutAudioFilesInput>
   }
 
   export type BookCreateNestedOneWithoutMergeAuditsInput = {
@@ -22161,6 +24479,29 @@ export namespace Prisma {
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
+  export type NestedJsonNullableFilter<$PrismaModel = never> =
+    | PatchUndefined<
+        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
+        Required<NestedJsonNullableFilterBase<$PrismaModel>>
+      >
+    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
+
+  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
+    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+    path?: string[]
+    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
+    string_contains?: string | StringFieldRefInput<$PrismaModel>
+    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
+    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
+    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
+    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
+    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
+  }
 
   export type NestedBoolFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
@@ -22200,29 +24541,6 @@ export namespace Prisma {
     _sum?: NestedDecimalFilter<$PrismaModel>
     _min?: NestedDecimalFilter<$PrismaModel>
     _max?: NestedDecimalFilter<$PrismaModel>
-  }
-  export type NestedJsonNullableFilter<$PrismaModel = never> =
-    | PatchUndefined<
-        Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
-        Required<NestedJsonNullableFilterBase<$PrismaModel>>
-      >
-    | OptionalFlat<Omit<Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>
-
-  export type NestedJsonNullableFilterBase<$PrismaModel = never> = {
-    equals?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
-    path?: string[]
-    mode?: QueryMode | EnumQueryModeFieldRefInput<$PrismaModel>
-    string_contains?: string | StringFieldRefInput<$PrismaModel>
-    string_starts_with?: string | StringFieldRefInput<$PrismaModel>
-    string_ends_with?: string | StringFieldRefInput<$PrismaModel>
-    array_starts_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_ends_with?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    array_contains?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | null
-    lt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    lte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gt?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    gte?: InputJsonValue | JsonFieldRefInput<$PrismaModel>
-    not?: InputJsonValue | JsonFieldRefInput<$PrismaModel> | JsonNullValueFilter
   }
 
   export type NestedDecimalNullableFilter<$PrismaModel = never> = {
@@ -22310,12 +24628,14 @@ export namespace Prisma {
     segment?: TextSegmentCreateNestedOneWithoutAudioFilesInput
     scriptSentence?: ScriptSentenceCreateNestedOneWithoutAudioFilesInput
     voiceProfile?: TTSVoiceProfileCreateNestedOneWithoutAudioFilesInput
+    chapter?: ChapterCreateNestedOneWithoutAudioFilesInput
   }
 
   export type AudioFileUncheckedCreateWithoutBookInput = {
     id?: string
     sentenceId?: string | null
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -22477,11 +24797,13 @@ export namespace Prisma {
     audioFiles?: AudioFileCreateNestedManyWithoutScriptSentenceInput
     character?: CharacterProfileCreateNestedOneWithoutScriptSentencesInput
     segment: TextSegmentCreateNestedOneWithoutScriptSentencesInput
+    chapter?: ChapterCreateNestedOneWithoutScriptSentencesInput
   }
 
   export type ScriptSentenceUncheckedCreateWithoutBookInput = {
     id?: string
     segmentId: string
+    chapterId?: string | null
     characterId?: string | null
     rawSpeaker?: string | null
     text: string
@@ -22513,15 +24835,18 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
     audioFiles?: AudioFileCreateNestedManyWithoutSegmentInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutSegmentInput
+    chapter?: ChapterCreateNestedOneWithoutSegmentsInput
   }
 
   export type TextSegmentUncheckedCreateWithoutBookInput = {
     id?: string
+    chapterId?: string | null
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -22529,6 +24854,7 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
@@ -22543,6 +24869,54 @@ export namespace Prisma {
 
   export type TextSegmentCreateManyBookInputEnvelope = {
     data: TextSegmentCreateManyBookInput | TextSegmentCreateManyBookInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ChapterCreateWithoutBookInput = {
+    id?: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    segments?: TextSegmentCreateNestedManyWithoutChapterInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterUncheckedCreateWithoutBookInput = {
+    id?: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    segments?: TextSegmentUncheckedCreateNestedManyWithoutChapterInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterCreateOrConnectWithoutBookInput = {
+    where: ChapterWhereUniqueInput
+    create: XOR<ChapterCreateWithoutBookInput, ChapterUncheckedCreateWithoutBookInput>
+  }
+
+  export type ChapterCreateManyBookInputEnvelope = {
+    data: ChapterCreateManyBookInput | ChapterCreateManyBookInput[]
     skipDuplicates?: boolean
   }
 
@@ -22570,6 +24944,7 @@ export namespace Prisma {
     bookId?: StringFilter<"AudioFile"> | string
     sentenceId?: StringNullableFilter<"AudioFile"> | string | null
     segmentId?: StringNullableFilter<"AudioFile"> | string | null
+    chapterId?: StringNullableFilter<"AudioFile"> | string | null
     filePath?: StringFilter<"AudioFile"> | string
     fileName?: StringNullableFilter<"AudioFile"> | string | null
     duration?: DecimalNullableFilter<"AudioFile"> | Decimal | DecimalJsLike | number | string | null
@@ -22708,6 +25083,7 @@ export namespace Prisma {
     id?: StringFilter<"ScriptSentence"> | string
     bookId?: StringFilter<"ScriptSentence"> | string
     segmentId?: StringFilter<"ScriptSentence"> | string
+    chapterId?: StringNullableFilter<"ScriptSentence"> | string | null
     characterId?: StringNullableFilter<"ScriptSentence"> | string | null
     rawSpeaker?: StringNullableFilter<"ScriptSentence"> | string | null
     text?: StringFilter<"ScriptSentence"> | string
@@ -22741,6 +25117,7 @@ export namespace Prisma {
     NOT?: TextSegmentScalarWhereInput | TextSegmentScalarWhereInput[]
     id?: StringFilter<"TextSegment"> | string
     bookId?: StringFilter<"TextSegment"> | string
+    chapterId?: StringNullableFilter<"TextSegment"> | string | null
     segmentIndex?: IntFilter<"TextSegment"> | number
     startPosition?: IntFilter<"TextSegment"> | number
     endPosition?: IntFilter<"TextSegment"> | number
@@ -22748,9 +25125,346 @@ export namespace Prisma {
     wordCount?: IntNullableFilter<"TextSegment"> | number | null
     segmentType?: StringNullableFilter<"TextSegment"> | string | null
     orderIndex?: IntFilter<"TextSegment"> | number
+    chapterOrderIndex?: IntNullableFilter<"TextSegment"> | number | null
     metadata?: JsonNullableFilter<"TextSegment">
     status?: StringFilter<"TextSegment"> | string
     createdAt?: DateTimeFilter<"TextSegment"> | Date | string
+  }
+
+  export type ChapterUpsertWithWhereUniqueWithoutBookInput = {
+    where: ChapterWhereUniqueInput
+    update: XOR<ChapterUpdateWithoutBookInput, ChapterUncheckedUpdateWithoutBookInput>
+    create: XOR<ChapterCreateWithoutBookInput, ChapterUncheckedCreateWithoutBookInput>
+  }
+
+  export type ChapterUpdateWithWhereUniqueWithoutBookInput = {
+    where: ChapterWhereUniqueInput
+    data: XOR<ChapterUpdateWithoutBookInput, ChapterUncheckedUpdateWithoutBookInput>
+  }
+
+  export type ChapterUpdateManyWithWhereWithoutBookInput = {
+    where: ChapterScalarWhereInput
+    data: XOR<ChapterUpdateManyMutationInput, ChapterUncheckedUpdateManyWithoutBookInput>
+  }
+
+  export type ChapterScalarWhereInput = {
+    AND?: ChapterScalarWhereInput | ChapterScalarWhereInput[]
+    OR?: ChapterScalarWhereInput[]
+    NOT?: ChapterScalarWhereInput | ChapterScalarWhereInput[]
+    id?: StringFilter<"Chapter"> | string
+    bookId?: StringFilter<"Chapter"> | string
+    chapterIndex?: IntFilter<"Chapter"> | number
+    title?: StringFilter<"Chapter"> | string
+    rawTitle?: StringNullableFilter<"Chapter"> | string | null
+    startPosition?: IntFilter<"Chapter"> | number
+    endPosition?: IntFilter<"Chapter"> | number
+    wordCount?: IntNullableFilter<"Chapter"> | number | null
+    characterCount?: IntNullableFilter<"Chapter"> | number | null
+    totalSegments?: IntFilter<"Chapter"> | number
+    status?: StringFilter<"Chapter"> | string
+    metadata?: JsonNullableFilter<"Chapter">
+    createdAt?: DateTimeFilter<"Chapter"> | Date | string
+    updatedAt?: DateTimeFilter<"Chapter"> | Date | string
+  }
+
+  export type BookCreateWithoutChaptersInput = {
+    id?: string
+    title: string
+    author?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+  }
+
+  export type BookUncheckedCreateWithoutChaptersInput = {
+    id?: string
+    title: string
+    author?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+  }
+
+  export type BookCreateOrConnectWithoutChaptersInput = {
+    where: BookWhereUniqueInput
+    create: XOR<BookCreateWithoutChaptersInput, BookUncheckedCreateWithoutChaptersInput>
+  }
+
+  export type TextSegmentCreateWithoutChapterInput = {
+    id?: string
+    segmentIndex: number
+    startPosition: number
+    endPosition: number
+    content: string
+    wordCount?: number | null
+    segmentType?: string | null
+    orderIndex: number
+    chapterOrderIndex?: number | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    status?: string
+    createdAt?: Date | string
+    audioFiles?: AudioFileCreateNestedManyWithoutSegmentInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutSegmentInput
+    book: BookCreateNestedOneWithoutTextSegmentsInput
+  }
+
+  export type TextSegmentUncheckedCreateWithoutChapterInput = {
+    id?: string
+    bookId: string
+    segmentIndex: number
+    startPosition: number
+    endPosition: number
+    content: string
+    wordCount?: number | null
+    segmentType?: string | null
+    orderIndex: number
+    chapterOrderIndex?: number | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    status?: string
+    createdAt?: Date | string
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutSegmentInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutSegmentInput
+  }
+
+  export type TextSegmentCreateOrConnectWithoutChapterInput = {
+    where: TextSegmentWhereUniqueInput
+    create: XOR<TextSegmentCreateWithoutChapterInput, TextSegmentUncheckedCreateWithoutChapterInput>
+  }
+
+  export type TextSegmentCreateManyChapterInputEnvelope = {
+    data: TextSegmentCreateManyChapterInput | TextSegmentCreateManyChapterInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ScriptSentenceCreateWithoutChapterInput = {
+    id?: string
+    rawSpeaker?: string | null
+    text: string
+    orderInSegment: number
+    tone?: string | null
+    strength?: number | null
+    pauseAfter?: Decimal | DecimalJsLike | number | string | null
+    ttsParameters?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    audioFiles?: AudioFileCreateNestedManyWithoutScriptSentenceInput
+    book: BookCreateNestedOneWithoutScriptSentencesInput
+    character?: CharacterProfileCreateNestedOneWithoutScriptSentencesInput
+    segment: TextSegmentCreateNestedOneWithoutScriptSentencesInput
+  }
+
+  export type ScriptSentenceUncheckedCreateWithoutChapterInput = {
+    id?: string
+    bookId: string
+    segmentId: string
+    characterId?: string | null
+    rawSpeaker?: string | null
+    text: string
+    orderInSegment: number
+    tone?: string | null
+    strength?: number | null
+    pauseAfter?: Decimal | DecimalJsLike | number | string | null
+    ttsParameters?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutScriptSentenceInput
+  }
+
+  export type ScriptSentenceCreateOrConnectWithoutChapterInput = {
+    where: ScriptSentenceWhereUniqueInput
+    create: XOR<ScriptSentenceCreateWithoutChapterInput, ScriptSentenceUncheckedCreateWithoutChapterInput>
+  }
+
+  export type ScriptSentenceCreateManyChapterInputEnvelope = {
+    data: ScriptSentenceCreateManyChapterInput | ScriptSentenceCreateManyChapterInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type AudioFileCreateWithoutChapterInput = {
+    id?: string
+    filePath: string
+    fileName?: string | null
+    duration?: Decimal | DecimalJsLike | number | string | null
+    fileSize?: bigint | number | null
+    format?: string | null
+    status?: string
+    errorMessage?: string | null
+    retryCount?: number
+    provider?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book: BookCreateNestedOneWithoutAudioFilesInput
+    segment?: TextSegmentCreateNestedOneWithoutAudioFilesInput
+    scriptSentence?: ScriptSentenceCreateNestedOneWithoutAudioFilesInput
+    voiceProfile?: TTSVoiceProfileCreateNestedOneWithoutAudioFilesInput
+  }
+
+  export type AudioFileUncheckedCreateWithoutChapterInput = {
+    id?: string
+    bookId: string
+    sentenceId?: string | null
+    segmentId?: string | null
+    filePath: string
+    fileName?: string | null
+    duration?: Decimal | DecimalJsLike | number | string | null
+    fileSize?: bigint | number | null
+    format?: string | null
+    status?: string
+    errorMessage?: string | null
+    retryCount?: number
+    provider?: string | null
+    voiceProfileId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AudioFileCreateOrConnectWithoutChapterInput = {
+    where: AudioFileWhereUniqueInput
+    create: XOR<AudioFileCreateWithoutChapterInput, AudioFileUncheckedCreateWithoutChapterInput>
+  }
+
+  export type AudioFileCreateManyChapterInputEnvelope = {
+    data: AudioFileCreateManyChapterInput | AudioFileCreateManyChapterInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type BookUpsertWithoutChaptersInput = {
+    update: XOR<BookUpdateWithoutChaptersInput, BookUncheckedUpdateWithoutChaptersInput>
+    create: XOR<BookCreateWithoutChaptersInput, BookUncheckedCreateWithoutChaptersInput>
+    where?: BookWhereInput
+  }
+
+  export type BookUpdateToOneWithWhereWithoutChaptersInput = {
+    where?: BookWhereInput
+    data: XOR<BookUpdateWithoutChaptersInput, BookUncheckedUpdateWithoutChaptersInput>
+  }
+
+  export type BookUpdateWithoutChaptersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+  }
+
+  export type BookUncheckedUpdateWithoutChaptersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+  }
+
+  export type TextSegmentUpsertWithWhereUniqueWithoutChapterInput = {
+    where: TextSegmentWhereUniqueInput
+    update: XOR<TextSegmentUpdateWithoutChapterInput, TextSegmentUncheckedUpdateWithoutChapterInput>
+    create: XOR<TextSegmentCreateWithoutChapterInput, TextSegmentUncheckedCreateWithoutChapterInput>
+  }
+
+  export type TextSegmentUpdateWithWhereUniqueWithoutChapterInput = {
+    where: TextSegmentWhereUniqueInput
+    data: XOR<TextSegmentUpdateWithoutChapterInput, TextSegmentUncheckedUpdateWithoutChapterInput>
+  }
+
+  export type TextSegmentUpdateManyWithWhereWithoutChapterInput = {
+    where: TextSegmentScalarWhereInput
+    data: XOR<TextSegmentUpdateManyMutationInput, TextSegmentUncheckedUpdateManyWithoutChapterInput>
+  }
+
+  export type ScriptSentenceUpsertWithWhereUniqueWithoutChapterInput = {
+    where: ScriptSentenceWhereUniqueInput
+    update: XOR<ScriptSentenceUpdateWithoutChapterInput, ScriptSentenceUncheckedUpdateWithoutChapterInput>
+    create: XOR<ScriptSentenceCreateWithoutChapterInput, ScriptSentenceUncheckedCreateWithoutChapterInput>
+  }
+
+  export type ScriptSentenceUpdateWithWhereUniqueWithoutChapterInput = {
+    where: ScriptSentenceWhereUniqueInput
+    data: XOR<ScriptSentenceUpdateWithoutChapterInput, ScriptSentenceUncheckedUpdateWithoutChapterInput>
+  }
+
+  export type ScriptSentenceUpdateManyWithWhereWithoutChapterInput = {
+    where: ScriptSentenceScalarWhereInput
+    data: XOR<ScriptSentenceUpdateManyMutationInput, ScriptSentenceUncheckedUpdateManyWithoutChapterInput>
+  }
+
+  export type AudioFileUpsertWithWhereUniqueWithoutChapterInput = {
+    where: AudioFileWhereUniqueInput
+    update: XOR<AudioFileUpdateWithoutChapterInput, AudioFileUncheckedUpdateWithoutChapterInput>
+    create: XOR<AudioFileCreateWithoutChapterInput, AudioFileUncheckedCreateWithoutChapterInput>
+  }
+
+  export type AudioFileUpdateWithWhereUniqueWithoutChapterInput = {
+    where: AudioFileWhereUniqueInput
+    data: XOR<AudioFileUpdateWithoutChapterInput, AudioFileUncheckedUpdateWithoutChapterInput>
+  }
+
+  export type AudioFileUpdateManyWithWhereWithoutChapterInput = {
+    where: AudioFileScalarWhereInput
+    data: XOR<AudioFileUpdateManyMutationInput, AudioFileUncheckedUpdateManyWithoutChapterInput>
   }
 
   export type CharacterAliasCreateWithoutCharacterInput = {
@@ -22845,6 +25559,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -22856,6 +25571,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutCharacterProfilesInput = {
@@ -22868,6 +25584,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -22879,6 +25596,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutCharacterProfilesInput = {
@@ -22957,12 +25675,14 @@ export namespace Prisma {
     audioFiles?: AudioFileCreateNestedManyWithoutScriptSentenceInput
     book: BookCreateNestedOneWithoutScriptSentencesInput
     segment: TextSegmentCreateNestedOneWithoutScriptSentencesInput
+    chapter?: ChapterCreateNestedOneWithoutScriptSentencesInput
   }
 
   export type ScriptSentenceUncheckedCreateWithoutCharacterInput = {
     id?: string
     bookId: string
     segmentId: string
+    chapterId?: string | null
     rawSpeaker?: string | null
     text: string
     orderInSegment: number
@@ -23065,6 +25785,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -23076,6 +25797,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutCharacterProfilesInput = {
@@ -23088,6 +25810,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -23099,6 +25822,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterVoiceBindingUpsertWithWhereUniqueWithoutCharacterInput = {
@@ -23296,6 +26020,7 @@ export namespace Prisma {
     book: BookCreateNestedOneWithoutAudioFilesInput
     segment?: TextSegmentCreateNestedOneWithoutAudioFilesInput
     scriptSentence?: ScriptSentenceCreateNestedOneWithoutAudioFilesInput
+    chapter?: ChapterCreateNestedOneWithoutAudioFilesInput
   }
 
   export type AudioFileUncheckedCreateWithoutVoiceProfileInput = {
@@ -23303,6 +26028,7 @@ export namespace Prisma {
     bookId: string
     sentenceId?: string | null
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -23596,12 +26322,14 @@ export namespace Prisma {
     book: BookCreateNestedOneWithoutAudioFilesInput
     scriptSentence?: ScriptSentenceCreateNestedOneWithoutAudioFilesInput
     voiceProfile?: TTSVoiceProfileCreateNestedOneWithoutAudioFilesInput
+    chapter?: ChapterCreateNestedOneWithoutAudioFilesInput
   }
 
   export type AudioFileUncheckedCreateWithoutSegmentInput = {
     id?: string
     bookId: string
     sentenceId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -23639,11 +26367,13 @@ export namespace Prisma {
     audioFiles?: AudioFileCreateNestedManyWithoutScriptSentenceInput
     book: BookCreateNestedOneWithoutScriptSentencesInput
     character?: CharacterProfileCreateNestedOneWithoutScriptSentencesInput
+    chapter?: ChapterCreateNestedOneWithoutScriptSentencesInput
   }
 
   export type ScriptSentenceUncheckedCreateWithoutSegmentInput = {
     id?: string
     bookId: string
+    chapterId?: string | null
     characterId?: string | null
     rawSpeaker?: string | null
     text: string
@@ -23676,6 +26406,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -23687,6 +26418,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutTextSegmentsInput = {
@@ -23699,6 +26431,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -23710,11 +26443,55 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutTextSegmentsInput = {
     where: BookWhereUniqueInput
     create: XOR<BookCreateWithoutTextSegmentsInput, BookUncheckedCreateWithoutTextSegmentsInput>
+  }
+
+  export type ChapterCreateWithoutSegmentsInput = {
+    id?: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book: BookCreateNestedOneWithoutChaptersInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterUncheckedCreateWithoutSegmentsInput = {
+    id?: string
+    bookId: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterCreateOrConnectWithoutSegmentsInput = {
+    where: ChapterWhereUniqueInput
+    create: XOR<ChapterCreateWithoutSegmentsInput, ChapterUncheckedCreateWithoutSegmentsInput>
   }
 
   export type AudioFileUpsertWithWhereUniqueWithoutSegmentInput = {
@@ -23770,6 +26547,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -23781,6 +26559,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutTextSegmentsInput = {
@@ -23793,6 +26572,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -23804,6 +26584,56 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
+  }
+
+  export type ChapterUpsertWithoutSegmentsInput = {
+    update: XOR<ChapterUpdateWithoutSegmentsInput, ChapterUncheckedUpdateWithoutSegmentsInput>
+    create: XOR<ChapterCreateWithoutSegmentsInput, ChapterUncheckedCreateWithoutSegmentsInput>
+    where?: ChapterWhereInput
+  }
+
+  export type ChapterUpdateToOneWithWhereWithoutSegmentsInput = {
+    where?: ChapterWhereInput
+    data: XOR<ChapterUpdateWithoutSegmentsInput, ChapterUncheckedUpdateWithoutSegmentsInput>
+  }
+
+  export type ChapterUpdateWithoutSegmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneRequiredWithoutChaptersNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUpdateManyWithoutChapterNestedInput
+  }
+
+  export type ChapterUncheckedUpdateWithoutSegmentsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutChapterNestedInput
   }
 
   export type AudioFileCreateWithoutScriptSentenceInput = {
@@ -23822,12 +26652,14 @@ export namespace Prisma {
     book: BookCreateNestedOneWithoutAudioFilesInput
     segment?: TextSegmentCreateNestedOneWithoutAudioFilesInput
     voiceProfile?: TTSVoiceProfileCreateNestedOneWithoutAudioFilesInput
+    chapter?: ChapterCreateNestedOneWithoutAudioFilesInput
   }
 
   export type AudioFileUncheckedCreateWithoutScriptSentenceInput = {
     id?: string
     bookId: string
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -23862,6 +26694,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -23873,6 +26706,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutScriptSentencesInput = {
@@ -23885,6 +26719,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -23896,6 +26731,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutScriptSentencesInput = {
@@ -23961,16 +26797,19 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
     audioFiles?: AudioFileCreateNestedManyWithoutSegmentInput
     book: BookCreateNestedOneWithoutTextSegmentsInput
+    chapter?: ChapterCreateNestedOneWithoutSegmentsInput
   }
 
   export type TextSegmentUncheckedCreateWithoutScriptSentencesInput = {
     id?: string
     bookId: string
+    chapterId?: string | null
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -23978,6 +26817,7 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
@@ -23987,6 +26827,49 @@ export namespace Prisma {
   export type TextSegmentCreateOrConnectWithoutScriptSentencesInput = {
     where: TextSegmentWhereUniqueInput
     create: XOR<TextSegmentCreateWithoutScriptSentencesInput, TextSegmentUncheckedCreateWithoutScriptSentencesInput>
+  }
+
+  export type ChapterCreateWithoutScriptSentencesInput = {
+    id?: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book: BookCreateNestedOneWithoutChaptersInput
+    segments?: TextSegmentCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterUncheckedCreateWithoutScriptSentencesInput = {
+    id?: string
+    bookId: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    segments?: TextSegmentUncheckedCreateNestedManyWithoutChapterInput
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterCreateOrConnectWithoutScriptSentencesInput = {
+    where: ChapterWhereUniqueInput
+    create: XOR<ChapterCreateWithoutScriptSentencesInput, ChapterUncheckedCreateWithoutScriptSentencesInput>
   }
 
   export type AudioFileUpsertWithWhereUniqueWithoutScriptSentenceInput = {
@@ -24026,6 +26909,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24037,6 +26921,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutScriptSentencesInput = {
@@ -24049,6 +26934,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24060,6 +26946,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterProfileUpsertWithoutScriptSentencesInput = {
@@ -24137,16 +27024,19 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     audioFiles?: AudioFileUpdateManyWithoutSegmentNestedInput
     book?: BookUpdateOneRequiredWithoutTextSegmentsNestedInput
+    chapter?: ChapterUpdateOneWithoutSegmentsNestedInput
   }
 
   export type TextSegmentUncheckedUpdateWithoutScriptSentencesInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentIndex?: IntFieldUpdateOperationsInput | number
     startPosition?: IntFieldUpdateOperationsInput | number
     endPosition?: IntFieldUpdateOperationsInput | number
@@ -24154,10 +27044,60 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     audioFiles?: AudioFileUncheckedUpdateManyWithoutSegmentNestedInput
+  }
+
+  export type ChapterUpsertWithoutScriptSentencesInput = {
+    update: XOR<ChapterUpdateWithoutScriptSentencesInput, ChapterUncheckedUpdateWithoutScriptSentencesInput>
+    create: XOR<ChapterCreateWithoutScriptSentencesInput, ChapterUncheckedCreateWithoutScriptSentencesInput>
+    where?: ChapterWhereInput
+  }
+
+  export type ChapterUpdateToOneWithWhereWithoutScriptSentencesInput = {
+    where?: ChapterWhereInput
+    data: XOR<ChapterUpdateWithoutScriptSentencesInput, ChapterUncheckedUpdateWithoutScriptSentencesInput>
+  }
+
+  export type ChapterUpdateWithoutScriptSentencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneRequiredWithoutChaptersNestedInput
+    segments?: TextSegmentUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUpdateManyWithoutChapterNestedInput
+  }
+
+  export type ChapterUncheckedUpdateWithoutScriptSentencesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    segments?: TextSegmentUncheckedUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutChapterNestedInput
   }
 
   export type BookCreateWithoutAudioFilesInput = {
@@ -24170,6 +27110,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -24181,6 +27122,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutAudioFilesInput = {
@@ -24193,6 +27135,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -24204,6 +27147,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutAudioFilesInput = {
@@ -24220,16 +27164,19 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutSegmentInput
     book: BookCreateNestedOneWithoutTextSegmentsInput
+    chapter?: ChapterCreateNestedOneWithoutSegmentsInput
   }
 
   export type TextSegmentUncheckedCreateWithoutAudioFilesInput = {
     id?: string
     bookId: string
+    chapterId?: string | null
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -24237,6 +27184,7 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
@@ -24261,12 +27209,14 @@ export namespace Prisma {
     book: BookCreateNestedOneWithoutScriptSentencesInput
     character?: CharacterProfileCreateNestedOneWithoutScriptSentencesInput
     segment: TextSegmentCreateNestedOneWithoutScriptSentencesInput
+    chapter?: ChapterCreateNestedOneWithoutScriptSentencesInput
   }
 
   export type ScriptSentenceUncheckedCreateWithoutAudioFilesInput = {
     id?: string
     bookId: string
     segmentId: string
+    chapterId?: string | null
     characterId?: string | null
     rawSpeaker?: string | null
     text: string
@@ -24324,6 +27274,49 @@ export namespace Prisma {
     create: XOR<TTSVoiceProfileCreateWithoutAudioFilesInput, TTSVoiceProfileUncheckedCreateWithoutAudioFilesInput>
   }
 
+  export type ChapterCreateWithoutAudioFilesInput = {
+    id?: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book: BookCreateNestedOneWithoutChaptersInput
+    segments?: TextSegmentCreateNestedManyWithoutChapterInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterUncheckedCreateWithoutAudioFilesInput = {
+    id?: string
+    bookId: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    segments?: TextSegmentUncheckedCreateNestedManyWithoutChapterInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutChapterInput
+  }
+
+  export type ChapterCreateOrConnectWithoutAudioFilesInput = {
+    where: ChapterWhereUniqueInput
+    create: XOR<ChapterCreateWithoutAudioFilesInput, ChapterUncheckedCreateWithoutAudioFilesInput>
+  }
+
   export type BookUpsertWithoutAudioFilesInput = {
     update: XOR<BookUpdateWithoutAudioFilesInput, BookUncheckedUpdateWithoutAudioFilesInput>
     create: XOR<BookCreateWithoutAudioFilesInput, BookUncheckedCreateWithoutAudioFilesInput>
@@ -24345,6 +27338,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24356,6 +27350,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutAudioFilesInput = {
@@ -24368,6 +27363,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24379,6 +27375,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type TextSegmentUpsertWithoutAudioFilesInput = {
@@ -24401,16 +27398,19 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     scriptSentences?: ScriptSentenceUpdateManyWithoutSegmentNestedInput
     book?: BookUpdateOneRequiredWithoutTextSegmentsNestedInput
+    chapter?: ChapterUpdateOneWithoutSegmentsNestedInput
   }
 
   export type TextSegmentUncheckedUpdateWithoutAudioFilesInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentIndex?: IntFieldUpdateOperationsInput | number
     startPosition?: IntFieldUpdateOperationsInput | number
     endPosition?: IntFieldUpdateOperationsInput | number
@@ -24418,6 +27418,7 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -24448,12 +27449,14 @@ export namespace Prisma {
     book?: BookUpdateOneRequiredWithoutScriptSentencesNestedInput
     character?: CharacterProfileUpdateOneWithoutScriptSentencesNestedInput
     segment?: TextSegmentUpdateOneRequiredWithoutScriptSentencesNestedInput
+    chapter?: ChapterUpdateOneWithoutScriptSentencesNestedInput
   }
 
   export type ScriptSentenceUncheckedUpdateWithoutAudioFilesInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     segmentId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     characterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
@@ -24512,6 +27515,55 @@ export namespace Prisma {
     voiceBindings?: CharacterVoiceBindingUncheckedUpdateManyWithoutVoiceProfileNestedInput
   }
 
+  export type ChapterUpsertWithoutAudioFilesInput = {
+    update: XOR<ChapterUpdateWithoutAudioFilesInput, ChapterUncheckedUpdateWithoutAudioFilesInput>
+    create: XOR<ChapterCreateWithoutAudioFilesInput, ChapterUncheckedCreateWithoutAudioFilesInput>
+    where?: ChapterWhereInput
+  }
+
+  export type ChapterUpdateToOneWithWhereWithoutAudioFilesInput = {
+    where?: ChapterWhereInput
+    data: XOR<ChapterUpdateWithoutAudioFilesInput, ChapterUncheckedUpdateWithoutAudioFilesInput>
+  }
+
+  export type ChapterUpdateWithoutAudioFilesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneRequiredWithoutChaptersNestedInput
+    segments?: TextSegmentUpdateManyWithoutChapterNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutChapterNestedInput
+  }
+
+  export type ChapterUncheckedUpdateWithoutAudioFilesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    segments?: TextSegmentUncheckedUpdateManyWithoutChapterNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutChapterNestedInput
+  }
+
   export type BookCreateWithoutMergeAuditsInput = {
     id?: string
     title: string
@@ -24522,6 +27574,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -24533,6 +27586,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutMergeAuditsInput = {
@@ -24545,6 +27599,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -24556,6 +27611,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutMergeAuditsInput = {
@@ -24682,6 +27738,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24693,6 +27750,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutMergeAuditsInput = {
@@ -24705,6 +27763,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24716,6 +27775,7 @@ export namespace Prisma {
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterProfileUpsertWithoutMergeAuditsSourceInput = {
@@ -24838,6 +27898,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -24849,6 +27910,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutProcessingTasksInput = {
@@ -24861,6 +27923,7 @@ export namespace Prisma {
     totalWords?: number | null
     totalCharacters?: number
     totalSegments?: number
+    totalChapters?: number
     encoding?: string | null
     fileFormat?: string | null
     status?: string
@@ -24872,6 +27935,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutProcessingTasksInput = {
@@ -24900,6 +27964,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24911,6 +27976,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutProcessingTasksInput = {
@@ -24923,6 +27989,7 @@ export namespace Prisma {
     totalWords?: NullableIntFieldUpdateOperationsInput | number | null
     totalCharacters?: IntFieldUpdateOperationsInput | number
     totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
     encoding?: NullableStringFieldUpdateOperationsInput | string | null
     fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
     status?: StringFieldUpdateOperationsInput | string
@@ -24934,6 +28001,7 @@ export namespace Prisma {
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterSpeakerBindingCreateWithoutSpeakerProfileInput = {
@@ -25178,6 +28246,7 @@ export namespace Prisma {
     id?: string
     sentenceId?: string | null
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -25236,6 +28305,7 @@ export namespace Prisma {
   export type ScriptSentenceCreateManyBookInput = {
     id?: string
     segmentId: string
+    chapterId?: string | null
     characterId?: string | null
     rawSpeaker?: string | null
     text: string
@@ -25249,6 +28319,7 @@ export namespace Prisma {
 
   export type TextSegmentCreateManyBookInput = {
     id?: string
+    chapterId?: string | null
     segmentIndex: number
     startPosition: number
     endPosition: number
@@ -25256,9 +28327,26 @@ export namespace Prisma {
     wordCount?: number | null
     segmentType?: string | null
     orderIndex: number
+    chapterOrderIndex?: number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: string
     createdAt?: Date | string
+  }
+
+  export type ChapterCreateManyBookInput = {
+    id?: string
+    chapterIndex: number
+    title: string
+    rawTitle?: string | null
+    startPosition?: number
+    endPosition?: number
+    wordCount?: number | null
+    characterCount?: number | null
+    totalSegments?: number
+    status?: string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type AudioFileUpdateWithoutBookInput = {
@@ -25277,12 +28365,14 @@ export namespace Prisma {
     segment?: TextSegmentUpdateOneWithoutAudioFilesNestedInput
     scriptSentence?: ScriptSentenceUpdateOneWithoutAudioFilesNestedInput
     voiceProfile?: TTSVoiceProfileUpdateOneWithoutAudioFilesNestedInput
+    chapter?: ChapterUpdateOneWithoutAudioFilesNestedInput
   }
 
   export type AudioFileUncheckedUpdateWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -25301,6 +28391,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -25463,11 +28554,13 @@ export namespace Prisma {
     audioFiles?: AudioFileUpdateManyWithoutScriptSentenceNestedInput
     character?: CharacterProfileUpdateOneWithoutScriptSentencesNestedInput
     segment?: TextSegmentUpdateOneRequiredWithoutScriptSentencesNestedInput
+    chapter?: ChapterUpdateOneWithoutScriptSentencesNestedInput
   }
 
   export type ScriptSentenceUncheckedUpdateWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     segmentId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     characterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
@@ -25483,6 +28576,7 @@ export namespace Prisma {
   export type ScriptSentenceUncheckedUpdateManyWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     segmentId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     characterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
@@ -25503,15 +28597,18 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     audioFiles?: AudioFileUpdateManyWithoutSegmentNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutSegmentNestedInput
+    chapter?: ChapterUpdateOneWithoutSegmentsNestedInput
   }
 
   export type TextSegmentUncheckedUpdateWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentIndex?: IntFieldUpdateOperationsInput | number
     startPosition?: IntFieldUpdateOperationsInput | number
     endPosition?: IntFieldUpdateOperationsInput | number
@@ -25519,6 +28616,7 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -25528,6 +28626,7 @@ export namespace Prisma {
 
   export type TextSegmentUncheckedUpdateManyWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentIndex?: IntFieldUpdateOperationsInput | number
     startPosition?: IntFieldUpdateOperationsInput | number
     endPosition?: IntFieldUpdateOperationsInput | number
@@ -25535,9 +28634,270 @@ export namespace Prisma {
     wordCount?: NullableIntFieldUpdateOperationsInput | number | null
     segmentType?: NullableStringFieldUpdateOperationsInput | string | null
     orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
     metadata?: NullableJsonNullValueInput | InputJsonValue
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ChapterUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    segments?: TextSegmentUpdateManyWithoutChapterNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUpdateManyWithoutChapterNestedInput
+  }
+
+  export type ChapterUncheckedUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    segments?: TextSegmentUncheckedUpdateManyWithoutChapterNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutChapterNestedInput
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutChapterNestedInput
+  }
+
+  export type ChapterUncheckedUpdateManyWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    chapterIndex?: IntFieldUpdateOperationsInput | number
+    title?: StringFieldUpdateOperationsInput | string
+    rawTitle?: NullableStringFieldUpdateOperationsInput | string | null
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    characterCount?: NullableIntFieldUpdateOperationsInput | number | null
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TextSegmentCreateManyChapterInput = {
+    id?: string
+    bookId: string
+    segmentIndex: number
+    startPosition: number
+    endPosition: number
+    content: string
+    wordCount?: number | null
+    segmentType?: string | null
+    orderIndex: number
+    chapterOrderIndex?: number | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type ScriptSentenceCreateManyChapterInput = {
+    id?: string
+    bookId: string
+    segmentId: string
+    characterId?: string | null
+    rawSpeaker?: string | null
+    text: string
+    orderInSegment: number
+    tone?: string | null
+    strength?: number | null
+    pauseAfter?: Decimal | DecimalJsLike | number | string | null
+    ttsParameters?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type AudioFileCreateManyChapterInput = {
+    id?: string
+    bookId: string
+    sentenceId?: string | null
+    segmentId?: string | null
+    filePath: string
+    fileName?: string | null
+    duration?: Decimal | DecimalJsLike | number | string | null
+    fileSize?: bigint | number | null
+    format?: string | null
+    status?: string
+    errorMessage?: string | null
+    retryCount?: number
+    provider?: string | null
+    voiceProfileId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type TextSegmentUpdateWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    segmentIndex?: IntFieldUpdateOperationsInput | number
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    content?: StringFieldUpdateOperationsInput | string
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    segmentType?: NullableStringFieldUpdateOperationsInput | string | null
+    orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUpdateManyWithoutSegmentNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutSegmentNestedInput
+    book?: BookUpdateOneRequiredWithoutTextSegmentsNestedInput
+  }
+
+  export type TextSegmentUncheckedUpdateWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    segmentIndex?: IntFieldUpdateOperationsInput | number
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    content?: StringFieldUpdateOperationsInput | string
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    segmentType?: NullableStringFieldUpdateOperationsInput | string | null
+    orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutSegmentNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutSegmentNestedInput
+  }
+
+  export type TextSegmentUncheckedUpdateManyWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    segmentIndex?: IntFieldUpdateOperationsInput | number
+    startPosition?: IntFieldUpdateOperationsInput | number
+    endPosition?: IntFieldUpdateOperationsInput | number
+    content?: StringFieldUpdateOperationsInput | string
+    wordCount?: NullableIntFieldUpdateOperationsInput | number | null
+    segmentType?: NullableStringFieldUpdateOperationsInput | string | null
+    orderIndex?: IntFieldUpdateOperationsInput | number
+    chapterOrderIndex?: NullableIntFieldUpdateOperationsInput | number | null
+    metadata?: NullableJsonNullValueInput | InputJsonValue
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ScriptSentenceUpdateWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
+    text?: StringFieldUpdateOperationsInput | string
+    orderInSegment?: IntFieldUpdateOperationsInput | number
+    tone?: NullableStringFieldUpdateOperationsInput | string | null
+    strength?: NullableIntFieldUpdateOperationsInput | number | null
+    pauseAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ttsParameters?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUpdateManyWithoutScriptSentenceNestedInput
+    book?: BookUpdateOneRequiredWithoutScriptSentencesNestedInput
+    character?: CharacterProfileUpdateOneWithoutScriptSentencesNestedInput
+    segment?: TextSegmentUpdateOneRequiredWithoutScriptSentencesNestedInput
+  }
+
+  export type ScriptSentenceUncheckedUpdateWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    segmentId?: StringFieldUpdateOperationsInput | string
+    characterId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
+    text?: StringFieldUpdateOperationsInput | string
+    orderInSegment?: IntFieldUpdateOperationsInput | number
+    tone?: NullableStringFieldUpdateOperationsInput | string | null
+    strength?: NullableIntFieldUpdateOperationsInput | number | null
+    pauseAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ttsParameters?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutScriptSentenceNestedInput
+  }
+
+  export type ScriptSentenceUncheckedUpdateManyWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    segmentId?: StringFieldUpdateOperationsInput | string
+    characterId?: NullableStringFieldUpdateOperationsInput | string | null
+    rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
+    text?: StringFieldUpdateOperationsInput | string
+    orderInSegment?: IntFieldUpdateOperationsInput | number
+    tone?: NullableStringFieldUpdateOperationsInput | string | null
+    strength?: NullableIntFieldUpdateOperationsInput | number | null
+    pauseAfter?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    ttsParameters?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AudioFileUpdateWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    filePath?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    format?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    retryCount?: IntFieldUpdateOperationsInput | number
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneRequiredWithoutAudioFilesNestedInput
+    segment?: TextSegmentUpdateOneWithoutAudioFilesNestedInput
+    scriptSentence?: ScriptSentenceUpdateOneWithoutAudioFilesNestedInput
+    voiceProfile?: TTSVoiceProfileUpdateOneWithoutAudioFilesNestedInput
+  }
+
+  export type AudioFileUncheckedUpdateWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    filePath?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    format?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    retryCount?: IntFieldUpdateOperationsInput | number
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    voiceProfileId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AudioFileUncheckedUpdateManyWithoutChapterInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    filePath?: StringFieldUpdateOperationsInput | string
+    fileName?: NullableStringFieldUpdateOperationsInput | string | null
+    duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    format?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    retryCount?: IntFieldUpdateOperationsInput | number
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    voiceProfileId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CharacterAliasCreateManyCharacterInput = {
@@ -25589,6 +28949,7 @@ export namespace Prisma {
     id?: string
     bookId: string
     segmentId: string
+    chapterId?: string | null
     rawSpeaker?: string | null
     text: string
     orderInSegment: number
@@ -25747,12 +29108,14 @@ export namespace Prisma {
     audioFiles?: AudioFileUpdateManyWithoutScriptSentenceNestedInput
     book?: BookUpdateOneRequiredWithoutScriptSentencesNestedInput
     segment?: TextSegmentUpdateOneRequiredWithoutScriptSentencesNestedInput
+    chapter?: ChapterUpdateOneWithoutScriptSentencesNestedInput
   }
 
   export type ScriptSentenceUncheckedUpdateWithoutCharacterInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     segmentId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
     orderInSegment?: IntFieldUpdateOperationsInput | number
@@ -25768,6 +29131,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     segmentId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
     orderInSegment?: IntFieldUpdateOperationsInput | number
@@ -25783,6 +29147,7 @@ export namespace Prisma {
     bookId: string
     sentenceId?: string | null
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -25822,6 +29187,7 @@ export namespace Prisma {
     book?: BookUpdateOneRequiredWithoutAudioFilesNestedInput
     segment?: TextSegmentUpdateOneWithoutAudioFilesNestedInput
     scriptSentence?: ScriptSentenceUpdateOneWithoutAudioFilesNestedInput
+    chapter?: ChapterUpdateOneWithoutAudioFilesNestedInput
   }
 
   export type AudioFileUncheckedUpdateWithoutVoiceProfileInput = {
@@ -25829,6 +29195,7 @@ export namespace Prisma {
     bookId?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -25847,6 +29214,7 @@ export namespace Prisma {
     bookId?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -25894,6 +29262,7 @@ export namespace Prisma {
     id?: string
     bookId: string
     sentenceId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -25911,6 +29280,7 @@ export namespace Prisma {
   export type ScriptSentenceCreateManySegmentInput = {
     id?: string
     bookId: string
+    chapterId?: string | null
     characterId?: string | null
     rawSpeaker?: string | null
     text: string
@@ -25938,12 +29308,14 @@ export namespace Prisma {
     book?: BookUpdateOneRequiredWithoutAudioFilesNestedInput
     scriptSentence?: ScriptSentenceUpdateOneWithoutAudioFilesNestedInput
     voiceProfile?: TTSVoiceProfileUpdateOneWithoutAudioFilesNestedInput
+    chapter?: ChapterUpdateOneWithoutAudioFilesNestedInput
   }
 
   export type AudioFileUncheckedUpdateWithoutSegmentInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -25962,6 +29334,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     sentenceId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -25989,11 +29362,13 @@ export namespace Prisma {
     audioFiles?: AudioFileUpdateManyWithoutScriptSentenceNestedInput
     book?: BookUpdateOneRequiredWithoutScriptSentencesNestedInput
     character?: CharacterProfileUpdateOneWithoutScriptSentencesNestedInput
+    chapter?: ChapterUpdateOneWithoutScriptSentencesNestedInput
   }
 
   export type ScriptSentenceUncheckedUpdateWithoutSegmentInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     characterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
@@ -26009,6 +29384,7 @@ export namespace Prisma {
   export type ScriptSentenceUncheckedUpdateManyWithoutSegmentInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     characterId?: NullableStringFieldUpdateOperationsInput | string | null
     rawSpeaker?: NullableStringFieldUpdateOperationsInput | string | null
     text?: StringFieldUpdateOperationsInput | string
@@ -26024,6 +29400,7 @@ export namespace Prisma {
     id?: string
     bookId: string
     segmentId?: string | null
+    chapterId?: string | null
     filePath: string
     fileName?: string | null
     duration?: Decimal | DecimalJsLike | number | string | null
@@ -26054,12 +29431,14 @@ export namespace Prisma {
     book?: BookUpdateOneRequiredWithoutAudioFilesNestedInput
     segment?: TextSegmentUpdateOneWithoutAudioFilesNestedInput
     voiceProfile?: TTSVoiceProfileUpdateOneWithoutAudioFilesNestedInput
+    chapter?: ChapterUpdateOneWithoutAudioFilesNestedInput
   }
 
   export type AudioFileUncheckedUpdateWithoutScriptSentenceInput = {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null
@@ -26078,6 +29457,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    chapterId?: NullableStringFieldUpdateOperationsInput | string | null
     filePath?: StringFieldUpdateOperationsInput | string
     fileName?: NullableStringFieldUpdateOperationsInput | string | null
     duration?: NullableDecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string | null

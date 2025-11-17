@@ -10,6 +10,8 @@ import {
   Download,
   RefreshCw,
   SkipForward,
+  Headphones,
+  Combine,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -26,6 +28,8 @@ interface ScriptGenerationCardProps {
   onShowPreview: () => void;
   onShowIncremental: () => void;
   onShowRegenerate: () => void;
+  onGenerateAudio?: () => void;
+  onMergeAudio?: () => void;
 }
 
 export function ScriptGenerationCard({
@@ -41,6 +45,8 @@ export function ScriptGenerationCard({
   onShowPreview,
   onShowIncremental,
   onShowRegenerate,
+  onGenerateAudio,
+  onMergeAudio,
 }: ScriptGenerationCardProps) {
   const router = useRouter();
 
@@ -119,6 +125,27 @@ export function ScriptGenerationCard({
                   <RefreshCw className="w-4 h-4 mr-2" />
                   重新生成
                 </Button>
+                {onGenerateAudio && (
+                  <Button
+                    size="sm"
+                    onClick={onGenerateAudio}
+                    disabled={isGenerating}
+                  >
+                    <Headphones className="w-4 h-4 mr-2" />
+                    整书音频
+                  </Button>
+                )}
+                {onMergeAudio && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={onMergeAudio}
+                    disabled={isGenerating}
+                  >
+                    <Combine className="w-4 h-4 mr-2" />
+                    合并音频
+                  </Button>
+                )}
               </div>
             </div>
 

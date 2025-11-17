@@ -23,6 +23,7 @@ export const GET = withErrorHandler(
             characterProfiles: {
               where: { isActive: true },
             },
+            chapters: true,
             textSegments: true,
             scriptSentences: true,
             audioFiles: true,
@@ -53,6 +54,8 @@ export const GET = withErrorHandler(
             select: {
               id: true,
               segmentIndex: true,
+              chapterId: true,
+              chapterOrderIndex: true,
               content: true,
               wordCount: true,
               status: true,
@@ -60,6 +63,19 @@ export const GET = withErrorHandler(
             },
             orderBy: [{ orderIndex: "asc" }, { segmentIndex: "asc" }],
             take: 10, // 限制返回数量
+          },
+        }),
+        ...(include.includes("chapters") && {
+          chapters: {
+            select: {
+              id: true,
+              chapterIndex: true,
+              title: true,
+              totalSegments: true,
+              status: true,
+              metadata: true,
+            },
+            orderBy: { chapterIndex: "asc" },
           },
         }),
         ...(include.includes("scripts") && {
@@ -113,6 +129,7 @@ export const GET = withErrorHandler(
       totalWords: book.totalWords,
       totalCharacters: book.totalCharacters,
       totalSegments: book.totalSegments,
+      totalChapters: book.totalChapters,
       encoding: book.encoding,
       fileFormat: book.fileFormat,
       status: book.status,
@@ -122,6 +139,7 @@ export const GET = withErrorHandler(
       // 统计信息
       stats: {
         charactersCount: book._count.characterProfiles,
+        chaptersCount: book._count.chapters,
         segmentsCount: book._count.textSegments,
         scriptsCount: book._count.scriptSentences,
         audioFilesCount: book._count.audioFiles,
@@ -134,6 +152,9 @@ export const GET = withErrorHandler(
       }),
       ...(include.includes("segments") && {
         textSegments: book.textSegments,
+      }),
+      ...(include.includes("chapters") && {
+        chapters: book.chapters,
       }),
       ...(include.includes("scripts") && {
         scriptSentences: book.scriptSentences,

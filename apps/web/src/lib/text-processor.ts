@@ -4,6 +4,7 @@ import { smartSplitText, calculateTextLength, RecursiveCharacterTextSplitter } f
 import { SmartTextSplitter, splitTextSmartly, calculateSmartLength, validateSegmentQuality, type TextSegment as SmartSegment } from './smart-text-splitter'
 import { CONFIG } from './constants'
 import { logger } from './logger'
+import { randomUUID } from 'crypto'
 import * as iconv from 'iconv-lite'
 
 export interface TextProcessingOptions {
@@ -28,6 +29,28 @@ export interface TextSegmentData {
   wordCount: number
   type: 'paragraph' | 'dialogue' | 'scene' | 'chapter'
   metadata?: Record<string, any>
+}
+
+interface DetectedChapterSlice {
+  index: number
+  title: string
+  rawTitle?: string
+  heading?: string
+  body: string
+  detectionMethod: 'detected' | 'preface' | 'fallback'
+  isFallback: boolean
+}
+
+export interface ChapterSegmentBuildResult {
+  chapterRecords: Prisma.ChapterCreateManyInput[]
+  segmentRecords: Prisma.TextSegmentCreateManyInput[]
+  statistics: {
+    totalChapters: number
+    totalSegments: number
+    totalWords: number
+    avgWordsPerSegment: number
+    segmentTypes: Record<string, number>
+  }
 }
 
 /**
@@ -573,4 +596,234 @@ export function createTextSegmentRecords(
       status: 'pending'
     }
   })
+}
+
+const CHAPTER_HEADING_PATTERNS = [
+  '#{1,6}\\s+.+',
+  '第[零一二三四五六七八九十百千万两\\d]+[章节卷篇回部][^\\n]*',
+  '第\\s*\\d+\\s*(?:章|节)[^\\n]*',
+  'Chapter\\s+\\d+[^\\n]*',
+  'CHAPTER\\s+\\d+[^\\n]*',
+  'Section\\s+\\d+[^\\n]*',
+  'Part\\s+\\d+[^\\n]*'
+]
+
+const CHAPTER_HEADING_REGEX = new RegExp(
+  `^(?:${CHAPTER_HEADING_PATTERNS.join('|')})\\s*$`,
+  'gmi'
+)
+
+/**
+ * 按章节切分并生成章节与段落记录
+ */
+export function createChapterSegmentRecords(
+  bookId: string,
+  content: string,
+  options: TextProcessingOptions = {}
+): ChapterSegmentBuildResult {
+  const chapterSlices = splitContentIntoChapters(content)
+
+  if (chapterSlices.length === 0) {
+    throw new FileProcessingError(
+      '未检测到有效章节',
+      'CORRUPTED_FILE',
+      { message: '请确认文本内容是否包含章节信息' }
+    )
+  }
+
+  const chapterRecords: Prisma.ChapterCreateManyInput[] = []
+  const segmentRecords: Prisma.TextSegmentCreateManyInput[] = []
+  const segmentTypeStats: Record<string, number> = {}
+
+  let globalSegmentIndex = 0
+  let globalPosition = 0
+  let totalWordCount = 0
+
+  for (const slice of chapterSlices) {
+    const chapterId = randomUUID()
+    const chapterStartPosition = globalPosition
+    const chapterSegments = segmentText(slice.body, options)
+    let chapterWordCount = 0
+    let chapterCharacterCount = 0
+    let chapterOrderIndex = 0
+
+    for (const segment of chapterSegments) {
+      const sanitizedContent = sanitizeContent(segment.content)
+      if (!sanitizedContent.length) {
+        continue
+      }
+
+      const wordCount = segment.wordCount ?? countWords(sanitizedContent)
+      const segmentRecord: Prisma.TextSegmentCreateManyInput = {
+        bookId,
+        chapterId,
+        segmentIndex: globalSegmentIndex,
+        startPosition: globalPosition,
+        endPosition: globalPosition + sanitizedContent.length,
+        content: sanitizedContent,
+        wordCount,
+        segmentType: segment.type,
+        orderIndex: globalSegmentIndex,
+        chapterOrderIndex,
+        metadata: {
+          ...(segment.metadata || {}),
+          chapterIndex: slice.index,
+          chapterTitle: slice.title,
+          chapterOrderIndex
+        } as Prisma.InputJsonValue,
+        status: 'pending'
+      }
+
+      segmentRecords.push(segmentRecord)
+      segmentTypeStats[segment.type] = (segmentTypeStats[segment.type] || 0) + 1
+
+      globalSegmentIndex += 1
+      chapterOrderIndex += 1
+      globalPosition += sanitizedContent.length
+      chapterWordCount += wordCount
+      chapterCharacterCount += sanitizedContent.length
+      totalWordCount += wordCount
+    }
+
+    const chapterRecord: Prisma.ChapterCreateManyInput = {
+      id: chapterId,
+      bookId,
+      chapterIndex: slice.index,
+      title: slice.title,
+      rawTitle: slice.rawTitle,
+      startPosition: chapterStartPosition,
+      endPosition: globalPosition,
+      wordCount: chapterWordCount,
+      characterCount: chapterCharacterCount,
+      totalSegments: chapterOrderIndex,
+      status: chapterOrderIndex > 0 ? 'processed' : 'pending',
+      metadata: {
+        heading: slice.heading,
+        detectionMethod: slice.detectionMethod,
+        isFallback: slice.isFallback
+      } as Prisma.InputJsonValue
+    }
+
+    chapterRecords.push(chapterRecord)
+  }
+
+  if (segmentRecords.length === 0) {
+    throw new FileProcessingError(
+      '文本分割失败',
+      'CORRUPTED_FILE',
+      { message: '章节内没有可用的文本内容' }
+    )
+  }
+
+  return {
+    chapterRecords,
+    segmentRecords,
+    statistics: {
+      totalChapters: chapterRecords.length,
+      totalSegments: segmentRecords.length,
+      totalWords: totalWordCount,
+      avgWordsPerSegment: segmentRecords.length > 0
+        ? Math.round(totalWordCount / segmentRecords.length)
+        : 0,
+      segmentTypes: segmentTypeStats
+    }
+  }
+}
+
+function splitContentIntoChapters(content: string): DetectedChapterSlice[] {
+  const normalized = content.replace(/\r\n/g, '\n')
+  const matches = Array.from(normalized.matchAll(CHAPTER_HEADING_REGEX))
+  const slices: DetectedChapterSlice[] = []
+  let chapterCounter = 0
+
+  const pushSlice = (params: {
+    title?: string
+    rawTitle?: string
+    heading?: string
+    body: string
+    detectionMethod: DetectedChapterSlice['detectionMethod']
+    isFallback?: boolean
+    preserveEmpty?: boolean
+  }) => {
+    const trimmedBody = params.body ? params.body.trim() : ''
+    if (!trimmedBody && !params.preserveEmpty) {
+      return
+    }
+
+    const title = (params.title || params.rawTitle || '').trim()
+    const finalTitle = title || generateFallbackTitle(chapterCounter)
+    slices.push({
+      index: chapterCounter,
+      title: finalTitle,
+      rawTitle: params.rawTitle || title || finalTitle,
+      heading: params.heading,
+      body: trimmedBody,
+      detectionMethod: params.detectionMethod,
+      isFallback: params.isFallback ?? false
+    })
+    chapterCounter += 1
+  }
+
+  if (matches.length === 0) {
+    pushSlice({
+      title: generateFallbackTitle(0),
+      body: normalized,
+      detectionMethod: 'fallback',
+      isFallback: true,
+      preserveEmpty: true
+    })
+    return slices
+  }
+
+  const firstMatchIndex = matches[0]?.index ?? 0
+  if (firstMatchIndex > 0) {
+    const prefixContent = normalized.slice(0, firstMatchIndex)
+    if (prefixContent.trim().length > 0) {
+      pushSlice({
+        title: '序章',
+        rawTitle: '序章',
+        heading: '序章',
+        body: prefixContent,
+        detectionMethod: 'preface',
+        isFallback: true,
+        preserveEmpty: true
+      })
+    }
+  }
+
+  matches.forEach((match, idx) => {
+    const headingLine = match[0].trim()
+    const headingEnd = (match.index ?? 0) + match[0].length
+    const nextStart = matches[idx + 1]?.index ?? normalized.length
+    const body = normalized.slice(headingEnd, nextStart)
+
+    pushSlice({
+      title: normalizeChapterTitle(headingLine, chapterCounter),
+      rawTitle: headingLine,
+      heading: headingLine,
+      body,
+      detectionMethod: 'detected',
+      preserveEmpty: true
+    })
+  })
+
+  return slices
+}
+
+function generateFallbackTitle(order: number): string {
+  return `第${order + 1}章`
+}
+
+function normalizeChapterTitle(rawTitle: string, fallbackIndex: number): string {
+  if (!rawTitle) {
+    return generateFallbackTitle(fallbackIndex)
+  }
+
+  const cleaned = rawTitle
+    .replace(/^#{1,6}\s*/, '')
+    .replace(/^[\s\-:：、.]+/, '')
+    .replace(/[\s\-:：、.]+$/, '')
+    .trim()
+
+  return cleaned || generateFallbackTitle(fallbackIndex)
 }

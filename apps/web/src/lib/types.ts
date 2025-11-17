@@ -11,6 +11,7 @@ import {
   AudioFile,
   CharacterMergeAudit,
   ProcessingTask,
+  Chapter as PrismaChapter,
 } from "@/generated/prisma";
 
 // 扩展的TypeScript类型定义
@@ -20,10 +21,12 @@ export interface BookWithDetails extends PrismaBook {
   scriptSentences: PrismaScriptSentence[];
   audioFiles: AudioFile[];
   processingTasks: ProcessingTask[];
+  chapters: PrismaChapter[];
   _count: {
     segments: number;
     characters: number;
     audioFiles: number;
+    chapters?: number;
   };
 }
 
@@ -45,6 +48,7 @@ export interface VoiceProfileWithDetails extends TTSVoiceProfile {
 export interface TextSegmentWithDetails extends PrismaTextSegment {
   scriptSentences: PrismaScriptSentence[];
   audioFiles: AudioFile[];
+  chapter?: PrismaChapter | null;
   _count: {
     scriptSentences: number;
     audioFiles: number;
@@ -54,12 +58,14 @@ export interface TextSegmentWithDetails extends PrismaTextSegment {
 export interface ScriptSentenceWithDetails extends PrismaScriptSentence {
   character: CharacterProfile | null;
   segment: PrismaTextSegment;
+  chapter?: PrismaChapter | null;
   audioFiles: AudioFile[];
 }
 
 export interface AudioFileWithDetails extends AudioFile {
   scriptSentence: PrismaScriptSentence | null;
   segment: PrismaTextSegment | null;
+  chapter?: PrismaChapter | null;
   voiceProfile: TTSVoiceProfile | null;
 }
 
@@ -123,6 +129,7 @@ export interface ScriptSentence {
   id: string;
   bookId: string;
   segmentId: string;
+  chapterId?: string | null;
   characterId?: string | null; // 数据库字段名
   rawSpeaker?: string; // 数据库字段名
   text: string;
@@ -140,6 +147,11 @@ export interface ScriptSentence {
 
   // 关联数据
   character?: CharacterProfile | null;
+  chapter?: {
+    id: string;
+    title: string;
+    chapterIndex: number;
+  } | null;
   segment?: {
     id: string;
     content: string;

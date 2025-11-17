@@ -14,6 +14,8 @@ interface ScriptSentencesListProps {
     sentenceId: string,
     audio: { audioFileId?: string; playbackUrl?: string }
   ) => void;
+  title?: string;
+  emptyMessage?: string;
 }
 
 export function ScriptSentencesList({
@@ -22,6 +24,8 @@ export function ScriptSentencesList({
   onEdit,
   onDelete,
   onAudioGenerated,
+  title,
+  emptyMessage,
 }: ScriptSentencesListProps) {
   const PAGE_SIZE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,7 +62,7 @@ export function ScriptSentencesList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>台词列表</CardTitle>
+        <CardTitle>{title || "台词列表"}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -77,7 +81,7 @@ export function ScriptSentencesList({
 
         {scriptSentences.length === 0 && (
           <div className="text-sm text-gray-500 text-center py-6">
-            暂无台词，请先生成台本。
+            {emptyMessage || "暂无台词，请先生成台本。"}
           </div>
         )}
 

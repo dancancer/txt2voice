@@ -25,6 +25,7 @@ export const GET = withErrorHandler(
     const segmentType = searchParams.get("segmentType");
     const search = searchParams.get("search");
     const hasAudio = searchParams.get("hasAudio");
+    const chapterId = searchParams.get("chapterId");
 
     // 构建查询条件
     const where: any = { bookId };
@@ -47,6 +48,10 @@ export const GET = withErrorHandler(
               none: {},
             };
     }
+    if (chapterId) {
+      where.chapterId =
+        chapterId === "unassigned" ? null : chapterId;
+    }
 
     // 获取总数
     const total = await prisma.textSegment.count({ where });
@@ -55,6 +60,14 @@ export const GET = withErrorHandler(
     const segments = await prisma.textSegment.findMany({
       where,
       include: {
+        chapter: {
+          select: {
+            id: true,
+            chapterIndex: true,
+            title: true,
+            status: true,
+          },
+        },
         scriptSentences: {
           select: {
             id: true,
@@ -108,6 +121,9 @@ export const GET = withErrorHandler(
       wordCount: segment.wordCount,
       segmentType: segment.segmentType,
       orderIndex: segment.orderIndex,
+      chapterOrderIndex: segment.chapterOrderIndex,
+      chapterId: segment.chapterId,
+      chapter: segment.chapter,
       metadata: segment.metadata,
       status: segment.status,
       scriptSentences: segment.scriptSentences,
@@ -148,6 +164,7 @@ export const POST = withErrorHandler(
       segmentType,
       orderIndex,
       metadata,
+      chapterId,
     } = body;
 
     // 检查书籍是否存在
@@ -170,6 +187,13 @@ export const POST = withErrorHandler(
       finalOrderIndex = (maxOrder?.orderIndex || 0) + 1;
     }
 
+    const resolvedChapterId =
+      chapterId === undefined
+        ? undefined
+        : chapterId === "unassigned"
+          ? null
+          : chapterId;
+
     const segment = await prisma.textSegment.create({
       data: {
         bookId,
@@ -182,8 +206,17 @@ export const POST = withErrorHandler(
         orderIndex: finalOrderIndex,
         metadata: metadata || {},
         status: "pending",
+        chapterId: resolvedChapterId ?? null,
       },
       include: {
+        chapter: {
+          select: {
+            id: true,
+            chapterIndex: true,
+            title: true,
+            status: true,
+          },
+        },
         scriptSentences: {
           select: {
             id: true,
@@ -237,6 +270,9 @@ export const POST = withErrorHandler(
       wordCount: segment.wordCount,
       segmentType: segment.segmentType,
       orderIndex: segment.orderIndex,
+      chapterOrderIndex: segment.chapterOrderIndex,
+      chapterId: segment.chapterId,
+      chapter: segment.chapter,
       metadata: segment.metadata,
       status: segment.status,
       scriptSentences: segment.scriptSentences,
@@ -294,8 +330,20 @@ export const PUT = withErrorHandler(
           orderIndex: segment.orderIndex,
           metadata: segment.metadata,
           status: segment.status,
+          chapterId:
+            segment.chapterId === undefined
+              ? undefined
+              : segment.chapterId || null,
         },
         include: {
+          chapter: {
+            select: {
+              id: true,
+              chapterIndex: true,
+              title: true,
+              status: true,
+            },
+          },
           scriptSentences: {
             select: {
               id: true,
@@ -343,6 +391,9 @@ export const PUT = withErrorHandler(
       segmentType: segment.segmentType,
       orderIndex: segment.orderIndex,
       metadata: segment.metadata,
+      chapterOrderIndex: segment.chapterOrderIndex,
+      chapterId: segment.chapterId,
+      chapter: segment.chapter,
       status: segment.status,
       scriptSentences: segment.scriptSentences,
       audioFiles: segment.audioFiles,

@@ -13,6 +13,7 @@ export interface BookBasicInfo {
   totalWords?: number;
   totalCharacters?: number;
   totalSegments?: number;
+  totalChapters?: number;
   encoding?: string;
   fileFormat?: string;
   status: string;
@@ -21,14 +22,25 @@ export interface BookBasicInfo {
   updatedAt: Date;
   stats: {
     charactersCount: number;
+    chaptersCount: number;
     segmentsCount: number;
     scriptsCount: number;
     audioFilesCount: number;
   };
   processingTasks: any[];
   characterProfiles?: any[];
+  chapters?: ChapterSummary[];
   textSegments?: any[];
   scriptSentences?: any[];
+}
+
+export interface ChapterSummary {
+  id: string;
+  chapterIndex: number;
+  title: string;
+  totalSegments: number;
+  status: string;
+  metadata?: any;
 }
 
 export interface CharacterProfile {
@@ -80,6 +92,8 @@ export interface CharacterProfile {
 
 export interface ScriptSentence {
   id: string;
+  bookId: string;
+  segmentId: string;
   text: string;
   rawSpeaker?: string;
   tone?: string;
@@ -87,11 +101,17 @@ export interface ScriptSentence {
   pauseAfter?: number;
   ttsParameters?: any;
   orderInSegment: number;
+  chapterId?: string | null;
   character?: {
     id: string;
     canonicalName: string;
     genderHint: string;
     emotionBaseline: string;
+  };
+  chapter?: {
+    id: string;
+    chapterIndex: number;
+    title: string;
   };
   segment?: {
     id: string;
@@ -117,6 +137,7 @@ export interface ScriptSentence {
 export interface TextSegment {
   id: string;
   segmentIndex: number;
+  chapterId?: string | null;
   startPosition: number;
   endPosition: number;
   content: string;
@@ -125,6 +146,8 @@ export interface TextSegment {
   orderIndex: number;
   metadata?: any;
   status: string;
+  chapterOrderIndex?: number | null;
+  chapter?: ChapterSummary;
   scriptSentences: Array<{
     id: string;
     text: string;

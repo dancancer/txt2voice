@@ -10,3 +10,7 @@ export { ScriptPreviewModal } from "./ScriptPreviewModal";
 export { EditSentenceModal } from "./EditSentenceModal";
 export { IncrementalProcessingModal } from "./IncrementalProcessingModal";
 export { RegenerateSegmentsModal } from "./RegenerateSegmentsModal";
+export { DocumentTree } from "./DocumentTree";
+export { ChapterDetailPanel } from "./ChapterDetailPanel";
+export { ChapterSegmentsTable } from "./ChapterSegmentsTable";
+export { ScriptSentencesTable } from "./ScriptSentencesTable";

@@ -19,6 +19,7 @@ model Book {
   totalWords        Int?
   totalCharacters   Int                   @default(0)
   totalSegments     Int                   @default(0)
+  totalChapters     Int                   @default(0)
   encoding          String?
   fileFormat        String?
   status            String                @default("uploaded")
@@ -31,10 +32,36 @@ model Book {
   processingTasks   ProcessingTask[]
   scriptSentences   ScriptSentence[]
   textSegments      TextSegment[]
+  chapters          Chapter[]
 
   @@index([status, createdAt])
   @@index([author, createdAt])
   @@map("books")
+}
+
+model Chapter {
+  id             String           @id @default(uuid())
+  bookId         String
+  chapterIndex   Int
+  title          String
+  rawTitle       String?
+  startPosition  Int              @default(0)
+  endPosition    Int              @default(0)
+  wordCount      Int?             @default(0)
+  characterCount Int?             @default(0)
+  totalSegments  Int              @default(0)
+  status         String           @default("pending")
+  metadata       Json?            @default("{}")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  book           Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  segments       TextSegment[]
+  scriptSentences ScriptSentence[]
+  audioFiles     AudioFile[]
+
+  @@index([bookId])
+  @@unique([bookId, chapterIndex])
+  @@map("chapters")
 }
 
 model CharacterProfile {
@@ -122,6 +149,7 @@ model CharacterVoiceBinding {
 model TextSegment {
   id              String           @id @default(uuid())
   bookId          String
+  chapterId       String?
   segmentIndex    Int
   startPosition   Int
   endPosition     Int
@@ -129,15 +157,19 @@ model TextSegment {
   wordCount       Int?
   segmentType     String?
   orderIndex      Int
+  chapterOrderIndex Int?
   metadata        Json?
   status          String           @default("pending")
   createdAt       DateTime         @default(now())
   audioFiles      AudioFile[]
   scriptSentences ScriptSentence[]
   book            Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter         Chapter?         @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
+  @@index([chapterId])
   @@index([bookId, orderIndex])
+  @@index([chapterId, chapterOrderIndex])
   @@index([bookId, status])
   @@map("text_segments")
 }
@@ -146,6 +178,7 @@ model ScriptSentence {
   id             String            @id @default(uuid())
   bookId         String
   segmentId      String
+  chapterId      String?
   characterId    String?
   rawSpeaker     String?
   text           String
@@ -159,9 +192,11 @@ model ScriptSentence {
   book           Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
   character      CharacterProfile? @relation(fields: [characterId], references: [id])
   segment        TextSegment       @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  chapter        Chapter?          @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
   @@index([segmentId])
   @@index([characterId])
+  @@index([chapterId])
   @@index([bookId, segmentId, orderInSegment])
   @@index([bookId, orderInSegment])
   @@map("script_sentences")
@@ -172,6 +207,7 @@ model AudioFile {
   bookId         String
   sentenceId     String?
   segmentId      String?
+  chapterId      String?
   filePath       String
   fileName       String?
   duration       Decimal?         @db.Decimal(5, 2)
@@ -188,12 +224,14 @@ model AudioFile {
   segment        TextSegment?     @relation(fields: [segmentId], references: [id])
   scriptSentence ScriptSentence?  @relation(fields: [sentenceId], references: [id])
   voiceProfile   TTSVoiceProfile? @relation(fields: [voiceProfileId], references: [id])
+  chapter        Chapter?         @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
   @@index([status])
   @@index([bookId, status, createdAt])
   @@index([sentenceId, status])
   @@index([segmentId])
+  @@index([chapterId])
   @@map("audio_files")
 }
 

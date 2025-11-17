@@ -40,3 +40,26 @@ export interface SegmentStatus {
   lineCount?: number;
   processed: boolean;
 }
+
+export type ScriptNavigationNode =
+  | { type: "book"; id: string }
+  | { type: "chapter"; id: string }
+  | { type: "segment"; id: string };
+
+export interface ChapterTreeNode {
+  id: string;
+  title: string;
+  chapterIndex?: number;
+  status?: string;
+  totalSegments: number;
+  scriptSegments: number;
+  audioSegments: number;
+  isVirtual?: boolean;
+  segments: Array<{
+    id: string;
+    label: string;
+    hasScript: boolean;
+    hasAudio: boolean;
+    preview: string;
+  }>;
+}

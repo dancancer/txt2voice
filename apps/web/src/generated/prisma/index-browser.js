@@ -131,8 +131,26 @@ exports.Prisma.BookScalarFieldEnum = {
   totalWords: 'totalWords',
   totalCharacters: 'totalCharacters',
   totalSegments: 'totalSegments',
+  totalChapters: 'totalChapters',
   encoding: 'encoding',
   fileFormat: 'fileFormat',
+  status: 'status',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ChapterScalarFieldEnum = {
+  id: 'id',
+  bookId: 'bookId',
+  chapterIndex: 'chapterIndex',
+  title: 'title',
+  rawTitle: 'rawTitle',
+  startPosition: 'startPosition',
+  endPosition: 'endPosition',
+  wordCount: 'wordCount',
+  characterCount: 'characterCount',
+  totalSegments: 'totalSegments',
   status: 'status',
   metadata: 'metadata',
   createdAt: 'createdAt',
@@ -196,6 +214,7 @@ exports.Prisma.CharacterVoiceBindingScalarFieldEnum = {
 exports.Prisma.TextSegmentScalarFieldEnum = {
   id: 'id',
   bookId: 'bookId',
+  chapterId: 'chapterId',
   segmentIndex: 'segmentIndex',
   startPosition: 'startPosition',
   endPosition: 'endPosition',
@@ -203,6 +222,7 @@ exports.Prisma.TextSegmentScalarFieldEnum = {
   wordCount: 'wordCount',
   segmentType: 'segmentType',
   orderIndex: 'orderIndex',
+  chapterOrderIndex: 'chapterOrderIndex',
   metadata: 'metadata',
   status: 'status',
   createdAt: 'createdAt'
@@ -212,6 +232,7 @@ exports.Prisma.ScriptSentenceScalarFieldEnum = {
   id: 'id',
   bookId: 'bookId',
   segmentId: 'segmentId',
+  chapterId: 'chapterId',
   characterId: 'characterId',
   rawSpeaker: 'rawSpeaker',
   text: 'text',
@@ -228,6 +249,7 @@ exports.Prisma.AudioFileScalarFieldEnum = {
   bookId: 'bookId',
   sentenceId: 'sentenceId',
   segmentId: 'segmentId',
+  chapterId: 'chapterId',
   filePath: 'filePath',
   fileName: 'fileName',
   duration: 'duration',
@@ -331,6 +353,7 @@ exports.Prisma.NullsOrder = {
 
 exports.Prisma.ModelName = {
   Book: 'Book',
+  Chapter: 'Chapter',
   CharacterProfile: 'CharacterProfile',
   CharacterAlias: 'CharacterAlias',
   TTSVoiceProfile: 'TTSVoiceProfile',

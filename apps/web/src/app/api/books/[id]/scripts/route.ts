@@ -23,6 +23,7 @@ export const GET = withErrorHandler(
     // 解析过滤参数
     const characterId = searchParams.get("characterId");
     const segmentId = searchParams.get("segmentId");
+    const chapterId = searchParams.get("chapterId");
     const search = searchParams.get("search");
     const tone = searchParams.get("tone");
 
@@ -33,6 +34,9 @@ export const GET = withErrorHandler(
     }
     if (segmentId) {
       where.segmentId = segmentId;
+    }
+    if (chapterId) {
+      where.chapterId = chapterId === "unassigned" ? null : chapterId;
     }
     if (search) {
       where.text = { contains: search, mode: "insensitive" };
@@ -54,6 +58,13 @@ export const GET = withErrorHandler(
             canonicalName: true,
             genderHint: true,
             emotionBaseline: true,
+          },
+        },
+        chapter: {
+          select: {
+            id: true,
+            chapterIndex: true,
+            title: true,
           },
         },
         segment: {
@@ -91,6 +102,7 @@ export const GET = withErrorHandler(
       id: script.id,
       bookId: script.bookId,
       segmentId: script.segmentId,
+      chapterId: script.chapterId,
       characterId: script.characterId,
       text: script.text,
       rawSpeaker: script.rawSpeaker,
@@ -100,6 +112,7 @@ export const GET = withErrorHandler(
       ttsParameters: script.ttsParameters,
       orderInSegment: script.orderInSegment,
       character: script.character,
+      chapter: script.chapter,
       segment: script.segment,
       audioFiles: script.audioFiles,
       createdAt: script.createdAt,
@@ -146,6 +159,10 @@ export const POST = withErrorHandler(
     // 检查分段是否存在
     const segment = await prisma.textSegment.findFirst({
       where: { id: segmentId, bookId },
+      select: {
+        id: true,
+        chapterId: true,
+      },
     });
 
     if (!segment) {
@@ -178,6 +195,7 @@ export const POST = withErrorHandler(
       data: {
         bookId,
         segmentId,
+        chapterId: segment.chapterId,
         characterId,
         text: text.trim(),
         rawSpeaker,
@@ -194,6 +212,13 @@ export const POST = withErrorHandler(
             canonicalName: true,
             genderHint: true,
             emotionBaseline: true,
+          },
+        },
+        chapter: {
+          select: {
+            id: true,
+            chapterIndex: true,
+            title: true,
           },
         },
         segment: {
@@ -262,6 +287,13 @@ export const PUT = withErrorHandler(
               canonicalName: true,
               genderHint: true,
               emotionBaseline: true,
+            },
+          },
+          chapter: {
+            select: {
+              id: true,
+              chapterIndex: true,
+              title: true,
             },
           },
           segment: {

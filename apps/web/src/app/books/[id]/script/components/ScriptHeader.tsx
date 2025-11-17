@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowLeft, Zap, Layers } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ScriptHeaderProps {
@@ -33,7 +33,10 @@ export function ScriptHeader({
               返回
             </Button>
             <div>
-              <h1 className="text-xl font-semibold text-gray-900">台本生成</h1>
+              <div className="flex items-center gap-2">
+                <Layers className="w-5 h-5 text-blue-600" />
+                <h1 className="text-xl font-semibold text-gray-900">章节管理 & 台本生成</h1>
+              </div>
               <p className="text-sm text-gray-500">{bookTitle}</p>
             </div>
           </div>

@@ -23,7 +23,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { IndexTTSService } from "@/lib/indextts-service";
+import { IndexTTSService, indexTTSService } from "@/lib/indextts-service";
 
 interface Speaker {
   id: string;

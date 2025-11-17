@@ -54,13 +54,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
       speakerIds.length > 0
         ? await prisma.speakerProfile.findMany({
             where: {
-              speakerId: { in: speakerIds as string[] },
+              id: { in: speakerIds.map(id => parseInt(id as string)).filter(n => !isNaN(n)) },
             },
           })
         : [];
 
     const speakerMap = new Map(
-      speakers.map((speaker) => [speaker.speakerId, speaker])
+      speakers.map((speaker) => [speaker.id.toString(), speaker])
     );
 
     return NextResponse.json({
@@ -148,14 +148,17 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       analysis = await indexTTSService.analyzeAudio(uploadResult.filename);
 
       // 创建或更新说话人档案
-      speaker = await prisma.speakerProfile.findUnique({
-        where: { speakerId: analysis.speakerId },
+      // Note: Since SpeakerProfile doesn't have a unique speakerId field,
+      // we'll search by referenceAudio or create a new profile
+      const existingSpeakers = await prisma.speakerProfile.findMany({
+        where: {
+          referenceAudio: uploadResult.filename
+        },
       });
 
-      if (!speaker) {
+      if (existingSpeakers.length === 0) {
         speaker = await prisma.speakerProfile.create({
           data: {
-            speakerId: analysis.speakerId,
             name: uploadResult.originalName.replace(/\.[^/.]+$/, ""), // 移除文件扩展名
             gender: "unknown",
             ageGroup: "adult",
@@ -163,7 +166,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
             description: description || `从音频文件 ${uploadResult.originalName} 分析得到`,
             referenceAudio: uploadResult.filename,
             confidence: analysis.confidence,
-            embeddingVector: Buffer.from(new Float32Array(analysis.embedding || [])),
+            embeddingVector: analysis.embedding ? Buffer.from(new Float32Array(analysis.embedding)) : null,
             metadata: {
               originalFilename: uploadResult.originalName,
               uploadData: {
@@ -181,6 +184,8 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
             syncedAt: new Date(),
           },
         });
+      } else {
+        speaker = existingSpeakers[0];
       }
     } catch (analysisError) {
       console.warn("Audio analysis failed, skipping speaker profile creation:", analysisError);
@@ -194,7 +199,6 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         analysis,
         speaker: speaker ? {
           id: speaker.id,
-          speakerId: speaker.speakerId,
           name: speaker.name,
           gender: speaker.gender,
           ageGroup: speaker.ageGroup,

@@ -69,11 +69,11 @@ export function Navigation({ className }: NavigationProps) {
 
 export function Header() {
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 h-[85px]">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg">
+            <div className="p-2 bg-linear-to-r from-blue-600 to-indigo-600 rounded-lg">
               <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>

@@ -14,6 +14,7 @@ export interface DialogueLine {
   pauseAfter?: number; // 对齐数据库字段 (秒)
   ttsParameters?: Record<string, any>; // 对齐数据库字段
   segmentId: string;
+  chapterId?: string | null;
   isNarration?: boolean; // 内部使用，不存数据库
 
   // 兼容性字段
@@ -357,6 +358,7 @@ ${segment.content}
             emotion: sentence.tone || "中性",
             context: "", // 新格式中没有context字段
             segmentId: segment.id,
+            chapterId: segment.chapterId,
             orderInSegment: index,
             isNarration: characterName === "旁白",
             metadata: {
@@ -500,6 +502,7 @@ ${segment.content}
           data: {
             bookId,
             segmentId,
+            chapterId: line.chapterId ?? null,
             characterId,
             text: line.text,
             tone: line.emotion,
@@ -800,6 +803,7 @@ ${brokenJson.substring(0, 3000)}
     // 调用character-recognition服务
     const recognitionResult = await characterRecognitionClient.recognize({
       text: fullText,
+      book_id: bookId,
       options: {
         enable_coreference: true,
         enable_dialogue: true,
@@ -1363,6 +1367,7 @@ ${sampleTexts}
           data: {
             bookId,
             segmentId: line.segmentId,
+            chapterId: line.chapterId ?? null,
             characterId: characterId,
             text: line.text,
             tone: line.emotion,
@@ -1425,6 +1430,7 @@ ${sampleTexts}
           data: {
             bookId,
             segmentId: line.segmentId,
+            chapterId: line.chapterId ?? null,
             characterId: characterId,
             text: line.text,
             tone: line.emotion,

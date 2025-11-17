@@ -134,9 +134,11 @@ txt2voice/
 **功能**:
 - 文件编码检测 (UTF-8, UTF-16LE, Latin1)
 - 文本清洗和格式化
-- 智能文本分段 (按段落、长度)
-- 字数统计 (支持中英文混合)
+- 章节识别（标题/Markdown/语义规则，支持前言/附录兜底）
+- 章节内智能分段 (按段落、长度)
+- 字数统计 (章节级、段落级，支持中英文混合)
 - 段落类型识别 (章节、场景、对话、普通段落)
+- 输出 `Chapter` + `TextSegment` 记录，带 `chapterOrderIndex`、rich metadata
 
 **核心接口**:
 ```typescript
@@ -160,9 +162,10 @@ interface TextSegmentData {
 **处理流程**:
 1. 检测文件编码
 2. 解码并清洗文本
-3. 智能分段 (目标 500 字，范围 400-600 字)
-4. 识别段落类型
-5. 生成数据库记录
+3. 章节检测（命中标题/降级为整书单章节），生成章节元数据
+4. 按章节执行智能分段 (目标 500 字，范围 400-600 字)
+5. 识别段落类型并写入 `chapterOrderIndex`
+6. 生成 Chapter + TextSegment 数据记录，更新书籍统计
 
 ### 2. LLM 服务模块 (LLM Service)
 
@@ -379,6 +382,7 @@ model Book {
   totalWords        Int?
   totalCharacters   Int
   totalSegments     Int
+  totalChapters     Int
   encoding          String?
   fileFormat        String?
   status            String  // uploaded, processing, processed, script_generated, audio_generated
@@ -388,11 +392,30 @@ model Book {
 }
 ```
 
+#### Chapter (章节)
+```prisma
+model Chapter {
+  id             String
+  bookId         String
+  chapterIndex   Int
+  title          String
+  rawTitle       String?
+  startPosition  Int
+  endPosition    Int
+  wordCount      Int?
+  characterCount Int?
+  totalSegments  Int
+  status         String
+  metadata       Json?
+}
+```
+
 #### TextSegment (文本段落)
 ```prisma
 model TextSegment {
   id              String
   bookId          String
+  chapterId       String?
   segmentIndex    Int
   startPosition   Int
   endPosition     Int
@@ -400,6 +423,7 @@ model TextSegment {
   wordCount       Int?
   segmentType     String?  // paragraph, dialogue, scene, chapter
   orderIndex      Int
+  chapterOrderIndex Int?
   metadata        Json?
   status          String
 }
@@ -438,6 +462,7 @@ model ScriptSentence {
   id             String
   bookId         String
   segmentId      String
+  chapterId      String?
   characterId    String?
   rawSpeaker     String?
   text           String
@@ -456,6 +481,7 @@ model AudioFile {
   bookId         String
   sentenceId     String?
   segmentId      String?
+  chapterId      String?
   filePath       String
   fileName       String?
   duration       Decimal?

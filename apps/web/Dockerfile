@@ -48,6 +48,9 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 
+# Install ffmpeg for audio merging functionality
+RUN apk add --no-cache ffmpeg
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -65,7 +68,7 @@ COPY --from=builder /app/apps/web/prisma /app/apps/web/prisma
 COPY --from=builder /app/apps/web/src/generated/prisma /app/apps/web/src/generated/prisma
 
 # Create uploads directory and set proper permissions
-RUN mkdir -p /app/apps/web/uploads && \
+RUN mkdir -p /app/apps/web/uploads/audio /app/apps/web/uploads/temp && \
     chown -R nextjs:nodejs /app/apps/web/uploads
 
 USER nextjs

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withErrorHandler, ValidationError, FileProcessingError } from '@/lib/error-handler'
-import prisma, { Prisma } from '@/lib/prisma'
-import { processFileContent, segmentText, createTextSegmentRecords, TextProcessingOptions } from '@/lib/text-processor'
-import { readFile, unlink } from 'fs/promises'
+import { withErrorHandler, ValidationError } from '@/lib/error-handler'
+import prisma from '@/lib/prisma'
+import { processFileContent, createChapterSegmentRecords, TextProcessingOptions } from '@/lib/text-processor'
+import { readFile } from 'fs/promises'
 
 // POST /api/books/[id]/process - 处理文件内容
 export const POST = withErrorHandler(async (
@@ -55,22 +55,18 @@ export const POST = withErrorHandler(async (
       }
     )
 
-    // 智能分割文本
-    const segments = segmentText(processedText.content, options)
-
-    if (segments.length === 0) {
-      throw new FileProcessingError(
-        '文本分割失败',
-        'CORRUPTED_FILE',
-        { message: '无法将文本分割为有效段落' }
-      )
-    }
-
-    // 创建数据库记录
-    const segmentRecords = createTextSegmentRecords(bookId, segments)
+    const {
+      chapterRecords,
+      segmentRecords,
+      statistics: segmentationStats
+    } = createChapterSegmentRecords(bookId, processedText.content, options)
 
     // 使用事务保存数据
     await prisma.$transaction(async (tx) => {
+      await tx.chapter.createMany({
+        data: chapterRecords
+      })
+
       // 保存文本段落
       await tx.textSegment.createMany({
         data: segmentRecords
@@ -83,6 +79,8 @@ export const POST = withErrorHandler(async (
           status: 'processed',
           totalWords: processedText.wordCount,
           totalCharacters: processedText.characterCount,
+          totalSegments: segmentRecords.length,
+          totalChapters: chapterRecords.length,
           encoding: processedText.encoding,
           fileFormat: processedText.detectedFormat
         }
@@ -93,20 +91,34 @@ export const POST = withErrorHandler(async (
     const processedBook = await prisma.book.findUnique({
       where: { id: bookId },
       include: {
+        chapters: {
+          select: {
+            id: true,
+            chapterIndex: true,
+            title: true,
+            totalSegments: true,
+            status: true,
+            metadata: true
+          },
+          orderBy: { chapterIndex: 'asc' }
+        },
         textSegments: {
           select: {
             id: true,
+            chapterId: true,
             content: true,
             wordCount: true,
             segmentType: true,
             orderIndex: true,
+            chapterOrderIndex: true,
             metadata: true
           },
           orderBy: { orderIndex: 'asc' }
         },
         _count: {
           select: {
-            textSegments: true
+            textSegments: true,
+            chapters: true
           }
         }
       }
@@ -121,19 +133,19 @@ export const POST = withErrorHandler(async (
           status: processedBook!.status,
           totalWords: processedBook!.totalWords,
           totalCharacters: processedBook!.totalCharacters,
+          totalSegments: processedBook!.totalSegments,
+          totalChapters: processedBook!.totalChapters,
           encoding: processedBook!.encoding,
           fileFormat: processedBook!.fileFormat
         },
+        chapters: processedBook!.chapters,
         segments: processedBook!.textSegments,
         statistics: {
-          totalSegments: processedBook!._count.textSegments,
-          avgWordsPerSegment: Math.round(
-            processedText.wordCount / segments.length
-          ),
-          segmentTypes: segments.reduce((acc, seg) => {
-            acc[seg.type] = (acc[seg.type] || 0) + 1
-            return acc
-          }, {} as Record<string, number>)
+          totalChapters: segmentationStats.totalChapters,
+          totalSegments: segmentationStats.totalSegments,
+          avgWordsPerSegment: segmentationStats.avgWordsPerSegment,
+          segmentTypes: segmentationStats.segmentTypes,
+          totalWords: processedText.wordCount
         }
       }
     })
@@ -157,9 +169,20 @@ export const GET = withErrorHandler(async (
   const book = await prisma.book.findUnique({
     where: { id: bookId },
     include: {
+      chapters: {
+        select: {
+          id: true,
+          chapterIndex: true,
+          title: true,
+          totalSegments: true,
+          status: true
+        },
+        orderBy: { chapterIndex: 'asc' }
+      },
       textSegments: {
         select: {
           id: true,
+          chapterId: true,
           wordCount: true,
           segmentType: true,
           orderIndex: true
@@ -168,6 +191,7 @@ export const GET = withErrorHandler(async (
       },
       _count: {
         select: {
+          chapters: true,
           textSegments: true,
           scriptSentences: true,
           audioFiles: true
@@ -181,6 +205,7 @@ export const GET = withErrorHandler(async (
   }
 
   const statistics = {
+    totalChapters: book._count.chapters,
     totalSegments: book._count.textSegments,
     totalSentences: book._count.scriptSentences,
     totalAudioFiles: book._count.audioFiles,
@@ -190,6 +215,11 @@ export const GET = withErrorHandler(async (
       const key = seg.segmentType || 'unknown'
       acc[key] = (acc[key] || 0) + 1
       return acc
+    }, {} as Record<string, number>),
+    chapterStatuses: book.chapters.reduce((acc, chapter) => {
+      const key = chapter.status || 'unknown'
+      acc[key] = (acc[key] || 0) + 1
+      return acc
     }, {} as Record<string, number>)
   }
 
@@ -197,6 +227,7 @@ export const GET = withErrorHandler(async (
     success: true,
     data: {
       status: book.status,
+      chapters: book.chapters,
       statistics,
       hasSegments: book.textSegments.length > 0,
       processingOptions: {
@@ -242,6 +273,10 @@ export const DELETE = withErrorHandler(async (
       where: { bookId: bookId }
     })
 
+    await tx.chapter.deleteMany({
+      where: { bookId: bookId }
+    })
+
     // 删除角色配置记录
     await tx.characterProfile.deleteMany({
       where: { bookId: bookId }
@@ -259,6 +294,8 @@ export const DELETE = withErrorHandler(async (
         status: 'uploaded',
         totalWords: null,
         totalCharacters: 0,
+        totalSegments: 0,
+        totalChapters: 0,
         encoding: null,
         fileFormat: null
       }
