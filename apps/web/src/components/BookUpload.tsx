@@ -88,6 +88,16 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
       setUploadStep('success')
 
       // Call success callback - let parent component handle the book addition
+      const processedBook = processResponse.data?.book
+      const mergedBook = {
+        ...book,
+        ...processedBook,
+        totalSegments: processedBook?.totalSegments ?? book.totalSegments ?? 0,
+        totalCharacters: processedBook?.totalCharacters ?? book.totalCharacters ?? 0,
+        status: processedBook?.status || book.status || 'uploaded',
+      }
+      addBook(mergedBook as any)
+
       if (onSuccess) {
         onSuccess(processResponse.data)
       }
@@ -103,6 +113,7 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
     } catch (err) {
       setUploadStep('error')
       setError(err instanceof Error ? err.message : '上传失败')
+    } finally {
       setUploading(false)
     }
   }

@@ -1,6 +1,6 @@
 """NER 人名识别模块"""
 import re
-from typing import List, Dict, Any, Tuple
+from typing import Callable, List, Dict, Any, Optional, Tuple
 from loguru import logger
 
 from ..config import settings
@@ -34,13 +34,49 @@ class NERRecognizer:
             return
         
         try:
+            import os
+            # 强制使用 TF Keras 兼容模式，避免 Keras3/TF2.16 不兼容
+            os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
+            os.environ.setdefault("KERAS_BACKEND", "tensorflow")
+
+            import tensorflow as tf  # noqa: F401
+            import keras
+            # =============================== #
+            # 兼容 Keras 3 移除 AbstractRNNCell #
+            # =============================== #
+            tf_layers = tf.keras.layers
+            if not hasattr(tf_layers, "AbstractRNNCell"):
+                tf_layers.AbstractRNNCell = tf_layers.Layer
+            if not hasattr(keras.layers, "AbstractRNNCell"):
+                keras.layers.AbstractRNNCell = keras.layers.Layer
+            # 旧版本中 HanLP 会从 keras._tf_keras 获取 AbstractRNNCell，若模块不存在则忽略
+            try:
+                import importlib
+                legacy_layers = importlib.import_module("keras._tf_keras.keras.layers")
+            except ModuleNotFoundError:
+                legacy_layers = tf_layers
+            if not hasattr(legacy_layers, "AbstractRNNCell"):
+                legacy_layers.AbstractRNNCell = legacy_layers.Layer
+
             import hanlp
             import hanlp.pretrained.ner as ner_models
-            import os
             
             # 配置 HanLP 镜像站（国内访问更快）
             os.environ['HANLP_URL'] = 'https://ftp.hankcs.com/hanlp/'
             os.environ['HANLP_VERBOSE'] = '1'  # 显示详细日志
+            mirror = os.environ['HANLP_URL']
+            # HanLP 内部使用：优先镜像源
+            if hasattr(hanlp, 'HANLP_URL'):
+                try:
+                    hanlp.HANLP_URL = mirror  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+            try:
+                from hanlp.utils import io_util
+                if hasattr(io_util, 'HANLP_URL'):
+                    io_util.HANLP_URL = mirror  # type: ignore[attr-defined]
+            except Exception:
+                pass
             
             logger.info(f"正在加载 NER 模型: {settings.NER_MODEL}")
             logger.info(f"使用镜像站: {os.environ['HANLP_URL']}")
@@ -50,6 +86,22 @@ class NERRecognizer:
             # settings.NER_MODEL = "hanlp.pretrained.ner.MSRA_NER_BERT_BASE_ZH"
             model_name = settings.NER_MODEL.split('.')[-1]  # 提取 "MSRA_NER_BERT_BASE_ZH"
             model_obj = getattr(ner_models, model_name)
+
+            # =============================== #
+            # 镜像 URL 重写（避免访问 file.hankcs.com） #
+            # =============================== #
+            def _rewrite_url(obj):
+                prefix = "https://file.hankcs.com/hanlp/"
+                if isinstance(obj, str) and obj.startswith(prefix):
+                    return obj.replace(prefix, mirror)
+                if isinstance(obj, dict) and "url" in obj and isinstance(obj["url"], str):
+                    if obj["url"].startswith(prefix):
+                        new_obj = dict(obj)
+                        new_obj["url"] = obj["url"].replace(prefix, mirror)
+                        return new_obj
+                return obj
+
+            model_obj = _rewrite_url(model_obj)
             
             # 加载完整 BERT BASE 模型
             # devices=-1 表示使用 CPU
@@ -65,7 +117,11 @@ class NERRecognizer:
             logger.debug(traceback.format_exc())
             self._initialized = False
     
-    def recognize(self, sentences: List[str]) -> List[CharacterMention]:
+    def recognize(
+        self,
+        sentences: List[str],
+        on_sentence: Optional[Callable[[int], None]] = None
+    ) -> List[CharacterMention]:
         """
         识别人名
         
@@ -79,11 +135,11 @@ class NERRecognizer:
         
         # 使用 NER 模型识别
         if self._initialized and self.model:
-            mentions.extend(self._recognize_with_model(sentences))
+            mentions.extend(self._recognize_with_model(sentences, on_sentence))
             logger.info(f"NER 模型识别完成: 共 {len(mentions)} 个人名提及")
         else:
             # 仅在 NER 模型不可用时使用规则识别作为降级方案
-            mentions.extend(self._recognize_with_rules(sentences))
+            mentions.extend(self._recognize_with_rules(sentences, on_sentence))
             logger.info(f"规则识别完成（降级模式）: 共 {len(mentions)} 个人名提及")
         
         # 去重
@@ -91,7 +147,11 @@ class NERRecognizer:
         
         return mentions
     
-    def _recognize_with_model(self, sentences: List[str]) -> List[CharacterMention]:
+    def _recognize_with_model(
+        self,
+        sentences: List[str],
+        on_sentence: Optional[Callable[[int], None]] = None
+    ) -> List[CharacterMention]:
         """使用 HanLP 本地模型识别"""
         mentions = []
         
@@ -108,6 +168,12 @@ class NERRecognizer:
                 else:
                     result = self.model(sentence)
                     self._process_model_result(result, sent_id, mentions, 0)
+
+                if on_sentence:
+                    try:
+                        on_sentence(sent_id + 1)
+                    except Exception as error:  # pragma: no cover - 仅记录回调异常
+                        logger.debug(f"NER 进度回调异常: {error}")
                             
         except Exception as e:
             logger.error(f"NER 模型识别出错: {e}")
@@ -285,7 +351,11 @@ class NERRecognizer:
         
         return persons
     
-    def _recognize_with_rules(self, sentences: List[str]) -> List[CharacterMention]:
+    def _recognize_with_rules(
+        self,
+        sentences: List[str],
+        on_sentence: Optional[Callable[[int], None]] = None
+    ) -> List[CharacterMention]:
         """使用规则识别人名"""
         mentions = []
         
@@ -313,6 +383,12 @@ class NERRecognizer:
                         end=match.end(),
                         sent_id=sent_id
                     ))
+
+            if on_sentence:
+                try:
+                    on_sentence(sent_id + 1)
+                except Exception as error:  # pragma: no cover - 仅记录回调异常
+                    logger.debug(f"规则识别进度回调异常: {error}")
         
         return mentions
     

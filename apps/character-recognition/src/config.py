@@ -93,6 +93,8 @@ class Settings(BaseSettings):
     # 缓存配置
     ENABLE_CACHE: bool = True
     CACHE_TTL: int = 3600  # 缓存有效期（秒）
+    CACHE_PREFIX: str = "charrecog"
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     # 日志配置
     LOG_LEVEL: str = "INFO"

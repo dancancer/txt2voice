@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { booksApi } from '@/lib/api'
+import { getBookStatusMeta } from '@/lib/status'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -70,81 +71,6 @@ export default function BookDetailPage() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'uploaded':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'processing':
-        return 'bg-blue-100 text-blue-800'
-      case 'processed':
-        return 'bg-green-100 text-green-800'
-      case 'analyzing':
-        return 'bg-indigo-100 text-indigo-800'
-      case 'analyzed':
-        return 'bg-teal-100 text-teal-800'
-      case 'script_generated':
-        return 'bg-purple-100 text-purple-800'
-      case 'generating_script':
-        return 'bg-orange-100 text-orange-800'
-      case 'generating_audio':
-        return 'bg-orange-100 text-orange-800'
-      case 'completed':
-        return 'bg-emerald-100 text-emerald-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'uploaded':
-        return '已上传'
-      case 'processing':
-        return '处理中'
-      case 'processed':
-        return '已处理'
-      case 'analyzing':
-        return '角色分析中'
-      case 'analyzed':
-        return '角色分析完成'
-      case 'script_generated':
-        return '台本已生成'
-      case 'generating_script':
-        return '生成台本中'
-      case 'generating_audio':
-        return '生成音频中'
-      case 'completed':
-        return '已完成'
-      default:
-        return '未知状态'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'uploaded':
-        return <FileText className="w-4 h-4" />
-      case 'processing':
-        return <Loader2 className="w-4 h-4 animate-spin" />
-      case 'processed':
-        return <CheckCircle className="w-4 h-4" />
-      case 'analyzing':
-        return <Users className="w-4 h-4 animate-pulse" />
-      case 'analyzed':
-        return <Users className="w-4 h-4" />
-      case 'script_generated':
-        return <FileText className="w-4 h-4" />
-      case 'generating_script':
-        return <Loader2 className="w-4 h-4 animate-spin" />
-      case 'generating_audio':
-        return <Loader2 className="w-4 h-4 animate-spin" />
-      case 'completed':
-        return <CheckCircle className="w-4 h-4" />
-      default:
-        return <AlertCircle className="w-4 h-4" />
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -168,6 +94,9 @@ export default function BookDetailPage() {
     )
   }
 
+  const statusMeta = getBookStatusMeta(book.status)
+  const statusIconClass = statusMeta.animated ? 'w-4 h-4 animate-spin' : 'w-4 h-4'
+
   return (
     <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -183,6 +112,10 @@ export default function BookDetailPage() {
               <CardContent className="space-y-4">
                 <div>
                   <h3 className="font-semibold text-lg mb-2">{book.title}</h3>
+                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-2 ${statusMeta.className}`}>
+                    <statusMeta.icon className={`${statusIconClass} mr-1`} />
+                    <span>{statusMeta.label}</span>
+                  </div>
                   {book.author && (
                     <p className="text-sm text-gray-600 mb-1">作者：{book.author}</p>
                   )}

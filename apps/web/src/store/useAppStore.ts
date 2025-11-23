@@ -1,27 +1,7 @@
 import { create } from 'zustand'
+import type { Book } from '@/types/book'
 
-export interface Book {
-  id: string
-  title: string
-  author?: string
-  originalFilename?: string
-  fileSize?: number
-  totalSegments: number
-  totalCharacters: number
-  status: 'uploaded' | 'uploading' | 'processing' | 'processed' | 'script_generated' | 'generating_audio' | 'completed'
-  createdAt: string
-  updatedAt: string
-  characterProfiles?: any[]
-  textSegments?: any[]
-  scriptSentences?: any[]
-  audioFiles?: any[]
-  metadata?: Record<string, any>
-  _count?: {
-    segments: number
-    characters: number
-    audioFiles: number
-  }
-}
+type BooksUpdater = Book[] | ((prev: Book[]) => Book[])
 
 interface AppState {
   // TTS 相关状态
@@ -46,7 +26,7 @@ interface AppState {
   setVoice: (voice: string) => void
 
   // Books Actions
-  setBooks: (books: Book[]) => void
+  setBooks: (books: BooksUpdater) => void
   setLoading: (loading: boolean) => void
   setSelectedBook: (book: Book | null) => void
   setUploading: (uploading: boolean) => void
@@ -79,7 +59,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   setVoice: (voice) => set({ voice }),
 
   // Books Actions
-  setBooks: (books) => set({ books }),
+  setBooks: (books) => set((state) => ({
+    books: typeof books === 'function'
+      ? (books as (prev: Book[]) => Book[])(state.books)
+      : books
+  })),
   setLoading: (isLoading) => set({ isLoading }),
   setSelectedBook: (selectedBook) => set({ selectedBook }),
   setUploading: (isUploading) => set({ isUploading }),

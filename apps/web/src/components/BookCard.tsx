@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Book } from '@/store/useAppStore'
+import type { Book } from '@/types/book'
 import { booksApi, formatFileSize, formatDate, getStatusColor, getStatusText } from '@/lib/api'
 import { Button } from './ui/button'
 import {

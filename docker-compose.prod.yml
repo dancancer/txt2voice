@@ -43,6 +43,7 @@ services:
 
   # Character Recognition Service
   character-recognition:
+    platform: ${CHARACTER_RECOGNITION_PLATFORM:-linux/arm64/v8}
     build:
       context: .
       dockerfile: apps/character-recognition/Dockerfile
@@ -54,6 +55,7 @@ services:
       DEBUG: ${DEBUG:-False}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.80}
+      HANLP_URL: https://ftp.hankcs.com/hanlp/
     volumes:
       - character_models:/root/.hanlp  # 缓存 HanLP 模型
       - sentence_models:/root/.cache  # 缓存句向量模型

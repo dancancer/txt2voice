@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { withErrorHandler, ValidationError } from '@/lib/error-handler'
+import { withErrorHandler } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { saveRecognitionResults } from '@/lib/character-recognition-persistence'
+import { finalizeCharacterRecognition } from '@/lib/character-recognition-workflow'
+import { mergeTaskData, updateProcessingTaskProgress as updateTaskProgress } from '@/lib/processing-task-utils'
 
 /**
  * POST /api/books/[id]/characters/recognize/callback
@@ -15,7 +16,7 @@ export const POST = withErrorHandler(async (
   const { id: bookId } = await params
   const body = await request.json()
 
-  const { task_id: externalTaskId, status, result, error } = body
+  const { task_id: externalTaskId, status, result, error, meta = {} } = body
 
   logger.info('收到识别回调', {
     bookId,
@@ -51,9 +52,30 @@ export const POST = withErrorHandler(async (
   }
 
   try {
+    const callbackProgress = typeof meta.progress === 'number' ? meta.progress : undefined
+    const callbackMessage = typeof meta.message === 'string' ? meta.message : undefined
+
+    if (callbackProgress !== undefined) {
+      await updateTaskProgress(task.id, Math.min(callbackProgress, 99), callbackMessage || '识别中')
+    }
+
+    if (typeof meta.processed_sentences === 'number' || typeof meta.total_sentences === 'number' || typeof meta.processedSentences === 'number' || typeof meta.totalSentences === 'number') {
+      const taskData = await mergeTaskData(task.id, {
+        metadata: {
+          processedSentences: meta.processed_sentences ?? meta.processedSentences ?? null,
+          totalSentences: meta.total_sentences ?? meta.totalSentences ?? null
+        }
+      })
+
+      await prisma.processingTask.update({
+        where: { id: task.id },
+        data: { taskData }
+      })
+    }
+
     if (status === 'completed' && result) {
       // 处理成功结果
-      await handleRecognitionComplete(bookId, task.id, result)
+      await finalizeCharacterRecognition(bookId, task.id, result)
       
       return NextResponse.json({
         success: true,
@@ -96,53 +118,3 @@ export const POST = withErrorHandler(async (
     throw error
   }
 })
-
-/**
- * 处理识别完成（复用 recognize/route.ts 中的逻辑）
- */
-async function handleRecognitionComplete(bookId: string, taskId: string, recognitionResult: any): Promise<void> {
-  try {
-    // 保存识别结果到数据库
-    await saveRecognitionResults(bookId, recognitionResult)
-
-    // 更新书籍状态和元数据
-    await prisma.book.update({
-      where: { id: bookId },
-      data: {
-        status: 'analyzed',
-        metadata: {
-          recognitionCompletedAt: new Date().toISOString(),
-          characterCount: recognitionResult.characters.length,
-          totalMentions: recognitionResult.statistics.total_mentions,
-          totalDialogues: recognitionResult.statistics.total_dialogues,
-          processingTime: recognitionResult.statistics.processing_time
-        }
-      }
-    })
-
-    // 标记任务完成
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        status: 'completed',
-        progress: 100,
-        completedAt: new Date(),
-        taskData: {
-          message: '角色识别完成',
-          result: {
-            characterCount: recognitionResult.characters.length,
-            statistics: recognitionResult.statistics
-          }
-        }
-      }
-    })
-
-    logger.info('角色识别完成（回调）', {
-      bookId,
-      characterCount: recognitionResult.characters.length
-    })
-  } catch (error) {
-    logger.error('处理识别结果失败', error)
-    throw error
-  }
-}

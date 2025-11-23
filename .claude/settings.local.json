@@ -36,7 +36,16 @@
       "Bash(docker-compose up:*)",
       "Bash(open:*)",
       "Bash(npm test:*)",
-      "Bash(npx ts-node:*)"
+      "Bash(npx ts-node:*)",
+      "Bash(python3:*)",
+      "Bash(chmod:*)",
+      "Bash(docker restart:*)",
+      "Bash(docker rm:*)",
+      "Bash(redis-cli:*)",
+      "Bash(xargs -I {} sh -c 'docker exec txt2voice-redis redis-cli GET {} 2>/dev/null | grep -q \"\"\"\"sample-fixed-test\"\"\"\" && echo {}')",
+      "Bash(while read key)",
+      "Bash(do echo \"=== $key ===\" docker exec txt2voice-redis redis-cli --raw GET \"$key\")",
+      "Bash(./start.sh)"
     ],
     "deny": [],
     "ask": []

@@ -6,7 +6,8 @@ import { booksApi } from "@/lib/api";
 import { getBookScripts, getBookSegments } from "@/lib/book-api";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScriptSentence, CharacterProfile } from "@/lib/types";
+import { ScriptSentence } from "@/lib/types";
+import type { CharacterProfileSummary } from "@/types/book";
 import {
   SegmentStatus,
   ScriptNavigationNode,
@@ -30,7 +31,7 @@ export default function ScriptGenerationPage() {
   const SEGMENT_FETCH_PAGE_SIZE = 200;
   const [book, setBook] = useState<any>(null);
   const [segments, setSegments] = useState<any[]>([]);
-  const [characters, setCharacters] = useState<CharacterProfile[]>([]);
+  const [characters, setCharacters] = useState<CharacterProfileSummary[]>([]);
   const [scriptSentences, setScriptSentences] = useState<ScriptSentence[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

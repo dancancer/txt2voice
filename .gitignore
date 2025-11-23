@@ -66,3 +66,9 @@ audio/
 apps/*/prisma/migrations/
 !apps/*/prisma/migrations/.gitkeep
 docs/test.txt
+
+.venv-macos/
+.venv-macos-tf210/
+apps/character-recognition/.venv-macos/**/*
+apps/character-recognition/.venv-macos-tf210/**/*
+characters.txt

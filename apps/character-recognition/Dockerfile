@@ -36,5 +36,9 @@ ENV PORT=8001
 ENV HANLP_URL=https://ftp.hankcs.com/hanlp/
 ENV HANLP_VERBOSE=1
 
+# 入口脚本（按架构开启 Apple Silicon 数学加速）
+RUN chmod +x entrypoint.sh
+ENTRYPOINT ["./entrypoint.sh"]
+
 # 启动命令
 CMD ["python", "main.py"]

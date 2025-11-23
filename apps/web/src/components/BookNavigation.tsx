@@ -20,12 +20,6 @@ const bookTabs = [
   },
   {
     id: "segments",
-    name: "文本段落",
-    href: "/segments",
-    icon: FileText,
-  },
-  {
-    id: "characters",
     name: "角色配置(测试)",
     href: "/characters",
     icon: Users,

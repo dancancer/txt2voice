@@ -299,13 +299,9 @@ export default function AudioPlaybackPage() {
                   <Volume2 className="w-5 h-5 mr-2" />
                   生成音频
                 </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => router.push(`/books/${bookId}/segments`)}
-                  size="lg"
-                >
+                <Button variant="outline" onClick={() => router.push(`/books/${bookId}`)} size="lg">
                   <FileText className="w-5 h-5 mr-2" />
-                  查看文本
+                  返回书籍
                 </Button>
               </div>
             </CardContent>
@@ -607,13 +603,9 @@ export default function AudioPlaybackPage() {
                     <Settings className="w-4 h-4 mr-2" />
                     重新生成
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => router.push(`/books/${bookId}/segments`)}
-                  >
+                  <Button variant="outline" className="w-full" onClick={() => router.push(`/books/${bookId}`)}>
                     <FileText className="w-4 h-4 mr-2" />
-                    查看文本
+                    返回书籍
                   </Button>
                   <Button
                     variant="outline"

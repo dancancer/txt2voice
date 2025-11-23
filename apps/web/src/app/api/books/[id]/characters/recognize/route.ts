@@ -4,7 +4,7 @@ import prisma from '@/lib/prisma'
 import { characterRecognitionClient, CharacterRecognitionError } from '@/lib/character-recognition-client'
 import { mergeTaskData, updateProcessingTaskProgress as updateTaskProgress } from '@/lib/processing-task-utils'
 import { logger } from '@/lib/logger'
-import { saveRecognitionResults } from '@/lib/character-recognition-persistence'
+import { finalizeCharacterRecognition } from '@/lib/character-recognition-workflow'
 
 /**
  * POST /api/books/[id]/characters/recognize
@@ -168,8 +168,11 @@ async function runCharacterRecognition(bookId: string, taskId: string): Promise<
     await updateTaskProgress(taskId, 20, '提交异步识别任务')
 
     // 构建回调URL
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || 'http://localhost:3000'
-    const callbackUrl = `${baseUrl}/api/books/${bookId}/characters/recognize/callback`
+    const callbackBaseUrl = process.env.CHARACTER_RECOGNITION_CALLBACK_BASE_URL
+      || process.env.APP_URL
+      || process.env.NEXT_PUBLIC_APP_URL
+      || 'http://localhost:3000'
+    const callbackUrl = `${callbackBaseUrl}/api/books/${bookId}/characters/recognize/callback`
 
     // 调用character-recognition服务（异步模式）
     const taskResult = await characterRecognitionClient.recognizeAsync({
@@ -267,23 +270,76 @@ async function pollTaskStatus(bookId: string, taskId: string, externalTaskId: st
       // 查询外部任务状态
       const externalTask = await characterRecognitionClient.getTaskStatus(externalTaskId)
 
-      // 更新进度
-      if (externalTask.progress) {
-        const progress = Math.min(30 + Math.floor(externalTask.progress * 0.4), 70)
-        await updateTaskProgress(taskId, progress, externalTask.message || '识别中')
+      const localProgress = localTask?.progress ?? 0
+      const externalProgress = typeof externalTask.progress === 'number'
+        ? externalTask.progress
+        : undefined
+      const hasSentenceCounters = typeof externalTask.processed_sentences === 'number'
+        && typeof externalTask.total_sentences === 'number'
+        && externalTask.total_sentences > 0
+      const sentenceProgress = hasSentenceCounters
+        ? 10 + Math.floor((externalTask.processed_sentences / externalTask.total_sentences) * 50)
+        : undefined
+
+      const nextProgress = Math.max(localProgress, externalProgress ?? 0, sentenceProgress ?? 0)
+      const progressMessage = externalTask.message
+        || (hasSentenceCounters
+          ? `逐句识别中 (${externalTask.processed_sentences}/${externalTask.total_sentences})`
+          : '识别中')
+
+      if (nextProgress > localProgress) {
+        await updateTaskProgress(taskId, Math.min(nextProgress, 99), progressMessage)
+      }
+
+      if (
+        externalTask.result
+        || typeof externalTask.processed_sentences === 'number'
+        || typeof externalTask.total_sentences === 'number'
+      ) {
+        const taskData = await mergeTaskData(taskId, {
+          metadata: {
+            processedSentences: externalTask.processed_sentences ?? null,
+            totalSentences: externalTask.total_sentences ?? null
+          }
+        })
+
+        await prisma.processingTask.update({
+          where: { id: taskId },
+          data: { taskData }
+        })
       }
 
       // 检查是否完成
       if (externalTask.status === 'completed' && externalTask.result) {
         logger.info(`外部任务 ${externalTaskId} 完成，处理结果`)
-        await handleRecognitionComplete(bookId, taskId, externalTask.result)
+        await finalizeCharacterRecognition(bookId, taskId, externalTask.result)
         return
       }
 
       // 检查是否失败
       if (externalTask.status === 'failed') {
         logger.error(`外部任务 ${externalTaskId} 失败: ${externalTask.error}`)
-        throw new Error(externalTask.error || '识别任务失败')
+
+        const errorMessage = externalTask.error || '识别任务失败'
+
+        await prisma.processingTask.update({
+          where: { id: taskId },
+          data: {
+            status: 'failed',
+            errorMessage,
+            taskData: {
+              message: '识别失败',
+              error: errorMessage
+            }
+          }
+        })
+
+        await prisma.book.update({
+          where: { id: bookId },
+          data: { status: 'processed' }
+        })
+
+        return
       }
 
     } catch (error) {
@@ -331,62 +387,4 @@ async function pollTaskStatus(bookId: string, taskId: string, externalTaskId: st
     where: { id: bookId },
     data: { status: 'processed' }
   })
-}
-
-/**
- * 处理识别完成
- */
-async function handleRecognitionComplete(bookId: string, taskId: string, recognitionResult: any): Promise<void> {
-  try {
-    await updateTaskProgress(taskId, 70, '保存识别结果')
-
-    // 保存识别结果到数据库
-    await saveRecognitionResults(bookId, recognitionResult)
-
-    await updateTaskProgress(taskId, 90, '更新书籍状态')
-
-    // 更新书籍状态和元数据
-    await prisma.book.update({
-      where: { id: bookId },
-      data: {
-        status: 'analyzed',
-        metadata: {
-          recognitionCompletedAt: new Date().toISOString(),
-          characterCount: recognitionResult.characters.length,
-          totalMentions: recognitionResult.statistics.total_mentions,
-          totalDialogues: recognitionResult.statistics.total_dialogues,
-          processingTime: recognitionResult.statistics.processing_time
-        }
-      }
-    })
-
-    await updateTaskProgress(taskId, 100, '识别完成')
-
-    // 标记任务完成
-    const taskData = await mergeTaskData(taskId, {
-      message: '角色识别完成',
-      result: {
-        characterCount: recognitionResult.characters.length,
-        statistics: recognitionResult.statistics
-      }
-    })
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        status: 'completed',
-        completedAt: new Date(),
-        taskData
-      }
-    })
-
-    logger.info('角色识别完成', {
-      bookId,
-      characterCount: recognitionResult.characters.length,
-      processingTime: recognitionResult.statistics.processing_time
-    })
-  } catch (error) {
-    logger.error('处理识别结果失败', error)
-    throw error
-  }
 }

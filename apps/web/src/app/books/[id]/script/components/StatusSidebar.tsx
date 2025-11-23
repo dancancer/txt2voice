@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { FileText, User, Zap, CheckCircle } from "lucide-react";
+import { User, Zap, CheckCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface StatusSidebarProps {
@@ -68,14 +68,6 @@ export function StatusSidebar({
           <CardTitle>快捷操作</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => router.push(`/books/${bookId}/segments`)}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            查看文本段落
-          </Button>
           <Button
             variant="outline"
             className="w-full"

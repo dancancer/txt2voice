@@ -9,19 +9,20 @@ from ..models.character import Character
 
 class DialogueAttributor:
     """对话归因器"""
-    
+
     def __init__(self):
         # 构建触发词正则
         triggers = '|'.join(settings.DIALOGUE_TRIGGERS)
-        
-        # 模式1: "...", 人名 + 触发词
-        self.pattern1 = re.compile(rf'"([^"]+)"[，,]?\s*([^，,。！？]+?)({triggers})')
-        
-        # 模式2: 人名 + 触发词 + ":"..."
-        self.pattern2 = re.compile(rf'([^，,。！？]+?)({triggers})[：:]"([^"]+)"')
-        
-        # 模式3: "..." —— 人名
-        self.pattern3 = re.compile(r'"([^"]+)"[，,]?\s*——\s*([^，,。！？]+)')
+
+        # 模式1: "...", 人名 + 触发词（支持中文引号，更精确的说话者匹配）
+        # 说话者应该在引号后面，紧跟触发词，不应该跨越太多字符
+        self.pattern1 = re.compile(rf'["「"]([^"」"]+)["」"][，,]?\s*(.{{0,15}}?)({triggers})')
+
+        # 模式2: 人名 + 触发词 + ":"..."（支持中文引号）
+        self.pattern2 = re.compile(rf'(.{{1,15}}?)({triggers})[：:]["「"]([^"」"]+)["」"]')
+
+        # 模式3: "..." —— 人名（支持中文引号）
+        self.pattern3 = re.compile(r'["「"]([^"」"]+)["」"][，,]?\s*——\s*(.{{1,15}}?)(?=[，,。！？\s]|$)')
     
     def attribute_dialogues(
         self,

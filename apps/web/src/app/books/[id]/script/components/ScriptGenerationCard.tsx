@@ -63,14 +63,11 @@ export function ScriptGenerationCard({
           <div className="text-center py-8">
             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              需要先处理文本段落
+              需要先完成文本处理
             </h3>
-            <p className="text-gray-600 mb-4">请先在文本段落页面处理书籍内容</p>
-            <Button
-              onClick={() => router.push(`/books/${bookId}/segments`)}
-              variant="outline"
-            >
-              查看文本段落
+            <p className="text-gray-600 mb-4">请先在书籍概览处理文件内容，完成分段</p>
+            <Button onClick={() => router.push(`/books/${bookId}`)} variant="outline">
+              返回书籍概览
             </Button>
           </div>
         ) : !hasScriptSentences ? (

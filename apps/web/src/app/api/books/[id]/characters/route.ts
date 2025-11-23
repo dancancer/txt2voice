@@ -40,10 +40,9 @@ export const GET = withErrorHandler(
       ];
     }
 
-    // 获取总数
-    const total = await prisma.characterProfile.count({ where });
 
-    // 获取角色列表（获取所有数据，然后在内存中排序）
+
+    // 获取所有角色列表（获取所有数据，然后在内存中全局排序）
     const characters = await prisma.characterProfile.findMany({
       where,
       include: {
@@ -88,8 +87,6 @@ export const GET = withErrorHandler(
           },
         },
       },
-      skip: offset,
-      take: limit * 2, // 获取更多数据以便在内存中正确排序
     });
 
     // 解析 characteristics.description 中的提及数和对话数，若没有则回退到字段值
@@ -134,8 +131,8 @@ export const GET = withErrorHandler(
       return a.canonicalName.localeCompare(b.canonicalName);
     });
 
-    // 取前 limit 条记录
-    const sortedCharacters = charactersWithParsedData.slice(0, limit);
+    // 分页
+    const sortedCharacters = charactersWithParsedData.slice(offset, offset + limit);
 
     // 格式化返回数据
     const formattedCharacters = sortedCharacters.map((character) => ({
@@ -169,7 +166,7 @@ export const GET = withErrorHandler(
 
     const result = createPaginationResult(
       formattedCharacters,
-      total,
+      characters.length,
       page,
       limit
     );

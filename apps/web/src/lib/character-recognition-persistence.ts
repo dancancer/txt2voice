@@ -56,8 +56,14 @@ const collectAliasCandidates = (
   aliasMap: Record<string, string>,
   canonicalName: string
 ): string[] => {
+  // 安全地收集别名，确保都是字符串类型
   const aliases = new Set(
-    Array.isArray(character.aliases) ? character.aliases.filter(Boolean).map((alias) => alias!.trim()) : []
+    Array.isArray(character.aliases)
+      ? character.aliases
+          .filter((alias): alias is string => typeof alias === 'string' && alias.length > 0)
+          .map((alias) => alias.trim())
+          .filter(Boolean)
+      : []
   )
 
   const possibleTargets = new Set(
@@ -176,7 +182,10 @@ export async function saveRecognitionResults(
       }
 
       const existingAliases = new Set(
-        (existingProfile?.aliases ?? []).map((alias) => alias.alias.trim()).filter(Boolean)
+        (existingProfile?.aliases ?? [])
+          .map((alias) => alias.alias)
+          .filter((alias): alias is string => typeof alias === 'string' && alias.length > 0)
+          .map((alias) => alias.trim())
       )
       const aliasCandidates = collectAliasCandidates(character, aliasMap, canonicalName)
       const newAliases = aliasCandidates.filter((alias) => !existingAliases.has(alias))

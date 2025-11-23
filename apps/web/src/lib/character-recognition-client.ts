@@ -54,6 +54,16 @@ export interface RecognitionResponse {
   statistics: RecognitionStatistics
 }
 
+export interface CharacterRecognitionTaskStatus {
+  status: string
+  progress?: number
+  message?: string
+  result?: any
+  error?: string
+  processed_sentences?: number
+  total_sentences?: number
+}
+
 // 错误类型
 export class CharacterRecognitionError extends Error {
   constructor(
@@ -182,13 +192,20 @@ export class CharacterRecognitionClient {
         url.searchParams.set('callback_url', callbackUrl)
       }
 
+      // 添加超时控制（30秒，因为只是提交任务，应该很快返回）
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
+
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(request)
+        body: JSON.stringify(request),
+        signal: controller.signal
       })
+
+      clearTimeout(timeoutId)
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -200,13 +217,21 @@ export class CharacterRecognitionClient {
       }
 
       const result = await response.json()
-      
+
       logger.info('Async task submitted', { taskId: result.task_id })
-      
+
       return result
     } catch (error) {
       if (error instanceof CharacterRecognitionError) {
         throw error
+      }
+
+      // 处理超时错误
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new CharacterRecognitionError(
+          'Timeout submitting async task (30s)',
+          'TIMEOUT'
+        )
       }
 
       throw new CharacterRecognitionError(
@@ -219,7 +244,7 @@ export class CharacterRecognitionClient {
   /**
    * 获取异步任务状态
    */
-  async getTaskStatus(taskId: string): Promise<any> {
+  async getTaskStatus(taskId: string): Promise<CharacterRecognitionTaskStatus> {
     try {
       const response = await fetch(`${this.baseUrl}/api/recognize/async/${taskId}`)
 
@@ -237,7 +262,7 @@ export class CharacterRecognitionClient {
       }
 
       const result = await response.json()
-      return result.data
+      return result.data as CharacterRecognitionTaskStatus
     } catch (error) {
       if (error instanceof CharacterRecognitionError) {
         throw error

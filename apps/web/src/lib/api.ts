@@ -1,4 +1,5 @@
-import { Book } from '@/store/useAppStore'
+import type { Book, BookStatus } from '@/types/book'
+import { getBookStatusMeta } from './status'
 
 const API_BASE = '/api/books'
 
@@ -170,28 +171,10 @@ export const formatDate = (dateString: string): string => {
   })
 }
 
-export const getStatusColor = (status: Book['status']): string => {
-  const colors = {
-    uploading: 'bg-slate-100 text-slate-800',
-    uploaded: 'bg-gray-100 text-gray-800',
-    processing: 'bg-blue-100 text-blue-800',
-    processed: 'bg-green-100 text-green-800',
-    script_generated: 'bg-purple-100 text-purple-800',
-    generating_audio: 'bg-orange-100 text-orange-800',
-    completed: 'bg-emerald-100 text-emerald-800',
-  }
-  return colors[status] || 'bg-gray-100 text-gray-800'
-}
+export const getStatusColor = (status: BookStatus): string =>
+  getBookStatusMeta(status).className
 
-export const getStatusText = (status: Book['status']): string => {
-  const texts = {
-    uploading: '上传中',
-    uploaded: '已上传',
-    processing: '处理中',
-    processed: '已处理',
-    script_generated: '脚本已生成',
-    generating_audio: '生成音频中',
-    completed: '已完成',
-  }
-  return texts[status] || '未知状态'
-}
+export const getStatusText = (status: BookStatus): string =>
+  getBookStatusMeta(status).label
+
+export { getBookStatusMeta }

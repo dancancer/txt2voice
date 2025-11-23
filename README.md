@@ -252,3 +252,11 @@ docker-compose down
 docker system prune -a
 docker-compose build --no-cache
 ```
+
+### 原生运行角色识别服务
+
+cd apps/character-recognition
+source .venv-macos-tf210/bin/activate
+export HANLP_URL=https://ftp.hankcs.com/hanlp/
+export TF_USE_LEGACY_KERAS=1
+python main.py

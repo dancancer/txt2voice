@@ -20,9 +20,13 @@ export const UpdateBookSchema = z.object({
     'uploaded',
     'processing',
     'processed',
+    'analyzing',
+    'analyzed',
+    'generating_script',
     'script_generated',
     'generating_audio',
     'completed',
+    'error',
   ]).optional(),
 })
 

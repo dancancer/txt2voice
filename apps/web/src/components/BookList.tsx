@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { Book } from '@/store/useAppStore'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Book } from '@/types/book'
 import { useAppStore } from '@/store/useAppStore'
 import { booksApi } from '@/lib/api'
 import { BookCard } from './BookCard'
@@ -48,27 +48,19 @@ export function BookList({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
+  const initialLoadRef = useRef(false)
 
-  // Load books on mount and when component re-renders with new key
-  const loadBooks = useCallback(async (reset = false) => {
+  // Load books; reset option replaces existing list
+  const loadBooks = useCallback(async (pageToLoad: number, reset = false) => {
     try {
       setLoading(true)
       setError(null)
 
-      if (reset) {
-        setPage(1)
-        setBooks([])
-      }
-
-      const response = await booksApi.getBooks(reset ? 1 : page, 10)
+      const response = await booksApi.getBooks(pageToLoad, 10)
       const newBooks = response.data
 
-      if (reset) {
-        setBooks(newBooks)
-      } else {
-        setBooks([...books, ...newBooks])
-      }
-
+      setBooks(prev => reset ? newBooks : [...prev, ...newBooks])
+      setPage(pageToLoad)
       setHasMore(newBooks.length === 10)
 
     } catch (err) {
@@ -76,10 +68,12 @@ export function BookList({
     } finally {
       setLoading(false)
     }
-  }, [books, page, setBooks, setError, setLoading])
+  }, [setBooks, setError, setLoading])
 
   useEffect(() => {
-    loadBooks(true) // Always reset and reload when component mounts
+    if (initialLoadRef.current) return
+    initialLoadRef.current = true
+    loadBooks(1, true) // Always reset and reload when component mounts
   }, [loadBooks])
 
   // Handle book deletion
@@ -137,13 +131,13 @@ export function BookList({
     })
 
   const handleRefresh = () => {
-    loadBooks(true)
+    loadBooks(1, true)
   }
 
   const handleLoadMore = () => {
     if (!isLoading && hasMore) {
-      setPage(prev => prev + 1)
-      loadBooks()
+      const nextPage = page + 1
+      loadBooks(nextPage)
     }
   }
 

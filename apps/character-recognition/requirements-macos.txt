@@ -1,3 +1,6 @@
+# Mac (Apple Silicon) native运行依赖，启用 Metal/MPS 加速
+# 与 Docker/ Linux 版分开，避免架构不匹配的轮子
+
 # Web Framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
@@ -5,19 +8,21 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 
-# NLP Core - 完整安装（包含 TensorFlow）
-hanlp[full]==2.1.0b54  # 完整版本，支持所有模型
-tensorflow==2.10.1  # HanLP 兼容版本，避免 AbstractRNNCell 问题
-transformers==4.35.2  # 兼容 TensorFlow 2.10.1 和 sentence-transformers
-safetensors==0.4.1  # 修复 safe_open 迭代问题
+# NLP Core - Mac 版
+hanlp[full]==2.1.0b54
+tensorflow-macos==2.16.1
+tensorflow-metal==1.1.0
+transformers==4.35.2
+safetensors==0.4.1
 
 # Text Embedding & Similarity
 sentence-transformers==2.3.1
 text2vec==1.2.1
+# 显式选择支持 MPS 的 torch 版本
+torch==2.3.1
 
 # Vector Search
 faiss-cpu==1.7.4
-# GPU 版本: faiss-gpu==1.7.4
 
 # Text Processing
 jieba==0.42.1
