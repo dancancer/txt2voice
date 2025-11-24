@@ -5,15 +5,12 @@ pydantic==2.5.0
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 
-# NLP Core - 完整安装（包含 TensorFlow）
-hanlp[full]==2.1.0b54  # 完整版本，支持所有模型
-tensorflow==2.10.1  # HanLP 兼容版本，避免 AbstractRNNCell 问题
-transformers==4.35.2  # 兼容 TensorFlow 2.10.1 和 sentence-transformers
-safetensors==0.4.1  # 修复 safe_open 迭代问题
+# NLP Core - 基于 Jieba 的轻量级方案
+jieba==0.42.1  # 主要的中文分词和命名实体识别库
 
-# Text Embedding & Similarity
-sentence-transformers==2.3.1
-text2vec==1.2.1
+# 可选：如需更高级的语义相似度计算，可保留以下依赖
+sentence-transformers==2.3.1  # 可选：语义向量计算
+text2vec==1.2.1  # 可选：文本相似度计算
 
 # Vector Search
 faiss-cpu==1.7.4

@@ -53,16 +53,14 @@
 
 ## 3. 角色分析 Agent
 
-**实现**: `src/lib/script-generator.ts` (策略编排), `apps/character-recognition` (主要实现), `src/lib/llm-service.ts` (后备实现)
+**实现**: `apps/web/src/lib/character-recognition-client.ts`, `apps/web/src/lib/character-recognition-workflow.ts`
 
 **策略**:
-系统采用 **主要-后备** 策略进行角色识别：
-1.  **主要方法**: 优先调用 `character-recognition` (独立的 Python 服务)，该服务使用 HanLP 等专业 NLP 库，精度高。
-2.  **后备方法**: 如果 Python 服务不可用，则自动降级，使用 `llm-service` 通过通用 LLM (如 DeepSeek, OpenAI) 进行识别。
+系统完全依赖托管的 LLM （默认 Gemini）执行角色识别，取消了 Python 服务。所有识别任务通过任务系统排队执行，并在 Prisma 中记录结果，保持和其他 Agent 完整一致的状态流。
 
-**工作流程 (LLM - 后备)**:
+**工作流程**:
 ```
-文本采样 → LLM分析 → 结果解析 → 角色创建 → 别名生成
+拼接文本段落 → LLM 分析 → JSON 解析与校验 → 角色/别名保存 → 统计入库
 ```
 
 **识别内容**:
@@ -73,9 +71,9 @@
 - 重要程度
 
 **特殊处理**:
-- 长文本分块 (最大8000字符)
-- 角色信息合并
-- 默认角色创建 (旁白、男主角、女主角)
+- 最大字符数限制 (默认 20,000) + 裁剪
+- 基于 LLM 输出对角色进行归一化
+- 默认创建旁白/男女主等兜底角色
 
 ## 4. 台本生成 Agent
 
@@ -129,7 +127,7 @@
 1. 用户上传 → 任务协调Agent创建Book和任务
 2. 文本处理Agent → 章节识别、逐章分段并保存 Chapter + TextSegment
 3. 任务协调Agent → 创建角色分析任务（可按章节采样）
-4. 角色分析Agent → 优先使用Python服务，不可用时降级至LLM识别角色
+4. 角色分析Agent → 直接调用 LLM 服务识别角色
 5. 任务协调Agent → 创建台本生成任务（书籍/章节/段落粒度）
 6. 台本生成Agent → 逐段生成台词并写入 chapterId
 7. 用户配置声音 → 绑定角色声音，可按章节批量操作

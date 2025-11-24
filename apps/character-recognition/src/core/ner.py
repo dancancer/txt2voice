@@ -1,6 +1,7 @@
-"""NER 人名识别模块"""
+"""基于 Jieba 的 NER 人名识别模块"""
 import re
 from typing import Callable, List, Dict, Any, Optional, Tuple
+from collections import defaultdict
 from loguru import logger
 
 from ..config import settings
@@ -8,12 +9,25 @@ from ..models.character import CharacterMention
 
 
 class NERRecognizer:
-    """NER 人名识别器"""
-    
+    """基于 Jieba 的人名识别器"""
+
     def __init__(self):
         self.model = None
         self._initialized = False
-        
+
+        # 动态角色名字典（运行时发现的角色名）
+        self.discovered_names = set()
+
+        # 通用中文人名模式识别规则
+        self.name_patterns = [
+            # 中文姓氏 + 名字模式
+            r'^[赵钱孙李周吴郑王冯陈褚卫蒋沈韩杨朱秦尤许何吕施张孔曹严华金魏陶姜戚谢邹喻柏水窦章云苏潘葛奚范彭郎鲁韦昌马苗凤花方俞任袁柳唐罗薛伍余米贝姚孟顾尹姜邵湛汪祁毛禹狄米贝明臧计伏成戴谈宋茅庞熊纪舒屈项祝董梁杜][一-龯]{1,2}$',
+            # 常见称呼后缀模式
+            r'^[一-龯]{1,3}[娘父母儿子女哥姐弟妹][一-龯]*$',
+            # 重复姓氏模式（如：李李、王王）
+            r'^([赵钱孙李周吴郑王冯陈])\1$',
+        ]
+
         # 中文姓氏（常见200个）
         self.common_surnames = set([
             "赵", "钱", "孙", "李", "周", "吴", "郑", "王", "冯", "陈",
@@ -27,409 +41,196 @@ class NERRecognizer:
             "贝", "明", "臧", "计", "伏", "成", "戴", "谈", "宋", "茅",
             "庞", "熊", "纪", "舒", "屈", "项", "祝", "董", "梁", "杜",
         ])
-    
+
     def initialize(self):
-        """延迟初始化 HanLP 本地模型"""
+        """初始化 Jieba 分词器"""
         if self._initialized:
             return
-        
+
         try:
-            import os
-            # 强制使用 TF Keras 兼容模式，避免 Keras3/TF2.16 不兼容
-            os.environ.setdefault("TF_USE_LEGACY_KERAS", "1")
-            os.environ.setdefault("KERAS_BACKEND", "tensorflow")
+            import jieba
+            import jieba.posseg as pseg
 
-            import tensorflow as tf  # noqa: F401
-            import keras
-            # =============================== #
-            # 兼容 Keras 3 移除 AbstractRNNCell #
-            # =============================== #
-            tf_layers = tf.keras.layers
-            if not hasattr(tf_layers, "AbstractRNNCell"):
-                tf_layers.AbstractRNNCell = tf_layers.Layer
-            if not hasattr(keras.layers, "AbstractRNNCell"):
-                keras.layers.AbstractRNNCell = keras.layers.Layer
-            # 旧版本中 HanLP 会从 keras._tf_keras 获取 AbstractRNNCell，若模块不存在则忽略
-            try:
-                import importlib
-                legacy_layers = importlib.import_module("keras._tf_keras.keras.layers")
-            except ModuleNotFoundError:
-                legacy_layers = tf_layers
-            if not hasattr(legacy_layers, "AbstractRNNCell"):
-                legacy_layers.AbstractRNNCell = legacy_layers.Layer
+            logger.info("正在初始化通用 Jieba 分词器...")
 
-            import hanlp
-            import hanlp.pretrained.ner as ner_models
-            
-            # 配置 HanLP 镜像站（国内访问更快）
-            os.environ['HANLP_URL'] = 'https://ftp.hankcs.com/hanlp/'
-            os.environ['HANLP_VERBOSE'] = '1'  # 显示详细日志
-            mirror = os.environ['HANLP_URL']
-            # HanLP 内部使用：优先镜像源
-            if hasattr(hanlp, 'HANLP_URL'):
-                try:
-                    hanlp.HANLP_URL = mirror  # type: ignore[attr-defined]
-                except Exception:
-                    pass
-            try:
-                from hanlp.utils import io_util
-                if hasattr(io_util, 'HANLP_URL'):
-                    io_util.HANLP_URL = mirror  # type: ignore[attr-defined]
-            except Exception:
-                pass
-            
-            logger.info(f"正在加载 NER 模型: {settings.NER_MODEL}")
-            logger.info(f"使用镜像站: {os.environ['HANLP_URL']}")
-            logger.info("首次运行会自动下载模型（~362MB），请耐心等待...")
-            
-            # 从字符串获取模型对象
-            # settings.NER_MODEL = "hanlp.pretrained.ner.MSRA_NER_BERT_BASE_ZH"
-            model_name = settings.NER_MODEL.split('.')[-1]  # 提取 "MSRA_NER_BERT_BASE_ZH"
-            model_obj = getattr(ner_models, model_name)
+            # 优化 Jieba 设置以提高人名识别
+            # 调整分词粒度，有助于人名识别
+            jieba.enable_parallel(4)  # 启用并行分词
+            jieba.setLogLevel(jieba.logging.INFO)  # 设置日志级别
 
-            # =============================== #
-            # 镜像 URL 重写（避免访问 file.hankcs.com） #
-            # =============================== #
-            def _rewrite_url(obj):
-                prefix = "https://file.hankcs.com/hanlp/"
-                if isinstance(obj, str) and obj.startswith(prefix):
-                    return obj.replace(prefix, mirror)
-                if isinstance(obj, dict) and "url" in obj and isinstance(obj["url"], str):
-                    if obj["url"].startswith(prefix):
-                        new_obj = dict(obj)
-                        new_obj["url"] = obj["url"].replace(prefix, mirror)
-                        return new_obj
-                return obj
+            # 初始化 Jieba（触发词典构建）
+            test_text = "测试初始化"
+            list(jieba.cut(test_text))
 
-            model_obj = _rewrite_url(model_obj)
-            
-            # 加载完整 BERT BASE 模型
-            # devices=-1 表示使用 CPU
-            self.model = hanlp.load(model_obj, devices=-1)
-            
+            self.model = jieba
+            self.posseg = pseg
             self._initialized = True
-            logger.info("✅ HanLP BERT BASE NER 模型加载成功")
-            
-        except Exception as e:
-            logger.warning(f"NER 模型加载失败: {e}，将仅使用规则识别")
-            logger.info("提示: 确保已安装 hanlp[full] 并配置好网络")
-            import traceback
-            logger.debug(traceback.format_exc())
-            self._initialized = False
-    
-    def recognize(
-        self,
-        sentences: List[str],
-        on_sentence: Optional[Callable[[int], None]] = None
-    ) -> List[CharacterMention]:
-        """
-        识别人名
-        
-        Args:
-            sentences: 句子列表
-            
-        Returns:
-            人名提及列表
-        """
-        mentions = []
-        
-        # 使用 NER 模型识别
-        if self._initialized and self.model:
-            mentions.extend(self._recognize_with_model(sentences, on_sentence))
-            logger.info(f"NER 模型识别完成: 共 {len(mentions)} 个人名提及")
-        else:
-            # 仅在 NER 模型不可用时使用规则识别作为降级方案
-            mentions.extend(self._recognize_with_rules(sentences, on_sentence))
-            logger.info(f"规则识别完成（降级模式）: 共 {len(mentions)} 个人名提及")
-        
-        # 去重
-        mentions = self._deduplicate_mentions(mentions)
-        
-        return mentions
-    
-    def _recognize_with_model(
-        self,
-        sentences: List[str],
-        on_sentence: Optional[Callable[[int], None]] = None
-    ) -> List[CharacterMention]:
-        """使用 HanLP 本地模型识别"""
-        mentions = []
-        
-        try:
-            # 批量处理
-            for sent_id, sentence in enumerate(sentences):
-                # 对超长句子进行切分（BERT 模型最大序列长度 126 tokens）
-                # 中文约 1 字 = 1 token，保守按 100 字切分
-                if len(sentence) > 100:
-                    sub_sentences = self._split_long_sentence(sentence, max_length=100)
-                    for sub_sent, offset in sub_sentences:
-                        result = self.model(sub_sent)
-                        self._process_model_result(result, sent_id, mentions, offset)
-                else:
-                    result = self.model(sentence)
-                    self._process_model_result(result, sent_id, mentions, 0)
 
-                if on_sentence:
-                    try:
-                        on_sentence(sent_id + 1)
-                    except Exception as error:  # pragma: no cover - 仅记录回调异常
-                        logger.debug(f"NER 进度回调异常: {error}")
-                            
+            logger.info("通用 Jieba 分词器初始化完成")
+
+        except ImportError:
+            logger.error("Jieba 未安装，请运行: pip install jieba")
+            raise
         except Exception as e:
-            logger.error(f"NER 模型识别出错: {e}")
-            import traceback
-            logger.debug(traceback.format_exc())
-        
-        return mentions
-    
-    def _split_long_sentence(self, sentence: str, max_length: int = 100) -> List[Tuple[str, int]]:
-        """将超长句子切分为多个子句
-        
+            logger.error(f"Jieba 初始化失败: {e}")
+            raise
+
+    def recognize(self, text: str, callback: Optional[Callable] = None) -> List[CharacterMention]:
+        """
+        使用 Jieba 进行人名识别
+
         Args:
-            sentence: 原始句子
-            max_length: 最大长度
-            
+            text: 输入文本
+            callback: 进度回调函数
+
         Returns:
-            [(子句, 在原句中的偏移量), ...]
+            List[CharacterMention]: 识别到的角色提及列表
         """
-        if len(sentence) <= max_length:
-            return [(sentence, 0)]
-        
-        sub_sentences = []
-        # 优先在逗号、顿号等处切分
-        split_chars = ['，', '、', '；', '：', '！', '？']
-        
-        start = 0
-        while start < len(sentence):
-            end = start + max_length
-            
-            if end >= len(sentence):
-                # 最后一段
-                sub_sentences.append((sentence[start:], start))
-                break
-            
-            # 尝试在标点处切分
-            best_split = end
-            for i in range(end, start + max_length // 2, -1):
-                if sentence[i] in split_chars:
-                    best_split = i + 1
-                    break
-            
-            sub_sentences.append((sentence[start:best_split], start))
-            start = best_split
-        
-        return sub_sentences
-    
-    def _process_model_result(self, result: Any, sent_id: int, mentions: List[CharacterMention], offset: int = 0):
-        """处理模型识别结果
-        
-        Args:
-            result: 模型返回结果
-            sent_id: 句子ID
-            mentions: 提及列表（会被修改）
-            offset: 在原句中的偏移量
-        """
-        # BERT BASE 返回格式: [('张三', 'NR', 0, 2), ('李四', 'NR', 11, 13), ...]
-        if isinstance(result, list):
-            # 检查是否是直接的实体列表 (BERT BASE 格式)
-            if result and isinstance(result[0], tuple) and len(result[0]) >= 2:
-                # BERT BASE 直接返回实体列表
-                for entity in result:
-                    if len(entity) >= 4:
-                        entity_text = entity[0]
-                        entity_type = entity[1]
-                        start_pos = entity[2] + offset
-                        end_pos = entity[3] + offset
-                        
-                        # 检查是否是人名类型 (NR = Name/人名)
-                        if entity_type in ['PERSON', 'PER', 'NR', 'nr']:
-                            if self._is_valid_name(entity_text):
-                                mentions.append(CharacterMention(
-                                    text=entity_text,
-                                    start=start_pos,
-                                    end=end_pos,
-                                    sent_id=sent_id
-                                ))
-            else:
-                # token 级别标注格式 (ELECTRA 格式)
-                # 注意：这里不支持 offset，因为需要完整句子
-                if offset == 0:
-                    persons = self._extract_persons_from_tokens(result, "")
-                    for name, start, end in persons:
-                        if self._is_valid_name(name):
-                            mentions.append(CharacterMention(
-                                text=name,
-                                start=start,
-                                end=end,
-                                sent_id=sent_id
-                            ))
-        
-        # 字典格式（备用）
-        elif isinstance(result, dict):
-            # 标准格式
-            if 'entities' in result:
-                for entity in result['entities']:
-                    if isinstance(entity, (list, tuple)) and len(entity) >= 2:
-                        entity_text = entity[0]
-                        entity_type = entity[1]
-                        
-                        # 检查是否是人名类型
-                        if entity_type in ['PERSON', 'PER', 'NR', 'nr']:
-                            start_pos = (entity[2] if len(entity) > 2 else 0) + offset
-                            end_pos = (entity[3] if len(entity) > 3 else start_pos + len(entity_text)) + offset
-                            
-                            # 验证人名有效性
-                            if self._is_valid_name(entity_text):
-                                mentions.append(CharacterMention(
-                                    text=entity_text,
-                                    start=start_pos,
-                                    end=end_pos,
-                                    sent_id=sent_id
-                                ))
-            
-            # 备用格式: {'ner': [...]}
-            elif 'ner' in result:
-                for entity in result['ner']:
-                    if isinstance(entity, (list, tuple)) and len(entity) >= 2:
-                        entity_text = entity[0]
-                        entity_type = entity[1]
-                        
-                        if entity_type in ['PERSON', 'PER', 'NR', 'nr']:
-                            start_pos = (entity[2] if len(entity) > 2 else 0) + offset
-                            end_pos = (entity[3] if len(entity) > 3 else start_pos + len(entity_text)) + offset
-                            
-                            if self._is_valid_name(entity_text):
-                                mentions.append(CharacterMention(
-                                    text=entity_text,
-                                    start=start_pos,
-                                    end=end_pos,
-                                    sent_id=sent_id
-                                ))
-    
-    def _extract_persons_from_tokens(self, tokens: List, sentence: str) -> List[Tuple[str, int, int]]:
-        """从 token 级别的标注中提取完整人名"""
-        persons = []
-        current_person = []
-        current_start = -1
-        
-        for idx, token_tags in enumerate(tokens):
-            # 跳过空标注
-            if not token_tags:
-                if current_person:
-                    # 结束当前人名
-                    name = ''.join(current_person)
-                    if len(name) >= 2:  # 至少2个字
-                        persons.append((name, current_start, current_start + len(name)))
-                    current_person = []
-                    current_start = -1
+        if not self._initialized:
+            self.initialize()
+
+        if callback:
+            callback(0, "开始 Jieba 角色识别...")
+
+        mentions = []
+        character_counts = defaultdict(int)
+
+        # 分句处理，提高识别准确率
+        sentences = self._split_sentences(text)
+        total_sentences = len(sentences)
+
+        for i, sentence in enumerate(sentences):
+            if not sentence.strip():
                 continue
-            
-            # 检查是否是 PERSON 标签
-            for token_tag in token_tags:
-                if isinstance(token_tag, tuple) and len(token_tag) >= 2:
-                    char, tag = token_tag[0], token_tag[1]
-                    
-                    if tag == 'PERSON':
-                        if not current_person:
-                            current_start = idx
-                        current_person.append(char)
-                        break
-                    else:
-                        # 非人名标签，结束当前人名
-                        if current_person:
-                            name = ''.join(current_person)
-                            if len(name) >= 2:
-                                persons.append((name, current_start, current_start + len(name)))
-                            current_person = []
-                            current_start = -1
-        
-        # 处理最后一个人名
-        if current_person:
-            name = ''.join(current_person)
-            if len(name) >= 2:
-                persons.append((name, current_start, current_start + len(name)))
-        
-        return persons
-    
-    def _recognize_with_rules(
-        self,
-        sentences: List[str],
-        on_sentence: Optional[Callable[[int], None]] = None
-    ) -> List[CharacterMention]:
-        """使用规则识别人名"""
-        mentions = []
-        
-        for sent_id, sentence in enumerate(sentences):
-            # 规则1: 姓 + 1-2字名
-            pattern1 = r'([' + ''.join(self.common_surnames) + r'])([一-龥]{1,2})'
-            for match in re.finditer(pattern1, sentence):
-                name = match.group(0)
-                if self._is_valid_name(name):
-                    mentions.append(CharacterMention(
-                        text=name,
-                        start=match.start(),
-                        end=match.end(),
-                        sent_id=sent_id
-                    ))
-            
-            # 规则2: 2-3字连续中文（可能是名字）
-            pattern2 = r'[一-龥]{2,3}'
-            for match in re.finditer(pattern2, sentence):
-                name = match.group(0)
-                if self._is_valid_name(name) and self._looks_like_name(name):
-                    mentions.append(CharacterMention(
-                        text=name,
-                        start=match.start(),
-                        end=match.end(),
-                        sent_id=sent_id
-                    ))
 
-            if on_sentence:
-                try:
-                    on_sentence(sent_id + 1)
-                except Exception as error:  # pragma: no cover - 仅记录回调异常
-                    logger.debug(f"规则识别进度回调异常: {error}")
-        
+            if callback and i % 10 == 0:
+                progress = int((i / total_sentences) * 100)
+                callback(progress, f"处理第 {i+1}/{total_sentences} 句...")
+
+            # 方法1：Jieba 词性标注识别人名
+            words_with_pos = self.posseg.cut(sentence)
+            for word, flag in words_with_pos:
+                if 'nr' in str(flag) and len(word) >= 2 and len(word) <= 4:
+                    character_counts[word] += 1
+                    self.discovered_names.add(word)  # 动态记录发现的人名
+
+            # 方法2：正则表达式识别对话中的角色
+            dialogue_matches = re.findall(r'([一-龯]{2,4})(?:说|道|笑|看|想|叫|喊|问|答|曰)', sentence)
+            for name in dialogue_matches:
+                if len(name) >= 2 and len(name) <= 4:
+                    character_counts[name] += 1
+                    self.discovered_names.add(name)  # 动态记录发现的人名
+
+            # 方法3：通用中文人名模式识别
+            words = list(self.model.cut(sentence))
+            for word in words:
+                if (len(word) >= 2 and len(word) <= 4 and
+                    re.match(r'^[一-龯]+$', word) and  # 纯中文字符
+                    word not in ['这个', '那个', '什么', '怎么', '为什么', '因为', '所以', '但是', '然后', '接着', '最后', '没有', '一样', '还有', '可以', '应该', '已经', '正在']):
+
+                    # 检查是否符合人名模式
+                    if self._is_likely_name(word):
+                        character_counts[word] += 1
+                        self.discovered_names.add(word)  # 动态记录发现的人名
+
+        if callback:
+            callback(100, "角色识别完成")
+
+        # 转换为 CharacterMention 对象
+        for name, count in character_counts.items():
+            if count >= 2:  # 至少出现2次
+                importance = "高" if count > 10 else "中" if count > 3 else "低"
+
+                mention = CharacterMention(
+                    text=name,
+                    start_pos=0,  # Jieba 不提供位置信息
+                    end_pos=len(name),
+                    confidence=min(0.9, 0.5 + count * 0.01),  # 基于出现频率的置信度
+                    source="jieba_ner"
+                )
+                mentions.append(mention)
+
+        logger.info(f"Jieba 识别完成，共识别到 {len(mentions)} 个角色提及")
         return mentions
-    
-    def _is_valid_name(self, name: str) -> bool:
-        """判断是否是有效的名字"""
-        # 长度检查
-        if len(name) < settings.NAME_MIN_LENGTH or len(name) > settings.NAME_MAX_LENGTH:
+
+    def _is_likely_name(self, word: str) -> bool:
+        """判断一个词是否可能是人名（通用规则）"""
+        if len(word) < 2 or len(word) > 4:
             return False
-        
-        # 排除常见非人名词汇
-        exclude_words = {
-            "这个", "那个", "什么", "怎么", "为什么", "如何",
-            "现在", "以前", "后来", "当时", "今天", "明天", "昨天",
-            "我们", "你们", "他们", "她们", "它们",
-            "自己", "别人", "大家", "所有",
+
+        # 规则1：检查是否符合预设的人名模式
+        for pattern in self.name_patterns:
+            if re.match(pattern, word):
+                return True
+
+        # 规则2：首字是常见姓氏
+        if word[0] in self.common_surnames:
+            return True
+
+        # 规则3：包含称呼后缀，但不是单纯的描述词
+        if word.endswith(('娘', '父', '母', '儿', '子', '哥', '姐', '弟', '妹', '公', '伯', '叔', '姨', '舅')):
+            # 排除明显不是人名的词
+            non_names = {'这个', '那个', '所有', '任何', '每个', '你们', '我们', '他们', '自己', '大家', '宝宝', '亲爱的', '朋友', '同学'}
+            if word not in non_names:
+                return True
+
+        # 规则4：避免常见的非人名词
+        non_human_words = {
+            '什么', '怎么', '为什么', '哪里', '什么时候', '哪个', '如何',
+            '工作', '学习', '生活', '时间', '地方', '东西', '事情', '问题',
+            '方法', '方式', '情况', '条件', '结果', '开始', '结束', '过程',
+            '今天', '明天', '昨天', '上午', '下午', '晚上', '早上', '中午', '晚上',
+            '这里', '那里', '哪里', '到处', '各处', '随处', '家中', '家里', '门外',
+            '地上', '天上', '水中', '口中', '眼中', '心中', '手里', '头里'
         }
-        
-        return name not in exclude_words
-    
-    def _looks_like_name(self, text: str) -> bool:
-        """判断文本是否看起来像名字"""
-        # 如果第一个字是常见姓氏，很可能是名字
-        if text[0] in self.common_surnames:
-            return True
-        
-        # 如果包含常见名字用字
-        name_chars = set("文武德明华英国建立志强勇刚伟强秀兰芳丽娟红梅")
-        if any(c in name_chars for c in text):
-            return True
-        
+        if word in non_human_words:
+            return False
+
+        # 规则5：连续的汉字，可能是人名
+        if re.match(r'^[一-龯]{2,4}$', word):
+            # 进一步检查，避免常见的功能词
+            common_function_words = {
+                '开始', '结束', '继续', '停止', '进行', '完成', '通过', '获得',
+                '实现', '达到', '满足', '超过', '少于', '等于', '大于', '小于'
+            }
+            if word not in common_function_words:
+                return True
+
         return False
-    
-    def _deduplicate_mentions(self, mentions: List[CharacterMention]) -> List[CharacterMention]:
-        """去重"""
-        seen = set()
-        unique_mentions = []
-        
+
+    def _split_sentences(self, text: str) -> List[str]:
+        """将文本分割为句子"""
+        # 使用中文标点符号分割句子
+        sentences = re.split(r'[。！？；]', text)
+        return [s.strip() for s in sentences if s.strip()]
+
+    def get_character_statistics(self, text: str) -> Dict[str, Any]:
+        """获取角色统计信息"""
+        mentions = self.recognize(text)
+
+        # 统计角色出现次数
+        character_stats = defaultdict(int)
         for mention in mentions:
-            key = (mention.text, mention.sent_id, mention.start)
-            if key not in seen:
-                seen.add(key)
-                unique_mentions.append(mention)
-        
-        return unique_mentions
+            character_stats[mention.text] += 1
+
+        # 生成统计结果
+        results = []
+        for name, count in sorted(character_stats.items(), key=lambda x: x[1], reverse=True):
+            importance = "高" if count > 10 else "中" if count > 3 else "低"
+
+            result = {
+                "name": name,
+                "appearance_count": count,
+                "importance": importance,
+                "confidence": next(m.confidence for m in mentions if m.text == name),
+                "source": "jieba_ner"
+            }
+            results.append(result)
+
+        return {
+            "total_characters": len(results),
+            "high_importance": len([r for r in results if r["importance"] == "高"]),
+            "medium_importance": len([r for r in results if r["importance"] == "中"]),
+            "low_importance": len([r for r in results if r["importance"] == "低"]),
+            "characters": results
+        }

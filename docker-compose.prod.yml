@@ -41,35 +41,6 @@ services:
     networks:
       - txt2voice-network
 
-  # Character Recognition Service
-  character-recognition:
-    platform: ${CHARACTER_RECOGNITION_PLATFORM:-linux/arm64/v8}
-    build:
-      context: .
-      dockerfile: apps/character-recognition/Dockerfile
-    container_name: txt2voice-character-recognition
-    restart: unless-stopped
-    environment:
-      HOST: 0.0.0.0
-      PORT: 8001
-      DEBUG: ${DEBUG:-False}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.80}
-      HANLP_URL: https://ftp.hankcs.com/hanlp/
-    volumes:
-      - character_models:/root/.hanlp  # 缓存 HanLP 模型
-      - sentence_models:/root/.cache  # 缓存句向量模型
-    ports:
-      - "8001:8001"
-    networks:
-      - txt2voice-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
   # Next.js Web Application
   web:
     build:
@@ -108,8 +79,6 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
       LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
       
-      # Character Recognition Service (容器内部连接)
-      CHARACTER_RECOGNITION_URL: http://character-recognition:8001
     volumes:
       - uploads_data:/app/apps/web/uploads
     ports:
@@ -118,8 +87,6 @@ services:
       postgres:
         condition: service_healthy
       redis:
-        condition: service_healthy
-      character-recognition:
         condition: service_healthy
     networks:
       - txt2voice-network
@@ -140,8 +107,4 @@ volumes:
   redis_data:
     driver: local
   uploads_data:
-    driver: local
-  character_models:
-    driver: local
-  sentence_models:
     driver: local

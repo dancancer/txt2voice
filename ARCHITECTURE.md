@@ -10,7 +10,7 @@ Text to Voice 是一个基于 Next.js 16 的智能文本转语音平台，采用
 txt2voice/
 ├── apps/
 │   ├── web/                        # Next.js Web 应用
-│   └── character-recognition/      # Python 人物识别服务 (FastAPI)
+│   └── character-recognition/      # 已归档的 Python 人物识别服务
 ├── packages/                       # 共享包（未来扩展）
 ├── docs/                          # 文档目录
 ├── scripts/                       # 工具脚本
@@ -42,15 +42,9 @@ txt2voice/
 - **验证**: Zod 4.1.12
 
 ### AI 服务
-- **LLM 服务**: OpenAI SDK 6.8.1 (支持 OpenAI, DeepSeek 等兼容 API)
+- **LLM 服务**: OpenAI SDK 6.8.1（DeepSeek、OpenAI 等兼容 API），含脚本生成、纠错、角色分析
+- **角色识别 LLM**: Gemini 2.5 Pro（可配置 Provider/模型/最大字符数）
 - **TTS 服务**: 多提供商支持架构
-
-### Python 服务 (character-recognition)
-- **框架**: FastAPI
-- **NLP 库**: HanLP (人名识别)
-- **向量模型**: Text2Vec (语义聚类)
-- **容器**: Docker
-- **端口**: 8001
 
 ## 系统架构
 
@@ -96,13 +90,13 @@ txt2voice/
 ┌─────────────────────────────────────────────────────────────┐
 │                      外部服务层                               │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  LLM API     │  │  TTS API     │  │  Python 服务  │      │
-│  │ (OpenAI/     │  │ (多提供商)    │  │ (FastAPI)    │      │
-│  │  DeepSeek)   │  │              │  │ :8001        │      │
+│  │  LLM API     │  │  TTS API     │  │  LLM (Gemini)│      │
+│  │ (DeepSeek/   │  │ (多提供商)    │  │ 角色识别     │      │
+│  │  OpenAI)     │  │              │  │              │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 │                                       │ - 人物识别    │      │
-│                                       │ - 别名识别    │      │
-│                                       │ - 关系抽取    │      │
+│                                       │ - 别名归一    │      │
+│                                       │ - 统计生成    │      │
 │                                       └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -111,21 +105,14 @@ txt2voice/
 
 ### 角色识别策略
 
-系统采用一种健壮的混合策略进行角色识别，以兼顾准确性和可用性：
+系统现已完全依赖托管 LLM 进行角色识别，策略更简单也更易维护：
 
-1.  **主要方法：本地化的高精度识别服务**
-    *   系统会优先调用 `character-recognition` 这个独立的 Python FastAPI 服务。
-    *   该服务基于 `HanLP` 和 `Text2Vec` 等专业 NLP 库，专门针对中文小说进行了优化，提供高精度的人名识别、别名归一化和关系抽取。
-    *   这是首选方法，因为它更准确、成本更低。
+1. **主要方法：Gemini/DeepSeek/OpenAI 等 LLM**  
+   将整本书的段落拼接后，调用 `CharacterRecognitionClient`（`apps/web/src/lib/character-recognition-client.ts`）发起 LLM 请求。客户端负责裁剪文本、构建提示词、解析 JSON 并补齐统计数据。
+2. **错误兜底：默认角色集合**  
+   如果 LLM 请求失败或输出为空，流程仍会创建“旁白 / 男主角 / 女主角”等内置角色，保证台本和音频管线可以继续运行。
 
-2.  **后备方法：通用 LLM 服务**
-    *   如果 `character-recognition` 服务因任何原因（如未启动、网络问题）不可用，系统会自动降级，转而使用 `LLM Service` (例如 OpenAI, DeepSeek)。
-    *   LLM 会根据提示词从文本样本中分析和提取角色信息。虽然功能强大，但其准确性可能不如专业模型，且成本更高。
-
-3.  **最终后备：创建默认角色**
-    *   如果两种方法都失败，系统会创建一组默认角色（如“旁白”、“男主角”、“女主角”），以确保后续流程可以继续进行。
-
-这种 **主要-后备** 的设计确保了角色识别功能的鲁棒性，即使在部分组件失效的情况下也能完成核心任务。
+通过集中在 LLM 侧实现所有逻辑，系统不再依赖额外容器，部署成本骤降，同时保留了 JSON 修复、统计补全、任务跟踪等能力。
 
 ### 1. 文本处理模块 (Text Processor)
 
@@ -767,99 +754,72 @@ TTS_API_KEY=...
 - 数据库读写分离
 - 文件存储可迁移到对象存储 (S3, OSS)
 
-## Python 人物识别服务 (character-recognition)
+## 角色识别 LLM 流程
 
 ### 服务概述
 
-独立的 FastAPI 服务，位于 `apps/character-recognition/`，提供高精度的中文小说人物识别能力。
+角色识别已经完全迁移到 LLM，实现位于 `apps/web/src/lib/character-recognition-client.ts` 与 `apps/web/src/lib/character-recognition-workflow.ts`。该实现负责：
 
-### 核心功能
+- 拼接章节段落并控制最大字符数（默认 20,000）
+- 构建提示词、调用 Gemini API，并处理超时/重试
+- 从 LLM 响应中抽取 JSON、规范化角色/别名/统计
+- 将识别结果写入数据库并更新 ProcessingTask 状态
 
-#### 1. 人名识别 (NER)
-- **基础识别**: HanLP 预训练模型
-- **规则补充**: 姓氏+名字模式 (2-4字中文名)
-- **准确率**: 结合深度学习和规则的混合方法
+整个流程运行在 Next.js 应用内部，无需额外容器或 Python 依赖。
 
-#### 2. 别名识别与归一化
-- **前缀识别**: 老张、小李、阿月
-- **后缀识别**: 王叔、宝玉哥、大小姐
-- **儿化音**: 月儿、旺财儿
-- **语义聚类**: 基于 Text2Vec 句向量
+### 核心能力
 
-#### 3. 指代消解
-- **代词识别**: 他/她/他们/她们
-- **启发式回指**: 最近出现 + 性别匹配
-- **对话上下文优先**: 对话场景中优先考虑
+1. **文本裁剪与采样**：确保输入不超过 `CHARREG_LLM_MAX_CHARS`，同时保留章节上下文。
+2. **提示词构建**：指导 LLM 输出包含 `characters`、`alias_map`、`statistics` 的 JSON。
+3. **健壮解析**：提取首个 JSON 块，失败时抛出带上下文的 `CharacterRecognitionError`。
+4. **结果归一化**：补齐 `id`、`gender`、`roles` 等字段，防止 LLM 返回空值。
+5. **统计补全**：基于角色 mentions/quotes 推导缺失的统计项，保证 UI 展示稳定。
+6. **任务追踪**：通过 `processing-task-utils` 记录进度百分比与耗时。
 
-#### 4. 对话归因
-- **三种模式**: 直接引语、间接引语、对话标记
-- **说话者标注**: 自动识别说话人
-- **台词统计**: 统计每个角色的对话数量
+### 工作流
 
-#### 5. 关系抽取
-- **共现关系**: 统计角色在相同场景中出现的频率
-- **对话关系**: 分析角色之间的对话互动
-- **权重计算**: 基于共现频率和对话次数
+1. `runCharacterRecognitionJob` 读取 `TextSegment`，拼接成整书文本。
+2. `CharacterRecognitionClient.recognize` 调用 LLM，返回结构化结果。
+3. `finalizeCharacterRecognition` 持久化角色列表与统计，并更新 `processing_tasks`。
+4. 前端在任务完成后展示角色、别名、对话次数等信息。
 
-### 技术实现
+### 关键文件
 
-**位置**: `apps/character-recognition/`
+- `apps/web/src/lib/character-recognition-client.ts` - LLM 客户端与 JSON 解析
+- `apps/web/src/lib/character-recognition-workflow.ts` - 任务执行、结果保存
+- `apps/web/src/lib/character-recognition-persistence.ts` - Prisma 写入逻辑
 
-**主要文件**:
-- `src/core/ner.py` - 人名识别核心
-- `src/core/alias_merge.py` - 别名识别和归一化
-- `src/core/coreference.py` - 指代消解
-- `src/core/dialogue_attribution.py` - 对话归因
-- `src/core/relation_extraction.py` - 关系抽取
-- `main.py` - FastAPI 服务入口
-
-**API 端点**:
-```
-POST /api/v1/recognize
-  - 输入: 小说文本
-  - 输出: 人物列表、别名、关系等完整信息
-  
-GET /health
-  - 健康检查端点
-```
-
-**依赖**:
-- HanLP 2.1+ (人名识别)
-- Text2Vec (句向量模型)
-- FastAPI (Web 框架)
-- Pydantic (数据验证)
-
-### Docker 部署
-
-```yaml
-# docker-compose.yml
-character-recognition:
-  build: ./apps/character-recognition
-  ports:
-    - "8001:8001"
-  environment:
-    - MODEL_PATH=/app/models
-```
-
-### 与 Web 应用集成
-
-Web 应用可以通过 HTTP 调用 Python 服务：
+### LLM 请求示例
 
 ```typescript
-// apps/web/src/lib/character-recognition-client.ts
-const response = await fetch('http://character-recognition:8001/api/v1/recognize', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ text: novelText })
-})
+const response = await fetch(
+  `${endpoint}/models/${encodeURIComponent(model)}:generateContent?key=${apiKey}`,
+  {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.2, maxOutputTokens: 2048 }
+    }),
+    signal
+  }
+)
 ```
 
-### 性能优化
+随后客户端会调用 `extractJson()`、`normalizeCharacters()` 与 `buildStatistics()`，保证写入数据库的是结构化、可预测的数据。
 
-- **模型缓存**: 预加载 HanLP 和 Text2Vec 模型
-- **批处理**: 支持批量文本处理
-- **异步处理**: FastAPI 异步 handler
-- **轻量容器**: 基于 Python 3.11-slim 镜像
+### 配置项
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `CHARREG_LLM_PROVIDER` | 角色识别使用的 Provider | `google` |
+| `CHARREG_LLM_MODEL` | 模型名称 | `gemini-2.5-pro` |
+| `CHARREG_LLM_BASE_URL` | API 基础地址 | `https://generativelanguage.googleapis.com/v1beta` |
+| `CHARREG_LLM_API_KEY` | LLM API Key | *必填* |
+| `CHARREG_LLM_MAX_CHARS` | 单次识别最大字符数 | `20000` |
+| `LLM_PROVIDER`/`LLM_MODEL` | 脚本生成/JSON 修复使用的 LLM | 自定义 |
+
+通过这些变量，开发者可以无缝切换 Gemini、DeepSeek 或任何 OpenAI 兼容后端。无 Docker 依赖、部署成本显著降低。
 
 ## 安全性
 
@@ -891,11 +851,11 @@ const response = await fetch('http://character-recognition:8001/api/v1/recognize
 - LLM API 调用次数和延迟
 - TTS API 调用次数和延迟
 
-**Python 服务 (character-recognition)**:
-- 服务健康状态
-- 识别请求处理时间
-- 模型推理性能
-- 内存使用情况
+**角色识别 LLM 调用**:
+- 请求成功率与平均延迟
+- JSON 解析失败次数
+- Token 消耗与费用
+- 触发默认角色兜底的次数
 
 ## 未来规划
 
@@ -923,8 +883,7 @@ Text to Voice 采用现代化的 **monorepo** 全栈架构：
 
 - **前端**: Next.js 16 + React 19 + TypeScript (位于 `apps/web/`)
 - **后端**: Next.js API Routes + Prisma + PostgreSQL
-- **AI 服务**: 集成 LLM (OpenAI/DeepSeek) 和多提供商 TTS
-- **Python 服务**: FastAPI + HanLP + Text2Vec (位于 `apps/character-recognition/`)
+- **AI 服务**: 集成 LLM (OpenAI/DeepSeek/Gemini) 和多提供商 TTS，角色识别已完全迁移到 Gemini/LLM 实现
 
 系统实现了从文本上传、角色识别、台本生成到音频合成的完整自动化工作流。设计注重模块化、可扩展性和性能优化，采用微服务架构，支持独立部署和水平扩展，为未来的功能扩展和规模化部署奠定了良好的基础。
 
@@ -940,3 +899,8 @@ Text to Voice 采用现代化的 **monorepo** 全栈架构：
 - ✅ 更新页面和组件结构说明
 - ✅ 更新监控指标，包含 Python 服务
 - ✅ 补充 Docker 部署和服务集成说明
+
+### 2025-02-14 - 角色识别 LLM 化
+- ✅ 移除 Python 服务依赖，改为 LLM 客户端
+- ✅ 更新外部服务层、监控指标与总结
+- ✅ 文档中新增 LLM 流程与配置项说明

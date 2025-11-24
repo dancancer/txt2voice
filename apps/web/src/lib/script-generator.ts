@@ -767,17 +767,17 @@ ${brokenJson.substring(0, 3000)}
     textSegments: any[]
   ): Promise<void> {
     try {
-      // 优先尝试使用character-recognition服务
+      // 优先使用角色识别LLM（Gemini）
       const useCharacterRecognition =
         await characterRecognitionClient.healthCheck();
 
       if (useCharacterRecognition) {
-        console.log("使用character-recognition服务进行角色识别");
+        console.log("使用LLM（Gemini）进行角色识别");
         await this.identifyWithCharacterRecognition(bookId, textSegments);
         return;
       }
 
-      console.log("character-recognition服务不可用，使用LLM进行角色识别");
+      console.log("LLM配置不可用，使用脚本生成器内置识别逻辑");
       await this.identifyWithLLM(bookId, textSegments);
     } catch (error) {
       console.error("角色识别失败:", error);
@@ -787,7 +787,7 @@ ${brokenJson.substring(0, 3000)}
   }
 
   /**
-   * 使用character-recognition服务识别角色
+   * 使用角色识别LLM识别角色
    */
   private async identifyWithCharacterRecognition(
     bookId: string,
@@ -800,7 +800,7 @@ ${brokenJson.substring(0, 3000)}
 
     console.log(`准备识别角色，文本长度: ${fullText.length} 字符`);
 
-    // 调用character-recognition服务
+    // 调用角色识别LLM
     const recognitionResult = await characterRecognitionClient.recognize({
       text: fullText,
       book_id: bookId,

@@ -11,7 +11,7 @@
 cp .env.local.example apps/web/.env.local
 # 编辑 apps/web/.env.local，填入必要的配置（如LLM_API_KEY）
 
-# 2. 启动依赖服务（PostgreSQL, Redis, Character Recognition）
+# 2. 启动依赖服务（PostgreSQL, Redis）
 pnpm docker:services
 
 # 3. 在另一个终端启动Web应用
@@ -32,37 +32,34 @@ pnpm docker:services:down
 # Web应用在终端按 Ctrl+C 停止
 ```
 
-### 方式二：完整Docker开发环境（支持热更新）
+### 方式二：完整Docker开发环境（启用全部服务）
 
-如果需要在Docker中运行所有服务并支持代码热更新：
+需要端到端验证 (Next.js + 数据库 + Redis) 时使用：
 
 ```bash
-# 首次启动或依赖变更后，需要构建镜像
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml build web
+# 首次启动或依赖变更后构建镜像
+pnpm docker:build
 
-# 启动开发环境
-pnpm docker:dev
+# 启动完整环境（Web + Postgres + Redis）
+pnpm docker:up
 
 # 查看日志
 pnpm docker:logs
 
-# 停止
-pnpm docker:dev:down
+# 停止所有容器
+pnpm docker:down
 ```
 
-访问 http://localhost:3001
+访问 http://localhost:3001。`apps/web/Dockerfile.dev` 会挂载源代码支持热更新，修改 `apps/web/src` 即可立即生效。
 
-**热更新说明：**
-- 修改 `apps/web/src` 下的代码会自动触发 Turbopack 重新编译
-- 浏览器会自动刷新显示变化
-- 无需重启容器
+**需要重新构建的情况：**
+- 修改 `package.json`、`pnpm-lock.yaml` 或 `apps/web/prisma/schema.prisma`
+- 调整 `apps/web/Dockerfile.dev` / `apps/web/Dockerfile`
+- 更换 Node/PNPM 版本或新增系统依赖
 
-**何时需要重新构建：**
-- 修改 `package.json` 或 `pnpm-lock.yaml`
-- 修改 `prisma/schema.prisma`
-- 修改 `Dockerfile.dev`
-
-详细文档：[Docker 开发环境配置总结](docs/technical/DOCKER_DEV_SETUP_SUMMARY.md)
+更多细节：
+- [Docker 开发环境配置总结](docs/technical/DOCKER_DEV_SETUP_SUMMARY.md)
+- [Docker 热更新配置](docs/technical/DOCKER_HOT_RELOAD.md)
 
 ### 方式三：生产模式Docker（需要重新构建）
 
@@ -87,8 +84,12 @@ pnpm docker:down
 ```env
 DATABASE_URL="postgresql://txt2voice:txt2voice_password@localhost:5432/txt2voice"
 REDIS_URL="redis://localhost:6379"
-CHARACTER_RECOGNITION_URL="http://localhost:8001"
 LLM_API_KEY="your-api-key-here"
+CHARREG_LLM_API_KEY="your-gemini-api-key"
+CHARREG_LLM_MODEL="gemini-2.5-pro"
+CHARREG_LLM_PROVIDER="google"
+CHARREG_LLM_BASE_URL="https://generativelanguage.googleapis.com/v1beta"
+CHARREG_LLM_MAX_CHARS="20000"
 ```
 
 ### Docker环境 (docker-compose.yml)
@@ -103,18 +104,14 @@ pnpm dev                    # 本地运行Web应用（需要先启动依赖服�
 pnpm dev:local              # 自动启动依赖服务并运行Web应用
 
 # Docker依赖服务
-pnpm docker:services        # 启动PostgreSQL, Redis, Character Recognition
+pnpm docker:services        # 启动 PostgreSQL 与 Redis
 pnpm docker:services:down   # 停止依赖服务
 
 # Docker完整环境
-pnpm docker:up              # 启动所有服务（生产模式）
-pnpm docker:down            # 停止所有服务
 pnpm docker:build           # 重新构建镜像
+pnpm docker:up              # 启动 Web + Postgres + Redis
+pnpm docker:down            # 停止所有服务
 pnpm docker:logs            # 查看日志
-
-# Docker开发环境
-pnpm docker:dev             # 启动开发环境（支持热更新）
-pnpm docker:dev:down        # 停止开发环境
 
 # 代码检查
 pnpm lint                   # 运行ESLint
@@ -142,7 +139,6 @@ npx prisma studio
 - Web应用（Docker）: http://localhost:3001
 - PostgreSQL: localhost:5432
 - Redis: localhost:6379
-- Character Recognition: http://localhost:8001
 
 ## 故障排查
 
@@ -182,9 +178,9 @@ lsof -i :6379  # Redis
    ```
 
 2. **日常开发**:
-   - 依赖服务保持运行（`docker ps`查看状态）
+   - 依赖服务保持运行（`docker ps` 确认 postgres / redis 均为 Up）
    - 只需启动/停止Web应用（`pnpm dev`）
-   - 代码修改自动热更新
+   - Next.js 会自动热更新
 
 3. **测试生产环境**:
    ```bash

@@ -72,3 +72,4 @@ docs/test.txt
 apps/character-recognition/.venv-macos/**/*
 apps/character-recognition/.venv-macos-tf210/**/*
 characters.txt
+1.txt

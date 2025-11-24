@@ -1,11 +1,11 @@
 /**
- * Character Recognition Service Client
- * 对接character-recognition服务的客户端
+ * Character Recognition via LLM (Gemini)
+ * 使用内置的 LLM（Gemini）完成角色识别，替代外部 Python 服务
  */
 
 import { logger } from './logger'
 
-// 请求类型
+// ======================== 请求 & 响应类型 ========================
 export interface RecognitionOptions {
   enable_coreference?: boolean
   enable_dialogue?: boolean
@@ -19,7 +19,6 @@ export interface RecognitionRequest {
   options?: RecognitionOptions
 }
 
-// 响应类型
 export interface Character {
   id: string
   name: string
@@ -54,17 +53,7 @@ export interface RecognitionResponse {
   statistics: RecognitionStatistics
 }
 
-export interface CharacterRecognitionTaskStatus {
-  status: string
-  progress?: number
-  message?: string
-  result?: any
-  error?: string
-  processed_sentences?: number
-  total_sentences?: number
-}
-
-// 错误类型
+// ======================== 错误类型 ========================
 export class CharacterRecognitionError extends Error {
   constructor(
     message: string,
@@ -76,223 +65,215 @@ export class CharacterRecognitionError extends Error {
   }
 }
 
-/**
- * Character Recognition Service 客户端
- */
+// ======================== LLM 客户端 ========================
+const DEFAULT_MODEL = process.env.CHARREG_LLM_MODEL || process.env.LLM_MODEL || 'gemini-2.5-pro'
+const DEFAULT_PROVIDER = process.env.CHARREG_LLM_PROVIDER || process.env.LLM_PROVIDER || 'google'
+const DEFAULT_ENDPOINT = process.env.CHARREG_LLM_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta'
+
 export class CharacterRecognitionClient {
-  private baseUrl: string
-  private timeout: number
+  private readonly model: string
+  private readonly apiKey: string
+  private readonly provider: string
+  private readonly endpoint: string
+  private readonly timeout: number
+  private readonly maxChars: number
 
-  constructor(baseUrl?: string, timeout: number = 60000) {
-    this.baseUrl = baseUrl || process.env.CHARACTER_RECOGNITION_URL || 'http://localhost:8001'
+  constructor(timeout: number = 60000) {
+    this.model = DEFAULT_MODEL
+    this.provider = DEFAULT_PROVIDER
+    this.endpoint = DEFAULT_ENDPOINT
+    this.apiKey = process.env.CHARREG_LLM_API_KEY
+      || process.env.LLM_API_KEY
+      || process.env.GOOGLE_API_KEY
+      || ''
     this.timeout = timeout
+    this.maxChars = Number(process.env.CHARREG_LLM_MAX_CHARS || '20000')
   }
 
-  /**
-   * 健康检查
-   */
   async healthCheck(): Promise<boolean> {
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 5000)
-
-      const response = await fetch(`${this.baseUrl}/health`, {
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-      return response.ok
-    } catch (error) {
-      logger.error('Character recognition service health check failed', error)
-      return false
-    }
+    return Boolean(this.apiKey && this.model && this.provider === 'google')
   }
 
-  /**
-   * 识别小说人物
-   */
   async recognize(request: RecognitionRequest): Promise<RecognitionResponse> {
-    try {
-      logger.info('Calling character recognition service', {
-        textLength: request.text.length,
-        options: request.options
-      })
+    this.ensureConfig()
+    const startedAt = Date.now()
+    const trimmedText = this.trimText(request.text)
 
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+    logger.info('Calling Gemini for character recognition', {
+      textLength: trimmedText.length,
+      model: this.model
+    })
 
-      const response = await fetch(`${this.baseUrl}/api/recognize`, {
+    const parsed = this.extractJson(await this.callGemini(this.buildPrompt(trimmedText)))
+    const result = this.normalizeResult(parsed, trimmedText.length, startedAt)
+
+    logger.info('Character recognition via LLM completed', {
+      characters: result.characters.length,
+      processingTime: result.statistics.processing_time
+    })
+
+    return result
+  }
+
+  // ======================== 辅助方法 ========================
+  private ensureConfig() {
+    if (this.apiKey) return
+    throw new CharacterRecognitionError('LLM未配置，缺少API Key', 'CONFIG_MISSING')
+  }
+
+  private trimText(text: string): string {
+    if (this.maxChars <= 0 || text.length <= this.maxChars) {
+      return text
+    }
+    return text.slice(0, this.maxChars)
+  }
+
+  private buildPrompt(text: string): string {
+    const instructions = [
+      '你是一个小说角色识别专家，返回 JSON 格式结果，字段包括 characters、alias_map、statistics。',
+      'characters 内每个元素包含: name, aliases, gender, roles, mentions, quotes, first_appearance_idx。',
+      'statistics 至少包含: total_mentions, total_dialogues，并给出合理的数值。只输出 JSON，不要多余文字。'
+    ].join('\n')
+
+    return `${instructions}\n\n文本内容：\n${text}`
+  }
+
+  private async callGemini(prompt: string): Promise<string> {
+    const payload = await this.sendGeminiRequest(prompt)
+    const text = this.parseGeminiText(payload)
+    if (text) return text
+
+    throw new CharacterRecognitionError('Gemini返回为空', 'EMPTY_RESPONSE', payload)
+  }
+
+  private async sendGeminiRequest(prompt: string): Promise<any> {
+    return this.withTimeout(async (signal) => {
+      const response = await fetch(this.buildGeminiUrl(), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(request),
-        signal: controller.signal
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 2048 } }),
+        signal
       })
 
+      const payload = await response.json().catch(() => ({}))
+      if (response.ok) return payload
+
+      throw new CharacterRecognitionError(
+        `Gemini返回错误: ${response.statusText}`,
+        'LLM_REQUEST_FAILED',
+        payload
+      )
+    })
+  }
+
+  private parseGeminiText(payload: any): string | null {
+    const parts = payload?.candidates?.[0]?.content?.parts
+    if (!Array.isArray(parts)) return null
+
+    const text = parts
+      .map((part: any) => part?.text || '')
+      .join('')
+      .trim()
+
+    return text || null
+  }
+
+  private buildGeminiUrl(): string {
+    return `${this.endpoint}/models/${encodeURIComponent(this.model)}:generateContent?key=${this.apiKey}`
+  }
+
+  private async withTimeout<T>(runner: (signal: AbortSignal) => Promise<T>): Promise<T> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout)
+
+    try {
+      return await runner(controller.signal)
+    } catch (error: any) {
+      if (error instanceof CharacterRecognitionError) throw error
+      if (error?.name === 'AbortError') {
+        throw new CharacterRecognitionError('LLM请求超时', 'TIMEOUT')
+      }
+      throw new CharacterRecognitionError(
+        `LLM调用失败: ${error?.message || '未知错误'}`,
+        'LLM_REQUEST_FAILED'
+      )
+    } finally {
       clearTimeout(timeoutId)
+    }
+  }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new CharacterRecognitionError(
-          `Recognition failed: ${response.statusText}`,
-          'RECOGNITION_FAILED',
-          errorData
-        )
-      }
+  private extractJson(responseText: string): any {
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new CharacterRecognitionError('未能在LLM响应中找到JSON', 'PARSE_ERROR', { responseText })
+    }
 
-      const result: RecognitionResponse = await response.json()
-
-      logger.info('Character recognition completed', {
-        totalCharacters: result.statistics.total_characters,
-        processingTime: result.statistics.processing_time
-      })
-
-      return result
+    try {
+      return JSON.parse(jsonMatch[0])
     } catch (error) {
-      if (error instanceof CharacterRecognitionError) {
-        throw error
-      }
+      throw new CharacterRecognitionError('LLM返回的JSON解析失败', 'PARSE_ERROR', { error })
+    }
+  }
 
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          throw new CharacterRecognitionError(
-            'Recognition timeout',
-            'TIMEOUT',
-            { timeout: this.timeout }
-          )
-        }
+  private normalizeResult(raw: any, textLength: number, startedAt: number): RecognitionResponse {
+    const normalizedCharacters = this.normalizeCharacters(raw)
+    const statistics = this.buildStatistics(raw, normalizedCharacters, textLength, startedAt)
 
-        throw new CharacterRecognitionError(
-          `Recognition error: ${error.message}`,
-          'NETWORK_ERROR',
-          { originalError: error.message }
-        )
-      }
+    return {
+      characters: normalizedCharacters,
+      alias_map: raw?.alias_map || {},
+      relations: Array.isArray(raw?.relations) ? raw.relations : [],
+      statistics
+    }
+  }
 
-      throw new CharacterRecognitionError(
-        'Unknown recognition error',
-        'UNKNOWN_ERROR'
+  private normalizeCharacters(raw: any): Character[] {
+    const characters = Array.isArray(raw?.characters) ? raw.characters : []
+    return characters.map((character: any, index: number) => ({
+      id: character.id || `char_${index}`,
+      name: character.name || `角色${index + 1}`,
+      aliases: this.safeStringArray(character.aliases),
+      mentions: this.safeNumber(character.mentions),
+      quotes: this.safeNumber(character.quotes),
+      first_appearance_idx: this.safeNumber(character.first_appearance_idx, index),
+      gender: character.gender || 'unknown',
+      roles: Array.isArray(character.roles) ? character.roles : []
+    }))
+  }
+
+  private buildStatistics(
+    raw: any,
+    characters: Character[],
+    textLength: number,
+    startedAt: number
+  ): RecognitionStatistics {
+    const mentions = characters.reduce((sum, c) => sum + this.safeNumber(c.mentions), 0)
+    const dialogues = characters.reduce((sum, c) => sum + this.safeNumber(c.quotes), 0)
+
+    return {
+      total_characters: characters.length,
+      total_mentions: this.safeNumber(raw?.statistics?.total_mentions, mentions),
+      total_dialogues: this.safeNumber(raw?.statistics?.total_dialogues, dialogues),
+      text_length: textLength,
+      sentence_count: this.safeNumber(raw?.statistics?.sentence_count),
+      processing_time: this.safeNumber(
+        raw?.statistics?.processing_time,
+        Math.max(1, Math.round((Date.now() - startedAt) / 1000))
       )
     }
   }
 
-  /**
-   * 异步识别小说人物（提交任务）
-   */
-  async recognizeAsync(request: RecognitionRequest, callbackUrl?: string): Promise<{ task_id: string; message: string }> {
-    try {
-      logger.info('Submitting async character recognition task', {
-        textLength: request.text.length,
-        callbackUrl
-      })
-
-      const url = new URL(`${this.baseUrl}/api/recognize/async`)
-      if (callbackUrl) {
-        url.searchParams.set('callback_url', callbackUrl)
-      }
-
-      // 添加超时控制（30秒，因为只是提交任务，应该很快返回）
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30秒超时
-
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(request),
-        signal: controller.signal
-      })
-
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new CharacterRecognitionError(
-          `Failed to submit task: ${response.statusText}`,
-          'TASK_SUBMIT_FAILED',
-          errorData
-        )
-      }
-
-      const result = await response.json()
-
-      logger.info('Async task submitted', { taskId: result.task_id })
-
-      return result
-    } catch (error) {
-      if (error instanceof CharacterRecognitionError) {
-        throw error
-      }
-
-      // 处理超时错误
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new CharacterRecognitionError(
-          'Timeout submitting async task (30s)',
-          'TIMEOUT'
-        )
-      }
-
-      throw new CharacterRecognitionError(
-        `Failed to submit async task: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'NETWORK_ERROR'
-      )
-    }
+  private safeNumber(value: unknown, fallback = 0): number {
+    return typeof value === 'number' && Number.isFinite(value) ? value : fallback
   }
 
-  /**
-   * 获取异步任务状态
-   */
-  async getTaskStatus(taskId: string): Promise<CharacterRecognitionTaskStatus> {
-    try {
-      const response = await fetch(`${this.baseUrl}/api/recognize/async/${taskId}`)
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          throw new CharacterRecognitionError(
-            'Task not found',
-            'TASK_NOT_FOUND'
-          )
-        }
-        throw new CharacterRecognitionError(
-          `Failed to get task status: ${response.statusText}`,
-          'TASK_STATUS_FAILED'
-        )
-      }
-
-      const result = await response.json()
-      return result.data as CharacterRecognitionTaskStatus
-    } catch (error) {
-      if (error instanceof CharacterRecognitionError) {
-        throw error
-      }
-
-      throw new CharacterRecognitionError(
-        `Failed to get task status: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'NETWORK_ERROR'
-      )
-    }
-  }
-
-  /**
-   * 获取服务统计信息
-   */
-  async getStats(): Promise<any> {
-    try {
-      const response = await fetch(`${this.baseUrl}/api/stats`)
-
-      if (!response.ok) {
-        throw new Error(`Failed to get stats: ${response.statusText}`)
-      }
-
-      return await response.json()
-    } catch (error) {
-      logger.error('Failed to get character recognition stats', error)
-      throw error
-    }
+  private safeStringArray(list: any): string[] {
+    if (!Array.isArray(list)) return []
+    return list
+      .filter((item) => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean)
   }
 }
 
-// 导出单例实例
 export const characterRecognitionClient = new CharacterRecognitionClient()

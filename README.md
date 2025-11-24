@@ -5,11 +5,10 @@
 ## 🎯 核心功能
 
 - **智能文本处理** - 自动分段、编码检测、格式清理
-- **AI 角色识别** - 基于 LLM 自动识别书籍中的角色
+- **AI 角色识别** - 由 Gemini 等 LLM 直接驱动，统一 JSON 输出
 - **台本生成** - 自动生成对话台本，分配角色和情感
 - **多角色朗读** - 为不同角色配置不同声音
 - **批量音频生成** - 支持整本书批量生成音频
-- **Python 人物识别服务** - 独立的 FastAPI 服务，提供高精度人物识别
 
 ## 🏗️ 项目结构
 
@@ -22,7 +21,7 @@ txt2voice/
 │   │   ├── src/                    # 源代码
 │   │   ├── prisma/                 # 数据库模式
 │   │   └── package.json
-│   └── character-recognition/      # Python 人物识别服务
+│   └── character-recognition/      # 已归档的 Python 人物识别服务（仅作历史参考）
 │       ├── src/                    # FastAPI 服务
 │       ├── tests/                  # 测试
 │       └── requirements.txt
@@ -36,6 +35,18 @@ txt2voice/
 ├── package.json                    # 根 package.json
 └── ARCHITECTURE.md                 # 架构文档
 ```
+
+## 🧠 Agent 架构
+
+多 Agent 协同驱动整条生产链路：
+
+- **任务协调 Agent**：接收用户操作、拆分任务、编排状态流转并兜底异常。
+- **文本处理 Agent**：完成文件解析、编码识别、章节/段落切分与统计。
+- **角色分析 Agent**：直接调用 Gemini/DeepSeek/OpenAI LLM 完成角色识别，输出结构化 JSON。
+- **台本生成 Agent**：按章节分段、补齐角色映射，并带三级 JSON 修复流程。
+- **音频生成 Agent**：批量调用 TTS，负责并行、分批、失败重试与章节拼接。
+
+以上 Agent 由同一套任务系统驱动，`pending → processing → completed/failed` 状态在前端实时反馈。
 
 ## 🚀 快速开始
 
@@ -105,8 +116,8 @@ docker-compose -f docker-compose.prod.yml down
 
 - **postgres** - PostgreSQL 16 数据库 (端口 5432)
 - **redis** - Redis 7 缓存和队列 (端口 6379)
-- **character-recognition** - Python 人物识别服务 (端口 8001)
-- **web** - Next.js Web 应用 (端口 3000)
+- **redisinsight** - Redis 可视化运维 (端口 5540)
+- **web** - Next.js Web 应用 (端口 3000/3001)
 
 ## 🛠️ 技术栈
 
@@ -122,10 +133,9 @@ docker-compose -f docker-compose.prod.yml down
 - **任务队列**: Bull 4.16.5 + Redis
 - **AI 服务**: OpenAI SDK (支持 OpenAI, DeepSeek 等)
 
-### Python 服务
-- **框架**: FastAPI
-- **NLP**: HanLP + Text2Vec
-- **容器**: Docker
+### LLM 服务
+- **角色识别**: Gemini 2.5 Pro（可切换 DeepSeek、OpenAI 等）
+- **台本与修复**: DeepSeek Chat，可自定义 Provider
 
 ## ⚙️ 配置
 
@@ -150,6 +160,13 @@ NEXTAUTH_URL=http://localhost:3000
 # TTS 服务 (可选)
 AZURE_SPEECH_KEY=your-azure-key
 AZURE_SPEECH_REGION=eastasia
+
+# 角色识别 LLM (必需)
+CHARREG_LLM_PROVIDER=google
+CHARREG_LLM_API_KEY=your-gemini-api-key
+CHARREG_LLM_MODEL=gemini-2.5-pro
+CHARREG_LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+CHARREG_LLM_MAX_CHARS=20000
 ```
 
 ## 📚 可用命令
@@ -201,24 +218,21 @@ pnpm dev
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** - 系统架构详细说明
 - **[docs/technical/](./docs/technical/)** - 技术文档和优化记录
 - **[docs/history/](./docs/history/)** - 历史记录和迁移文档
-- **[apps/character-recognition/README.md](./apps/character-recognition/README.md)** - Python 服务文档
+- **[apps/character-recognition/README.md](./apps/character-recognition/README.md)** - 旧版 Python 服务（Legacy，仅供参考）
 
 ## 🔍 核心工作流
 
 ```
-1. 上传书籍文件
-   ↓
-2. 文本处理（编码检测、清洗、分段）
-   ↓
-3. 角色分析（LLM 识别角色和特征）
-   ↓
-4. 台本生成（逐段生成对话台本）
-   ↓
-5. 声音配置（为角色绑定声音）
-   ↓
-6. 音频生成（批量调用 TTS）
-   ↓
-7. 完成（下载音频文件）
+1. 用户上传 → 任务协调 Agent 创建 Book 与处理任务
+2. 文本处理 Agent → 编码检测、章节切分、逐章分段
+3. 任务协调 Agent → 创建角色分析任务（可按章节采样）
+4. 角色分析 Agent → LLM 识别角色，统一 JSON 结果
+5. 任务协调 Agent → 创建台本生成任务（书籍/章节/段落粒度）
+6. 台本生成 Agent → 逐段生成台词并写入 chapterId
+7. 用户配置声音 → 绑定角色声音，可批量操作
+8. 任务协调 Agent → 创建音频生成任务
+9. 音频生成 Agent → 批量生成音轨并章节拼接
+10. 完成 → 用户下载章节或整书音频
 ```
 
 ## 🤝 贡献
@@ -253,10 +267,27 @@ docker system prune -a
 docker-compose build --no-cache
 ```
 
-### 原生运行角色识别服务
+### 角色识别策略
 
-cd apps/character-recognition
-source .venv-macos-tf210/bin/activate
-export HANLP_URL=https://ftp.hankcs.com/hanlp/
-export TF_USE_LEGACY_KERAS=1
-python main.py
+系统采用 **LLM 优先 + 默认角色兜底** 策略：
+
+1. **主要方法：Gemini/DeepSeek/OpenAI 等 LLM**  
+   通过 `CharacterRecognitionClient` 统一调用，自动裁剪文本、生成 JSON、并写入统计信息。
+2. **兜底：默认角色集合**  
+   当 LLM 调用失败或返回空结果时，仍会创建“旁白 / 男主角 / 女主角”，保证台本和音频流程可继续。
+
+环境变量示例：
+
+```env
+LLM_PROVIDER=custom
+LLM_API_KEY=your-api-key
+LLM_BASE_URL=https://api.deepseek.com
+LLM_MODEL=deepseek-chat
+CHARREG_LLM_PROVIDER=google
+CHARREG_LLM_API_KEY=your-gemini-api-key
+CHARREG_LLM_MODEL=gemini-2.5-pro
+CHARREG_LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+CHARREG_LLM_MAX_CHARS=20000
+```
+
+任务协调 Agent 会在 `processing_tasks` 中记录识别耗时，你可以通过前端或数据库查看任务历史。

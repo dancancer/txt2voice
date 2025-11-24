@@ -43,7 +43,7 @@
 | [CODE_REVIEW.md](./technical/CODE_REVIEW.md) | 代码审查报告 (2024-11) |
 | [DOCKER_NOTES.md](./technical/DOCKER_NOTES.md) | Docker 部署和安全说明 |
 | [ENCODING_SUPPORT.md](./technical/ENCODING_SUPPORT.md) | 编码支持说明 |
-| [CHARACTER_RECOGNITION_PROJECT.md](./technical/CHARACTER_RECOGNITION_PROJECT.md) | 人物识别服务项目说明 |
+| [CHARACTER_RECOGNITION_PROJECT.md](./technical/CHARACTER_RECOGNITION_PROJECT.md) | **Legacy**：旧版 Python 人物识别服务 |
 | [agent.md](./technical/agent.md) | Agent 工作流程文档 |
 
 ## 📖 主要文档
@@ -65,7 +65,8 @@
 
 ### 需要优化角色识别？
 - 查看 [CHARACTER_ANALYSIS_OPTIMIZATION.md](./technical/CHARACTER_ANALYSIS_OPTIMIZATION.md)
-- 查看 [CHARACTER_RECOGNITION_PROJECT.md](./technical/CHARACTER_RECOGNITION_PROJECT.md)
+- 参考 [AGENTS.md](../AGENTS.md) / [ARCHITECTURE.md](../ARCHITECTURE.md) 中的 LLM 流程
+- 历史资料（Legacy）：[CHARACTER_RECOGNITION_PROJECT.md](./technical/CHARACTER_RECOGNITION_PROJECT.md)
 
 ### 想了解导航系统？
 - 查看 [NAVIGATION_QUICK_REFERENCE.md](./technical/NAVIGATION_QUICK_REFERENCE.md)

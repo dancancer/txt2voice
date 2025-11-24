@@ -4,6 +4,8 @@
 
 已在 `apps/character-recognition` 目录下成功创建了一个完整的中文小说人物识别系统。该项目作为 txt2voice monorepo 的一个独立子项目，提供基于 FastAPI 的 RESTful API 服务。
 
+> ⚠️ **2025-02 更新**：系统已切换至 LLM（Gemini/DeepSeek/OpenAI）完成角色识别，`apps/character-recognition` 仅作历史示例保留。本文档仅供参考，不再对应线上实现。
+
 ## 🎯 功能特性
 
 ### 核心功能

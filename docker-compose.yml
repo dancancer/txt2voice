@@ -14,7 +14,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "15432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U txt2voice -d txt2voice"]
       interval: 10s
@@ -32,7 +32,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "16379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -47,7 +47,7 @@ services:
     container_name: txt2voice-redisinsight
     restart: unless-stopped
     ports:
-      - "8002:5540"
+      - "18002:5540"
     volumes:
       - redisinsight_data:/data
     networks:
@@ -55,36 +55,6 @@ services:
     depends_on:
       redis:
         condition: service_healthy
-
-  # Character Recognition Service
-  character-recognition:
-    platform: ${CHARACTER_RECOGNITION_PLATFORM:-linux/arm64/v8}
-    build:
-      context: .
-      dockerfile: apps/character-recognition/Dockerfile
-    container_name: txt2voice-character-recognition
-    restart: unless-stopped
-    environment:
-      HOST: 0.0.0.0
-      PORT: 8001
-      DEBUG: ${DEBUG:-True}
-      LOG_LEVEL: ${LOG_LEVEL:-DEBUG}
-      SIMILARITY_THRESHOLD: ${SIMILARITY_THRESHOLD:-0.80}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
-      HANLP_URL: https://ftp.hankcs.com/hanlp/
-    volumes:
-      - character_models:/root/.hanlp  # 缓存 HanLP 模型
-      - sentence_models:/root/.cache  # 缓存句向量模型
-    ports:
-      - "8001:8001"
-    networks:
-      - txt2voice-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
 
   # 开发模式的Web应用（支持热更新）
   web:
@@ -125,10 +95,6 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
       LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
       
-      # Character Recognition Service (容器内部连接)
-      CHARACTER_RECOGNITION_URL: ${CHARACTER_RECOGNITION_URL:-http://host.docker.internal:8001}
-      CHARACTER_RECOGNITION_CALLBACK_BASE_URL: ${CHARACTER_RECOGNITION_CALLBACK_BASE_URL:-http://host.docker.internal:3001}
-
       # IndexTTS Service (从 .env 文件读取，指向外部 IndexTTS 服务)
       INDEXTTS_API_URL: ${INDEXTTS_API_URL:-http://192.168.88.9:8001}
 
@@ -161,8 +127,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      character-recognition:
-        condition: service_healthy
     networks:
       - txt2voice-network
     healthcheck:
@@ -184,8 +148,4 @@ volumes:
   redisinsight_data:
     driver: local
   uploads_data:
-    driver: local
-  character_models:
-    driver: local
-  sentence_models:
     driver: local

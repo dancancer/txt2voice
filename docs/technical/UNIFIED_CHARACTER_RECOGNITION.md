@@ -4,7 +4,22 @@
 
 角色识别功能已统一到 `/api/books/[id]/characters/analyze` 端点，实现了智能降级机制。
 
-## 工作流程
+## 当前实现（2025 更新）
+
+> ⚠️ **重要**：Python `character-recognition` 服务已下线；系统现由 `CharacterRecognitionClient`（Gemini/LLM）直接生成角色数据。下文流程图与配置示例保留作历史参考，调试请参考 `AGENTS.md` 与 `ARCHITECTURE.md` 的 LLM 工作流。
+
+- **唯一路径**：LLM（Gemini / DeepSeek / OpenAI 兼容 API），由 Next.js API 直接调用。
+- **配置示例**：
+  ```env
+  CHARREG_LLM_PROVIDER=google
+  CHARREG_LLM_API_KEY=your-gemini-api-key
+  CHARREG_LLM_MODEL=gemini-2.5-pro
+  CHARREG_LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta
+  CHARREG_LLM_MAX_CHARS=20000
+  ```
+- Python 服务、`CHARACTER_RECOGNITION_URL` 等配置已废弃，以下章节仅用于回顾历史实现。
+
+## 工作流程（已归档）
 
 ```
 ┌─────────────────────────────────────┐

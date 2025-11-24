@@ -8,7 +8,7 @@ Text to Voice (txt2voice) is an intelligent text-to-speech platform built with N
 
 **Monorepo Structure**: PNPM workspaces with two main applications:
 - `apps/web` - Next.js 16 web application (TypeScript)
-- `apps/character-recognition` - Python FastAPI service for NLP-based character recognition
+- `apps/character-recognition` - Legacy Python FastAPI service (kept for reference only, no longer deployed)
 
 ## Essential Commands
 
@@ -44,26 +44,20 @@ pnpm docker:prod:down   # Stop production
 pnpm docker:prod:logs   # View logs
 
 # Services only (for hybrid development)
-pnpm docker:services    # Start postgres, redis, character-recognition
+pnpm docker:services    # Start postgres + redis
 pnpm dev:local          # Start services + web dev server
 ```
 
-### Character Recognition Service
+### Character Recognition (LLM)
 
-```bash
-# Native development (macOS)
-cd apps/character-recognition
-source .venv-macos-tf210/bin/activate
-export HANLP_URL=https://ftp.hankcs.com/hanlp/
-export TF_USE_LEGACY_KERAS=1
-
-# Start API + Worker (unified)
-./start.sh              # Recommended for development
-
-# Start separately (production)
-python main.py          # API server (port 8001)
-python worker.py        # Background task worker
-```
+- Configure `.env` / `.env.local` with `CHARREG_LLM_*` variables (provider/model/max chars/API key).
+- Client implementation: `apps/web/src/lib/character-recognition-client.ts`.
+- Workflow entry: `apps/web/src/lib/character-recognition-workflow.ts`.
+- Run unit tests that cover JSON 修复逻辑:
+  ```bash
+  pnpm --filter web test character-recognition-client
+  ```
+- To debug LLM calls locally, set `DEBUG=character-recognition` and inspect `apps/web/src/lib/logger.ts` output.
 
 ### Database Operations
 
@@ -102,9 +96,9 @@ User Upload → Text Processing → Character Analysis → Script Generation →
    - Splits into chapters and segments (~500 chars each)
    - Creates `Chapter` and `TextSegment` records with hierarchical relationships
 
-3. **Character Analysis Agent** (dual-strategy)
-   - **Primary**: Python NLP service (`apps/character-recognition`) using HanLP + Text2Vec
-   - **Fallback**: LLM-based recognition (`src/lib/llm-service.ts`)
+3. **Character Analysis Agent** (LLM-driven)
+   - 调用 `CharacterRecognitionClient`（Gemini/DeepSeek/OpenAI）
+   - 负责拼接全文、裁剪、构建提示、解析 JSON 并保存
    - Creates `CharacterProfile` with aliases, gender, importance
 
 4. **Script Generation Agent** (`src/lib/script-generator.ts`)
@@ -119,31 +113,30 @@ User Upload → Text Processing → Character Analysis → Script Generation →
    - Creates `AudioFile` records with chapter associations
    - Concatenates chapter-level audio files
 
-### Async Character Recognition Architecture
+### LLM Character Recognition Workflow
 
-The character recognition service uses **Redis queue + Worker** pattern to handle large texts without timeout:
+当前的角色识别完全运行在 `apps/web` 中，流程如下：
 
 ```
-Client → API (instant return) → Redis Queue → Worker (background) → Redis Cache → Callback
-   ↓                                                                      ↓
-Task ID                                                            Result/Progress
+TextSegments (DB) → runCharacterRecognitionJob → CharacterRecognitionClient → LLM(JSON) → Persistence → ProcessingTask updates
 ```
 
-**Key Components**:
-- **API** (`main.py`): Enqueues tasks, returns immediately with task_id
-- **Worker** (`worker.py`): Independent process consuming from Redis queue using BLPOP
-- **Cache** (`src/cache.py`): Stores task data, results, and progress in Redis
-- **Fallback**: Auto-degrades to asyncio if Redis unavailable
+**关键点**:
+- `runCharacterRecognitionJob` (任务执行器) 将章节段落拼接，更新任务进度。
+- `CharacterRecognitionClient` 负责裁剪文本、构造 prompt、调用 Gemini API，并从响应中提取 JSON。
+- `character-recognition-persistence` 把角色、别名、统计写入 Prisma。
+- 没有额外容器：所有逻辑和重试都在 Next.js API 进程内完成。
 
-**Starting Services**:
+**调试建议**:
 ```bash
-# Option 1: Unified (development)
-cd apps/character-recognition
-./start.sh
+# 检查 LLM 配置
+echo $CHARREG_LLM_PROVIDER $CHARREG_LLM_MODEL
 
-# Option 2: Separate (production)
-python main.py &    # API on port 8001
-python worker.py &  # Background worker
+# 运行单元测试
+pnpm --filter web test character-recognition-client
+
+# 手动触发识别任务（前端或直接 Prisma）
+curl -X POST http://localhost:3000/api/books/{bookId}/characters/analyze
 ```
 
 ### Data Model Hierarchy
@@ -183,20 +176,18 @@ character.aliases
 **Services** (defined in `docker-compose.yml`):
 - `postgres` - PostgreSQL 16 on port 5432
 - `redis` - Redis 7 on port 6379
-- `character-recognition` - Python service on port 8001
-- `web` - Next.js app on port 3000
+- `redisinsight` - Redis GUI on port 5540
+- `web` - Next.js app on port 3001
 
-**Environment Variables** (see `.env.docker` template):
-- `DATABASE_URL` - PostgreSQL connection string
-- `REDIS_URL` - Redis connection string
-- `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` - LLM service config
-- `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` - TTS service config
-- `CHARACTER_RECOGNITION_SERVICE_URL` - Internal service URL
+**Environment Variables** (see `.env` template):
+- `DATABASE_URL`, `REDIS_URL` - Service connections
+- `LLM_API_KEY`, `LLM_BASE_URL`, `LLM_MODEL` - 通用 LLM
+- `CHARREG_LLM_PROVIDER`, `CHARREG_LLM_MODEL`, `CHARREG_LLM_API_KEY` - 角色识别 LLM
+- `AZURE_SPEECH_KEY`, `AZURE_SPEECH_REGION` - TTS 服务配置
 
 **Important**:
-- Container networking: Services communicate via Docker network using service names
-- Web app can reach Python service at `http://character-recognition:8001`
-- Host access: Use `http://localhost:8001` from outside Docker
+- 没有额外的 Python 容器；角色识别完全运行在 Next.js API 中。
+- 更新 `.env` 后需要重启 `web` 容器/进程，使 LLM 配置生效。
 
 ## Error Handling Patterns
 
@@ -259,30 +250,33 @@ From AGENTS.md philosophy section, key principles when working in this codebase:
 4. **Frontend State**: Update Zustand store in `apps/web/src/store/`
 5. **UI Components**: Create React components using Radix UI + Tailwind
 
-### Working with Python Service
+### Working with Character Recognition
 
-1. **Environment Setup**:
+1. **Prompt/Client Changes**:
+   - Edit `apps/web/src/lib/character-recognition-client.ts`.
+   - Keep functions < 20 lines; avoid extra branches by normalizing data first.
+   - Add/adjust unit tests under `apps/web/src/lib/__tests__/`.
+
+2. **LLM Configuration**:
    ```bash
-   cd apps/character-recognition
-   python -m venv .venv-macos-tf210  # or appropriate for your OS
-   source .venv-macos-tf210/bin/activate
-   pip install -r requirements.txt
+   export CHARREG_LLM_PROVIDER=google
+   export CHARREG_LLM_MODEL=gemini-2.5-pro
+   export CHARREG_LLM_API_KEY=...
+   export CHARREG_LLM_MAX_CHARS=20000
+   pnpm --filter web dev
    ```
 
-2. **Configuration**: Copy `.env.example` to `.env`, set `REDIS_URL`
-
-3. **Testing**:
+3. **End-to-End Testing**:
    ```bash
-   python example.py                    # Basic functionality test
-   ./test_api.sh                        # API endpoint tests
+   pnpm --filter web test character-recognition-client
+   curl -X POST http://localhost:3000/api/books/{bookId}/characters/analyze
    ```
 
 ### Debugging Tips
 
-**API Errors**: Check Docker container logs
+**API Errors**: Check web container logs
 ```bash
-docker logs txt2voice-web -f          # Web app logs
-docker logs txt2voice-character-recognition -f  # Python service logs
+docker logs txt2voice-web -f          # Next.js API + LLM logs
 ```
 
 **Database Issues**:
@@ -293,14 +287,13 @@ docker exec -it txt2voice-postgres psql -U txt2voice -d txt2voice
 **Redis Inspection**:
 ```bash
 docker exec -it txt2voice-redis redis-cli
-KEYS charrecog:*              # View character recognition tasks
-GET charrecog:{task_id}:result
+SCAN 0 MATCH processing_task:*    # Task progress
 ```
 
 **Character Recognition Issues**:
-- Check worker is running: `ps aux | grep worker.py`
-- View queue length: Redis key `charrecog:task_queue`
-- Restart web container if compiled code is stale: `docker restart txt2voice-web`
+- Verify env vars: `env | grep CHARREG`
+- Inspect Prisma data: `SELECT status, task_data FROM "ProcessingTask" WHERE "taskType"='CHARACTER_RECOGNITION';`
+- Restart web container if config changes: `docker restart txt2voice-web`
 
 ## Key Files and Directories
 
@@ -317,17 +310,16 @@ GET charrecog:{task_id}:result
 - `/apps/web/src/store/` - Zustand state management
 - `/apps/web/src/components/` - React UI components
 
-**Python Service**:
-- `/apps/character-recognition/main.py` - FastAPI application
-- `/apps/character-recognition/worker.py` - Background task processor
-- `/apps/character-recognition/src/recognizer.py` - Core NLP logic
-- `/apps/character-recognition/src/cache.py` - Redis operations
+**Character Recognition (LLM)**:
+- `/apps/web/src/lib/character-recognition-client.ts` - LLM 调用与 JSON 解析
+- `/apps/web/src/lib/character-recognition-workflow.ts` - 任务调度与持久化
+- `/apps/web/src/lib/character-recognition-persistence.ts` - Prisma 写入逻辑
 
 **Documentation**:
 - `/AGENTS.md` - Agent workflow and philosophy (READ THIS)
 - `/ARCHITECTURE.md` - System architecture details
-- `/apps/character-recognition/ASYNC_ARCHITECTURE.md` - Async pattern explanation
-- `/apps/character-recognition/REDIS_CONFIG.md` - Redis configuration guide
+- `/apps/character-recognition/ASYNC_ARCHITECTURE.md` - Legacy Python docs（仅供参考）
+- `/apps/character-recognition/REDIS_CONFIG.md` - Legacy Redis guide
 
 ## Communication Style
 
