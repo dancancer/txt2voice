@@ -1,3 +1,7 @@
+// If I change, please update my header comment.
+// input: module imports
+// output: barrel exports
+// pos: export entry
 export * from "./types";
 export { ScriptHeader } from "./ScriptHeader";
 export { GenerationProgress } from "./GenerationProgress";

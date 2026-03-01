@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: 初始状态/动作定义
+// output: 状态容器
+// pos: 客户端状态
 import { create } from 'zustand'
 import type { Book } from '@/types/book'
 

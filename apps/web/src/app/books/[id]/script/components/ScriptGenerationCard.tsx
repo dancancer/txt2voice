@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: props/hooks/组件依赖
+// output: 局部 UI
+// pos: 页面组件
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {

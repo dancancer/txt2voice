@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: children/路由参数
+// output: 共享布局 UI
+// pos: 路由布局入口
 'use client'
 
 import {

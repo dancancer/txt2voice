@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: 本地模型约束
+// output: 类型导出
+// pos: 局部类型
 export interface ScriptSentence {
   id: string;
   text: string;

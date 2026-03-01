@@ -1,3 +1,7 @@
+// If I change, please update my header comment.
+// input: function args/external deps
+// output: utility/service exports
+// pos: shared library
 export function normalizeDurationSeconds(
   rawDuration?: number | string | null,
   convertThresholdMs: number = 1000

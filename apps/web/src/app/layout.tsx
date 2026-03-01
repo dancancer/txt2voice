@@ -1,3 +1,7 @@
+// If I change, please update my header comment.
+// input: children/route params
+// output: shared layout UI
+// pos: route layout entry
 import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/Navigation";

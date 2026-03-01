@@ -1,3 +1,7 @@
+// If I change, please update my header comment.
+// input: props/hooks/component deps
+// output: reusable UI
+// pos: shared component
 'use client'
 
 import { useAppStore } from '@/store/useAppStore'

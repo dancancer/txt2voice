@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: props/hooks/组件依赖
+// output: 局部 UI
+// pos: 页面组件
 'use client'
 
 import { Edit, Trash2, Volume2, Settings, Mic, Loader2 } from "lucide-react";

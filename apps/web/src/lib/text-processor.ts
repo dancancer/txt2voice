@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: 函数参数/外部依赖
+// output: 工具/服务导出
+// pos: 共享业务库
 import { Prisma } from '@/generated/prisma'
 import { FileProcessingError } from './error-handler'
 import { smartSplitText, calculateTextLength, RecursiveCharacterTextSplitter } from './text-splitter'

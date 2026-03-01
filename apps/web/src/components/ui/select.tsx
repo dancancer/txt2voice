@@ -1,3 +1,7 @@
+// If I change, please update my header comment.
+// input: props/style deps
+// output: base UI
+// pos: base component
 import * as React from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";

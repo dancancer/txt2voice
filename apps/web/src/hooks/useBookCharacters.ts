@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: hook 参数/外部依赖
+// output: 状态/动作
+// pos: 复用 Hook
 import { useState, useEffect, useCallback } from 'react'
 import type { CharacterProfileSummary } from '@/types/book'
 import { toast } from 'sonner'
@@ -82,4 +86,3 @@ export function useBookCharacters(bookId: string, initialLimit = 20) {
     error
   }
 }
-

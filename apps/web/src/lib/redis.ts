@@ -1,3 +1,7 @@
+// If I change, please update my header comment.
+// input: function args/external deps
+// output: utility/service exports
+// pos: shared library
 import { createClient, RedisClientType } from "redis";
 
 let client: RedisClientType | null = null;

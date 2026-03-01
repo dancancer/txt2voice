@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: props/hooks/组件依赖
+// output: 复用 UI
+// pos: 共享组件
 'use client'
 
 import React, { Component, ReactNode } from 'react'

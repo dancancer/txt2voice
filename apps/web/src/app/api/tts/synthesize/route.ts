@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: HTTP 请求/路由参数/服务依赖
+// output: HTTP 响应/JSON
+// pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/error-handler";
 import { indexTTSService } from "@/lib/indextts-service";

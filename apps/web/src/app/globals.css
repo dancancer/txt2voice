@@ -1,3 +1,7 @@
+/* If I change, please update my header comment. */
+/* input: global selectors/vars */
+/* output: global styles */
+/* pos: style base layer */
 @import "tailwindcss";
 
 @theme {

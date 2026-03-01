@@ -1,3 +1,7 @@
+// If I change, please update my header comment.
+// input: function args/external deps
+// output: utility/service exports
+// pos: shared library
 import { PrismaClient } from '@/generated/prisma'
 
 declare global {

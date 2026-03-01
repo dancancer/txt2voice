@@ -1,3 +1,7 @@
+// 一旦我被更新，请更新我的开头注释
+// input: hook 参数/外部依赖
+// output: 状态/动作
+// pos: 复用 Hook
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { booksApi } from '@/lib/api'
