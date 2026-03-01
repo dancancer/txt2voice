@@ -2,7 +2,7 @@
 // input: props/hooks/组件依赖
 // output: 局部 UI
 // pos: 页面组件
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +36,6 @@ export function EditSentenceModal({
   const [characterId, setCharacterId] = useState(
     sentence.characterId ?? narrationValue
   );
-
-  useEffect(() => {
-    setText(sentence.text);
-    setTone(sentence.tone ?? "");
-    setCharacterId(sentence.characterId ?? narrationValue);
-  }, [sentence]);
 
   const availableCharacters = useMemo(() => {
     const activeCharacters = characters.filter((c) => c.isActive !== false);

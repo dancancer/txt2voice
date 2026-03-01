@@ -2,12 +2,14 @@
 // input: function args/external deps
 // output: utility/service exports
 // pos: shared library
-import { createClient, RedisClientType } from "redis";
+import { createClient } from "redis";
 
-let client: RedisClientType | null = null;
-let connecting: Promise<RedisClientType> | null = null;
+type RedisClient = ReturnType<typeof createClient>;
 
-export async function getRedisClient(): Promise<RedisClientType | null> {
+let client: RedisClient | null = null;
+let connecting: Promise<RedisClient> | null = null;
+
+export async function getRedisClient(): Promise<RedisClient | null> {
   if (client) return client;
   if (connecting) return connecting;
 

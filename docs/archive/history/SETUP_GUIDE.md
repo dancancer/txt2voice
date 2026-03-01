@@ -17,7 +17,7 @@
 
 ### 文档和脚本
 - ✅ `MONOREPO_MIGRATION.md` - 完整迁移指南
-- ✅ `README.monorepo.md` - Monorepo 使用说明
+- ✅ `README.md` - 项目使用说明
 - ✅ `scripts/migrate-to-monorepo.sh` - 自动迁移脚本
 
 ## 🚀 快速设置（推荐）
@@ -250,7 +250,7 @@ tree -L 2 apps/
 ## 📚 下一步
 
 1. 阅读 [MONOREPO_MIGRATION.md](./MONOREPO_MIGRATION.md) 了解详细信息
-2. 阅读 [README.monorepo.md](./README.monorepo.md) 了解使用方法
+2. 阅读 [README.md](../../../README.md) 了解使用方法
 3. 配置 CI/CD 流程
 4. 添加更多应用或共享包
 5. 部署到生产环境

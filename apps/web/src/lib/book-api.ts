@@ -99,7 +99,7 @@ export interface ScriptSentence {
   bookId: string;
   segmentId: string;
   text: string;
-  rawSpeaker?: string;
+  rawSpeaker?: string | null;
   tone?: string;
   strength?: number;
   pauseAfter?: number;
@@ -330,7 +330,7 @@ export async function createScriptSentence(
     segmentId: string;
     characterId?: string;
     text: string;
-    rawSpeaker?: string;
+    rawSpeaker?: string | null;
     tone?: string;
     strength?: number;
     pauseAfter?: number;

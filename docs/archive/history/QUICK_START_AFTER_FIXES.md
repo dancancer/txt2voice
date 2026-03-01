@@ -252,7 +252,7 @@ export const GET = withRateLimit(withErrorHandler(async (request) => {
 
 1. ✅ 运行测试确保一切正常
 2. ✅ 查看 `FIXES_APPLIED.md` 了解详细修复内容
-3. ✅ 查看 `CODE_REVIEW.md` 了解原始问题
+3. ✅ 查看历史审查记录了解原始问题背景
 4. ✅ 逐步将其他 API 路由迁移到新模式
 5. ✅ 添加单元测试
 

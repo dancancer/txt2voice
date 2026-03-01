@@ -540,8 +540,7 @@ export default function ScriptGenerationPage() {
                 text: payload.text,
                 tone: payload.tone ?? undefined,
                 characterId: payload.characterId ?? null,
-                rawSpeaker:
-                  payload.rawSpeaker === null ? undefined : sentence.rawSpeaker,
+                rawSpeaker: payload.rawSpeaker ?? undefined,
                 character: nextCharacter,
               }
             : sentence
@@ -1090,6 +1089,7 @@ export default function ScriptGenerationPage() {
 
       {editingSentence && (
         <EditSentenceModal
+          key={editingSentence.id}
           sentence={editingSentence}
           characters={characters}
           onClose={() => setEditingSentence(null)}

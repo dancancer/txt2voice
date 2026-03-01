@@ -231,8 +231,8 @@ Web 应用的 `package.json` 名称已改为 `"web"`，这样 `pnpm --filter web
 
 - [SETUP_GUIDE.md](./SETUP_GUIDE.md) - 详细设置指南
 - [MONOREPO_MIGRATION.md](./MONOREPO_MIGRATION.md) - 迁移详细说明
-- [README.monorepo.md](./README.monorepo.md) - 使用说明
-- [DOCKER_NOTES.md](./DOCKER_NOTES.md) - Docker 部署和安全
+- [README.md](../../../README.md) - 使用说明
+- [DOCKER_NOTES.md](../../technical/DOCKER_NOTES.md) - Docker 部署和安全
 
 ## ⚠️ 注意事项
 
@@ -241,7 +241,7 @@ Web 应用的 `package.json` 名称已改为 `"web"`，这样 `pnpm --filter web
 Dockerfile 中的安全警告是正常的（来自基础镜像扫描）：
 - 不影响开发和功能
 - 通过定期更新基础镜像来保持安全
-- 详见 [DOCKER_NOTES.md](./DOCKER_NOTES.md)
+- 详见 [DOCKER_NOTES.md](../../technical/DOCKER_NOTES.md)
 
 ### 路径变化
 

@@ -639,7 +639,7 @@ ${segment.content}
     }
 
     return rawCandidates
-      .map((candidate) => {
+      .map((candidate): CharacterCandidate | null => {
         const name =
           typeof candidate?.name === "string" ? candidate.name.trim() : "";
         if (!name || name === "旁白") {
@@ -692,7 +692,9 @@ ${segment.content}
               : "",
         };
       })
-      .filter((candidate): candidate is CharacterCandidate => !!candidate);
+      .filter(
+        (candidate): candidate is CharacterCandidate => candidate !== null
+      );
   }
 
   private resolveCandidateCanonicalName(
@@ -724,7 +726,11 @@ ${segment.content}
       return;
     }
 
-    const importanceWeight = { main: 3, secondary: 2, minor: 1 };
+    const importanceWeight: Record<"main" | "secondary" | "minor", number> = {
+      main: 3,
+      secondary: 2,
+      minor: 1,
+    };
 
     await prisma.$transaction(async (tx) => {
       for (const candidate of candidates) {
@@ -795,13 +801,23 @@ ${segment.content}
             shouldUpdateCharacteristics = true;
           }
 
-          const currentImportance = characteristics.importance || "minor";
+          const currentImportance: "main" | "secondary" | "minor" =
+            characteristics.importance === "main" ||
+            characteristics.importance === "secondary" ||
+            characteristics.importance === "minor"
+              ? characteristics.importance
+              : "minor";
+          const candidateImportance: "main" | "secondary" | "minor" =
+            candidate.importance === "main" ||
+            candidate.importance === "secondary" ||
+            candidate.importance === "minor"
+              ? candidate.importance
+              : "minor";
           if (
-            candidate.importance &&
-            importanceWeight[candidate.importance] >
-              importanceWeight[currentImportance]
+            importanceWeight[candidateImportance] >
+            importanceWeight[currentImportance]
           ) {
-            nextCharacteristics.importance = candidate.importance;
+            nextCharacteristics.importance = candidateImportance;
             shouldUpdateCharacteristics = true;
           }
 

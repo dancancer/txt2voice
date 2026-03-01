@@ -2,7 +2,7 @@
 // input: HTTP 请求/路由参数/服务依赖
 // output: HTTP 响应/JSON
 // pos: API 路由处理器
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withErrorHandler, ValidationError } from "@/lib/error-handler";
 import { formatProcessingTask } from "@/lib/processing-task-utils";
@@ -107,7 +107,7 @@ export const GET = withErrorHandler(
       },
     });
 
-    return new Response(stream, {
+    return new NextResponse(stream, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache, no-transform",
