@@ -6,17 +6,13 @@ import { booksApi } from '@/lib/api'
 import { getBookStatusMeta } from '@/lib/status'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
-  ArrowLeft,
   BookOpen,
   FileText,
   Users,
   Play,
   Settings,
-  Clock,
-  CheckCircle,
   AlertCircle,
   Loader2
 } from 'lucide-react'
@@ -45,29 +41,6 @@ export default function BookDetailPage() {
       setError('加载书籍详情失败')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleStartCharacterAnalysis = async () => {
-    try {
-      const response = await fetch(`/api/books/${bookId}/characters/recognize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        // 重新加载书籍数据以更新状态
-        await loadBook()
-      } else {
-        setError('角色识别启动失败')
-      }
-    } catch (err) {
-      console.error('Failed to start character recognition:', err)
-      setError('角色识别启动失败')
     }
   }
 
@@ -166,34 +139,14 @@ export default function BookDetailPage() {
 
                 {/* Action Buttons */}
                 <div className="space-y-2">
-                  {book.status === 'processed' && (
-                    <>
-                      <Button
-                        variant="default"
-                        className="w-full"
-                        onClick={() => handleStartCharacterAnalysis()}
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        开始角色分析
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => router.push(`/books/${bookId}/script`)}
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        直接生成台本
-                      </Button>
-                    </>
-                  )}
-                  {book.status === 'analyzed' && (
+                  {(book.status === 'processed' || book.status === 'analyzed') && (
                     <Button
                       variant="default"
                       className="w-full"
                       onClick={() => router.push(`/books/${bookId}/script`)}
                     >
                       <FileText className="w-4 h-4 mr-2" />
-                      生成台本
+                      生成台本（自动识别角色）
                     </Button>
                   )}
                   {book.status === 'completed' && (
@@ -255,13 +208,15 @@ export default function BookDetailPage() {
                         : 'bg-gray-50 border-gray-200'
                     }`}>
                       <Users className="w-6 h-6 mx-auto mb-2 text-indigo-600" />
-                      <h4 className="font-medium mb-1">角色分析</h4>
+                      <h4 className="font-medium mb-1">角色识别</h4>
                       <p className="text-sm text-gray-600">
                         {book.status === 'analyzing'
                           ? `${book.processingTasks?.[0]?.progress || 0}%`
                           : book.status === 'analyzed'
                           ? '已完成'
-                          : `${book.characterProfiles?.length || 0} 个角色`
+                          : (book.characterProfiles?.length || 0) > 0
+                          ? `${book.characterProfiles?.length || 0} 个角色`
+                          : '随台本生成'
                         }
                       </p>
                     </div>

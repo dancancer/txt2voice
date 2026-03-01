@@ -27,13 +27,6 @@ jest.mock("../llm-service", () => ({
   }),
 }));
 
-jest.mock("../character-recognition-client", () => ({
-  characterRecognitionClient: {
-    healthCheck: jest.fn().mockResolvedValue(false),
-    recognize: jest.fn(),
-  },
-}));
-
 jest.mock("../prisma", () => ({
   __esModule: true,
   default: {

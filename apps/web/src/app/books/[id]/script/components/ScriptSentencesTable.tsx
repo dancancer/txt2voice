@@ -150,11 +150,7 @@ export function ScriptSentencesTable({
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              if (confirm("确定要删除这句台词吗？")) {
-                                onDelete(sentence.id);
-                              }
-                            }}
+                            onClick={() => onDelete(sentence.id)}
                           >
                             <Trash2 className="w-3 h-3 text-red-500" />
                           </Button>

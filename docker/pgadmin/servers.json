@@ -1,0 +1,13 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "txt2voice-postgres",
+      "Group": "txt2voice",
+      "Host": "postgres",
+      "Port": 5432,
+      "MaintenanceDB": "txt2voice",
+      "Username": "txt2voice",
+      "SSLMode": "prefer"
+    }
+  }
+}

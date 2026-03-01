@@ -5,17 +5,16 @@ import {
   ArrowLeft,
   Plus,
   Search,
-  Mic,
   FileText,
   Loader2,
   CheckCircle,
   User,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import type { ReactNode } from "react";
 
 // layout 默认导出用于 Next.js 路由包装，保持页面可渲染
@@ -131,8 +130,7 @@ export function AcquisitionCards({
   lastExtractionSummary,
   onAddCharacter,
   onExtractFromScript,
-  onStartRecognition,
-  recognitionStatus,
+  onOpenScript,
   actionLoading,
 }: {
   hasTextSegments: boolean;
@@ -142,32 +140,16 @@ export function AcquisitionCards({
   lastExtractionSummary?: string | null;
   onAddCharacter: () => void;
   onExtractFromScript: () => void;
-  onStartRecognition: () => void;
-  recognitionStatus?: { status?: string; message?: string; progress?: number | null };
-  actionLoading: { scriptExtraction: boolean; recognition: boolean };
+  onOpenScript: () => void;
+  actionLoading: { scriptExtraction: boolean };
 }) {
-  const getRecognitionStatusText = (status?: string) => {
-    switch (status) {
-      case "processing":
-        return "识别进行中";
-      case "completed":
-        return "识别完成";
-      case "failed":
-        return "识别失败";
-      case "pending":
-        return "等待开始";
-      case "not_started":
-      default:
-        return "尚未启动";
-    }
-  };
 
   return (
     <Card className="mb-6">
       <CardHeader className="pb-4">
         <CardTitle>角色获取方式</CardTitle>
         <p className="text-sm text-gray-500">
-          可手动维护角色，也可以从台本或识别服务中自动提取。
+          可手动维护角色，也可以从台本抽取或在生成台本时自动识别。
         </p>
       </CardHeader>
       <CardContent>
@@ -227,42 +209,26 @@ export function AcquisitionCards({
           <div className="rounded-lg border p-4 bg-white flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="font-medium text-gray-900">角色识别服务</p>
-                <p className="text-xs text-gray-500">调用识别服务批量提取</p>
+                <p className="font-medium text-gray-900">台本生成自动识别</p>
+                <p className="text-xs text-gray-500">生成台本时同步补充角色信息</p>
               </div>
               <div className="p-2 rounded-full bg-purple-50 text-purple-600">
-                <Mic className="w-4 h-4" />
+                <Sparkles className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-sm text-gray-500 flex-1 mb-3 space-y-2">
-              <div>
-                当前状态：{" "}
-                <span className="font-medium text-gray-900">
-                  {getRecognitionStatusText(recognitionStatus?.status)}
-                </span>
-              </div>
-              {recognitionStatus?.message && (
-                <p className="text-xs text-gray-500">{recognitionStatus.message}</p>
-              )}
-              {recognitionStatus?.status === "processing" && (
-                <Progress value={recognitionStatus.progress || 0} />
-              )}
+            <div className="text-sm text-gray-500 flex-1 mb-3">
+              {hasScripts
+                ? `已有 ${scriptsCount} 句台词，角色会随台本持续补充`
+                : hasTextSegments
+                ? "生成台本时将自动识别角色，无需单独启动"
+                : "请先完成文本处理"}
             </div>
             <Button
-              onClick={onStartRecognition}
-              disabled={actionLoading.recognition || recognitionStatus?.status === "processing" || !hasTextSegments}
+              onClick={onOpenScript}
+              disabled={!hasTextSegments}
             >
-              {actionLoading.recognition ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  正在启动...
-                </>
-              ) : (
-                <>
-                  <Mic className="w-4 h-4 mr-2" />
-                  启动识别
-                </>
-              )}
+              <Sparkles className="w-4 h-4 mr-2" />
+              {hasScripts ? "查看台本" : "去生成台本"}
             </Button>
           </div>
         </div>

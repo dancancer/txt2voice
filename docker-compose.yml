@@ -23,6 +23,27 @@ services:
     networks:
       - txt2voice-network
 
+  # PostgreSQL 管理工具 (pgAdmin)
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: txt2voice-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-dan.cancer@gmail.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-txt2voice_admin}
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: 'False'
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - txt2voice-network
+
   # Redis Cache & Queue
   redis:
     image: redis:7-alpine
@@ -178,6 +199,8 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  pgadmin_data:
     driver: local
   redis_data:
     driver: local

@@ -1,7 +1,6 @@
 import { TTSError } from "./error-handler";
 import { getLLMService } from "./llm-service";
 import prisma from "./prisma";
-import { characterRecognitionClient } from "./character-recognition-client";
 
 export interface DialogueLine {
   id: string;
@@ -22,6 +21,17 @@ export interface DialogueLine {
   emotion?: string; // 向后兼容
   context?: string; // 向后兼容
   metadata?: Record<string, any>; // 向后兼容
+}
+
+export interface CharacterCandidate {
+  name: string;
+  aliases: string[];
+  description?: string;
+  gender?: "male" | "female" | "unknown";
+  age?: string | number | null;
+  personality: string[];
+  importance?: "main" | "secondary" | "minor";
+  dialogueStyle?: string;
 }
 
 export interface ScriptGenerationOptions {
@@ -60,7 +70,8 @@ export class ScriptGenerator {
    */
   async generateScript(
     bookId: string,
-    options: Partial<ScriptGenerationOptions> = {}
+    options: Partial<ScriptGenerationOptions> = {},
+    onProgress?: (done: number, total: number) => Promise<void> | void
   ): Promise<GeneratedScript> {
     const defaultOptions: ScriptGenerationOptions = {
       includeNarration: true,
@@ -101,33 +112,6 @@ export class ScriptGenerator {
       );
     }
 
-    // 先进行角色识别（如果还没有角色）
-    if (book.characterProfiles.length === 0) {
-      console.log("没有找到角色，开始自动识别角色...");
-      await this.identifyAndCreateCharacters(bookId, book.textSegments);
-
-      // 重新获取角色信息
-      const updatedBook = await prisma.book.findUnique({
-        where: { id: bookId },
-        include: {
-          characterProfiles: {
-            where: { isActive: true },
-            include: { aliases: true },
-          },
-        },
-      });
-
-      if (!updatedBook) {
-        throw new TTSError(
-          "角色识别失败",
-          "TTS_SERVICE_DOWN",
-          "script-generator"
-        );
-      }
-
-      book.characterProfiles = updatedBook.characterProfiles;
-    }
-
     // 构建角色名称映射（包含别名）
     const characterMap = this.buildCharacterMap(book.characterProfiles);
 
@@ -157,6 +141,9 @@ export class ScriptGenerator {
             ),
           ],
         });
+        if (onProgress) {
+          await onProgress(i + 1, book.textSegments.length);
+        }
       } catch (error) {
         console.error(`处理段落 ${segment.id} 失败:`, error);
         // 继续处理下一段，不中断整个流程
@@ -189,7 +176,10 @@ export class ScriptGenerator {
     characterMap: Map<string, string>,
     characterProfiles: any[],
     options: ScriptGenerationOptions
-  ): Promise<{ dialogueLines: DialogueLine[] }> {
+  ): Promise<{
+    dialogueLines: DialogueLine[];
+    characterCandidates: CharacterCandidate[];
+  }> {
     // 构建详细的角色信息
     const characterInfo = characterProfiles
       .map((char) => {
@@ -210,6 +200,21 @@ export class ScriptGenerator {
       })
       .filter((char) => char.name !== "旁白"); // 排除旁白角色
 
+    const characterInfoText =
+      characterInfo.length > 0
+        ? characterInfo
+            .map(
+              (char, index) =>
+                `${index + 1}. ${char.name}\n` +
+                `   别名: ${char.aliases || "无"}\n` +
+                `   性别: ${char.gender}, 年龄: ${char.age}\n` +
+                `   性格特征: ${char.personality}\n` +
+                `   对话风格: ${char.dialogueStyle}\n` +
+                `   重要程度: ${char.importance}\n`
+            )
+            .join("\n")
+        : "无";
+
     const systemPrompt = `你是一个专业的台本编剧，专门将小说文本转换为适合有声读物朗读的台本。
 
 你的任务是：
@@ -217,82 +222,79 @@ export class ScriptGenerator {
 2. 将对话分配给正确的角色
 3. 分析每段台词的情感色彩
 4. 提供适当的朗读指导
+5. 同步补充本段出现的新角色或新别名
 
 已知角色信息：
-${characterInfo
-  .map(
-    (char, index) =>
-      `${index + 1}. ${char.name}\n` +
-      `   别名: ${char.aliases || "无"}\n` +
-      `   性别: ${char.gender}, 年龄: ${char.age}\n` +
-      `   性格特征: ${char.personality}\n` +
-      `   对话风格: ${char.dialogueStyle}\n` +
-      `   重要程度: ${char.importance}\n`
-  )
-  .join("\n")}
+${characterInfoText}
 
 识别规则：
 1. 优先使用提供的角色名称
-2. 注意角色的别名变化
-3. 如果遇到未识别的对话，可以推断为新角色并标记为"未知角色X"
-4. 旁白内容标记为 "旁白"
+2. 注意角色的别名变化，别名应归一为角色名称
+3. 如果出现未收录角色，先在角色列表补充，再在台词中使用该名称
+4. 旁白内容标记为 "旁白"，旁白不要出现在角色列表中
 
-请返回JSON格式的台词数组，每个台词对象包含以下字段：
-[
-  {
-    "id": "sentence_001",
-    "text": "具体语句内容",
-    "speaker": "说话人角色名",
-    "tone": "情绪/语气",
-    "strength": 75,
-    "pauseAfter": 1.5,
-    "ttsHints": {
-      "pitch": 1.0,
-      "rate": 1.0,
-      "emphasis": "需要强调的词"
+请返回严格JSON对象，包含以下字段：
+{
+  "dialogues": [
+    {
+      "id": "sentence_001",
+      "text": "具体语句内容",
+      "speaker": "说话人角色名",
+      "tone": "情绪/语气",
+      "strength": 75,
+      "pauseAfter": 1.5,
+      "ttsHints": {
+        "pitch": 1.0,
+        "rate": 1.0,
+        "emphasis": "需要强调的词"
+      }
     }
-  }
-]
+  ],
+  "characters": [
+    {
+      "name": "角色名",
+      "aliases": ["别名1", "别名2"],
+      "description": "角色描述",
+      "gender": "male/female/unknown",
+      "age": "大致年龄",
+      "personality": ["性格1", "性格2"],
+      "importance": "main/secondary/minor",
+      "dialogueStyle": "对话风格"
+    }
+  ]
+}
 
 字段说明：
-- id: 台词唯一标识符（自动生成）
-- text: 台词内容
-- speaker: 说话人角色名称（必须是上面列表中的角色，或"旁白"，或"未知角色X"）
-- tone: 情感/语气（如：平静、激动、悲伤、愤怒、温柔、严肃等）
-- strength: 音量强度（0-100，默认75）
-- pauseAfter: 后停顿时间（秒，默认1.5）
-- ttsHints: TTS提示对象
-  - pitch: 音调（默认1.0）
-  - rate: 语速（默认1.0）
-  - emphasis: 需要强调的词
+- dialogues: 台词数组
+  - id: 台词唯一标识符（自动生成）
+  - text: 台词内容
+  - speaker: 说话人角色名称（必须是已知角色、新增角色，或"旁白"）
+  - tone: 情感/语气（如：平静、激动、悲伤、愤怒、温柔、严肃等）
+  - strength: 音量强度（0-100，默认75）
+  - pauseAfter: 后停顿时间（秒，默认1.5）
+  - ttsHints: TTS提示对象
+    - pitch: 音调（默认1.0）
+    - rate: 语速（默认1.0）
+    - emphasis: 需要强调的词
+- characters: 新增角色或新增别名的角色，没有则返回空数组
 
 注意事项：
 - 严格按照提供的角色列表分配对话
-- 旁白部分标记 character 设为 "旁白"
 - 情感描述要简洁明确，符合角色性格
 - 保持原文的语调和风格
-- 确保对话内容准确分配给对应角色`;
+- 只返回JSON，不要添加其他文字，不要使用Markdown或代码块（例如\`\`\`json）`;
 
-    const prompt = `请分析以下文本段落，生成朗读台本：
+    const prompt = `请分析以下文本段落，生成朗读台本并补充角色信息：
 
 ${segment.content}
 
-请返回JSON格式的台词数组，严格按照上面定义的格式。`;
+请只输出一个完整JSON对象，必须以 { 开始、以 } 结束，不要包含任何额外文字或Markdown代码块。`;
 
     const response = await this.llmService.callLLM(prompt, systemPrompt);
 
     console.log("=============", response);
     try {
-      // 尝试匹配JSON格式（数组或对象）
-      const jsonArrayMatch = response.match(/\[[\s\S]*\]/);
-      const jsonObjectMatch = response.match(/\{[\s\S]*\}/);
-
-      if (!jsonArrayMatch && !jsonObjectMatch) {
-        throw new Error("LLM返回格式不正确");
-      }
-
-      let jsonString = jsonArrayMatch?.[0] || jsonObjectMatch?.[0];
-
+      const jsonString = this.extractJsonCandidate(response);
       if (!jsonString) {
         throw new Error("无法从LLM响应中提取JSON");
       }
@@ -327,15 +329,39 @@ ${segment.content}
 
       // 处理新格式：直接是数组，或者是包含dialogues字段的对象
       let scriptSentences = [];
+      let rawCharacters = [];
       if (Array.isArray(result)) {
-        // 新格式：直接是台词数组
         scriptSentences = result;
       } else if (result.dialogues && Array.isArray(result.dialogues)) {
-        // 旧格式：包含dialogues字段的对象
         scriptSentences = result.dialogues;
+      } else if (result.dialogueLines && Array.isArray(result.dialogueLines)) {
+        scriptSentences = result.dialogueLines;
       } else {
         console.warn("未找到有效的台词数据，使用空数组");
         scriptSentences = [];
+      }
+
+      if (result.characters && Array.isArray(result.characters)) {
+        rawCharacters = result.characters;
+      } else if (result.newCharacters && Array.isArray(result.newCharacters)) {
+        rawCharacters = result.newCharacters;
+      }
+
+      const characterCandidates = this.normalizeCharacterCandidates(rawCharacters);
+      for (const candidate of characterCandidates) {
+        const canonicalName = this.resolveCandidateCanonicalName(
+          candidate,
+          characterMap
+        );
+        const aliasSet = new Set(candidate.aliases);
+        if (candidate.name !== canonicalName) {
+          aliasSet.add(candidate.name);
+        }
+
+        this.addCharacterToMap(characterMap, {
+          canonicalName,
+          aliases: [...aliasSet].map((alias) => ({ alias })),
+        });
       }
 
       // 转换为标准格式
@@ -384,7 +410,7 @@ ${segment.content}
         );
       });
 
-      return { dialogueLines: filteredLines };
+      return { dialogueLines: filteredLines, characterCandidates };
     } catch (error) {
       console.error("台本解析失败:", error);
       throw new TTSError(
@@ -404,7 +430,10 @@ ${segment.content}
     characterProfiles: any[],
     options: ScriptGenerationOptions,
     bookId: string
-  ): Promise<{ dialogueLines: DialogueLine[] }> {
+  ): Promise<{
+    dialogueLines: DialogueLine[];
+    characterCandidates: CharacterCandidate[];
+  }> {
     // 处理段落获取台词
     const result = await this.processSegment(
       segment,
@@ -412,6 +441,15 @@ ${segment.content}
       characterProfiles,
       options
     );
+
+    if (result.characterCandidates.length > 0) {
+      await this.upsertCharacterCandidates(
+        bookId,
+        result.characterCandidates,
+        characterProfiles,
+        characterMap
+      );
+    }
 
     // 立即将该段落的台词写入数据库
     if (result.dialogueLines.length > 0) {
@@ -589,6 +627,260 @@ ${segment.content}
     return variations;
   }
 
+  private normalizeCharacterCandidates(
+    rawCandidates: any[]
+  ): CharacterCandidate[] {
+    if (!Array.isArray(rawCandidates)) {
+      return [];
+    }
+
+    return rawCandidates
+      .map((candidate) => {
+        const name =
+          typeof candidate?.name === "string" ? candidate.name.trim() : "";
+        if (!name || name === "旁白") {
+          return null;
+        }
+
+        const aliases = Array.isArray(candidate?.aliases)
+          ? candidate.aliases
+              .filter((alias: any) => typeof alias === "string" && alias.trim())
+              .map((alias: string) => alias.trim())
+          : [];
+
+        const personality = Array.isArray(candidate?.personality)
+          ? candidate.personality
+              .filter((trait: any) => typeof trait === "string" && trait.trim())
+              .map((trait: string) => trait.trim())
+          : typeof candidate?.personality === "string" &&
+              candidate.personality.trim()
+            ? [candidate.personality.trim()]
+            : [];
+
+        const gender =
+          candidate?.gender === "male" ||
+          candidate?.gender === "female" ||
+          candidate?.gender === "unknown"
+            ? candidate.gender
+            : "unknown";
+
+        const importance =
+          candidate?.importance === "main" ||
+          candidate?.importance === "secondary" ||
+          candidate?.importance === "minor"
+            ? candidate.importance
+            : "minor";
+
+        return {
+          name,
+          aliases,
+          description:
+            typeof candidate?.description === "string"
+              ? candidate.description.trim()
+              : "",
+          gender,
+          age: candidate?.age ?? null,
+          personality,
+          importance,
+          dialogueStyle:
+            typeof candidate?.dialogueStyle === "string"
+              ? candidate.dialogueStyle.trim()
+              : "",
+        };
+      })
+      .filter((candidate): candidate is CharacterCandidate => !!candidate);
+  }
+
+  private resolveCandidateCanonicalName(
+    candidate: CharacterCandidate,
+    characterMap: Map<string, string>
+  ): string {
+    const mapped = characterMap.get(candidate.name);
+    if (mapped) {
+      return mapped;
+    }
+
+    for (const alias of candidate.aliases) {
+      const aliasMapped = characterMap.get(alias);
+      if (aliasMapped) {
+        return aliasMapped;
+      }
+    }
+
+    return candidate.name;
+  }
+
+  private async upsertCharacterCandidates(
+    bookId: string,
+    candidates: CharacterCandidate[],
+    characterProfiles: any[],
+    characterMap: Map<string, string>
+  ): Promise<void> {
+    if (candidates.length === 0) {
+      return;
+    }
+
+    const importanceWeight = { main: 3, secondary: 2, minor: 1 };
+
+    await prisma.$transaction(async (tx) => {
+      for (const candidate of candidates) {
+        const canonicalName = this.resolveCandidateCanonicalName(
+          candidate,
+          characterMap
+        ).trim();
+
+        if (!canonicalName || canonicalName === "旁白") {
+          continue;
+        }
+
+        let profile = characterProfiles.find(
+          (item) => item.canonicalName === canonicalName
+        );
+
+        const aliasSet = new Set(candidate.aliases);
+        if (candidate.name && candidate.name !== canonicalName) {
+          aliasSet.add(candidate.name);
+        }
+
+        if (!profile) {
+          const created = await tx.characterProfile.create({
+            data: {
+              bookId,
+              canonicalName,
+              characteristics: {
+                description:
+                  candidate.description ||
+                  `台本生成识别的角色：${canonicalName}`,
+                personality: candidate.personality,
+                importance: candidate.importance || "minor",
+                relationships: {},
+              },
+              voicePreferences: {
+                dialogueStyle: candidate.dialogueStyle || "自然",
+              },
+              genderHint:
+                candidate.gender === "male" || candidate.gender === "female"
+                  ? candidate.gender
+                  : "unknown",
+              ageHint: this.parseAgeHint(candidate.age),
+              emotionBaseline: "neutral",
+              isActive: true,
+            },
+          });
+
+          profile = { ...created, aliases: [] };
+          characterProfiles.push(profile);
+        } else {
+          const updateData: any = {};
+          const characteristics = (profile.characteristics as any) || {};
+          const voicePreferences = (profile.voicePreferences as any) || {};
+          const nextCharacteristics = { ...characteristics };
+          let shouldUpdateCharacteristics = false;
+
+          if (candidate.description && !characteristics.description) {
+            nextCharacteristics.description = candidate.description;
+            shouldUpdateCharacteristics = true;
+          }
+
+          if (
+            candidate.personality.length > 0 &&
+            (!Array.isArray(characteristics.personality) ||
+              characteristics.personality.length === 0)
+          ) {
+            nextCharacteristics.personality = candidate.personality;
+            shouldUpdateCharacteristics = true;
+          }
+
+          const currentImportance = characteristics.importance || "minor";
+          if (
+            candidate.importance &&
+            importanceWeight[candidate.importance] >
+              importanceWeight[currentImportance]
+          ) {
+            nextCharacteristics.importance = candidate.importance;
+            shouldUpdateCharacteristics = true;
+          }
+
+          if (shouldUpdateCharacteristics) {
+            updateData.characteristics = nextCharacteristics;
+          }
+
+          if (candidate.dialogueStyle && !voicePreferences.dialogueStyle) {
+            updateData.voicePreferences = {
+              ...voicePreferences,
+              dialogueStyle: candidate.dialogueStyle,
+            };
+          }
+
+          if (
+            profile.genderHint === "unknown" &&
+            candidate.gender &&
+            candidate.gender !== "unknown"
+          ) {
+            updateData.genderHint = candidate.gender;
+          }
+
+          if (profile.ageHint === null || profile.ageHint === undefined) {
+            const ageHint = this.parseAgeHint(candidate.age);
+            if (ageHint !== null) {
+              updateData.ageHint = ageHint;
+            }
+          }
+
+          if (Object.keys(updateData).length > 0) {
+            const updatedProfile = await tx.characterProfile.update({
+              where: { id: profile.id },
+              data: updateData,
+            });
+            profile = {
+              ...profile,
+              ...updatedProfile,
+              aliases: profile.aliases,
+            };
+            const profileIndex = characterProfiles.findIndex(
+              (item) => item.id === profile.id
+            );
+            if (profileIndex >= 0) {
+              characterProfiles[profileIndex] = profile;
+            }
+          }
+        }
+
+        if (aliasSet.size > 0) {
+          const existingAliases = new Set(
+            (profile.aliases || []).map((alias: any) => alias.alias)
+          );
+          const aliasesToCreate = [...aliasSet].filter(
+            (alias) =>
+              alias &&
+              alias !== canonicalName &&
+              !existingAliases.has(alias)
+          );
+
+          if (aliasesToCreate.length > 0) {
+            await tx.characterAlias.createMany({
+              data: aliasesToCreate.map((alias) => ({
+                characterId: profile!.id,
+                alias,
+              })),
+              skipDuplicates: true,
+            });
+
+            profile.aliases = [
+              ...(profile.aliases || []),
+              ...aliasesToCreate.map((alias) => ({ alias })),
+            ];
+          }
+        }
+
+        this.addCharacterToMap(characterMap, {
+          canonicalName: profile.canonicalName,
+          aliases: profile.aliases || [],
+        });
+      }
+    });
+  }
+
   /**
    * 解析年龄提示
    */
@@ -646,11 +938,74 @@ ${segment.content}
     return null;
   }
 
+  private extractJsonCandidate(raw: string): string | null {
+    const fencedMatch = raw.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    const text = (fencedMatch ? fencedMatch[1] : raw).trim();
+    if (!text) {
+      return null;
+    }
+
+    const start = text.search(/[\[{]/);
+    if (start < 0) {
+      return null;
+    }
+
+    let inString = false;
+    let escape = false;
+    const stack: string[] = [];
+
+    for (let i = start; i < text.length; i++) {
+      const ch = text[i];
+      if (inString) {
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (ch === "\\") {
+          escape = true;
+          continue;
+        }
+        if (ch === "\"") {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === "\"") {
+        inString = true;
+        continue;
+      }
+
+      if (ch === "{" || ch === "[") {
+        stack.push(ch);
+        continue;
+      }
+
+      if (ch === "}" || ch === "]") {
+        if (stack.length > 0) {
+          stack.pop();
+          if (stack.length === 0) {
+            return text.slice(start, i + 1);
+          }
+        }
+      }
+    }
+
+    return text.slice(start);
+  }
+
   /**
    * 修复JSON语法错误（本地修复）
    */
   private fixJsonSyntax(jsonString: string): string {
-    let fixed = jsonString;
+    let fixed = jsonString.trim();
+
+    const fencedMatch = fixed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+    if (fencedMatch) {
+      fixed = fencedMatch[1].trim();
+    }
+
+    fixed = fixed.replace(/^\uFEFF/, "");
 
     // 1. 修复常见的JSON语法错误
     // 修复数组末尾多余的逗号
@@ -682,7 +1037,58 @@ ${segment.content}
     // 修复尾随逗号
     fixed = fixed.replace(/,\s*}/g, "}").replace(/,\s*]/g, "]");
 
-    return fixed;
+    return this.balanceJsonBrackets(fixed);
+  }
+
+  private balanceJsonBrackets(input: string): string {
+    let inString = false;
+    let escape = false;
+    const stack: string[] = [];
+
+    for (let i = 0; i < input.length; i++) {
+      const ch = input[i];
+      if (inString) {
+        if (escape) {
+          escape = false;
+          continue;
+        }
+        if (ch === "\\") {
+          escape = true;
+          continue;
+        }
+        if (ch === "\"") {
+          inString = false;
+        }
+        continue;
+      }
+
+      if (ch === "\"") {
+        inString = true;
+        continue;
+      }
+
+      if (ch === "{" || ch === "[") {
+        stack.push(ch);
+        continue;
+      }
+
+      if (ch === "}" || ch === "]") {
+        if (stack.length > 0) {
+          stack.pop();
+        }
+      }
+    }
+
+    if (stack.length === 0) {
+      return input;
+    }
+
+    const tail = stack
+      .reverse()
+      .map((ch) => (ch === "{" ? "}" : "]"))
+      .join("");
+
+    return `${input}${tail}`;
   }
 
   /**
@@ -705,7 +1111,7 @@ ${brokenJson.substring(0, 3000)}
 1. 语法完全正确
 2. 保持原始数据结构
 3. 修复所有语法错误
-4. 只返回JSON，不要添加其他文字
+4. 只返回JSON，不要添加其他文字，不要使用Markdown或代码块
 
 修复后的JSON：`;
 
@@ -715,17 +1121,16 @@ ${brokenJson.substring(0, 3000)}
     );
 
     try {
-      // 尝试从响应中提取JSON
-      const jsonMatch = response.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (jsonMatch) {
-        return jsonMatch[0];
+      const jsonCandidate = this.extractJsonCandidate(response);
+      if (jsonCandidate) {
+        return jsonCandidate;
       }
     } catch (error) {
       console.error("LLM修复失败，返回默认格式:", error);
     }
 
     // 如果所有修复都失败，返回基本的默认结构
-    return '{"dialogues": []}';
+    return '{"dialogues": [], "characters": []}';
   }
 
   /**
@@ -760,313 +1165,6 @@ ${brokenJson.substring(0, 3000)}
   }
 
   /**
-   * 识别并创建角色
-   */
-  private async identifyAndCreateCharacters(
-    bookId: string,
-    textSegments: any[]
-  ): Promise<void> {
-    try {
-      // 优先尝试使用character-recognition服务
-      const useCharacterRecognition =
-        await characterRecognitionClient.healthCheck();
-
-      if (useCharacterRecognition) {
-        console.log("使用character-recognition服务进行角色识别");
-        await this.identifyWithCharacterRecognition(bookId, textSegments);
-        return;
-      }
-
-      console.log("character-recognition服务不可用，使用LLM进行角色识别");
-      await this.identifyWithLLM(bookId, textSegments);
-    } catch (error) {
-      console.error("角色识别失败:", error);
-      // 创建默认角色作为后备
-      await this.createDefaultCharacters(bookId);
-    }
-  }
-
-  /**
-   * 使用character-recognition服务识别角色
-   */
-  private async identifyWithCharacterRecognition(
-    bookId: string,
-    textSegments: any[]
-  ): Promise<void> {
-    // 合并所有文本用于角色识别
-    const fullText = textSegments
-      .map((segment) => segment.content)
-      .join("\n\n");
-
-    console.log(`准备识别角色，文本长度: ${fullText.length} 字符`);
-
-    // 调用character-recognition服务
-    const recognitionResult = await characterRecognitionClient.recognize({
-      text: fullText,
-      book_id: bookId,
-      options: {
-        enable_coreference: true,
-        enable_dialogue: true,
-        enable_relations: true,
-        similarity_threshold: 0.8,
-      },
-    });
-
-    console.log(`识别到 ${recognitionResult.characters.length} 个角色`);
-
-    if (recognitionResult.characters.length === 0) {
-      await this.createDefaultCharacters(bookId);
-      return;
-    }
-
-    // 保存识别到的角色
-    await prisma.$transaction(async (tx) => {
-      for (const char of recognitionResult.characters) {
-        if (!char.name || char.name.trim().length === 0) continue;
-
-        // 推断重要性
-        const importance =
-          (char.quotes || 0) >= 10
-            ? "main"
-            : (char.quotes || 0) >= 5
-            ? "supporting"
-            : "minor";
-
-        const character = await tx.characterProfile.create({
-          data: {
-            bookId,
-            canonicalName: char.name.trim(),
-            characteristics: {
-              description: `提及${char.mentions}次，对话${char.quotes}次`,
-              personality: [],
-              importance,
-              firstAppearance: char.first_appearance_idx,
-              roles: char.roles || [],
-              relationships: {},
-            },
-            voicePreferences: {
-              dialogueStyle: "自然",
-            },
-            emotionProfile: {},
-            genderHint: char.gender || "unknown",
-            ageHint: null,
-            emotionBaseline: "neutral",
-            isActive: true,
-          },
-        });
-
-        // 创建别名
-        if (char.aliases && char.aliases.length > 0) {
-          await tx.characterAlias.createMany({
-            data: char.aliases
-              .filter((alias: string) => alias && alias.trim())
-              .map((alias: string) => ({
-                characterId: character.id,
-                alias: alias.trim(),
-              })),
-            skipDuplicates: true,
-          });
-        }
-      }
-    });
-
-    console.log(`成功创建了 ${recognitionResult.characters.length} 个角色`);
-  }
-
-  /**
-   * 使用LLM识别角色（后备方案）
-   */
-  private async identifyWithLLM(
-    bookId: string,
-    textSegments: any[]
-  ): Promise<void> {
-    // 合并部分文本用于角色识别
-    const sampleTexts = textSegments
-      .filter((segment) => segment.content.length > 50) // 过滤太短的段落
-      .slice(0, 10) // 只取前10个段落用于识别
-      .map((segment) => segment.content)
-      .join("\n\n")
-      .substring(0, 3000); // 限制长度
-
-    if (sampleTexts.length < 100) {
-      console.warn("文本太短，可能无法准确识别角色");
-    }
-
-    const systemPrompt = `你是一个专业的角色识别专家，专门分析小说文本中的角色信息。
-
-你的任务是：
-1. 识别文本中的所有重要角色
-2. 分析角色的性别、年龄、性格特征
-3. 识别角色的别名和称呼方式
-4. 判断角色的重要性（主角、配角、次要角色）
-
-请返回JSON格式的结果，包含以下字段：
-- characters: 角色数组，每个角色包含：
-  - name: 角色姓名
-  - aliases: 别名数组
-  - description: 角色描述
-  - gender: 性别 (male/female/unknown)
-  - age: 大概年龄
-  - personality: 性格特征数组
-  - importance: 重要性 (main/secondary/minor)
-  - dialogueStyle: 对话风格描述
-
-注意：
-- 只识别有对话或重要作用的角色
-- 角色名要准确，包括常见的称呼方式
-- 忽略无名的背景角色
-- 确保每个角色都有足够的描述信息`;
-
-    const prompt = `请分析以下文本，识别其中的角色：
-
-${sampleTexts}
-
-请返回JSON格式的角色识别结果。`;
-
-    const response = await this.llmService.callLLM(prompt, systemPrompt);
-
-    // 解析LLM响应
-    const jsonMatch = response.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("角色识别返回格式不正确");
-    }
-
-    const result = JSON.parse(jsonMatch[0]);
-    const identifiedCharacters = result.characters || [];
-
-    if (identifiedCharacters.length === 0) {
-      // 如果没有识别到角色，创建默认角色
-      await this.createDefaultCharacters(bookId);
-      return;
-    }
-
-    // 保存识别到的角色
-    await prisma.$transaction(async (tx) => {
-      for (const char of identifiedCharacters) {
-        if (!char.name || char.name.trim().length === 0) continue;
-
-        const character = await tx.characterProfile.create({
-          data: {
-            bookId,
-            canonicalName: char.name.trim(),
-            characteristics: {
-              description: char.description || `文本中识别的角色: ${char.name}`,
-              personality: Array.isArray(char.personality)
-                ? char.personality
-                : [char.personality || "正常"],
-              importance: ["main", "secondary", "minor"].includes(
-                char.importance
-              )
-                ? char.importance
-                : "secondary",
-              relationships: {},
-            },
-            voicePreferences: {
-              dialogueStyle: char.dialogueStyle || "自然",
-            },
-            genderHint:
-              char.gender === "male" || char.gender === "female"
-                ? char.gender
-                : "unknown",
-            ageHint: this.parseAgeHint(char.age),
-            emotionBaseline: "neutral",
-            isActive: true,
-          },
-        });
-
-        // 创建别名
-        if (
-          char.aliases &&
-          Array.isArray(char.aliases) &&
-          char.aliases.length > 0
-        ) {
-          await tx.characterAlias.createMany({
-            data: char.aliases
-              .filter((alias: string) => alias && alias.trim())
-              .map((alias: string) => ({
-                characterId: character.id,
-                alias: alias.trim(),
-              })),
-          });
-        }
-      }
-    });
-
-    console.log(`成功识别并创建了 ${identifiedCharacters.length} 个角色`);
-  }
-
-  /**
-   * 创建默认角色（后备方案）
-   */
-  private async createDefaultCharacters(bookId: string): Promise<void> {
-    console.log("创建默认角色作为后备方案");
-
-    await prisma.$transaction(async (tx) => {
-      // 创建默认的旁白角色
-      const narrator = await tx.characterProfile.create({
-        data: {
-          bookId,
-          canonicalName: "旁白",
-          characteristics: {
-            description: "故事叙述者，负责讲述背景和场景描述",
-            personality: ["客观", "清晰"],
-            importance: "main",
-            relationships: {},
-          },
-          voicePreferences: {
-            dialogueStyle: "叙述风格",
-          },
-          genderHint: "unknown",
-          ageHint: null,
-          emotionBaseline: "neutral",
-          isActive: true,
-        },
-      });
-
-      // 创建通用的男主角/女主角
-      const maleProtagonist = await tx.characterProfile.create({
-        data: {
-          bookId,
-          canonicalName: "男主角",
-          characteristics: {
-            description: "故事的主要男性角色",
-            personality: ["勇敢", "正直"],
-            importance: "main",
-            relationships: {},
-          },
-          voicePreferences: {
-            dialogueStyle: "自然",
-          },
-          genderHint: "male",
-          ageHint: 25,
-          emotionBaseline: "neutral",
-          isActive: true,
-        },
-      });
-
-      const femaleProtagonist = await tx.characterProfile.create({
-        data: {
-          bookId,
-          canonicalName: "女主角",
-          characteristics: {
-            description: "故事的主要女性角色",
-            personality: ["温柔", "善良"],
-            importance: "main",
-            relationships: {},
-          },
-          voicePreferences: {
-            dialogueStyle: "温柔",
-          },
-          genderHint: "female",
-          ageHint: 23,
-          emotionBaseline: "neutral",
-          isActive: true,
-        },
-      });
-    });
-  }
-
-  /**
    * 增量生成台本
    */
   async generatePartialScript(
@@ -1076,7 +1174,8 @@ ${sampleTexts}
       startFromSegmentId?: string | null;
       startFromOrderIndex?: number | null;
       limitToSegments?: number;
-    } = {}
+    } = {},
+    onProgress?: (done: number, total: number) => Promise<void> | void
   ): Promise<GeneratedScript> {
     const defaultOptions: ScriptGenerationOptions = {
       includeNarration: true,
@@ -1115,31 +1214,6 @@ ${sampleTexts}
         "TTS_SERVICE_DOWN",
         "script-generator"
       );
-    }
-
-    // 确保有角色信息
-    if (book.characterProfiles.length === 0) {
-      await this.identifyAndCreateCharacters(bookId, book.textSegments);
-      // 重新获取角色信息
-      const updatedBook = await prisma.book.findUnique({
-        where: { id: bookId },
-        include: {
-          characterProfiles: {
-            where: { isActive: true },
-            include: { aliases: true },
-          },
-        },
-      });
-
-      if (!updatedBook) {
-        throw new TTSError(
-          "角色识别失败",
-          "TTS_SERVICE_DOWN",
-          "script-generator"
-        );
-      }
-
-      book.characterProfiles = updatedBook.characterProfiles;
     }
 
     // 构建角色名称映射（包含别名）
@@ -1219,6 +1293,9 @@ ${sampleTexts}
             ),
           ],
         });
+        if (onProgress) {
+          await onProgress(i - startIndex + 1, totalSegments);
+        }
       } catch (error) {
         console.error(`处理段落 ${segment.id} 失败:`, error);
         // 继续处理下一段，不中断整个流程
@@ -1249,7 +1326,8 @@ ${sampleTexts}
   async regenerateSegmentScript(
     bookId: string,
     segmentIds: string[],
-    options: Partial<ScriptGenerationOptions> = {}
+    options: Partial<ScriptGenerationOptions> = {},
+    onProgress?: (done: number, total: number) => Promise<void> | void
   ): Promise<GeneratedScript> {
     const defaultOptions: ScriptGenerationOptions = {
       includeNarration: true,
@@ -1298,7 +1376,8 @@ ${sampleTexts}
     const segmentSummaries: any[] = [];
 
     // 处理指定的段落并实时写入数据库
-    for (const segment of book.textSegments) {
+    for (let idx = 0; idx < book.textSegments.length; idx++) {
+      const segment = book.textSegments[idx];
       try {
         const segmentResult = await this.processSegmentAndSave(
           segment,
@@ -1318,6 +1397,9 @@ ${sampleTexts}
             ),
           ],
         });
+        if (onProgress) {
+          await onProgress(idx + 1, book.textSegments.length);
+        }
       } catch (error) {
         console.error(`重新处理段落 ${segment.id} 失败:`, error);
       }

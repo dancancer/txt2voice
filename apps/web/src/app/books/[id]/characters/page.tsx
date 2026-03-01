@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -36,13 +36,13 @@ export default function CharacterProfilesPage() {
 
   const [showAddCharacter, setShowAddCharacter] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<any>(null);
-  const [actionLoading, setActionLoading] = useState<{ scriptExtraction: boolean; recognition: boolean }>({
+  const [actionLoading, setActionLoading] = useState<{
+    scriptExtraction: boolean;
+  }>({
     scriptExtraction: false,
-    recognition: false,
   });
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [deletingCharacterId, setDeletingCharacterId] = useState<string | null>(null);
-  const [recognitionStatus, setRecognitionStatus] = useState<any | null>(null);
   const [lastExtractionSummary, setLastExtractionSummary] = useState<string | null>(null);
 
   const segmentsCount =
@@ -51,21 +51,6 @@ export default function CharacterProfilesPage() {
   const scriptsCount =
     (book?.scriptSentences?.length ?? 0) || book?.stats?.scriptsCount || 0;
   const hasScripts = scriptsCount > 0;
-
-  const fetchRecognitionStatus = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/books/${bookId}/characters/recognize`);
-      if (!response.ok) return;
-      const data = await response.json();
-      setRecognitionStatus(data.data);
-    } catch (err) {
-      console.error("Failed to load character recognition status:", err);
-    }
-  }, [bookId]);
-
-  useEffect(() => {
-    fetchRecognitionStatus();
-  }, [fetchRecognitionStatus]);
 
   const filteredCharacters = useMemo(() => characters, [characters]);
 
@@ -181,31 +166,6 @@ export default function CharacterProfilesPage() {
     }
   };
 
-  const handleStartRecognition = async () => {
-    try {
-      setActionLoading((prev) => ({ ...prev, recognition: true }));
-      const response = await fetch(
-        `/api/books/${bookId}/characters/recognize`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-      const result = await response.json();
-      if (!response.ok || !result.success) {
-        throw new Error(result.error?.message || "角色识别启动失败");
-      }
-      toast.success("角色识别任务已启动");
-      await fetchRecognitionStatus();
-      await reload(pagination.page, searchTerm);
-    } catch (error) {
-      console.error("Failed to start recognition task:", error);
-      toast.error(error instanceof Error ? error.message : "角色识别启动失败");
-    } finally {
-      setActionLoading((prev) => ({ ...prev, recognition: false }));
-    }
-  };
-
   const {
     dialogOpen,
     dialogCharacter,
@@ -280,8 +240,7 @@ export default function CharacterProfilesPage() {
           lastExtractionSummary={lastExtractionSummary}
           onAddCharacter={() => setShowAddCharacter(true)}
           onExtractFromScript={handleExtractFromScript}
-          onStartRecognition={handleStartRecognition}
-          recognitionStatus={recognitionStatus}
+          onOpenScript={() => router.push(`/books/${bookId}/script`)}
           actionLoading={actionLoading}
         />
 

@@ -213,6 +213,18 @@ class TaskManager:
                 created_at=datetime.now()
             )
 
+        logger.debug(
+            "update_task payload",
+            task_id=task_id,
+            status=str(status if status is not None else task.status),
+            progress=progress if progress is not None else task.progress,
+            message=message,
+            total_sentences=total_sentences if total_sentences is not None else task.total_sentences,
+            processed_sentences=processed_sentences if processed_sentences is not None else task.processed_sentences,
+            has_result=result is not None,
+            error=error
+        )
+
         # 更新字段
         if status:
             task.status = status

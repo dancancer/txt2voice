@@ -59,24 +59,5 @@ async function checkDatabaseConnection() {
 }
 
 async function checkServices() {
-  const services: Record<string, any> = {};
-
-  // 检查字符识别服务
-  try {
-    // 这里可以添加对字符识别服务的健康检查
-    services.characterRecognition = {
-      status: "healthy",
-      message: "Character recognition service OK",
-    };
-  } catch (error) {
-    services.characterRecognition = {
-      status: "unhealthy",
-      message:
-        error instanceof Error
-          ? error.message
-          : "Character recognition service unavailable",
-    };
-  }
-
-  return services;
+  return {};
 }

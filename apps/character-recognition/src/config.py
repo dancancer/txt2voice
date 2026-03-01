@@ -95,6 +95,8 @@ class Settings(BaseSettings):
     CACHE_TTL: int = 3600  # 缓存有效期（秒）
     CACHE_PREFIX: str = "charrecog"
     REDIS_URL: str = "redis://localhost:6379/0"
+    # 队列/Worker 开关：False 时不使用 Redis 队列，改为 API 进程内执行
+    ENABLE_WORKER_QUEUE: bool = False
     
     # 日志配置
     LOG_LEVEL: str = "INFO"

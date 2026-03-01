@@ -1,5 +1,6 @@
 """FastAPI 应用入口"""
 import sys
+import asyncio
 from pathlib import Path
 
 # 添加 src 到路径
@@ -16,7 +17,7 @@ import httpx
 
 from src.cache import (
     cache_callback, cache_meta, cache_result, cache_stage,
-    fetch_meta, fetch_result, enqueue_task, get_queue_length
+    fetch_meta, fetch_result, enqueue_task, get_queue_length, worker_is_alive
 )
 from src.config import settings
 from src.models import RecognitionRequest, RecognitionResponse
@@ -250,30 +251,46 @@ async def recognize_characters_async(
         # 创建任务
         task_id = task_manager.create_task(callback_url)
 
-        logger.info(f"创建异步识别任务: {task_id}, 文本长度: {len(request.text)}, 队列长度: {get_queue_length()}")
+        # 队列关闭时直接在 API 进程内跑任务（线程池 offload），仍然使用 Redis 同步进度
+        queue_enabled = settings.ENABLE_WORKER_QUEUE
+        current_queue_length = get_queue_length() if queue_enabled else 0
 
-        # 将任务数据推入 Redis 队列
-        task_data = {
-            "task_id": task_id,
-            "text": request.text,
-            "book_id": request.book_id,
-            "options": request.options.dict() if request.options else {},
-            "callback_url": callback_url
-        }
+        logger.info(
+            f"创建异步识别任务: {task_id}, 文本长度: {len(request.text)}, 队列长度: {current_queue_length}, "
+            f"queue_enabled={queue_enabled}"
+        )
 
-        success = enqueue_task(task_id, task_data)
+        if queue_enabled:
+            # 将任务数据推入 Redis 队列
+            task_data = {
+                "task_id": task_id,
+                "text": request.text,
+                "book_id": request.book_id,
+                "options": request.options.dict() if request.options else {},
+                "callback_url": callback_url
+            }
 
-        if not success:
-            # 如果入队失败（比如 Redis 不可用），回退到内存模式
-            logger.warning(f"任务 {task_id} 入队失败，回退到内存模式")
-            import asyncio
+            worker_alive = worker_is_alive()
+            if not worker_alive:
+                logger.warning(f"未检测到 Worker 心跳，任务 {task_id} 使用内联模式处理")
+
+            success = worker_alive and enqueue_task(task_id, task_data)
+
+            if not success:
+                # 如果入队失败（比如 Redis 不可用），回退到内存模式
+                logger.warning(f"任务 {task_id} 入队失败，回退到内存模式")
+                asyncio.create_task(process_recognition_task(task_id, request))
+            else:
+                current_queue_length = get_queue_length()
+        else:
+            logger.info(f"队列模式已关闭，任务 {task_id} 直接在 API 进程内执行")
             asyncio.create_task(process_recognition_task(task_id, request))
 
         return {
             "success": True,
             "task_id": task_id,
             "message": "任务已创建，正在队列中等待处理",
-            "queue_length": get_queue_length()
+            "queue_length": current_queue_length
         }
 
     except Exception as e:
@@ -379,10 +396,12 @@ async def process_recognition_task(task_id: str, request: RecognitionRequest):
         reporter.start()
 
         logger.info(f"开始处理任务 {task_id}")
-        result = recognizer.recognize(
+        # 将同步识别逻辑下放到线程，避免阻塞事件循环
+        result = await asyncio.to_thread(
+            recognizer.recognize,
             request,
-            on_sentence=reporter.on_sentence,
-            on_stage=reporter.on_stage
+            reporter.on_sentence,
+            reporter.on_stage
         )
 
         result_dict = result.dict()

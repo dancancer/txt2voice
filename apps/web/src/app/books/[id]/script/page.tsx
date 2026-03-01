@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { booksApi } from "@/lib/api";
-import { getBookScripts, getBookSegments } from "@/lib/book-api";
+import {
+  getBookScripts,
+  getBookSegments,
+  updateScriptSentences,
+} from "@/lib/book-api";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScriptSentence } from "@/lib/types";
@@ -62,6 +66,7 @@ export default function ScriptGenerationPage() {
     id: bookId,
   });
   const [showScriptPreview, setShowScriptPreview] = useState(false);
+  const progressStreamRef = useRef<EventSource | null>(null);
 
   const fetchAllScriptSentences = useCallback(async () => {
     const sentences: ScriptSentence[] = [];
@@ -273,6 +278,17 @@ export default function ScriptGenerationPage() {
     return map;
   }, [chapterNodes]);
 
+  const closeProgressStream = useCallback(() => {
+    if (progressStreamRef.current) {
+      progressStreamRef.current.close();
+      progressStreamRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => closeProgressStream();
+  }, [closeProgressStream]);
+
   useEffect(() => {
     setSelectedNode((prev) => {
       if (prev.type === "segment" && !segmentMetaMap.has(prev.id)) {
@@ -346,6 +362,80 @@ export default function ScriptGenerationPage() {
     loadBookAndData();
   }, [bookId, loadBookAndData]);
 
+  const watchScriptGeneration = useCallback(
+    (
+      taskId: string,
+      messages: { completed: string; failed: string },
+      fallbackFailure: string
+    ) => {
+      closeProgressStream();
+      setGenerationProgress(0);
+
+      let finished = false;
+      const stream = new EventSource(
+        `/api/books/${bookId}/script/generate/stream?taskId=${encodeURIComponent(taskId)}`
+      );
+      progressStreamRef.current = stream;
+
+      const timeoutId = window.setTimeout(() => {
+        if (finished) return;
+        setGenerationStatus("生成超时");
+        setIsGenerating(false);
+        closeProgressStream();
+        finished = true;
+      }, 5 * 60 * 1000);
+
+      const finalize = (status: "completed" | "failed", errorMessage?: string) => {
+        if (finished) return;
+        finished = true;
+        window.clearTimeout(timeoutId);
+        closeProgressStream();
+
+        if (status === "completed") {
+          setGenerationStatus(messages.completed);
+          setIsGenerating(false);
+          void loadBookAndData();
+          return;
+        }
+
+        setGenerationStatus(messages.failed);
+        setIsGenerating(false);
+        alert(errorMessage || fallbackFailure);
+      };
+
+      stream.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (typeof data.progress === "number") {
+            setGenerationProgress(data.progress);
+          }
+          if (typeof data.message === "string" && data.message.length > 0) {
+            setGenerationStatus(data.message);
+          }
+          if (data.status === "completed") {
+            finalize("completed");
+          } else if (data.status === "failed") {
+            const errorMessage =
+              typeof data.error === "string" ? data.error : undefined;
+            finalize("failed", errorMessage);
+          }
+        } catch (error) {
+          console.error("Failed to parse script progress event:", error);
+        }
+      };
+
+      stream.addEventListener("error", () => {
+        if (finished) return;
+        window.clearTimeout(timeoutId);
+        setGenerationStatus("获取状态失败");
+        setIsGenerating(false);
+        closeProgressStream();
+        finished = true;
+      });
+    },
+    [bookId, closeProgressStream, loadBookAndData]
+  );
+
   const generateScript = async () => {
     try {
       setIsGenerating(true);
@@ -381,56 +471,20 @@ export default function ScriptGenerationPage() {
         }),
       });
 
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || "生成失败");
+        throw new Error(result.error?.message || "生成失败");
       }
-
+      const taskId = result?.data?.taskId;
+      if (!taskId) {
+        throw new Error("未获取到任务ID");
+      }
       setGenerationStatus("台本生成任务已启动！");
-
-      // Poll for progress
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(
-            `/api/books/${bookId}/script/generate`
-          );
-          if (!statusResponse.ok) {
-            clearInterval(pollInterval);
-            throw new Error("获取状态失败");
-          }
-
-          const statusResult = await statusResponse.json();
-          const progress = statusResult.data.generationProgress || 0;
-          const status = statusResult.data.scriptStatus;
-
-          setGenerationProgress(progress);
-
-          if (status === "completed") {
-            setGenerationStatus("台本生成完成！");
-            clearInterval(pollInterval);
-            await loadBookAndData();
-            setIsGenerating(false);
-          } else if (status === "failed") {
-            setGenerationStatus("台本生成失败");
-            clearInterval(pollInterval);
-            setIsGenerating(false);
-            alert("台本生成失败，请检查配置后重试");
-          }
-        } catch (error) {
-          console.error("Polling error:", error);
-          clearInterval(pollInterval);
-          setGenerationStatus("获取状态失败");
-          setIsGenerating(false);
-        }
-      }, 2000);
-
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (isGenerating) {
-          setGenerationStatus("生成超时");
-          setIsGenerating(false);
-        }
-      }, 5 * 60 * 1000);
+      watchScriptGeneration(
+        taskId,
+        { completed: "台本生成完成！", failed: "台本生成失败" },
+        "台本生成失败，请检查配置后重试"
+      );
     } catch (error) {
       console.error("Failed to generate script:", error);
       setGenerationStatus("台本生成失败");
@@ -441,11 +495,56 @@ export default function ScriptGenerationPage() {
     }
   };
 
-  const handleSentenceEdit = async (sentenceId: string, newText: string) => {
+  const handleSentenceEdit = async (
+    sentenceId: string,
+    updates: {
+      text: string;
+      tone?: string;
+      characterId?: string | null;
+      rawSpeaker?: string | null;
+    }
+  ) => {
     try {
-      console.log("Editing sentence:", sentenceId, newText);
+      const payload = {
+        id: sentenceId,
+        text: updates.text,
+        tone: updates.tone,
+        characterId: updates.characterId ?? null,
+        rawSpeaker: updates.rawSpeaker,
+      };
+
+      await updateScriptSentences(bookId, [payload]);
+
+      const selectedCharacter = characters.find(
+        (character) => character.id === payload.characterId
+      );
+      const nextCharacter = payload.characterId
+          ? ({
+              id: payload.characterId,
+              canonicalName:
+                selectedCharacter?.canonicalName ||
+                selectedCharacter?.name ||
+                "未知角色",
+            } as any)
+          : null;
+
+      setScriptSentences((prev) =>
+        prev.map((sentence) =>
+          sentence.id === sentenceId
+            ? {
+                ...sentence,
+                text: payload.text,
+                tone: payload.tone ?? undefined,
+                characterId: payload.characterId ?? null,
+                rawSpeaker:
+                  payload.rawSpeaker === null ? undefined : sentence.rawSpeaker,
+                character: nextCharacter,
+              }
+            : sentence
+        )
+      );
+
       setEditingSentence(null);
-      await loadBookAndData();
     } catch (error) {
       console.error("Failed to edit sentence:", error);
       alert("编辑句子失败");
@@ -453,14 +552,63 @@ export default function ScriptGenerationPage() {
   };
 
   const handleSentenceDelete = async (sentenceId: string) => {
-    if (confirm("确定要删除这句台词吗？")) {
-      try {
-        console.log("Deleting sentence:", sentenceId);
-        await loadBookAndData();
-      } catch (error) {
-        console.error("Failed to delete sentence:", error);
-        alert("删除句子失败");
+    if (!confirm("确定要删除这句台词吗？")) {
+      return;
+    }
+    try {
+      const response = await fetch(
+        `/api/books/${bookId}/script?ids=${encodeURIComponent(sentenceId)}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error?.message || "删除句子失败");
       }
+
+      setScriptSentences((prev) =>
+        prev.filter((sentence) => sentence.id !== sentenceId)
+      );
+    } catch (error) {
+      console.error("Failed to delete sentence:", error);
+      alert(error instanceof Error ? error.message : "删除句子失败");
+    }
+  };
+
+  const handleSentenceAudioGeneration = async (sentenceId: string) => {
+    try {
+      const targetSentence = scriptSentences.find(
+        (sentence) => sentence.id === sentenceId
+      );
+      const hasCharacter =
+        targetSentence?.characterId || targetSentence?.character?.id;
+      if (!hasCharacter) {
+        alert("请先为台词分配角色");
+        return;
+      }
+
+      const response = await fetch(`/api/books/${bookId}/audio/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "single",
+          scriptSentenceIds: [sentenceId],
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error?.message || "音频生成失败");
+      }
+
+      alert("单句音频生成任务已启动");
+    } catch (error) {
+      console.error("Failed to generate sentence audio:", error);
+      alert(
+        error instanceof Error ? error.message : "音频生成失败，请稍后重试"
+      );
     }
   };
 
@@ -512,57 +660,22 @@ export default function ScriptGenerationPage() {
         }),
       });
 
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || "增量生成失败");
+        throw new Error(result.error?.message || "增量生成失败");
       }
-
+      const taskId = result?.data?.taskId;
+      if (!taskId) {
+        throw new Error("未获取到任务ID");
+      }
       setGenerationStatus("增量台本生成任务已启动！");
       setShowIncrementalOptions(false);
 
-      // Poll for progress
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(
-            `/api/books/${bookId}/script/generate`
-          );
-          if (!statusResponse.ok) {
-            clearInterval(pollInterval);
-            throw new Error("获取状态失败");
-          }
-
-          const statusResult = await statusResponse.json();
-          const progress = statusResult.data.generationProgress || 0;
-          const status = statusResult.data.scriptStatus;
-
-          setGenerationProgress(progress);
-
-          if (status === "completed") {
-            setGenerationStatus("增量台本生成完成！");
-            clearInterval(pollInterval);
-            await loadBookAndData();
-            setIsGenerating(false);
-          } else if (status === "failed") {
-            setGenerationStatus("增量台本生成失败");
-            clearInterval(pollInterval);
-            setIsGenerating(false);
-            alert("增量台本生成失败，请检查配置后重试");
-          }
-        } catch (error) {
-          console.error("Polling error:", error);
-          clearInterval(pollInterval);
-          setGenerationStatus("获取状态失败");
-          setIsGenerating(false);
-        }
-      }, 2000);
-
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (isGenerating) {
-          setGenerationStatus("生成超时");
-          setIsGenerating(false);
-        }
-      }, 5 * 60 * 1000);
+      watchScriptGeneration(
+        taskId,
+        { completed: "增量台本生成完成！", failed: "增量台本生成失败" },
+        "增量台本生成失败，请检查配置后重试"
+      );
     } catch (error) {
       console.error("Failed to start incremental processing:", error);
       setGenerationStatus("增量台本生成失败");
@@ -596,11 +709,14 @@ export default function ScriptGenerationPage() {
         }),
       });
 
+      const result = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || "段落重新生成失败");
+        throw new Error(result.error?.message || "段落重新生成失败");
       }
-
+      const taskId = result?.data?.taskId;
+      if (!taskId) {
+        throw new Error("未获取到任务ID");
+      }
       setGenerationStatus(
         contextLabel
           ? `${contextLabel}任务已启动！`
@@ -609,55 +725,14 @@ export default function ScriptGenerationPage() {
       setShowRegenerateOptions(false);
       setSelectedSegments([]);
 
-      // Poll for progress
-      const pollInterval = setInterval(async () => {
-        try {
-          const statusResponse = await fetch(
-            `/api/books/${bookId}/script/generate`
-          );
-          if (!statusResponse.ok) {
-            clearInterval(pollInterval);
-            throw new Error("获取状态失败");
-          }
-
-          const statusResult = await statusResponse.json();
-          const progress = statusResult.data.generationProgress || 0;
-          const status = statusResult.data.scriptStatus;
-
-          setGenerationProgress(progress);
-
-          if (status === "completed") {
-            setGenerationStatus(
-              contextLabel ? `${contextLabel}完成！` : "段落重新生成完成！"
-            );
-            clearInterval(pollInterval);
-            await loadBookAndData();
-            setIsGenerating(false);
-          } else if (status === "failed") {
-            setGenerationStatus(
-              contextLabel ? `${contextLabel}失败` : "段落重新生成失败"
-            );
-            clearInterval(pollInterval);
-            setIsGenerating(false);
-            alert("段落重新生成失败，请检查配置后重试");
-          }
-        } catch (error) {
-          console.error("Polling error:", error);
-          clearInterval(pollInterval);
-          setGenerationStatus(
-            contextLabel ? `${contextLabel}失败` : "获取状态失败"
-          );
-          setIsGenerating(false);
-        }
-      }, 2000);
-
-      setTimeout(() => {
-        clearInterval(pollInterval);
-        if (isGenerating) {
-          setGenerationStatus("生成超时");
-          setIsGenerating(false);
-        }
-      }, 5 * 60 * 1000);
+      watchScriptGeneration(
+        taskId,
+        {
+          completed: contextLabel ? `${contextLabel}完成！` : "段落重新生成完成！",
+          failed: contextLabel ? `${contextLabel}失败` : "段落重新生成失败",
+        },
+        "段落重新生成失败，请检查配置后重试"
+      );
     } catch (error) {
       console.error("Failed to start segment regeneration:", error);
       setGenerationStatus(
@@ -960,9 +1035,7 @@ export default function ScriptGenerationPage() {
                     sentences={selectedSegmentSentences}
                     onEdit={setEditingSentence}
                     onDelete={handleSentenceDelete}
-                    onGenerateAudio={(sentenceId) => {
-                      handleScopeAudioGeneration("segment", selectedSegment.id);
-                    }}
+                    onGenerateAudio={handleSentenceAudioGeneration}
                   />
                 </>
               )}
@@ -1014,6 +1087,7 @@ export default function ScriptGenerationPage() {
       {editingSentence && (
         <EditSentenceModal
           sentence={editingSentence}
+          characters={characters}
           onClose={() => setEditingSentence(null)}
           onSave={handleSentenceEdit}
         />

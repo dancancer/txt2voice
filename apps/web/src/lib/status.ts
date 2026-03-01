@@ -48,13 +48,13 @@ const STATUS_META: Record<BookStatus, BookStatusMeta> = {
     icon: CheckCircle,
   },
   analyzing: {
-    label: '角色分析中',
+    label: '角色识别中',
     className: 'bg-indigo-100 text-indigo-800',
     icon: Users,
     animated: true,
   },
   analyzed: {
-    label: '角色分析完成',
+    label: '角色识别完成',
     className: 'bg-teal-100 text-teal-800',
     icon: Users,
   },
@@ -95,4 +95,3 @@ export const getStatusColor = (status: BookStatus): string =>
 
 export const getStatusText = (status: BookStatus): string =>
   getBookStatusMeta(status).label
-

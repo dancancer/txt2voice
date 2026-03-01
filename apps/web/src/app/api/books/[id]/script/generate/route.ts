@@ -450,6 +450,14 @@ async function runScriptGeneration(
 
     await updateTaskProgress(taskId, 30, "开始分析文本");
 
+    const segmentProgress = (done: number, total: number) => {
+      if (!total) return;
+      const base = 30;
+      const span = 40;
+      const next = Math.min(base + Math.floor((done / total) * span), 69);
+      return updateTaskProgress(taskId, next, `生成台本 ${done}/${total}`);
+    };
+
     // 根据参数选择不同的处理方式
     if (extraParams.regenerateSegments && extraParams.segmentIds) {
       // 重新生成指定段落
@@ -457,7 +465,8 @@ async function runScriptGeneration(
       script = await scriptGenerator.regenerateSegmentScript(
         bookId,
         extraParams.segmentIds,
-        options
+        options,
+        segmentProgress
       );
       await updateTaskProgress(taskId, 70, "保存段落台本数据");
       await scriptGenerator.savePartialScriptToDatabase(bookId, script);
@@ -477,7 +486,7 @@ async function runScriptGeneration(
           startFromSegmentId: extraParams.startFromSegmentId,
           startFromOrderIndex: extraParams.startFromOrderIndex,
           limitToSegments: extraParams.limitToSegments,
-        });
+        }, segmentProgress);
         // 手动限制段落数量
         script.segments = script.segments.slice(0, extraParams.limitToSegments);
         await updateTaskProgress(
@@ -491,13 +500,17 @@ async function runScriptGeneration(
         script = await scriptGenerator.generatePartialScript(bookId, options, {
           startFromSegmentId: extraParams.startFromSegmentId,
           startFromOrderIndex: extraParams.startFromOrderIndex,
-        });
+        }, segmentProgress);
         await updateTaskProgress(taskId, 70, "保存增量台本数据");
         await scriptGenerator.savePartialScriptToDatabase(bookId, script);
       }
     } else {
       // 完整生成
-      script = await scriptGenerator.generateScript(bookId, options);
+      script = await scriptGenerator.generateScript(
+        bookId,
+        options,
+        segmentProgress
+      );
       await updateTaskProgress(taskId, 70, "保存台本数据");
       await scriptGenerator.saveScriptToDatabase(bookId, script);
     }

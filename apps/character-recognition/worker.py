@@ -13,7 +13,7 @@ import asyncio
 import httpx
 from loguru import logger
 
-from src.cache import dequeue_task, cache_result, cache_callback
+from src.cache import dequeue_task, cache_result, cache_callback, refresh_worker_heartbeat
 from src.config import settings
 from src.models import RecognitionRequest, RecognitionOptions
 from src.recognizer import CharacterRecognizer
@@ -168,10 +168,12 @@ async def worker_loop():
 
     while running:
         try:
+            refresh_worker_heartbeat()
             # 从队列中取任务（阻塞5秒）
             task_info = dequeue_task(timeout=5)
 
             if task_info is None:
+                refresh_worker_heartbeat()
                 # 队列为空，继续等待
                 continue
 

@@ -4,6 +4,7 @@
 
 import json
 from typing import Any, Dict, Optional
+from datetime import datetime, timezone
 
 from loguru import logger
 
@@ -121,6 +122,37 @@ def fetch_result(task_id: str) -> Optional[Dict[str, Any]]:
 def fetch_stage(task_id: str, stage: str) -> Optional[Dict[str, Any]]:
     key = f"{settings.CACHE_PREFIX}:{task_id}:stage:{stage}"
     return _fetch_json(key)
+
+
+# ======================== Worker 心跳 ========================
+WORKER_HEARTBEAT_KEY = f"{settings.CACHE_PREFIX}:worker:heartbeat"
+WORKER_HEARTBEAT_TTL = 45  # 秒
+
+
+def refresh_worker_heartbeat() -> None:
+    """更新 Worker 心跳，用于检测 Worker 是否在线。"""
+    client = _get_client()
+    if not client:
+        return
+
+    try:
+        client.set(WORKER_HEARTBEAT_KEY, datetime.now(timezone.utc).isoformat(), ex=WORKER_HEARTBEAT_TTL)
+    except RedisError as error:  # pragma: no cover - 仅记录缓存失败
+        logger.warning(f"写入 Redis 心跳失败: {error}")
+
+
+def worker_is_alive() -> bool:
+    """检查 Worker 是否在线（心跳 TTL 内视为在线）。"""
+    client = _get_client()
+    if not client:
+        return False
+
+    try:
+        ttl = client.ttl(WORKER_HEARTBEAT_KEY)
+        return ttl is not None and ttl > 0
+    except RedisError as error:  # pragma: no cover - 仅记录
+        logger.warning(f"读取 Worker 心跳失败: {error}")
+        return False
 
 
 # ======================== 任务队列功能 ========================
