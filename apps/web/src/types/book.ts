@@ -11,11 +11,10 @@ export type BookStatus =
   | 'uploaded'
   | 'processing'
   | 'processed'
-  | 'analyzing'
-  | 'analyzed'
   | 'generating_script'
   | 'script_generated'
   | 'generating_audio'
+  | 'completed_with_errors'
   | 'completed'
   | 'error'
 
@@ -59,25 +58,14 @@ export interface SpeakerBindingSummary {
 
 export interface CharacterProfileSummary {
   id: string
-  canonicalName?: string
-  name?: string
+  canonicalName: string
   genderHint?: string
   isActive?: boolean
   mentions?: number
   quotes?: number
+  scriptSentencesCount?: number
   voiceBindings?: CharacterVoiceBindingSummary[]
   speakerBindings?: SpeakerBindingSummary[]
-  _count?: {
-    scriptSentences?: number
-  }
-}
-
-export interface BookStats {
-  charactersCount?: number
-  chaptersCount?: number
-  segmentsCount?: number
-  scriptsCount?: number
-  audioFilesCount?: number
 }
 
 export interface Book {
@@ -97,13 +85,12 @@ export interface Book {
   scriptSentences?: any[]
   audioFiles?: any[]
   processingTasks?: ProcessingTaskSummary[]
-  stats?: BookStats
-  _count?: {
-    segments?: number
-    characters?: number
-    audioFiles?: number
-    textSegments?: number
-    scriptSentences?: number
-    chapters?: number
+  latestTask?: ProcessingTaskSummary | null
+  counts?: {
+    characters: number
+    chapters: number
+    segments: number
+    scripts: number
+    audioFiles: number
   }
 }

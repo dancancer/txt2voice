@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import type { Book } from '@/types/book'
 import { booksApi, formatFileSize, formatDate, getStatusColor, getStatusText } from '@/lib/api'
 import { Button } from './ui/button'
+import { toast } from 'sonner'
 import {
   BookOpen,
   FileText,
@@ -57,7 +58,7 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
           }
         } catch (error) {
           console.error('Upload failed:', error)
-          alert('文件上传失败，请重试')
+          toast.error('文件上传失败，请重试')
         } finally {
           setIsLoading(false)
         }
@@ -80,7 +81,7 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
       }
     } catch (error) {
       console.error('Processing failed:', error)
-      alert('文件处理失败，请重试')
+      toast.error('文件处理失败，请重试')
     } finally {
       setIsLoading(false)
     }
@@ -95,7 +96,7 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
       }
     } catch (error) {
       console.error('Delete failed:', error)
-      alert('删除失败，请重试')
+      toast.error('删除失败，请重试')
     } finally {
       setIsDeleting(false)
       setShowDeleteConfirm(false)
@@ -116,13 +117,20 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
         return <Loader2 className="w-4 h-4 animate-spin" />
       case 'completed':
         return <CheckCircle className="w-4 h-4" />
+      case 'completed_with_errors':
+        return <AlertCircle className="w-4 h-4" />
       default:
         return <AlertCircle className="w-4 h-4" />
     }
   }
 
-  const canGenerateScript = book.status === 'processed'
-  const canGenerateAudio = book.status === 'processed' || book.status === 'script_generated'
+  const canGenerateScript = book.status === 'processed' || book.status === 'completed_with_errors'
+  const canGenerateAudio =
+    book.status === 'processed' ||
+    book.status === 'script_generated' ||
+    book.status === 'completed_with_errors'
+  const audioFilesCount = book.counts?.audioFiles ?? 0
+  const hasAudio = audioFilesCount > 0
   const canViewDetails = book.status !== 'uploaded'
   const showViewTaskButton = book.status !== 'uploaded' && book.status !== 'uploading'
 
@@ -197,11 +205,11 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
         </div>
 
         {/* Audio Files Count */}
-        {book._count?.audioFiles && book._count.audioFiles > 0 && (
+        {audioFilesCount > 0 && (
           <div className="mb-4 p-2 bg-green-50 rounded-md">
             <div className="flex items-center text-sm text-green-800">
               <Play className="w-4 h-4 mr-2" />
-              <span>已生成 {book._count.audioFiles} 个音频文件</span>
+              <span>已生成 {audioFilesCount} 个音频文件</span>
             </div>
           </div>
         )}
@@ -276,7 +284,7 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
             </Button>
           )}
 
-          {book.status === 'completed' && (
+          {(book.status === 'completed' || book.status === 'completed_with_errors') && hasAudio && (
             <Button
               variant="default"
               size="sm"

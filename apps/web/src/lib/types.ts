@@ -169,7 +169,7 @@ export interface ScriptSentence {
   }>;
 }
 
-// 兼容性类型（向后兼容）
+// 角色画像与偏好类型
 export interface CharacterCharacteristics {
   gender: "male" | "female" | "unknown";
   ageRange: "young" | "adult" | "middle_aged" | "elderly" | "unknown";

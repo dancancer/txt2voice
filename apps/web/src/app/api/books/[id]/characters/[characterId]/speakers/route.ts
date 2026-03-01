@@ -66,7 +66,7 @@ export const GET = withErrorHandler(
       success: true,
       data: {
         characterId,
-        characterName: character.canonicalName,
+        canonicalName: character.canonicalName,
         speakerBindings: bindings.map(serializeBinding),
         summary: {
           totalBindings: bindings.length,

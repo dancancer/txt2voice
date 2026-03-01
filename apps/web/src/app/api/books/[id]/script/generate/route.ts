@@ -6,18 +6,14 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   withErrorHandler,
   ValidationError,
-  TTSError,
 } from "@/lib/error-handler";
 import prisma from "@/lib/prisma";
-import {
-  getScriptGenerator,
-  ScriptGenerationOptions,
-} from "@/lib/script-generator";
+import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import {
   jsonObject,
   mergeTaskData,
-  updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import { enqueueScriptGenerationJob } from "@/lib/task-queue";
 
 // POST /api/books/[id]/script/generate - 生成朗读台本
 export const POST = withErrorHandler(
@@ -55,8 +51,13 @@ export const POST = withErrorHandler(
       throw new ValidationError("书籍不存在");
     }
 
-    // 允许从多种状态生成台本
-    const allowedStatuses = ["processed", "analyzed", "script_generated"];
+    // 允许从稳定状态重跑台本
+    const allowedStatuses = [
+      "processed",
+      "script_generated",
+      "completed",
+      "completed_with_errors",
+    ];
     if (!allowedStatuses.includes(book.status)) {
       console.log("=====book.status", book.status);
       throw new ValidationError("请先完成文本处理");
@@ -98,6 +99,7 @@ export const POST = withErrorHandler(
           ? "从指定段落开始生成台本"
           : "开始生成朗读台本",
         regenerateSegments,
+        limitToSegments: typeof limitToSegments === "number" ? limitToSegments : null,
       };
 
       if (startFromSegmentId) {
@@ -121,15 +123,45 @@ export const POST = withErrorHandler(
         data: { status: "generating_script" },
       });
 
-      // 异步执行台本生成任务
-      runScriptGeneration(bookId, task.id, options, {
-        startFromSegmentId,
-        startFromOrderIndex,
-        regenerateSegments,
-        limitToSegments,
-      }).catch((error) => {
-        console.error("台本生成任务失败:", error);
-      });
+      try {
+        await enqueueScriptGenerationJob({
+          taskId: task.id,
+          bookId,
+          options,
+          extraParams: {
+            startFromSegmentId,
+            startFromOrderIndex,
+            regenerateSegments,
+            limitToSegments,
+          },
+        });
+      } catch (queueError) {
+        const message =
+          queueError instanceof Error ? queueError.message : "台本任务入队失败";
+        const failedTaskData = await mergeTaskData(task.id, {
+          message: "台本任务入队失败",
+          metadata: {
+            queueError: message,
+          },
+        });
+
+        await prisma.processingTask.update({
+          where: { id: task.id },
+          data: {
+            status: "failed",
+            completedAt: new Date(),
+            errorMessage: message,
+            taskData: failedTaskData,
+          },
+        });
+
+        await prisma.book.update({
+          where: { id: bookId },
+          data: { status: "processed" },
+        });
+
+        throw queueError;
+      }
 
       return NextResponse.json({
         success: true,
@@ -209,10 +241,10 @@ export const GET = withErrorHandler(
     if (includePreview && book.scriptSentences.length > 0) {
       response.data.preview = book.scriptSentences.map((sentence) => ({
         id: sentence.id,
-        characterName: sentence.character?.canonicalName || "旁白",
+        speaker: sentence.character?.canonicalName || sentence.rawSpeaker || "旁白",
         text: sentence.text,
-        emotion: sentence.tone,
-        segmentOrder: sentence.segment?.orderIndex,
+        tone: sentence.tone,
+        segmentOrderIndex: sentence.segment?.orderIndex,
         orderInSegment: sentence.orderInSegment,
       }));
     }
@@ -350,18 +382,43 @@ export const PATCH = withErrorHandler(
       data: { status: "generating_script" },
     });
 
-    // 异步执行指定段落的台本生成
-    runScriptGeneration(
-      bookId,
-      task.id,
-      {},
-      {
-        segmentIds,
-        regenerateSegments: true,
-      }
-    ).catch((error) => {
-      console.error("段落台本重新生成失败:", error);
-    });
+    try {
+      await enqueueScriptGenerationJob({
+        taskId: task.id,
+        bookId,
+        options: {},
+        extraParams: {
+          segmentIds,
+          regenerateSegments: true,
+        },
+      });
+    } catch (queueError) {
+      const message =
+        queueError instanceof Error ? queueError.message : "任务入队失败";
+      const failedTaskData = await mergeTaskData(task.id, {
+        message: "段落台本任务入队失败",
+        metadata: {
+          queueError: message,
+        },
+      });
+
+      await prisma.processingTask.update({
+        where: { id: task.id },
+        data: {
+          status: "failed",
+          completedAt: new Date(),
+          errorMessage: message,
+          taskData: failedTaskData,
+        },
+      });
+
+      await prisma.book.update({
+        where: { id: bookId },
+        data: { status: "processed" },
+      });
+
+      throw queueError;
+    }
 
     return NextResponse.json({
       success: true,
@@ -413,7 +470,7 @@ export const DELETE = withErrorHandler(
       await tx.book.update({
         where: { id: bookId },
         data: {
-          status: "analyzed",
+          status: "processed",
           metadata: {
             ...jsonObject(book.metadata),
             scriptGeneratedAt: null,
@@ -430,156 +487,3 @@ export const DELETE = withErrorHandler(
     });
   }
 );
-
-/**
- * 执行台本生成任务
- */
-async function runScriptGeneration(
-  bookId: string,
-  taskId: string,
-  options: Partial<ScriptGenerationOptions>,
-  extraParams: {
-    startFromSegmentId?: string | null;
-    startFromOrderIndex?: number | null;
-    regenerateSegments?: boolean;
-    segmentIds?: string[];
-    limitToSegments?: number;
-  } = {}
-): Promise<void> {
-  try {
-    await updateTaskProgress(taskId, 10, "准备生成台本");
-
-    const scriptGenerator = getScriptGenerator();
-    let script: any;
-
-    await updateTaskProgress(taskId, 30, "开始分析文本");
-
-    const segmentProgress = (done: number, total: number) => {
-      if (!total) return;
-      const base = 30;
-      const span = 40;
-      const next = Math.min(base + Math.floor((done / total) * span), 69);
-      return updateTaskProgress(taskId, next, `生成台本 ${done}/${total}`);
-    };
-
-    // 根据参数选择不同的处理方式
-    if (extraParams.regenerateSegments && extraParams.segmentIds) {
-      // 重新生成指定段落
-      console.log("重新生成指定段落:", extraParams.segmentIds);
-      script = await scriptGenerator.regenerateSegmentScript(
-        bookId,
-        extraParams.segmentIds,
-        options,
-        segmentProgress
-      );
-      await updateTaskProgress(taskId, 70, "保存段落台本数据");
-      await scriptGenerator.savePartialScriptToDatabase(bookId, script);
-    } else if (
-      extraParams.startFromSegmentId ||
-      extraParams.startFromOrderIndex !== null
-    ) {
-      // 增量处理或限制段落数量的处理
-      console.log(
-        "从指定段落开始处理:",
-        extraParams.startFromSegmentId || extraParams.startFromOrderIndex
-      );
-      if (extraParams.limitToSegments) {
-        // 限制段落数量的处理
-        console.log("限制处理段落数量:", extraParams.limitToSegments);
-        script = await scriptGenerator.generatePartialScript(bookId, options, {
-          startFromSegmentId: extraParams.startFromSegmentId,
-          startFromOrderIndex: extraParams.startFromOrderIndex,
-          limitToSegments: extraParams.limitToSegments,
-        }, segmentProgress);
-        // 手动限制段落数量
-        script.segments = script.segments.slice(0, extraParams.limitToSegments);
-        await updateTaskProgress(
-          taskId,
-          70,
-          `保存前${extraParams.limitToSegments}个段落的台本数据`
-        );
-        await scriptGenerator.savePartialScriptToDatabase(bookId, script);
-      } else {
-        // 正常增量处理
-        script = await scriptGenerator.generatePartialScript(bookId, options, {
-          startFromSegmentId: extraParams.startFromSegmentId,
-          startFromOrderIndex: extraParams.startFromOrderIndex,
-        }, segmentProgress);
-        await updateTaskProgress(taskId, 70, "保存增量台本数据");
-        await scriptGenerator.savePartialScriptToDatabase(bookId, script);
-      }
-    } else {
-      // 完整生成
-      script = await scriptGenerator.generateScript(
-        bookId,
-        options,
-        segmentProgress
-      );
-      await updateTaskProgress(taskId, 70, "保存台本数据");
-      await scriptGenerator.saveScriptToDatabase(bookId, script);
-    }
-
-    await updateTaskProgress(taskId, 90, "更新书籍状态");
-
-    // 获取统计信息用于更新元数据
-    const book = await prisma.book.findUnique({
-      where: { id: bookId },
-      include: {
-        scriptSentences: true,
-      },
-    });
-
-    await updateTaskProgress(taskId, 100, "台本生成完成");
-
-    // 标记任务完成
-    const taskData = await mergeTaskData(taskId, {
-      message: extraParams.regenerateSegments
-        ? "段落重新生成完成"
-        : extraParams.startFromSegmentId
-        ? "增量台本生成完成"
-        : "台本生成完成",
-      metadata: {
-        totalLines: script.summary.totalLines,
-        dialogueCount: script.summary.dialogueCount,
-        narrationCount: script.summary.narrationCount,
-        characterCount: Object.keys(script.summary.characterDistribution)
-          .length,
-        segmentCount: script.segments.length,
-        isPartial:
-          extraParams.startFromSegmentId || extraParams.regenerateSegments,
-        regeneratedSegments: extraParams.segmentIds?.length || 0,
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        status: "completed",
-        completedAt: new Date(),
-        taskData,
-      },
-    });
-  } catch (error) {
-    console.error("台本生成失败:", error);
-
-    // 标记任务失败
-    const taskData = await mergeTaskData(taskId, { message: "台本生成失败" });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        status: "failed",
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-        taskData,
-      },
-    });
-
-    // 重置书籍状态
-    await prisma.book.update({
-      where: { id: bookId },
-      data: { status: "analyzed" },
-    });
-
-    throw error;
-  }
-}

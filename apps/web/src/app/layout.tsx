@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Header } from "@/components/Navigation";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Text to Voice",
@@ -26,6 +27,7 @@ export default function RootLayout({
             <main className=" h-[calc(100vh-85px)]">{children}</main>
           </div>
         </ErrorBoundary>
+        <Toaster position="top-right" richColors closeButton />
       </body>
     </html>
   );

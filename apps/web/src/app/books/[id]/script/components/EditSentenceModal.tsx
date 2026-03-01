@@ -103,7 +103,7 @@ export function EditSentenceModal({
                 <option value={narrationValue}>旁白</option>
                 {availableCharacters.map((character) => (
                   <option key={character.id} value={character.id}>
-                    {character.canonicalName || character.name || "未命名角色"}
+                    {character.canonicalName}
                   </option>
                 ))}
               </select>

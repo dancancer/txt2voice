@@ -89,7 +89,7 @@ export const GET = withErrorHandler(async (
     success: true,
     data: {
       characterId: characterId,
-      characterName: character.canonicalName,
+      canonicalName: character.canonicalName,
       voiceBindings: enhancedBindings.map(binding => ({
         id: binding.id,
         voiceProfileId: binding.voiceProfileId,

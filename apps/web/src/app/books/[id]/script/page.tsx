@@ -14,8 +14,15 @@ import {
 } from "@/lib/book-api";
 import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScriptSentence } from "@/lib/types";
 import type { CharacterProfileSummary } from "@/types/book";
+import { toast } from "sonner";
 import {
   SegmentStatus,
   ScriptNavigationNode,
@@ -29,6 +36,23 @@ import {
   ScriptSentencesTable,
   ScriptPreviewModal,
 } from "./components";
+
+type ConfirmDialogConfig = {
+  title: string;
+  description: string;
+  confirmText?: string;
+  cancelText?: string;
+  destructive?: boolean;
+};
+
+type ConfirmDialogState = {
+  open: boolean;
+  title: string;
+  description: string;
+  confirmText: string;
+  cancelText: string;
+  destructive: boolean;
+};
 
 export default function ScriptGenerationPage() {
   const params = useParams();
@@ -71,6 +95,15 @@ export default function ScriptGenerationPage() {
   });
   const [showScriptPreview, setShowScriptPreview] = useState(false);
   const progressStreamRef = useRef<EventSource | null>(null);
+  const confirmResolverRef = useRef<((accepted: boolean) => void) | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState>({
+    open: false,
+    title: "",
+    description: "",
+    confirmText: "确认",
+    cancelText: "取消",
+    destructive: false,
+  });
 
   const fetchAllScriptSentences = useCallback(async () => {
     const sentences: ScriptSentence[] = [];
@@ -289,8 +322,38 @@ export default function ScriptGenerationPage() {
     }
   }, []);
 
+  const resolveConfirmation = useCallback((accepted: boolean) => {
+    setConfirmDialog((prev) => ({ ...prev, open: false }));
+    if (!confirmResolverRef.current) return;
+    const resolve = confirmResolverRef.current;
+    confirmResolverRef.current = null;
+    resolve(accepted);
+  }, []);
+
+  const requestConfirmation = useCallback(
+    (config: ConfirmDialogConfig) =>
+      new Promise<boolean>((resolve) => {
+        confirmResolverRef.current = resolve;
+        setConfirmDialog({
+          open: true,
+          title: config.title,
+          description: config.description,
+          confirmText: config.confirmText || "确认",
+          cancelText: config.cancelText || "取消",
+          destructive: Boolean(config.destructive),
+        });
+      }),
+    []
+  );
+
   useEffect(() => {
-    return () => closeProgressStream();
+    return () => {
+      closeProgressStream();
+      if (confirmResolverRef.current) {
+        confirmResolverRef.current(false);
+        confirmResolverRef.current = null;
+      }
+    };
   }, [closeProgressStream]);
 
   useEffect(() => {
@@ -387,6 +450,7 @@ export default function ScriptGenerationPage() {
         setIsGenerating(false);
         closeProgressStream();
         finished = true;
+        toast.error("生成超时，请稍后刷新页面确认任务状态");
       }, 5 * 60 * 1000);
 
       const finalize = (status: "completed" | "failed", errorMessage?: string) => {
@@ -398,13 +462,14 @@ export default function ScriptGenerationPage() {
         if (status === "completed") {
           setGenerationStatus(messages.completed);
           setIsGenerating(false);
+          toast.success(messages.completed);
           void loadBookAndData();
           return;
         }
 
         setGenerationStatus(messages.failed);
         setIsGenerating(false);
-        alert(errorMessage || fallbackFailure);
+        toast.error(errorMessage || fallbackFailure);
       };
 
       stream.onmessage = (event) => {
@@ -435,6 +500,7 @@ export default function ScriptGenerationPage() {
         setIsGenerating(false);
         closeProgressStream();
         finished = true;
+        toast.error("获取任务状态失败，请刷新后查看最新结果");
       });
     },
     [bookId, closeProgressStream, loadBookAndData]
@@ -447,13 +513,13 @@ export default function ScriptGenerationPage() {
       setGenerationStatus("开始生成台本...");
 
       if (!hasTextSegments) {
-        alert("没有文本段落，请先处理文本");
+        toast.error("没有文本段落，请先处理文本");
         setIsGenerating(false);
         return;
       }
 
       if (segments.length === 0) {
-        alert("没有可处理的文本段落");
+        toast.error("没有可处理的文本段落");
         setIsGenerating(false);
         return;
       }
@@ -492,7 +558,7 @@ export default function ScriptGenerationPage() {
     } catch (error) {
       console.error("Failed to generate script:", error);
       setGenerationStatus("台本生成失败");
-      alert(
+      toast.error(
         `台本生成失败: ${error instanceof Error ? error.message : "未知错误"}`
       );
       setIsGenerating(false);
@@ -526,9 +592,7 @@ export default function ScriptGenerationPage() {
           ? ({
               id: payload.characterId,
               canonicalName:
-                selectedCharacter?.canonicalName ||
-                selectedCharacter?.name ||
-                "未知角色",
+                selectedCharacter?.canonicalName || "未知角色",
             } as any)
           : null;
 
@@ -550,17 +614,23 @@ export default function ScriptGenerationPage() {
       setEditingSentence(null);
     } catch (error) {
       console.error("Failed to edit sentence:", error);
-      alert("编辑句子失败");
+      toast.error("编辑句子失败");
     }
   };
 
   const handleSentenceDelete = async (sentenceId: string) => {
-    if (!confirm("确定要删除这句台词吗？")) {
+    const confirmed = await requestConfirmation({
+      title: "删除台词",
+      description: "确定要删除这句台词吗？该操作无法撤销。",
+      confirmText: "删除",
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
     try {
       const response = await fetch(
-        `/api/books/${bookId}/script?ids=${encodeURIComponent(sentenceId)}`,
+        `/api/books/${bookId}/scripts?ids=${encodeURIComponent(sentenceId)}`,
         { method: "DELETE" }
       );
 
@@ -572,9 +642,10 @@ export default function ScriptGenerationPage() {
       setScriptSentences((prev) =>
         prev.filter((sentence) => sentence.id !== sentenceId)
       );
+      toast.success("台词已删除");
     } catch (error) {
       console.error("Failed to delete sentence:", error);
-      alert(error instanceof Error ? error.message : "删除句子失败");
+      toast.error(error instanceof Error ? error.message : "删除句子失败");
     }
   };
 
@@ -586,7 +657,7 @@ export default function ScriptGenerationPage() {
       const hasCharacter =
         targetSentence?.characterId || targetSentence?.character?.id;
       if (!hasCharacter) {
-        alert("请先为台词分配角色");
+        toast.error("请先为台词分配角色");
         return;
       }
 
@@ -606,19 +677,24 @@ export default function ScriptGenerationPage() {
         throw new Error(result.error?.message || "音频生成失败");
       }
 
-      alert("单句音频生成任务已启动");
+      toast.success("单句音频生成任务已启动");
     } catch (error) {
       console.error("Failed to generate sentence audio:", error);
-      alert(
+      toast.error(
         error instanceof Error ? error.message : "音频生成失败，请稍后重试"
       );
     }
   };
 
   const regenerateScript = async () => {
-    if (confirm("重新生成台本将覆盖现有内容，确定要继续吗？")) {
-      await generateScript();
-    }
+    const confirmed = await requestConfirmation({
+      title: "重新生成台本",
+      description: "重新生成台本将覆盖现有内容，确定要继续吗？",
+      confirmText: "继续生成",
+      destructive: true,
+    });
+    if (!confirmed) return;
+    await generateScript();
   };
 
   const loadSegmentStatus = async () => {
@@ -633,7 +709,7 @@ export default function ScriptGenerationPage() {
       setSegmentStatus(result.data.segments.items || []);
     } catch (error) {
       console.error("Failed to load segment status:", error);
-      alert("加载段落状态失败");
+      toast.error("加载段落状态失败");
     } finally {
       setSegmentStatusLoading(false);
     }
@@ -682,7 +758,7 @@ export default function ScriptGenerationPage() {
     } catch (error) {
       console.error("Failed to start incremental processing:", error);
       setGenerationStatus("增量台本生成失败");
-      alert(
+      toast.error(
         `增量台本生成失败: ${
           error instanceof Error ? error.message : "未知错误"
         }`
@@ -741,7 +817,7 @@ export default function ScriptGenerationPage() {
       setGenerationStatus(
         contextLabel ? `${contextLabel}失败` : "段落重新生成失败"
       );
-      alert(
+      toast.error(
         `段落重新生成失败: ${
           error instanceof Error ? error.message : "未知错误"
         }`
@@ -780,7 +856,7 @@ export default function ScriptGenerationPage() {
     const segmentIds =
       scope === "chapter" ? chapterSegmentIds.get(targetId) || [] : [targetId];
     if (segmentIds.length === 0) {
-      alert(scope === "chapter" ? "该章节暂无段落" : "未找到指定段落");
+      toast.info(scope === "chapter" ? "该章节暂无段落" : "未找到指定段落");
       return;
     }
 
@@ -788,7 +864,13 @@ export default function ScriptGenerationPage() {
       scope === "chapter"
         ? `确定要重新生成该章节下的 ${segmentIds.length} 个段落台本吗？`
         : "确定要重新生成该段落的台本吗？";
-    if (!confirm(confirmMessage)) {
+    const confirmed = await requestConfirmation({
+      title: scope === "chapter" ? "章节台本生成" : "段落台本生成",
+      description: confirmMessage,
+      confirmText: "开始生成",
+      destructive: true,
+    });
+    if (!confirmed) {
       return;
     }
 
@@ -805,11 +887,16 @@ export default function ScriptGenerationPage() {
     try {
       if (scope === "book") {
         if (!hasScriptSentences) {
-          alert("请先生成台本后再尝试生成音频");
+          toast.error("请先生成台本后再尝试生成音频");
           return;
         }
 
-        if (!confirm("确定要为整本书生成音频吗？")) {
+        const confirmed = await requestConfirmation({
+          title: "全书音频生成",
+          description: "确定要为整本书生成音频吗？",
+          confirmText: "开始生成",
+        });
+        if (!confirmed) {
           return;
         }
 
@@ -826,7 +913,7 @@ export default function ScriptGenerationPage() {
           throw new Error(result.error?.message || "音频生成失败");
         }
 
-        alert("整书音频生成任务已启动");
+        toast.success("整书音频生成任务已启动");
         return;
       }
 
@@ -838,7 +925,7 @@ export default function ScriptGenerationPage() {
           : getSentenceIdsForSegment(targetId);
 
       if (sentenceIds.length === 0) {
-        alert("没有可生成音频的台词");
+        toast.info("没有可生成音频的台词");
         return;
       }
 
@@ -864,14 +951,14 @@ export default function ScriptGenerationPage() {
         throw new Error(result.error?.message || "音频生成失败");
       }
 
-      alert(
+      toast.success(
         scope === "chapter"
           ? "章节音频生成任务已启动"
           : "段落音频生成任务已启动"
       );
     } catch (error) {
       console.error("Failed to start audio generation:", error);
-      alert(
+      toast.error(
         error instanceof Error ? error.message : "音频生成失败，请稍后重试"
       );
     }
@@ -1132,6 +1219,33 @@ export default function ScriptGenerationPage() {
           onStartRegeneration={handleSegmentRegeneration}
         />
       )}
+
+      <Dialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            resolveConfirmation(false);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{confirmDialog.title}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600">{confirmDialog.description}</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => resolveConfirmation(false)}>
+              {confirmDialog.cancelText}
+            </Button>
+            <Button
+              variant={confirmDialog.destructive ? "destructive" : "default"}
+              onClick={() => resolveConfirmation(true)}
+            >
+              {confirmDialog.confirmText}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -10,7 +10,6 @@ import { booksApi } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft,
   Play,
@@ -21,13 +20,10 @@ import {
   VolumeX,
   Settings,
   Download,
-  RefreshCw,
   FileText,
   User,
   Clock,
-  Loader2,
-  AlertCircle,
-  CheckCircle,
+  AlertCircle
 } from "lucide-react";
 
 interface AudioFile {
@@ -38,10 +34,10 @@ interface AudioFile {
   createdAt: string;
   scriptSentence?: {
     text: string;
-    order: number;
+    orderInSegment: number;
   };
   character?: {
-    name: string;
+    canonicalName: string;
   };
 }
 
@@ -71,15 +67,18 @@ export default function AudioPlaybackPage() {
   const loadBookAndAudioFiles = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await booksApi.getBook(bookId);
+      const response = await booksApi.getBook(bookId, ["audioFiles"]);
       setBook(response.data);
 
-      // Process audio files with script sentences
       const processedAudioFiles = (response.data.audioFiles || []).map(
         (file: any) => ({
           ...file,
           scriptSentence: file.scriptSentence,
-          character: file.scriptSentence?.character,
+          character: file.scriptSentence?.character
+            ? {
+                canonicalName: file.scriptSentence.character.canonicalName,
+              }
+            : undefined,
         })
       );
       setAudioFiles(processedAudioFiles);
@@ -206,18 +205,12 @@ export default function AudioPlaybackPage() {
   };
 
   const downloadAudioFile = (audioFile: AudioFile) => {
-    // TODO: Implement audio download
-    console.log("Downloading audio file:", audioFile);
-  };
-
-  const regenerateAudio = async () => {
-    try {
-      // TODO: Implement audio regeneration
-      console.log("Regenerating audio for book:", bookId);
-      router.push(`/books/${bookId}/audio`);
-    } catch (error) {
-      console.error("Failed to regenerate audio:", error);
-    }
+    const link = document.createElement("a");
+    link.href = `/api/audio/${audioFile.id}`;
+    link.download = audioFile.filename || `${audioFile.id}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const currentTrack = audioFiles[currentTrackIndex];
@@ -326,7 +319,7 @@ export default function AudioPlaybackPage() {
                       {currentTrack?.character && (
                         <div className="flex items-center">
                           <User className="w-4 h-4 mr-1" />
-                          {currentTrack.character.name}
+                          {currentTrack.character.canonicalName}
                         </div>
                       )}
                       <div className="flex items-center">
@@ -511,7 +504,7 @@ export default function AudioPlaybackPage() {
                                   </h4>
                                   <div className="flex items-center space-x-3 text-sm text-gray-600">
                                     {file.character && (
-                                      <span>{file.character.name}</span>
+                                      <span>{file.character.canonicalName}</span>
                                     )}
                                     <span>{formatTime(file.duration)}</span>
                                   </div>
@@ -544,7 +537,7 @@ export default function AudioPlaybackPage() {
               {/* Book Info */}
               <Card>
                 <CardHeader>
-                  <CardTitle>书籍信息111</CardTitle>
+                  <CardTitle>书籍信息</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
@@ -617,7 +610,7 @@ export default function AudioPlaybackPage() {
                     onClick={() => router.push(`/books/${bookId}/characters`)}
                   >
                     <User className="w-4 h-4 mr-2" />
-                    角色配置111
+                    角色配置
                   </Button>
                 </CardContent>
               </Card>

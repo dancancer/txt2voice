@@ -63,7 +63,7 @@ export function CharactersTable({
                     <TableCell>
                       <div className="max-w-[200px]">
                         <div className="font-medium text-gray-900 truncate">
-                          {character.canonicalName || character.name}
+                          {character.canonicalName}
                         </div>
                         {(character as any).characteristics?.description && (
                           <div className="text-sm text-gray-500 mt-1 line-clamp-2">
@@ -85,7 +85,7 @@ export function CharactersTable({
                     </TableCell>
                     <TableCell>
                       <span className="font-medium text-blue-600 inline-block">
-                        {character._count?.scriptSentences || 0}
+                        {character.scriptSentencesCount ?? 0}
                       </span>
                     </TableCell>
                     <TableCell>

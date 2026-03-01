@@ -28,6 +28,7 @@ export interface AudioGenerationOptions {
   priority?: 'low' | 'normal' | 'high'
   skipExisting?: boolean
   overwriteExisting?: boolean
+  provider?: string
 }
 
 export interface AudioGenerationResult {
@@ -119,24 +120,16 @@ export class AudioGenerator {
       }
 
       // 确定使用的声音配置
-      let voiceProfile = null
-      if (request.voiceProfileId) {
-        voiceProfile = await prisma.tTSVoiceProfile.findUnique({
-          where: { id: request.voiceProfileId }
-        })
-      } else if (scriptSentence.character) {
-        const preferredBinding = scriptSentence.character.voiceBindings.find(b => b.isDefault)
-        if (preferredBinding) {
-          voiceProfile = preferredBinding.voiceProfile
-        } else if (scriptSentence.character.voiceBindings.length > 0) {
-          voiceProfile = scriptSentence.character.voiceBindings[0].voiceProfile
-        }
-      }
+      const voiceProfile = await this.resolveVoiceProfileForSentence(
+        scriptSentence,
+        request,
+        finalOptions
+      )
 
       if (!voiceProfile) {
         return {
           success: false,
-          error: '未找到可用的声音配置'
+          error: '未找到可用的声音配置（包含旁白兜底）'
         }
       }
 
@@ -261,24 +254,10 @@ export class AudioGenerator {
     }
 
     // 构建生成请求
-    const requests: AudioGenerationRequest[] = scriptSentences.map(sentence => {
-      let voiceProfileId: string | undefined
-
-      if (sentence.character) {
-        const preferredBinding = sentence.character.voiceBindings.find((b: any) => b.isDefault)
-        if (preferredBinding) {
-          voiceProfileId = preferredBinding.voiceProfileId
-        } else if (sentence.character.voiceBindings.length > 0) {
-          voiceProfileId = sentence.character.voiceBindings[0].voiceProfileId
-        }
-      }
-
-      return {
-        scriptSentenceId: sentence.id,
-        voiceProfileId,
-        outputFormat: 'mp3'
-      }
-    })
+    const requests: AudioGenerationRequest[] = scriptSentences.map(sentence => ({
+      scriptSentenceId: sentence.id,
+      outputFormat: 'mp3'
+    }))
 
     // 批量生成
     const results = await this.generateBatchAudio(requests, options)
@@ -332,24 +311,10 @@ export class AudioGenerator {
     }
 
     // 构建生成请求
-    const requests: AudioGenerationRequest[] = scriptSentences.map(sentence => {
-      let voiceProfileId: string | undefined
-
-      if (sentence.character) {
-        const preferredBinding = sentence.character.voiceBindings.find((b: any) => b.isDefault)
-        if (preferredBinding) {
-          voiceProfileId = preferredBinding.voiceProfileId
-        } else if (sentence.character.voiceBindings.length > 0) {
-          voiceProfileId = sentence.character.voiceBindings[0].voiceProfileId
-        }
-      }
-
-      return {
-        scriptSentenceId: sentence.id,
-        voiceProfileId,
-        outputFormat: 'mp3'
-      }
-    })
+    const requests: AudioGenerationRequest[] = scriptSentences.map(sentence => ({
+      scriptSentenceId: sentence.id,
+      outputFormat: 'mp3'
+    }))
 
     // 批量生成
     const results = await this.generateBatchAudio(requests, options)
@@ -380,29 +345,234 @@ export class AudioGenerator {
       throw new TTSError('声音配置无效', 'TTS_SERVICE_DOWN', voiceProfile.provider)
     }
 
-    // 合并设置
-    const settings = { ...voiceProfile.settings, ...request.overrides }
+    const defaultParameters = asRecord(voiceProfile.defaultParameters) || {}
+    const sentenceTtsParams = asRecord(scriptSentence.ttsParameters) || {}
+    const ttsHints = asRecord(sentenceTtsParams.ttsHints) || {}
 
-    // 确定情感和风格
-    let emotion = scriptSentence.emotion
-    let style = settings.style || voice.style[0]
+    const defaultSpeed = this.normalizeNumber(
+      defaultParameters.rate ?? defaultParameters.speed,
+      1
+    )
+    const defaultPitch = this.normalizePitch(defaultParameters.pitch)
+    const defaultVolume = this.normalizeNumber(defaultParameters.volume, 1)
 
-    // 如果有情感覆盖设置
-    if (request.overrides?.emotion) {
-      emotion = request.overrides.emotion
-    }
+    const scriptStrength = this.normalizeStrength(scriptSentence.strength ?? sentenceTtsParams.strength)
+    const strengthVolume = scriptStrength === null ? null : this.clamp(scriptStrength / 100, 0.2, 1.2)
+
+    const speed = this.clamp(
+      this.normalizeNumber(
+        request.overrides?.speed ??
+          ttsHints.rate ??
+          sentenceTtsParams.rate ??
+          defaultSpeed,
+        1
+      ),
+      0.5,
+      2
+    )
+
+    const pitch = this.clamp(
+      this.normalizePitch(
+        request.overrides?.pitch ??
+          ttsHints.pitch ??
+          sentenceTtsParams.pitch ??
+          defaultPitch
+      ),
+      -20,
+      20
+    )
+
+    const volume = this.clamp(
+      this.normalizeNumber(
+        request.overrides?.volume ??
+          sentenceTtsParams.volume ??
+          strengthVolume ??
+          defaultVolume,
+        1
+      ),
+      0,
+      1.5
+    )
+
+    const tone = typeof scriptSentence.tone === 'string' ? scriptSentence.tone.trim() : ''
+    const emotion = request.overrides?.emotion || tone || undefined
+    const style = request.overrides?.style || this.resolveStyleFromTone(tone, voice.style) || voice.style[0]
 
     // 构建请求
     return {
       text: scriptSentence.text,
       voice,
       outputFormat: request.outputFormat || 'mp3',
-      speed: settings.speed,
-      pitch: settings.pitch,
-      volume: settings.volume,
+      speed,
+      pitch,
+      volume,
       emotion,
       style
     }
+  }
+
+  private async resolveVoiceProfileForSentence(
+    scriptSentence: any,
+    request: AudioGenerationRequest,
+    options: AudioGenerationOptions
+  ): Promise<any | null> {
+    const preferredProvider = typeof options.provider === 'string' ? options.provider : undefined
+
+    if (request.voiceProfileId) {
+      const selectedProfile = await prisma.tTSVoiceProfile.findUnique({
+        where: { id: request.voiceProfileId }
+      })
+      if (!selectedProfile) {
+        return null
+      }
+      if (preferredProvider && selectedProfile.provider !== preferredProvider) {
+        return null
+      }
+      return selectedProfile
+    }
+
+    const characterBindings = scriptSentence.character?.voiceBindings || []
+    const matchedCharacterBinding = this.pickBindingByProvider(characterBindings, preferredProvider)
+    if (matchedCharacterBinding?.voiceProfile) {
+      return matchedCharacterBinding.voiceProfile
+    }
+
+    const fallbackProfile = await this.findNarrationFallbackVoice(
+      scriptSentence.bookId,
+      preferredProvider
+    )
+    if (fallbackProfile) {
+      return fallbackProfile
+    }
+
+    if (preferredProvider) {
+      return this.findNarrationFallbackVoice(scriptSentence.bookId)
+    }
+
+    return null
+  }
+
+  private pickBindingByProvider(bindings: any[], provider?: string): any | null {
+    if (!Array.isArray(bindings) || bindings.length === 0) {
+      return null
+    }
+
+    if (provider) {
+      const providerMatched =
+        bindings.find((binding) => binding.isDefault && binding.voiceProfile?.provider === provider) ||
+        bindings.find((binding) => binding.voiceProfile?.provider === provider)
+      if (providerMatched) {
+        return providerMatched
+      }
+    }
+
+    return bindings.find((binding) => binding.isDefault) || bindings[0]
+  }
+
+  private async findNarrationFallbackVoice(
+    bookId: string,
+    provider?: string
+  ): Promise<any | null> {
+    const preferredBinding = await prisma.characterVoiceBinding.findFirst({
+      where: {
+        character: {
+          bookId,
+          isActive: true
+        },
+        voiceProfile: {
+          isAvailable: true,
+          ...(provider ? { provider } : {})
+        }
+      },
+      include: {
+        voiceProfile: true
+      },
+      orderBy: [{ isDefault: 'desc' }, { updatedAt: 'desc' }]
+    })
+
+    if (preferredBinding?.voiceProfile) {
+      return preferredBinding.voiceProfile
+    }
+
+    return prisma.tTSVoiceProfile.findFirst({
+      where: {
+        isAvailable: true,
+        ...(provider ? { provider } : {})
+      },
+      orderBy: [{ rating: 'desc' }, { usageCount: 'desc' }, { createdAt: 'asc' }]
+    })
+  }
+
+  private normalizeNumber(value: unknown, fallback: number): number {
+    const parsed =
+      typeof value === 'number'
+        ? value
+        : typeof value === 'string'
+          ? Number(value)
+          : NaN
+    return Number.isFinite(parsed) ? parsed : fallback
+  }
+
+  private normalizePitch(value: unknown): number {
+    const parsed = this.normalizeNumber(value, 0)
+    if (parsed >= 0.5 && parsed <= 2) {
+      return (parsed - 1) * 20
+    }
+    return parsed
+  }
+
+  private normalizeStrength(value: unknown): number | null {
+    const parsed =
+      typeof value === 'number'
+        ? value
+        : typeof value === 'string'
+          ? Number(value)
+          : NaN
+    if (!Number.isFinite(parsed)) {
+      return null
+    }
+    return this.clamp(parsed, 0, 100)
+  }
+
+  private clamp(value: number, min: number, max: number): number {
+    return Math.max(min, Math.min(max, value))
+  }
+
+  private resolveStyleFromTone(tone: string, availableStyles: string[]): string | undefined {
+    if (!tone || !Array.isArray(availableStyles) || availableStyles.length === 0) {
+      return undefined
+    }
+
+    const normalizedTone = tone.toLowerCase()
+    const matched = availableStyles.find((style) =>
+      normalizedTone.includes(style.toLowerCase())
+    )
+    if (matched) {
+      return matched
+    }
+
+    const toneStyleMap: Array<{ keywords: string[]; styleHints: string[] }> = [
+      { keywords: ['平静', '冷静', 'calm'], styleHints: ['calm', 'neutral', 'gentle'] },
+      { keywords: ['激动', '兴奋', 'cheerful'], styleHints: ['cheerful', 'excited'] },
+      { keywords: ['悲伤', '伤心', 'sad'], styleHints: ['sad', 'melancholic'] },
+      { keywords: ['愤怒', '生气', 'angry'], styleHints: ['angry', 'serious'] },
+      { keywords: ['温柔', '柔和', 'gentle'], styleHints: ['gentle', 'friendly'] },
+      { keywords: ['严肃', '庄重', 'serious'], styleHints: ['serious', 'narrative'] }
+    ]
+
+    for (const mapping of toneStyleMap) {
+      if (!mapping.keywords.some((keyword) => normalizedTone.includes(keyword))) {
+        continue
+      }
+      const style = mapping.styleHints.find((hint) =>
+        availableStyles.some((candidate) => candidate.toLowerCase() === hint.toLowerCase())
+      )
+      if (style) {
+        return style
+      }
+    }
+
+    return undefined
   }
 
   /**

@@ -24,7 +24,7 @@ const bookTabs = [
   },
   {
     id: "segments",
-    name: "角色配置(测试)",
+    name: "角色配置",
     href: "/characters",
     icon: Users,
   },

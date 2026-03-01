@@ -73,6 +73,16 @@ export default function BookDetailPage() {
 
   const statusMeta = getBookStatusMeta(book.status)
   const statusIconClass = statusMeta.animated ? 'w-4 h-4 animate-spin' : 'w-4 h-4'
+  const counts = {
+    segments: book?.counts?.segments ?? book?.totalSegments ?? 0,
+    characters: book?.counts?.characters ?? 0,
+    scripts: book?.counts?.scripts ?? 0,
+    audioFiles: book?.counts?.audioFiles ?? 0
+  }
+  const latestTask = book.latestTask || book.processingTasks?.[0]
+  const canGoScript = book.status === 'processed' || counts.scripts > 0
+  const canGoAudio = counts.scripts > 0
+  const canGoPlay = counts.audioFiles > 0
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -107,15 +117,15 @@ export default function BookDetailPage() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="flex items-center text-gray-600">
                     <FileText className="w-4 h-4 mr-2" />
-                    <span>段落：{book.textSegments?.length || 0}</span>
+                    <span>段落：{counts.segments}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Users className="w-4 h-4 mr-2" />
-                    <span>角色：{book.characterProfiles?.length || 0}</span>
+                    <span>角色：{counts.characters}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
                     <Play className="w-4 h-4 mr-2" />
-                    <span>音频：{book.audioFiles?.length || 0}</span>
+                    <span>音频：{counts.audioFiles}</span>
                   </div>
                   <div className="flex items-center text-gray-600">
                     <span className="w-4 h-4 mr-2 text-center">字</span>
@@ -124,18 +134,18 @@ export default function BookDetailPage() {
                 </div>
 
                 {/* Progress */}
-                {book.status !== 'completed' && book.status !== 'uploaded' && (
+                {book.status !== 'uploaded' && latestTask && (
                   <div className="mt-4">
                     <div className="flex justify-between text-sm mb-1">
                       <span>处理进度</span>
                       <span>
-                        {book.processingTasks?.[0]?.progress || 0}%
+                        {latestTask.progress || 0}%
                       </span>
                     </div>
-                    <Progress value={book.processingTasks?.[0]?.progress || 0} />
-                    {book.processingTasks?.[0]?.message && (
+                    <Progress value={latestTask.progress || 0} />
+                    {latestTask.message && (
                       <p className="text-xs text-gray-500 mt-1">
-                        {book.processingTasks[0].message}
+                        {latestTask.message}
                       </p>
                     )}
                   </div>
@@ -143,17 +153,17 @@ export default function BookDetailPage() {
 
                 {/* Action Buttons */}
                 <div className="space-y-2">
-                  {(book.status === 'processed' || book.status === 'analyzed') && (
+                  {canGoScript && (
                     <Button
                       variant="default"
                       className="w-full"
                       onClick={() => router.push(`/books/${bookId}/script`)}
                     >
                       <FileText className="w-4 h-4 mr-2" />
-                      生成台本（自动识别角色）
+                      台本与角色
                     </Button>
                   )}
-                  {book.status === 'completed' && (
+                  {canGoPlay && (
                     <Button
                       variant="default"
                       className="w-full"
@@ -182,89 +192,78 @@ export default function BookDetailPage() {
                     </div>
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    任务管理功能
+                    流程总览
                   </h3>
                   <p className="text-gray-600 mb-6">
-                    这里将显示书籍的详细任务管理界面，包括文本段落、角色配置、音频生成等功能。
+                    上传文本后，依次完成台本生成、角色配音与音频合成。
                   </p>
 
                   {/* Task Status Cards */}
                   <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
                     <div className={`p-4 rounded-lg border ${
-                      (book.textSegments?.length || 0) > 0
+                      counts.segments > 0
                         ? 'bg-green-50 border-green-200'
                         : 'bg-gray-50 border-gray-200'
                     }`}>
                       <FileText className="w-6 h-6 mx-auto mb-2 text-green-600" />
                       <h4 className="font-medium mb-1">文本处理</h4>
                       <p className="text-sm text-gray-600">
-                        {book.textSegments?.length || 0} 个段落
+                        {counts.segments} 个段落
                       </p>
                     </div>
 
                     <div className={`p-4 rounded-lg border ${
-                      book.status === 'analyzing'
-                        ? 'bg-indigo-50 border-indigo-200'
-                        : book.status === 'analyzed'
-                        ? 'bg-teal-50 border-teal-200'
-                        : (book.characterProfiles?.length || 0) > 0
+                      counts.characters > 0
                         ? 'bg-blue-50 border-blue-200'
                         : 'bg-gray-50 border-gray-200'
                     }`}>
                       <Users className="w-6 h-6 mx-auto mb-2 text-indigo-600" />
                       <h4 className="font-medium mb-1">角色识别</h4>
                       <p className="text-sm text-gray-600">
-                        {book.status === 'analyzing'
-                          ? `${book.processingTasks?.[0]?.progress || 0}%`
-                          : book.status === 'analyzed'
-                          ? '已完成'
-                          : (book.characterProfiles?.length || 0) > 0
-                          ? `${book.characterProfiles?.length || 0} 个角色`
-                          : '随台本生成'
-                        }
+                        {counts.characters > 0 ? `${counts.characters} 个角色` : '随台本生成'}
                       </p>
                     </div>
 
                     <div className={`p-4 rounded-lg border ${
-                      (book.scriptSentences?.length || 0) > 0
+                      counts.scripts > 0
                         ? 'bg-orange-50 border-orange-200'
                         : 'bg-gray-50 border-gray-200'
                     }`}>
                       <FileText className="w-6 h-6 mx-auto mb-2 text-orange-600" />
                       <h4 className="font-medium mb-1">台本生成</h4>
                       <p className="text-sm text-gray-600">
-                        {book.scriptSentences?.length || 0} 句台词
+                        {counts.scripts} 句台词
                       </p>
                     </div>
 
                     <div className={`p-4 rounded-lg border ${
-                      (book.characterProfiles?.length || 0) > 0
+                      counts.characters > 0
                         ? 'bg-blue-50 border-blue-200'
                         : 'bg-gray-50 border-gray-200'
                     }`}>
                       <Settings className="w-6 h-6 mx-auto mb-2 text-blue-600" />
                       <h4 className="font-medium mb-1">角色管理</h4>
                       <p className="text-sm text-gray-600">
-                        {book.characterProfiles?.length || 0} 个角色
+                        {counts.characters} 个角色
                       </p>
                     </div>
 
                     <div className={`p-4 rounded-lg border ${
-                      (book.audioFiles?.length || 0) > 0
+                      counts.audioFiles > 0
                         ? 'bg-purple-50 border-purple-200'
                         : 'bg-gray-50 border-gray-200'
                     }`}>
                       <Play className="w-6 h-6 mx-auto mb-2 text-purple-600" />
                       <h4 className="font-medium mb-1">音频生成</h4>
                       <p className="text-sm text-gray-600">
-                        {book.audioFiles?.length || 0} 个音频
+                        {counts.audioFiles} 个音频
                       </p>
                     </div>
                   </div>
 
                   {/* Navigation Buttons */}
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {(book.textSegments?.length || 0) > 0 && (
+                    {counts.segments > 0 && (
                       <Button
                         variant="outline"
                         onClick={() => router.push(`/books/${bookId}/script`)}
@@ -273,7 +272,7 @@ export default function BookDetailPage() {
                         查看章节结构
                       </Button>
                     )}
-                    {(book.textSegments?.length || 0) > 0 && (
+                    {canGoScript && (
                       <Button
                         variant="outline"
                         onClick={() => router.push(`/books/${bookId}/script`)}
@@ -282,7 +281,7 @@ export default function BookDetailPage() {
                         生成台本
                       </Button>
                     )}
-                    {(book.characterProfiles?.length || 0) > 0 && (
+                    {counts.characters > 0 && (
                       <Button
                         variant="outline"
                         onClick={() => router.push(`/books/${bookId}/characters`)}
@@ -291,7 +290,7 @@ export default function BookDetailPage() {
                         管理角色配置
                       </Button>
                     )}
-                    {(book.scriptSentences?.length || 0) > 0 && (
+                    {canGoAudio && (
                       <Button
                         variant="outline"
                         onClick={() => router.push(`/books/${bookId}/audio`)}
@@ -300,7 +299,7 @@ export default function BookDetailPage() {
                         生成音频
                       </Button>
                     )}
-                    {(book.audioFiles?.length || 0) > 0 && (
+                    {canGoPlay && (
                       <Button
                         variant="outline"
                         onClick={() => router.push(`/books/${bookId}/play`)}

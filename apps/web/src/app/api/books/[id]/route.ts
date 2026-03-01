@@ -7,6 +7,31 @@ import { withErrorHandler, ValidationError } from "@/lib/error-handler";
 import prisma from "@/lib/prisma";
 import { formatProcessingTask } from "@/lib/processing-task-utils";
 
+const toSafeNumber = (value: unknown): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "bigint") {
+    return Number(value);
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const parseIncludes = (rawInclude: string | null): Set<string> =>
+  new Set(
+    (rawInclude || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  );
+
 // GET /api/books/[id] - 获取书籍基本信息
 export const GET = withErrorHandler(
   async (
@@ -16,8 +41,12 @@ export const GET = withErrorHandler(
     const { id: bookId } = await params;
     const { searchParams } = new URL(request.url);
 
-    // 解析包含参数，决定返回哪些数据的统计信息
-    const include = searchParams.get("include")?.split(",") || [];
+    const include = parseIncludes(searchParams.get("include"));
+    const includeCharacters = include.has("characters");
+    const includeSegments = include.has("segments");
+    const includeChapters = include.has("chapters");
+    const includeScripts = include.has("scripts");
+    const includeAudioFiles = include.has("audioFiles");
 
     const book = await prisma.book.findUnique({
       where: { id: bookId },
@@ -37,8 +66,7 @@ export const GET = withErrorHandler(
           orderBy: { createdAt: "desc" },
           take: 1,
         },
-        // 只有明确要求时才包含详细数据
-        ...(include.includes("characters") && {
+        ...(includeCharacters && {
           characterProfiles: {
             where: { isActive: true },
             select: {
@@ -48,12 +76,13 @@ export const GET = withErrorHandler(
               isActive: true,
               mentions: true,
               quotes: true,
+              createdAt: true,
+              updatedAt: true,
             },
             orderBy: { mentions: "desc" },
-            take: 10, // 限制返回数量
           },
         }),
-        ...(include.includes("segments") && {
+        ...(includeSegments && {
           textSegments: {
             select: {
               id: true,
@@ -64,12 +93,12 @@ export const GET = withErrorHandler(
               wordCount: true,
               status: true,
               orderIndex: true,
+              createdAt: true,
             },
             orderBy: [{ orderIndex: "asc" }, { segmentIndex: "asc" }],
-            take: 10, // 限制返回数量
           },
         }),
-        ...(include.includes("chapters") && {
+        ...(includeChapters && {
           chapters: {
             select: {
               id: true,
@@ -78,17 +107,23 @@ export const GET = withErrorHandler(
               totalSegments: true,
               status: true,
               metadata: true,
+              createdAt: true,
             },
             orderBy: { chapterIndex: "asc" },
           },
         }),
-        ...(include.includes("scripts") && {
+        ...(includeScripts && {
           scriptSentences: {
             select: {
               id: true,
               text: true,
               tone: true,
+              strength: true,
+              pauseAfter: true,
+              ttsParameters: true,
               orderInSegment: true,
+              chapterId: true,
+              createdAt: true,
               character: {
                 select: {
                   id: true,
@@ -113,7 +148,35 @@ export const GET = withErrorHandler(
               },
             },
             orderBy: [{ segmentId: "asc" }, { orderInSegment: "asc" }],
-            take: 20, // 限制返回数量
+          },
+        }),
+        ...(includeAudioFiles && {
+          audioFiles: {
+            select: {
+              id: true,
+              fileName: true,
+              fileSize: true,
+              duration: true,
+              format: true,
+              status: true,
+              createdAt: true,
+              sentenceId: true,
+              scriptSentence: {
+                select: {
+                  id: true,
+                  text: true,
+                  orderInSegment: true,
+                  character: {
+                    select: {
+                      id: true,
+                      canonicalName: true,
+                    },
+                  },
+                },
+              },
+            },
+            where: { status: "completed" },
+            orderBy: { createdAt: "asc" },
           },
         }),
       },
@@ -123,13 +186,24 @@ export const GET = withErrorHandler(
       throw new ValidationError("书籍不存在");
     }
 
-    // 构建返回数据
+    const counts = {
+      characters: book._count.characterProfiles,
+      chapters: book._count.chapters,
+      segments: book._count.textSegments,
+      scripts: book._count.scriptSentences,
+      audioFiles: book._count.audioFiles,
+    };
+
+    const latestTask = book.processingTasks[0]
+      ? formatProcessingTask(book.processingTasks[0])
+      : null;
+
     const formattedBook = {
       id: book.id,
       title: book.title,
       author: book.author,
       originalFilename: book.originalFilename,
-      fileSize: book.fileSize,
+      fileSize: toSafeNumber(book.fileSize),
       totalWords: book.totalWords,
       totalCharacters: book.totalCharacters,
       totalSegments: book.totalSegments,
@@ -140,28 +214,68 @@ export const GET = withErrorHandler(
       metadata: book.metadata,
       createdAt: book.createdAt,
       updatedAt: book.updatedAt,
-      // 统计信息
-      stats: {
-        charactersCount: book._count.characterProfiles,
-        chaptersCount: book._count.chapters,
-        segmentsCount: book._count.textSegments,
-        scriptsCount: book._count.scriptSentences,
-        audioFilesCount: book._count.audioFiles,
-      },
-      // 处理任务
+      counts,
+      latestTask,
       processingTasks: book.processingTasks.map(formatProcessingTask),
-      // 详细数据（仅在请求时包含）
-      ...(include.includes("characters") && {
-        characterProfiles: book.characterProfiles,
+      ...(includeCharacters && {
+        characterProfiles: (book.characterProfiles || []).map((character) => ({
+          ...character,
+          createdAt: character.createdAt,
+          updatedAt: character.updatedAt,
+        })),
       }),
-      ...(include.includes("segments") && {
-        textSegments: book.textSegments,
+      ...(includeSegments && {
+        textSegments: (book.textSegments || []).map((segment) => ({
+          ...segment,
+          createdAt: segment.createdAt,
+        })),
       }),
-      ...(include.includes("chapters") && {
-        chapters: book.chapters,
+      ...(includeChapters && {
+        chapters: (book.chapters || []).map((chapter) => ({
+          ...chapter,
+          createdAt: chapter.createdAt,
+        })),
       }),
-      ...(include.includes("scripts") && {
-        scriptSentences: book.scriptSentences,
+      ...(includeScripts && {
+        scriptSentences: ((book as any).scriptSentences || []).map((sentence: any) => ({
+          ...sentence,
+          strength: toSafeNumber(sentence.strength),
+          pauseAfter: toSafeNumber(sentence.pauseAfter),
+          audioFiles: (sentence.audioFiles || []).map((audio: any) => ({
+            ...audio,
+            duration: toSafeNumber(audio.duration),
+          })),
+        })),
+      }),
+      ...(includeAudioFiles && {
+        audioFiles: ((book as any).audioFiles || []).map((audio: any) => ({
+          id: audio.id,
+          filename: audio.fileName || `${audio.id}.${audio.format || "mp3"}`,
+          duration: toSafeNumber(audio.duration) || 0,
+          fileSize: toSafeNumber(audio.fileSize) || 0,
+          format: audio.format || "mp3",
+          status: audio.status,
+          createdAt: audio.createdAt,
+          scriptSentence: audio.scriptSentence
+            ? {
+                id: audio.scriptSentence.id,
+                text: audio.scriptSentence.text,
+                orderInSegment: audio.scriptSentence.orderInSegment,
+                character: audio.scriptSentence.character
+                  ? {
+                      id: audio.scriptSentence.character.id,
+                      canonicalName: audio.scriptSentence.character.canonicalName,
+                    }
+                  : null,
+              }
+            : null,
+          character: audio.scriptSentence?.character
+            ? {
+                id: audio.scriptSentence.character.id,
+                canonicalName: audio.scriptSentence.character.canonicalName,
+              }
+            : null,
+        })),
       }),
     };
 

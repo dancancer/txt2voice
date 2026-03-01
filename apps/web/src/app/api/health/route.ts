@@ -3,6 +3,7 @@
 // output: HTTP 响应/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
+import { getTaskQueueHealth } from "@/lib/task-queue";
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,5 +64,8 @@ async function checkDatabaseConnection() {
 }
 
 async function checkServices() {
-  return {};
+  const queueStatus = await getTaskQueueHealth();
+  return {
+    queue: queueStatus,
+  };
 }

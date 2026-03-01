@@ -50,10 +50,10 @@ export default function CharacterProfilesPage() {
   const [lastExtractionSummary, setLastExtractionSummary] = useState<string | null>(null);
 
   const segmentsCount =
-    (book?.textSegments?.length ?? 0) || book?.stats?.segmentsCount || 0;
+    book?.counts?.segments ?? book?.textSegments?.length ?? 0;
   const hasTextSegments = segmentsCount > 0;
   const scriptsCount =
-    (book?.scriptSentences?.length ?? 0) || book?.stats?.scriptsCount || 0;
+    book?.counts?.scripts ?? book?.scriptSentences?.length ?? 0;
   const hasScripts = scriptsCount > 0;
 
   const filteredCharacters = useMemo(() => characters, [characters]);
@@ -99,7 +99,7 @@ export default function CharacterProfilesPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: characterData.name,
+          canonicalName: characterData.name,
           description: characterData.description,
           aliases: characterData.aliases,
           isActive: characterData.isActive,
@@ -190,7 +190,8 @@ export default function CharacterProfilesPage() {
     removeBinding,
   } = useSpeakerBindings(bookId, setCharacters);
 
-  const segmentsCountDisplay = book?.stats?.segmentsCount || book?.textSegments?.length || 0;
+  const segmentsCountDisplay =
+    book?.counts?.segments ?? book?.textSegments?.length ?? 0;
 
   if (loading) {
     return (

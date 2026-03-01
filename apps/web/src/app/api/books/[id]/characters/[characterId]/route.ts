@@ -22,7 +22,7 @@ const importanceSchema = z.union([
 type ImportanceValue = z.infer<typeof importanceSchema>
 
 const characterUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
+  canonicalName: z.string().min(1).optional(),
   description: z.string().optional(),
   age: z.number().int().min(0).max(200).optional(),
   gender: genderSchema.optional(),
@@ -86,10 +86,10 @@ export const GET = withErrorHandler(async (
     success: true,
     data: {
       id: character.id,
-      name: character.canonicalName,
+      canonicalName: character.canonicalName,
       description: (character.characteristics as any)?.description,
-      age: character.ageHint,
-      gender: character.genderHint,
+      ageHint: character.ageHint,
+      genderHint: character.genderHint,
       personality: (character.characteristics as any)?.personality,
       dialogueStyle: (character.voicePreferences as any)?.dialogueStyle,
       emotionalTone: (character.emotionProfile as any)?.emotionalTone,
@@ -119,16 +119,15 @@ export const GET = withErrorHandler(async (
       scriptSentences: character.scriptSentences.map(sentence => ({
         id: sentence.id,
         text: sentence.text,
-        emotion: sentence.tone,
-        context: null,
+        tone: sentence.tone,
         segment: sentence.segment
       })),
       statistics: {
-        dialogueCount: character._count.scriptSentences,
+        scriptSentencesCount: character._count.scriptSentences,
         voiceBindingCount: character._count.voiceBindings,
-        emotionDistribution: character.scriptSentences.reduce((acc, sentence) => {
-          const emotion = sentence.tone || 'neutral'
-          acc[emotion] = (acc[emotion] || 0) + 1
+        toneDistribution: character.scriptSentences.reduce((acc, sentence) => {
+          const tone = sentence.tone || 'neutral'
+          acc[tone] = (acc[tone] || 0) + 1
           return acc
         }, {} as Record<string, number>)
       },
@@ -160,23 +159,23 @@ export const PUT = withErrorHandler(async (
   }
 
   // 如果更新名称，检查是否与其他角色重复
-  if (validatedData.name && validatedData.name !== character.canonicalName) {
+  if (validatedData.canonicalName && validatedData.canonicalName !== character.canonicalName) {
     const existingCharacter = await prisma.characterProfile.findFirst({
       where: {
         bookId: bookId,
-        canonicalName: validatedData.name,
+        canonicalName: validatedData.canonicalName,
         isActive: true,
         id: { not: characterId }
       }
     })
 
     if (existingCharacter) {
-      throw new ValidationError('角色名称已存在', 'name')
+      throw new ValidationError('角色名称已存在', 'canonicalName')
     }
   }
 
   const updateData: any = {}
-  if (validatedData.name !== undefined) updateData.canonicalName = validatedData.name
+  if (validatedData.canonicalName !== undefined) updateData.canonicalName = validatedData.canonicalName
 
   // Build updated characteristics JSON
   const currentCharacteristics = character.characteristics as any || {}
@@ -258,10 +257,10 @@ export const PUT = withErrorHandler(async (
     success: true,
     data: {
       id: result!.id,
-      name: result!.canonicalName,
+      canonicalName: result!.canonicalName,
       description: (result!.characteristics as any)?.description,
-      age: result!.ageHint,
-      gender: result!.genderHint,
+      ageHint: result!.ageHint,
+      genderHint: result!.genderHint,
       personality: (result!.characteristics as any)?.personality,
       dialogueStyle: (result!.voicePreferences as any)?.dialogueStyle,
       emotionalTone: (result!.emotionProfile as any)?.emotionalTone,
@@ -269,7 +268,7 @@ export const PUT = withErrorHandler(async (
       relationships: (result!.characteristics as any)?.relationships,
       isActive: result!.isActive,
       aliases: result!.aliases.map(a => a.alias),
-      dialogueCount: result!._count.scriptSentences,
+      scriptSentencesCount: result!._count.scriptSentences,
       updatedAt: result!.updatedAt
     }
   })

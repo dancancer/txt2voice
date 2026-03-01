@@ -202,7 +202,7 @@ export function BookList({
         <div>
           <h2 className="text-2xl font-bold text-gray-900">我的书籍</h2>
           <p className="text-gray-600 mt-1">
-            共 {filteredBooks.length} 本书，{books.filter(b => b.status === 'completed').length} 本已完成
+            共 {filteredBooks.length} 本书，{books.filter(b => b.status === 'completed' || b.status === 'completed_with_errors').length} 本已完成
           </p>
         </div>
         <div className="flex space-x-3">
@@ -248,6 +248,7 @@ export function BookList({
             <option value="processed">已处理</option>
             <option value="script_generated">脚本已生成</option>
             <option value="generating_audio">生成音频中</option>
+            <option value="completed_with_errors">部分完成</option>
             <option value="completed">已完成</option>
           </select>
         </div>

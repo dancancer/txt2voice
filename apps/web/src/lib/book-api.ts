@@ -24,12 +24,12 @@ export interface BookBasicInfo {
   metadata: any;
   createdAt: Date;
   updatedAt: Date;
-  stats: {
-    charactersCount: number;
-    chaptersCount: number;
-    segmentsCount: number;
-    scriptsCount: number;
-    audioFilesCount: number;
+  counts: {
+    characters: number;
+    chapters: number;
+    segments: number;
+    scripts: number;
+    audioFiles: number;
   };
   processingTasks: any[];
   characterProfiles?: any[];

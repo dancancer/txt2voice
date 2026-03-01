@@ -10,7 +10,6 @@ import {
   Loader2,
   Play,
   Sparkles,
-  Users,
   Volume2,
   type LucideIcon,
 } from 'lucide-react'
@@ -51,17 +50,6 @@ const STATUS_META: Record<BookStatus, BookStatusMeta> = {
     className: 'bg-green-100 text-green-800',
     icon: CheckCircle,
   },
-  analyzing: {
-    label: '角色识别中',
-    className: 'bg-indigo-100 text-indigo-800',
-    icon: Users,
-    animated: true,
-  },
-  analyzed: {
-    label: '角色识别完成',
-    className: 'bg-teal-100 text-teal-800',
-    icon: Users,
-  },
   generating_script: {
     label: '生成台本中',
     className: 'bg-orange-100 text-orange-800',
@@ -78,6 +66,11 @@ const STATUS_META: Record<BookStatus, BookStatusMeta> = {
     className: 'bg-orange-100 text-orange-800',
     icon: Loader2,
     animated: true,
+  },
+  completed_with_errors: {
+    label: '部分完成',
+    className: 'bg-amber-100 text-amber-800',
+    icon: AlertCircle,
   },
   completed: {
     label: '已完成',

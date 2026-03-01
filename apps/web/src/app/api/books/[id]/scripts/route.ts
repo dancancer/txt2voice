@@ -3,13 +3,14 @@
 // output: HTTP 响应/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
-import { withErrorHandler, ValidationError } from "@/lib/error-handler";
-import prisma from "@/lib/prisma";
+import { withErrorHandler } from "@/lib/error-handler";
 import {
-  getPaginationFromSearch,
-  parsePaginationParams,
-  createPaginationResult,
-} from "@/lib/pagination";
+  createBookScriptSentence,
+  deleteBookScriptSentences,
+  listBookScriptSentences,
+  reorderBookScriptSentences,
+  updateBookScriptSentences,
+} from "@/lib/script-sentence-service";
 
 // GET /api/books/[id]/scripts - 获取书籍台本列表（分页）
 export const GET = withErrorHandler(
@@ -20,109 +21,7 @@ export const GET = withErrorHandler(
     const { id: bookId } = await params;
     const { searchParams } = new URL(request.url);
 
-    // 解析分页参数
-    const paginationParams = getPaginationFromSearch(searchParams);
-    const { page, limit, offset } = parsePaginationParams(paginationParams);
-
-    // 解析过滤参数
-    const characterId = searchParams.get("characterId");
-    const segmentId = searchParams.get("segmentId");
-    const chapterId = searchParams.get("chapterId");
-    const search = searchParams.get("search");
-    const tone = searchParams.get("tone");
-
-    // 构建查询条件
-    const where: any = { bookId };
-    if (characterId) {
-      where.characterId = characterId;
-    }
-    if (segmentId) {
-      where.segmentId = segmentId;
-    }
-    if (chapterId) {
-      where.chapterId = chapterId === "unassigned" ? null : chapterId;
-    }
-    if (search) {
-      where.text = { contains: search, mode: "insensitive" };
-    }
-    if (tone) {
-      where.tone = tone;
-    }
-
-    // 获取总数
-    const total = await prisma.scriptSentence.count({ where });
-
-    // 获取台本列表
-    const scripts = await prisma.scriptSentence.findMany({
-      where,
-      include: {
-        character: {
-          select: {
-            id: true,
-            canonicalName: true,
-            genderHint: true,
-            emotionBaseline: true,
-          },
-        },
-        chapter: {
-          select: {
-            id: true,
-            chapterIndex: true,
-            title: true,
-          },
-        },
-        segment: {
-          select: {
-            id: true,
-            content: true,
-            segmentIndex: true,
-            orderIndex: true,
-          },
-        },
-        audioFiles: {
-          select: {
-            id: true,
-            filePath: true,
-            duration: true,
-            status: true,
-            provider: true,
-            voiceProfile: {
-              select: {
-                id: true,
-                voiceName: true,
-                displayName: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: [{ segmentId: "asc" }, { orderInSegment: "asc" }],
-      skip: offset,
-      take: limit,
-    });
-
-    // 格式化返回数据
-    const formattedScripts = scripts.map((script) => ({
-      id: script.id,
-      bookId: script.bookId,
-      segmentId: script.segmentId,
-      chapterId: script.chapterId,
-      characterId: script.characterId,
-      text: script.text,
-      rawSpeaker: script.rawSpeaker,
-      tone: script.tone,
-      strength: script.strength,
-      pauseAfter: script.pauseAfter,
-      ttsParameters: script.ttsParameters,
-      orderInSegment: script.orderInSegment,
-      character: script.character,
-      chapter: script.chapter,
-      segment: script.segment,
-      audioFiles: script.audioFiles,
-      createdAt: script.createdAt,
-    }));
-
-    const result = createPaginationResult(formattedScripts, total, page, limit);
+    const result = await listBookScriptSentences(bookId, searchParams);
 
     return NextResponse.json({
       success: true,
@@ -139,106 +38,12 @@ export const POST = withErrorHandler(
   ) => {
     const { id: bookId } = await params;
     const body = await request.json();
-    const {
-      segmentId,
-      characterId,
-      text,
-      rawSpeaker,
-      tone,
-      strength,
-      pauseAfter,
-      ttsParameters,
-      orderInSegment,
-    } = body;
 
-    // 检查书籍是否存在
-    const book = await prisma.book.findUnique({
-      where: { id: bookId },
-    });
-
-    if (!book) {
-      throw new ValidationError("书籍不存在");
-    }
-
-    // 检查分段是否存在
-    const segment = await prisma.textSegment.findFirst({
-      where: { id: segmentId, bookId },
-      select: {
-        id: true,
-        chapterId: true,
-      },
-    });
-
-    if (!segment) {
-      throw new ValidationError("分段不存在");
-    }
-
-    // 如果指定了角色ID，检查角色是否存在
-    if (characterId) {
-      const character = await prisma.characterProfile.findFirst({
-        where: { id: characterId, bookId },
-      });
-
-      if (!character) {
-        throw new ValidationError("角色不存在");
-      }
-    }
-
-    // 如果没有指定orderInSegment，获取当前分段的最大orderInSegment
-    let finalOrderInSegment = orderInSegment;
-    if (finalOrderInSegment === undefined) {
-      const maxOrder = await prisma.scriptSentence.findFirst({
-        where: { segmentId },
-        orderBy: { orderInSegment: "desc" },
-        select: { orderInSegment: true },
-      });
-      finalOrderInSegment = (maxOrder?.orderInSegment || 0) + 1;
-    }
-
-    const script = await prisma.scriptSentence.create({
-      data: {
-        bookId,
-        segmentId,
-        chapterId: segment.chapterId,
-        characterId,
-        text: text.trim(),
-        rawSpeaker,
-        tone,
-        strength,
-        pauseAfter,
-        ttsParameters,
-        orderInSegment: finalOrderInSegment,
-      },
-      include: {
-        character: {
-          select: {
-            id: true,
-            canonicalName: true,
-            genderHint: true,
-            emotionBaseline: true,
-          },
-        },
-        chapter: {
-          select: {
-            id: true,
-            chapterIndex: true,
-            title: true,
-          },
-        },
-        segment: {
-          select: {
-            id: true,
-            content: true,
-            segmentIndex: true,
-            orderIndex: true,
-          },
-        },
-      },
-    });
+    const created = await createBookScriptSentence(bookId, body);
 
     return NextResponse.json({
       success: true,
-      data: script,
+      data: created,
     });
   }
 );
@@ -251,72 +56,48 @@ export const PUT = withErrorHandler(
   ) => {
     const { id: bookId } = await params;
     const body = await request.json();
-    const { scripts } = body;
 
-    if (!Array.isArray(scripts) || scripts.length === 0) {
-      throw new ValidationError("请提供要更新的台本句子列表");
-    }
-
-    // 验证所有台本句子都属于该书籍
-    const scriptIds = scripts.map((s) => s.id);
-    const existingScripts = await prisma.scriptSentence.findMany({
-      where: {
-        id: { in: scriptIds },
-        bookId,
-      },
-    });
-
-    if (existingScripts.length !== scripts.length) {
-      throw new ValidationError("部分台本句子不存在或不属于该书籍");
-    }
-
-    // 批量更新
-    const updatePromises = scripts.map((script) =>
-      prisma.scriptSentence.update({
-        where: { id: script.id },
-        data: {
-          characterId: script.characterId,
-          text: script.text?.trim(),
-          rawSpeaker: script.rawSpeaker,
-          tone: script.tone,
-          strength: script.strength,
-          pauseAfter: script.pauseAfter,
-          ttsParameters: script.ttsParameters,
-          orderInSegment: script.orderInSegment,
-        },
-        include: {
-          character: {
-            select: {
-              id: true,
-              canonicalName: true,
-              genderHint: true,
-              emotionBaseline: true,
-            },
-          },
-          chapter: {
-            select: {
-              id: true,
-              chapterIndex: true,
-              title: true,
-            },
-          },
-          segment: {
-            select: {
-              id: true,
-              content: true,
-              segmentIndex: true,
-              orderIndex: true,
-            },
-          },
-        },
-      })
-    );
-
-    const updatedScripts = await Promise.all(updatePromises);
+    const updated = await updateBookScriptSentences(bookId, body);
 
     return NextResponse.json({
       success: true,
-      data: updatedScripts,
+      data: updated,
+    });
+  }
+);
+
+// DELETE /api/books/[id]/scripts - 批量删除台词
+export const DELETE = withErrorHandler(
+  async (
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
+    const { id: bookId } = await params;
+    const { searchParams } = new URL(request.url);
+
+    const result = await deleteBookScriptSentences(bookId, searchParams);
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+    });
+  }
+);
+
+// PATCH /api/books/[id]/scripts - 重新排序台词
+export const PATCH = withErrorHandler(
+  async (
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
+    const { id: bookId } = await params;
+    const body = await request.json();
+
+    const result = await reorderBookScriptSentences(bookId, body);
+
+    return NextResponse.json({
+      success: true,
+      data: result,
     });
   }
 );

@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .js,.ts,.jsx,.tsx",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "test:regression": "jest src/lib/__tests__/audiobook-regression.test.ts src/lib/__tests__/script-sentence-contract.test.ts src/lib/__tests__/task-replay-route.test.ts --runInBand",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },

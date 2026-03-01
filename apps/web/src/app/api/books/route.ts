@@ -32,6 +32,8 @@ export const GET = withRateLimit(withErrorHandler(async (request: NextRequest) =
           select: {
             textSegments: true,
             characterProfiles: true,
+            chapters: true,
+            scriptSentences: true,
             audioFiles: true
           }
         }
@@ -43,11 +45,25 @@ export const GET = withRateLimit(withErrorHandler(async (request: NextRequest) =
     prisma.book.count({ where })
   ])
 
-  logger.info('Books fetched', { count: books.length, page, limit })
+  const normalizedBooks = books.map((book) => {
+    const { _count, ...rest } = book
+    return {
+      ...rest,
+      counts: {
+        characters: _count.characterProfiles,
+        chapters: _count.chapters,
+        segments: _count.textSegments,
+        scripts: _count.scriptSentences,
+        audioFiles: _count.audioFiles,
+      },
+    }
+  })
+
+  logger.info('Books fetched', { count: normalizedBooks.length, page, limit })
 
   return NextResponse.json({
     success: true,
-    ...createPaginationResponse(books, total, page, limit)
+    ...createPaginationResponse(normalizedBooks, total, page, limit)
   })
 }))
 

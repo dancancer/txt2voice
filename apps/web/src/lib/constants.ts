@@ -93,11 +93,10 @@ export const BOOK_STATUS = {
   UPLOADED: 'uploaded',
   PROCESSING: 'processing',
   PROCESSED: 'processed',
-  ANALYZING: 'analyzing',
-  ANALYZED: 'analyzed',
   GENERATING_SCRIPT: 'generating_script',
   SCRIPT_GENERATED: 'script_generated',
   GENERATING_AUDIO: 'generating_audio',
+  COMPLETED_WITH_ERRORS: 'completed_with_errors',
   COMPLETED: 'completed',
   ERROR: 'error',
 } as const

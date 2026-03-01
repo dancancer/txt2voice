@@ -9,6 +9,7 @@ import prisma from "./prisma";
 export interface DialogueLine {
   id: string;
   characterId?: string | null; // 对齐数据库字段
+  characterName?: string; // 内部映射字段，用于角色匹配
   rawSpeaker?: string; // 对齐数据库字段
   text: string;
   orderInSegment: number; // 对齐数据库字段
@@ -19,12 +20,6 @@ export interface DialogueLine {
   segmentId: string;
   chapterId?: string | null;
   isNarration?: boolean; // 内部使用，不存数据库
-
-  // 兼容性字段
-  characterName?: string; // 向后兼容
-  emotion?: string; // 向后兼容
-  context?: string; // 向后兼容
-  metadata?: Record<string, any>; // 向后兼容
 }
 
 export interface CharacterCandidate {
@@ -53,6 +48,10 @@ export interface GeneratedScript {
     totalLines: number;
     dialogueCount: number;
     narrationCount: number;
+    totalSegments: number;
+    processedSegments: number;
+    failedSegments: number;
+    failedSegmentIds: string[];
     characterDistribution: Record<string, number>;
     emotionDistribution: Record<string, number>;
   };
@@ -121,6 +120,7 @@ export class ScriptGenerator {
 
     const allDialogueLines: DialogueLine[] = [];
     const segmentSummaries: any[] = [];
+    const failedSegmentIds: string[] = [];
 
     // 逐段处理文本并实时写入数据库
     for (let i = 0; i < book.textSegments.length; i++) {
@@ -150,6 +150,7 @@ export class ScriptGenerator {
         }
       } catch (error) {
         console.error(`处理段落 ${segment.id} 失败:`, error);
+        failedSegmentIds.push(segment.id);
         // 继续处理下一段，不中断整个流程
       }
     }
@@ -163,7 +164,10 @@ export class ScriptGenerator {
     }
 
     // 计算统计信息
-    const summary = this.calculateScriptSummary(allDialogueLines);
+    const summary = this.calculateScriptSummary(allDialogueLines, {
+      totalSegments: book.textSegments.length,
+      failedSegmentIds,
+    });
 
     return {
       dialogueLines: allDialogueLines,
@@ -384,16 +388,25 @@ ${segment.content}
           return {
             id: sentence.id || `${segment.id}_${index}`,
             characterName,
+            rawSpeaker:
+              typeof sentence.speaker === "string"
+                ? sentence.speaker
+                : undefined,
             text: sentence.text || "",
-            emotion: sentence.tone || "中性",
-            context: "", // 新格式中没有context字段
+            tone: sentence.tone || "中性",
+            strength:
+              typeof sentence.strength === "number"
+                ? sentence.strength
+                : 75,
+            pauseAfter:
+              typeof sentence.pauseAfter === "number"
+                ? sentence.pauseAfter
+                : 1.5,
             segmentId: segment.id,
             chapterId: segment.chapterId,
             orderInSegment: index,
             isNarration: characterName === "旁白",
-            metadata: {
-              strength: sentence.strength || 75,
-              pauseAfter: sentence.pauseAfter || 1.5,
+            ttsParameters: {
               ttsHints: sentence.ttsHints || {
                 pitch: 1.0,
                 rate: 1.0,
@@ -445,6 +458,14 @@ ${segment.content}
       characterProfiles,
       options
     );
+
+    if (result.dialogueLines.length === 0) {
+      throw new TTSError(
+        `段落 ${segment.id} 未生成有效台词`,
+        "TTS_SERVICE_DOWN",
+        "script-generator"
+      );
+    }
 
     if (result.characterCandidates.length > 0) {
       await this.upsertCharacterCandidates(
@@ -546,26 +567,22 @@ ${segment.content}
             segmentId,
             chapterId: line.chapterId ?? null,
             characterId,
+            rawSpeaker: line.rawSpeaker || line.characterName || null,
             text: line.text,
-            tone: line.emotion,
+            tone: line.tone,
+            strength:
+              typeof line.strength === "number"
+                ? Math.max(0, Math.min(100, Math.round(line.strength)))
+                : 75,
+            pauseAfter:
+              typeof line.pauseAfter === "number"
+                ? Number(line.pauseAfter.toFixed(1))
+                : 1.5,
             orderInSegment: line.orderInSegment,
-            ttsParameters: line.metadata || {},
+            ttsParameters: line.ttsParameters || {},
           },
         });
       }
-
-      // 更新书籍状态为脚本生成中（如果还不是最终状态）
-      await tx.book.update({
-        where: { id: bookId },
-        data: {
-          status: "script_generated",
-          metadata: {
-            scriptGeneratedAt: new Date().toISOString(),
-            lastSegmentGenerationAt: new Date().toISOString(),
-            lastGeneratedSegmentId: segmentId,
-          },
-        },
-      });
     });
   }
 
@@ -1156,11 +1173,27 @@ ${brokenJson.substring(0, 3000)}
   /**
    * 计算台本统计信息
    */
-  private calculateScriptSummary(dialogueLines: DialogueLine[]) {
+  private calculateScriptSummary(
+    dialogueLines: DialogueLine[],
+    options?: {
+      totalSegments?: number;
+      failedSegmentIds?: string[];
+    }
+  ) {
+    const failedSegmentIds = options?.failedSegmentIds || [];
+    const totalSegments =
+      typeof options?.totalSegments === "number"
+        ? options.totalSegments
+        : new Set(dialogueLines.map((line) => line.segmentId)).size;
+
     const summary = {
       totalLines: dialogueLines.length,
       dialogueCount: dialogueLines.filter((line) => !line.isNarration).length,
       narrationCount: dialogueLines.filter((line) => line.isNarration).length,
+      totalSegments,
+      processedSegments: Math.max(totalSegments - failedSegmentIds.length, 0),
+      failedSegments: failedSegmentIds.length,
+      failedSegmentIds,
       characterDistribution: {} as Record<string, number>,
       emotionDistribution: {} as Record<string, number>,
     };
@@ -1175,9 +1208,9 @@ ${brokenJson.substring(0, 3000)}
 
     // 情感分布统计
     for (const line of dialogueLines) {
-      if (line.emotion) {
-        summary.emotionDistribution[line.emotion] =
-          (summary.emotionDistribution[line.emotion] || 0) + 1;
+      if (line.tone) {
+        summary.emotionDistribution[line.tone] =
+          (summary.emotionDistribution[line.tone] || 0) + 1;
       }
     }
 
@@ -1241,6 +1274,7 @@ ${brokenJson.substring(0, 3000)}
 
     const allDialogueLines: DialogueLine[] = [];
     const segmentSummaries: any[] = [];
+    const failedSegmentIds: string[] = [];
 
     // 确定起始段落
     let startIndex = 0;
@@ -1318,6 +1352,7 @@ ${brokenJson.substring(0, 3000)}
         }
       } catch (error) {
         console.error(`处理段落 ${segment.id} 失败:`, error);
+        failedSegmentIds.push(segment.id);
         // 继续处理下一段，不中断整个流程
       }
     }
@@ -1331,7 +1366,10 @@ ${brokenJson.substring(0, 3000)}
     }
 
     // 计算统计信息
-    const summary = this.calculateScriptSummary(allDialogueLines);
+    const summary = this.calculateScriptSummary(allDialogueLines, {
+      totalSegments,
+      failedSegmentIds,
+    });
 
     return {
       dialogueLines: allDialogueLines,
@@ -1394,6 +1432,7 @@ ${brokenJson.substring(0, 3000)}
 
     const allDialogueLines: DialogueLine[] = [];
     const segmentSummaries: any[] = [];
+    const failedSegmentIds: string[] = [];
 
     // 处理指定的段落并实时写入数据库
     for (let idx = 0; idx < book.textSegments.length; idx++) {
@@ -1422,6 +1461,7 @@ ${brokenJson.substring(0, 3000)}
         }
       } catch (error) {
         console.error(`重新处理段落 ${segment.id} 失败:`, error);
+        failedSegmentIds.push(segment.id);
       }
     }
 
@@ -1434,7 +1474,10 @@ ${brokenJson.substring(0, 3000)}
     }
 
     // 计算统计信息
-    const summary = this.calculateScriptSummary(allDialogueLines);
+    const summary = this.calculateScriptSummary(allDialogueLines, {
+      totalSegments: book.textSegments.length,
+      failedSegmentIds,
+    });
 
     return {
       dialogueLines: allDialogueLines,
@@ -1488,10 +1531,19 @@ ${brokenJson.substring(0, 3000)}
             segmentId: line.segmentId,
             chapterId: line.chapterId ?? null,
             characterId: characterId,
+            rawSpeaker: line.rawSpeaker || line.characterName || null,
             text: line.text,
-            tone: line.emotion,
+            tone: line.tone,
+            strength:
+              typeof line.strength === "number"
+                ? Math.max(0, Math.min(100, Math.round(line.strength)))
+                : 75,
+            pauseAfter:
+              typeof line.pauseAfter === "number"
+                ? Number(line.pauseAfter.toFixed(1))
+                : 1.5,
             orderInSegment: line.orderInSegment,
-            ttsParameters: line.metadata || {},
+            ttsParameters: line.ttsParameters || {},
           },
         });
       }
@@ -1551,10 +1603,19 @@ ${brokenJson.substring(0, 3000)}
             segmentId: line.segmentId,
             chapterId: line.chapterId ?? null,
             characterId: characterId,
+            rawSpeaker: line.rawSpeaker || line.characterName || null,
             text: line.text,
-            tone: line.emotion,
+            tone: line.tone,
+            strength:
+              typeof line.strength === "number"
+                ? Math.max(0, Math.min(100, Math.round(line.strength)))
+                : 75,
+            pauseAfter:
+              typeof line.pauseAfter === "number"
+                ? Number(line.pauseAfter.toFixed(1))
+                : 1.5,
             orderInSegment: line.orderInSegment,
-            ttsParameters: line.metadata || {},
+            ttsParameters: line.ttsParameters || {},
           },
         });
       }

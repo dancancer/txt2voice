@@ -29,7 +29,7 @@ export function CharacterForm({
   isSubmitting?: boolean;
 }) {
   const [formData, setFormData] = React.useState({
-    name: character?.canonicalName || character?.name || "",
+    name: character?.canonicalName || "",
     description:
       (character?.characteristics as any)?.description ||
       character?.description ||
@@ -214,7 +214,7 @@ export function SpeakerDialog({
         <DialogHeader>
           <DialogTitle>角色说话人关联</DialogTitle>
           <p className="text-sm text-gray-500">
-            为 {character.canonicalName || character.name} 配置说话人
+            为 {character.canonicalName} 配置说话人
           </p>
         </DialogHeader>
 

@@ -174,69 +174,6 @@ describe("ScriptGenerator - 新数据结构适配", () => {
     });
   });
 
-  describe("向后兼容性测试", () => {
-    it("应该处理旧格式的角色数据", async () => {
-      const oldFormatCharacter = {
-        id: "char-old",
-        name: "旧格式角色", // 旧字段名
-        gender: "male", // 旧字段名
-        personality: ["勇敢"],
-        age: 25,
-      };
-
-      // 验证转换逻辑
-      const convertedCharacter = {
-        id: oldFormatCharacter.id,
-        canonicalName: oldFormatCharacter.name, // 转换为新字段名
-        genderHint: oldFormatCharacter.gender, // 转换为新字段名
-        characteristics: {
-          personality: oldFormatCharacter.personality,
-        },
-        voicePreferences: {},
-        emotionProfile: {},
-        ageHint: oldFormatCharacter.age,
-        emotionBaseline: "neutral",
-        isActive: true,
-        aliases: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      expect(convertedCharacter.canonicalName).toBe("旧格式角色");
-      expect(convertedCharacter.genderHint).toBe("male");
-    });
-
-    it("应该处理旧格式的台词数据", async () => {
-      const oldFormatSentence = {
-        id: "sentence-old",
-        characterName: "旧角色", // 旧字段名
-        emotion: "开心", // 旧字段名
-        orderIndex: 0, // 旧字段名
-        text: "测试台词",
-      };
-
-      // 验证转换逻辑
-      const convertedSentence: ScriptSentence = {
-        id: oldFormatSentence.id,
-        characterId: "char-old", // 转换为新字段名
-        rawSpeaker: oldFormatSentence.characterName, // 新增字段
-        orderInSegment: oldFormatSentence.orderIndex, // 转换为新字段名
-        tone: oldFormatSentence.emotion, // 转换为新字段名
-        text: oldFormatSentence.text,
-        bookId: "test-book-id",
-        segmentId: "segment-1",
-        strength: 75, // 默认值
-        pauseAfter: 1.5, // 默认值
-        ttsParameters: {}, // 默认值
-        createdAt: new Date().toISOString(),
-      };
-
-      expect(convertedSentence.orderInSegment).toBe(0);
-      expect(convertedSentence.tone).toBe("开心");
-      expect(convertedSentence.rawSpeaker).toBe("旧角色");
-    });
-  });
-
   describe("新字段功能测试", () => {
     it("应该正确处理角色别名", async () => {
       const characterWithAliases = {
@@ -399,8 +336,7 @@ describe("ScriptGenerator - 新数据结构适配", () => {
               segmentId: segment.id,
               chapterId: segment.chapterId ?? null,
               tone: "中性",
-              metadata: {},
-              characterName: "旁白",
+              isNarration: true,
             },
           ],
         }));
