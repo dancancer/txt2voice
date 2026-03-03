@@ -238,7 +238,8 @@ export async function getBookScripts(
     segmentId?: string;
     search?: string;
     tone?: string;
-  }
+  },
+  request?: { signal?: AbortSignal }
 ): Promise<{ success: boolean; data: PaginationResult<ScriptSentence> }> {
   const searchParams = new URLSearchParams();
 
@@ -251,7 +252,8 @@ export async function getBookScripts(
   if (params?.tone) searchParams.set("tone", params.tone);
 
   const response = await fetch(
-    `/api/books/${bookId}/scripts?${searchParams.toString()}`
+    `/api/books/${bookId}/scripts?${searchParams.toString()}`,
+    { signal: request?.signal }
   );
   if (!response.ok) {
     throw new Error(`获取台本列表失败: ${response.statusText}`);
@@ -270,7 +272,8 @@ export async function getBookSegments(
     segmentType?: string;
     search?: string;
     hasAudio?: boolean;
-  }
+  },
+  request?: { signal?: AbortSignal }
 ): Promise<{ success: boolean; data: PaginationResult<TextSegment> }> {
   const searchParams = new URLSearchParams();
 
@@ -284,7 +287,8 @@ export async function getBookSegments(
     searchParams.set("hasAudio", params.hasAudio.toString());
 
   const response = await fetch(
-    `/api/books/${bookId}/segments?${searchParams.toString()}`
+    `/api/books/${bookId}/segments?${searchParams.toString()}`,
+    { signal: request?.signal }
   );
   if (!response.ok) {
     throw new Error(`获取分段列表失败: ${response.statusText}`);

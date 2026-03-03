@@ -2,318 +2,313 @@
 // input: 路由参数/客户端数据
 // output: 页面 UI
 // pos: 路由页面入口
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { booksApi } from '@/lib/api'
-import { getBookStatusMeta } from '@/lib/status'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { booksApi } from "@/lib/api";
+import { getBookStatusMeta } from "@/lib/status";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import {
-  BookOpen,
+  ArrowLeft,
   FileText,
-  Users,
-  Play,
-  Settings,
+  Loader2,
   AlertCircle,
-  Loader2
-} from 'lucide-react'
+  Sparkles,
+  UserCircle,
+  Music,
+  BookOpen,
+  ChevronRight,
+} from "lucide-react";
+
+type ChapterSummary = {
+  id: string;
+  chapterIndex: number;
+  title: string;
+  status: string;
+  totalSegments: number;
+  wordCount?: number | null;
+  characterCount?: number | null;
+  counts: {
+    segments: number;
+    scripts: number;
+    audioFiles: number;
+  };
+  preview?: string;
+};
 
 export default function BookDetailPage() {
-  const params = useParams()
-  const router = useRouter()
-  const bookId = params.id as string
+  const params = useParams();
+  const router = useRouter();
+  const bookId = params.id as string;
 
-  const [book, setBook] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [book, setBook] = useState<any>(null);
+  const [chapters, setChapters] = useState<ChapterSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [generatingScript, setGeneratingScript] = useState(false);
+
+  const loadBookData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const [bookResponse, chaptersResponse] = await Promise.all([
+        booksApi.getBook(bookId),
+        fetch(`/api/books/${bookId}/chapters`),
+      ]);
+
+      if (!chaptersResponse.ok) {
+        throw new Error("加载章节失败");
+      }
+
+      const chaptersResult = await chaptersResponse.json();
+      setBook(bookResponse.data);
+      setChapters(chaptersResult.data || []);
+    } catch (err) {
+      console.error("Failed to load book detail:", err);
+      setError(err instanceof Error ? err.message : "加载书籍详情失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [bookId]);
 
   useEffect(() => {
-    loadBook()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId])
+    loadBookData();
+  }, [loadBookData]);
 
-  const loadBook = async () => {
+  const handleGenerateScript = async () => {
     try {
-      setLoading(true)
-      const response = await booksApi.getBook(bookId)
-      setBook(response.data)
+      setGeneratingScript(true);
+      const response = await fetch(`/api/books/${bookId}/script/generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          options: {
+            includeNarration: true,
+            emotionDetection: true,
+          },
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(result.error?.message || "启动台本生成失败");
+      }
+
+      toast.success("台本生成任务已启动，请在任务中心查看进度");
+      await loadBookData();
     } catch (err) {
-      console.error('Failed to load book:', err)
-      setError('加载书籍详情失败')
+      console.error("Failed to generate scripts:", err);
+      toast.error(err instanceof Error ? err.message : "启动台本生成失败");
     } finally {
-      setLoading(false)
+      setGeneratingScript(false);
     }
-  }
+  };
+
+  const counts = {
+    segments: book?.counts?.segments ?? 0,
+    chapters: book?.counts?.chapters ?? 0,
+    scripts: book?.counts?.scripts ?? 0,
+    characters: book?.counts?.characters ?? 0,
+    audioFiles: book?.counts?.audioFiles ?? 0,
+  };
+
+  const statusMeta = useMemo(
+    () => (book ? getBookStatusMeta(book.status) : null),
+    [book]
+  );
+
+  const chapterCompletion =
+    counts.chapters > 0
+      ? Math.round((chapters.filter((chapter) => chapter.counts.scripts > 0).length / counts.chapters) * 100)
+      : 0;
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-full bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">加载中...</p>
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
+          <p className="text-slate-600">加载中...</p>
         </div>
       </div>
-    )
+    );
   }
 
-  if (error || !book) {
+  if (error || !book || !statusMeta) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-full bg-slate-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">{error || '书籍不存在'}</p>
-          <Button onClick={() => router.back()}>返回</Button>
+          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
+          <p className="text-red-600 mb-4">{error || "书籍不存在"}</p>
+          <Button onClick={() => router.push("/")}>返回书籍管理</Button>
         </div>
       </div>
-    )
+    );
   }
-
-  const statusMeta = getBookStatusMeta(book.status)
-  const statusIconClass = statusMeta.animated ? 'w-4 h-4 animate-spin' : 'w-4 h-4'
-  const counts = {
-    segments: book?.counts?.segments ?? book?.totalSegments ?? 0,
-    characters: book?.counts?.characters ?? 0,
-    scripts: book?.counts?.scripts ?? 0,
-    audioFiles: book?.counts?.audioFiles ?? 0
-  }
-  const latestTask = book.latestTask || book.processingTasks?.[0]
-  const canGoScript = book.status === 'processed' || counts.scripts > 0
-  const canGoAudio = counts.scripts > 0
-  const canGoPlay = counts.audioFiles > 0
 
   return (
-    <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Book Info */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BookOpen className="w-5 h-5 mr-2" />
-                  书籍信息
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-semibold text-lg mb-2">{book.title}</h3>
-                  <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium mb-2 ${statusMeta.className}`}>
-                    <statusMeta.icon className={`${statusIconClass} mr-1`} />
-                    <span>{statusMeta.label}</span>
-                  </div>
-                  {book.author && (
-                    <p className="text-sm text-gray-600 mb-1">作者：{book.author}</p>
-                  )}
-                  {book.originalFilename && (
-                    <p className="text-xs text-gray-500 mb-1">文件：{book.originalFilename}</p>
-                  )}
-                  <p className="text-xs text-gray-500">
-                    创建时间：{new Date(book.createdAt).toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="flex items-center text-gray-600">
-                    <FileText className="w-4 h-4 mr-2" />
-                    <span>段落：{counts.segments}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Users className="w-4 h-4 mr-2" />
-                    <span>角色：{counts.characters}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <Play className="w-4 h-4 mr-2" />
-                    <span>音频：{counts.audioFiles}</span>
-                  </div>
-                  <div className="flex items-center text-gray-600">
-                    <span className="w-4 h-4 mr-2 text-center">字</span>
-                    <span>字符：{book.totalCharacters?.toLocaleString() || 0}</span>
-                  </div>
-                </div>
-
-                {/* Progress */}
-                {book.status !== 'uploaded' && latestTask && (
-                  <div className="mt-4">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>处理进度</span>
-                      <span>
-                        {latestTask.progress || 0}%
-                      </span>
-                    </div>
-                    <Progress value={latestTask.progress || 0} />
-                    {latestTask.message && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        {latestTask.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="space-y-2">
-                  {canGoScript && (
-                    <Button
-                      variant="default"
-                      className="w-full"
-                      onClick={() => router.push(`/books/${bookId}/script`)}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      台本与角色
-                    </Button>
-                  )}
-                  {canGoPlay && (
-                    <Button
-                      variant="default"
-                      className="w-full"
-                      onClick={() => router.push(`/books/${bookId}/play`)}
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      播放音频
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+    <div className="min-h-full bg-slate-50">
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              onClick={() => router.push("/")}
+              className="min-h-11 min-w-11 px-2 text-slate-600"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              返回书籍管理
+            </Button>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+                {book.title}
+              </h1>
+              <p className="text-slate-600 leading-7">
+                {book.author ? `作者：${book.author}` : "未填写作者信息"}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
+              <Badge variant="outline">{counts.chapters} 章节</Badge>
+              <Badge variant="outline">{counts.segments} 段落</Badge>
+              <Badge variant="outline">{counts.audioFiles} 音频</Badge>
+            </div>
           </div>
-
-          {/* Main Content Area */}
-          <div className="lg:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>任务管理</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <div className="mb-4">
-                    <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Settings className="w-8 h-8 text-blue-600" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    流程总览
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    上传文本后，依次完成台本生成、角色配音与音频合成。
-                  </p>
-
-                  {/* Task Status Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-                    <div className={`p-4 rounded-lg border ${
-                      counts.segments > 0
-                        ? 'bg-green-50 border-green-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}>
-                      <FileText className="w-6 h-6 mx-auto mb-2 text-green-600" />
-                      <h4 className="font-medium mb-1">文本处理</h4>
-                      <p className="text-sm text-gray-600">
-                        {counts.segments} 个段落
-                      </p>
-                    </div>
-
-                    <div className={`p-4 rounded-lg border ${
-                      counts.characters > 0
-                        ? 'bg-blue-50 border-blue-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}>
-                      <Users className="w-6 h-6 mx-auto mb-2 text-indigo-600" />
-                      <h4 className="font-medium mb-1">角色识别</h4>
-                      <p className="text-sm text-gray-600">
-                        {counts.characters > 0 ? `${counts.characters} 个角色` : '随台本生成'}
-                      </p>
-                    </div>
-
-                    <div className={`p-4 rounded-lg border ${
-                      counts.scripts > 0
-                        ? 'bg-orange-50 border-orange-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}>
-                      <FileText className="w-6 h-6 mx-auto mb-2 text-orange-600" />
-                      <h4 className="font-medium mb-1">台本生成</h4>
-                      <p className="text-sm text-gray-600">
-                        {counts.scripts} 句台词
-                      </p>
-                    </div>
-
-                    <div className={`p-4 rounded-lg border ${
-                      counts.characters > 0
-                        ? 'bg-blue-50 border-blue-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}>
-                      <Settings className="w-6 h-6 mx-auto mb-2 text-blue-600" />
-                      <h4 className="font-medium mb-1">角色管理</h4>
-                      <p className="text-sm text-gray-600">
-                        {counts.characters} 个角色
-                      </p>
-                    </div>
-
-                    <div className={`p-4 rounded-lg border ${
-                      counts.audioFiles > 0
-                        ? 'bg-purple-50 border-purple-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}>
-                      <Play className="w-6 h-6 mx-auto mb-2 text-purple-600" />
-                      <h4 className="font-medium mb-1">音频生成</h4>
-                      <p className="text-sm text-gray-600">
-                        {counts.audioFiles} 个音频
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Navigation Buttons */}
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {counts.segments > 0 && (
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/books/${bookId}/script`)}
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        查看章节结构
-                      </Button>
-                    )}
-                    {canGoScript && (
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/books/${bookId}/script`)}
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        生成台本
-                      </Button>
-                    )}
-                    {counts.characters > 0 && (
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/books/${bookId}/characters`)}
-                      >
-                        <Users className="w-4 h-4 mr-2" />
-                        管理角色配置
-                      </Button>
-                    )}
-                    {canGoAudio && (
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/books/${bookId}/audio`)}
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        生成音频
-                      </Button>
-                    )}
-                    {canGoPlay && (
-                      <Button
-                        variant="outline"
-                        onClick={() => router.push(`/books/${bookId}/play`)}
-                      >
-                        <Play className="w-4 h-4 mr-2" />
-                        播放音频
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="min-h-11"
+              onClick={() => router.push(`/books/${bookId}/characters`)}
+            >
+              <UserCircle className="w-4 h-4 mr-2" />
+              角色配置
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-11"
+              onClick={() => router.push(`/books/${bookId}/studio/script`)}
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              高级台本
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-11"
+              onClick={() => router.push(`/books/${bookId}/studio/audio`)}
+            >
+              <Music className="w-4 h-4 mr-2" />
+              高级音频
+            </Button>
+            <Button className="min-h-11" onClick={handleGenerateScript} disabled={generatingScript || counts.segments === 0}>
+              {generatingScript ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  启动中...
+                </>
+              ) : (
+                <>
+                  <FileText className="w-4 h-4 mr-2" />
+                  全书生成台本
+                </>
+              )}
+            </Button>
           </div>
         </div>
-      </div>
-  )
+
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">流程进度</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between text-sm text-slate-600">
+              <span>章节台本覆盖率</span>
+              <span className="font-medium text-slate-900">{chapterCompletion}%</span>
+            </div>
+            <Progress value={chapterCompletion} />
+            <p className="text-sm text-slate-600 leading-6">
+              建议先在章节详情中检查台本，再按章节批量生成音频。
+            </p>
+          </CardContent>
+        </Card>
+
+        <Tabs defaultValue="chapters" className="w-full">
+          <TabsList className="w-full sm:w-auto">
+            <TabsTrigger value="chapters" className="min-h-11">章节列表</TabsTrigger>
+            <TabsTrigger value="info" className="min-h-11">基本信息</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="chapters" className="mt-4">
+            {chapters.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-12 !pt-12 text-center text-slate-600">
+                  <BookOpen className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+                  当前还没有章节，请先完成文本处理。
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {chapters.map((chapter) => (
+                  <button
+                    key={chapter.id}
+                    type="button"
+                    onClick={() => router.push(`/books/${bookId}/chapters/${chapter.id}`)}
+                    className="cursor-pointer text-left bg-white border border-slate-200 rounded-lg p-4 hover:border-indigo-300 hover:shadow-sm transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm text-slate-500">第 {chapter.chapterIndex + 1} 章</p>
+                        <h3 className="text-base font-medium text-slate-900 mt-1 line-clamp-1">{chapter.title}</h3>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-slate-400 mt-1" />
+                    </div>
+                    <p className="text-sm text-slate-600 mt-2 line-clamp-2 leading-6">{chapter.preview || "暂无预览"}</p>
+                    <div className="mt-3 flex items-center gap-2 flex-wrap text-xs text-slate-600">
+                      <Badge variant="outline">段落 {chapter.counts.segments}</Badge>
+                      <Badge variant="outline">台本 {chapter.counts.scripts}</Badge>
+                      <Badge variant="outline">音频 {chapter.counts.audioFiles}</Badge>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="info" className="mt-4">
+            <Card className="border-slate-200 shadow-sm">
+              <CardContent className="p-6 !pt-6 space-y-4 text-sm">
+                <div>
+                  <p className="text-slate-500">书名</p>
+                  <p className="text-slate-900 mt-1">{book.title}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">作者</p>
+                  <p className="text-slate-900 mt-1">{book.author || "未填写"}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">源文件</p>
+                  <p className="text-slate-900 mt-1">{book.originalFilename || "尚未上传"}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">创建时间</p>
+                  <p className="text-slate-900 mt-1">{new Date(book.createdAt).toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">更新时间</p>
+                  <p className="text-slate-900 mt-1">{new Date(book.updatedAt).toLocaleString()}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </section>
+    </div>
+  );
 }

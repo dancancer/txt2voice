@@ -5,6 +5,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { toast } from 'sonner'
 import { booksApi } from '@/lib/api'
+import {
+  isFetchInterruptedError,
+  isRequestCanceled,
+} from '@/lib/request-guards'
 import type { Book, CharacterProfileSummary } from '@/types/book'
 
 export type VoiceProfile = {
@@ -80,14 +84,20 @@ export function useAudioGeneration(bookId: string) {
     }
   }, [])
 
-  const loadBook = useCallback(async () => {
-    const response = await booksApi.getBook(bookId)
+  const loadBook = useCallback(async (signal?: AbortSignal) => {
+    const response = await booksApi.getBook(bookId, undefined, { signal })
+    if (signal?.aborted) {
+      return
+    }
     setBook(response.data)
   }, [bookId])
 
   const loadGenerationStatus = useCallback(
-    async (shouldPoll = false) => {
-      const statusResponse = await booksApi.getAudioGenerationStatus(bookId)
+    async (shouldPoll = false, signal?: AbortSignal) => {
+      const statusResponse = await booksApi.getAudioGenerationStatus(bookId, { signal })
+      if (signal?.aborted) {
+        return
+      }
       const payload = statusResponse.data
       const nextState: GenerationState = {
         status: payload.generationStatus || 'not_started',
@@ -112,12 +122,15 @@ export function useAudioGeneration(bookId: string) {
     [bookId]
   )
 
-  const loadProviders = useCallback(async () => {
-    const response = await fetch('/api/tts/providers')
+  const loadProviders = useCallback(async (signal?: AbortSignal) => {
+    const response = await fetch('/api/tts/providers', { signal })
     if (!response.ok) {
       throw new Error('获取 TTS 提供商失败')
     }
     const data = await response.json()
+    if (signal?.aborted) {
+      return
+    }
     const providerList: ProviderInfo[] = data.data?.providers || []
     setProviders(providerList)
     if (!selectedProvider && providerList.length > 0) {
@@ -126,21 +139,27 @@ export function useAudioGeneration(bookId: string) {
     }
   }, [selectedProvider])
 
-  const loadVoices = useCallback(async () => {
-    const response = await fetch('/api/tts/voices?includeCustom=true')
+  const loadVoices = useCallback(async (signal?: AbortSignal) => {
+    const response = await fetch('/api/tts/voices?includeCustom=true', { signal })
     if (!response.ok) {
       throw new Error('获取语音列表失败')
     }
     const data = await response.json()
+    if (signal?.aborted) {
+      return
+    }
     setAvailableVoices(data.data?.voices || [])
   }, [])
 
-  const loadCharacters = useCallback(async () => {
-    const response = await fetch(`/api/books/${bookId}/characters?limit=200`)
+  const loadCharacters = useCallback(async (signal?: AbortSignal) => {
+    const response = await fetch(`/api/books/${bookId}/characters?limit=200`, { signal })
     if (!response.ok) {
       throw new Error('加载角色失败')
     }
     const data = await response.json()
+    if (signal?.aborted) {
+      return
+    }
     const items: CharacterProfileSummary[] = data.data?.data || []
     setCharacters(items)
 
@@ -151,28 +170,44 @@ export function useAudioGeneration(bookId: string) {
     setCharacterVoices(initialVoices)
   }, [bookId])
 
-  const initialize = useCallback(async () => {
+  const initialize = useCallback(async (signal?: AbortSignal) => {
     try {
+      if (signal?.aborted) {
+        return
+      }
       setLoading(true)
       setError(null)
       await Promise.all([
-        loadBook(),
-        loadCharacters(),
-        loadVoices(),
-        loadProviders(),
-        loadGenerationStatus(false)
+        loadBook(signal),
+        loadCharacters(signal),
+        loadVoices(signal),
+        loadProviders(signal),
+        loadGenerationStatus(false, signal)
       ])
     } catch (err) {
+      if (isRequestCanceled(err, signal)) {
+        return
+      }
+      if (isFetchInterruptedError(err)) {
+        setError('加载音频配置失败')
+        return
+      }
       console.error('Failed to load audio page data:', err)
       setError(err instanceof Error ? err.message : '加载音频配置失败')
     } finally {
-      setLoading(false)
+      if (!signal?.aborted) {
+        setLoading(false)
+      }
     }
   }, [loadBook, loadCharacters, loadVoices, loadProviders, loadGenerationStatus])
 
   useEffect(() => {
-    initialize()
-    return () => clearTimer()
+    const controller = new AbortController()
+    void initialize(controller.signal)
+    return () => {
+      controller.abort()
+      clearTimer()
+    }
   }, [initialize, clearTimer])
 
   const missingVoiceCharacters = useMemo(
@@ -216,6 +251,7 @@ export function useAudioGeneration(bookId: string) {
             throw new Error(result?.error?.message || '设置默认声音失败')
           }
         } else {
+          const selectedVoice = availableVoices.find(v => v.id === selectedVoiceId)
           const response = await fetch(
             `/api/books/${bookId}/characters/${character.id}/voices`,
             {
@@ -223,6 +259,9 @@ export function useAudioGeneration(bookId: string) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 voiceProfileId: selectedVoiceId,
+                provider: selectedVoice?.provider,
+                voiceId: selectedVoice?.isCustom ? undefined : selectedVoiceId,
+                voiceName: selectedVoice?.displayName || selectedVoice?.name,
                 isPreferred: true
               })
             }
@@ -243,7 +282,7 @@ export function useAudioGeneration(bookId: string) {
     } finally {
       setIsSavingVoices(false)
     }
-  }, [bookId, characters, characterVoices, loadCharacters])
+  }, [availableVoices, bookId, characters, characterVoices, loadCharacters])
 
   const startGeneration = useCallback(async () => {
     try {

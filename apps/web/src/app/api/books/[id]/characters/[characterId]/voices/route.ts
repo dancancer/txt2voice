@@ -11,6 +11,9 @@ import { z } from 'zod'
 // 声音绑定验证Schema
 const voiceBindingSchema = z.object({
   voiceProfileId: z.string().min(1, '声音配置ID不能为空'),
+  provider: z.string().min(1).optional(),
+  voiceId: z.string().min(1).optional(),
+  voiceName: z.string().min(1).optional(),
   isPreferred: z.boolean().default(false),
   emotionOverrides: z.record(z.string(), z.string()).optional(),
   settings: z.object({
@@ -22,6 +25,69 @@ const voiceBindingSchema = z.object({
 
 const toJsonValue = (value?: Record<string, unknown>): Prisma.InputJsonValue =>
   (value ?? {}) as Prisma.InputJsonValue
+
+type ResolvedVoiceBinding = z.infer<typeof voiceBindingSchema>
+
+const resolveVoiceProfile = async (bindingData: ResolvedVoiceBinding) => {
+  const directProfile = await prisma.tTSVoiceProfile.findUnique({
+    where: { id: bindingData.voiceProfileId }
+  })
+  if (directProfile) {
+    return directProfile
+  }
+
+  const provider = bindingData.provider?.trim()
+  const voiceId = (bindingData.voiceId || bindingData.voiceProfileId).trim()
+  if (!provider || !voiceId) {
+    return null
+  }
+
+  await ttsServiceManager.ready()
+  const ttsProvider = ttsServiceManager.getProvider(provider)
+  if (!ttsProvider) {
+    throw new ValidationError('不支持的TTS提供商')
+  }
+
+  const voice = await ttsServiceManager.getVoice(provider, voiceId)
+  if (!voice) {
+    throw new ValidationError('提供商不支持该声音')
+  }
+
+  const existingProfile = await prisma.tTSVoiceProfile.findFirst({
+    where: {
+      provider,
+      voiceId,
+      isAvailable: true
+    },
+    orderBy: { createdAt: 'asc' }
+  })
+  if (existingProfile) {
+    return existingProfile
+  }
+
+  const preferredName = bindingData.voiceName?.trim()
+  return prisma.tTSVoiceProfile.create({
+    data: {
+      provider,
+      voiceId,
+      voiceName: preferredName || voice.name || voice.displayName || voiceId,
+      displayName: preferredName || voice.displayName || voice.name || voiceId,
+      description: voice.description || null,
+      characteristics: {
+        language: voice.language || 'zh-CN',
+        gender: voice.gender || 'neutral',
+        ageRange: voice.age || 'adult',
+        style: Array.isArray(voice.style) ? voice.style : []
+      },
+      defaultParameters: {
+        rate: 1.0,
+        pitch: 1.0,
+        volume: 1.0
+      },
+      isAvailable: true
+    }
+  })
+}
 
 // GET /api/books/[id]/characters/[characterId]/voices - 获取角色的声音绑定
 export const GET = withErrorHandler(async (
@@ -133,9 +199,7 @@ export const POST = withErrorHandler(async (
   }
 
   // 验证声音配置是否存在
-  const voiceProfile = await prisma.tTSVoiceProfile.findUnique({
-    where: { id: validatedData.voiceProfileId }
-  })
+  const voiceProfile = await resolveVoiceProfile(validatedData)
 
   if (!voiceProfile) {
     throw new ValidationError('声音配置不存在')
@@ -145,7 +209,7 @@ export const POST = withErrorHandler(async (
   const existingBinding = await prisma.characterVoiceBinding.findFirst({
     where: {
       characterId: characterId,
-      voiceProfileId: validatedData.voiceProfileId
+      voiceProfileId: voiceProfile.id
     }
   })
 
@@ -170,7 +234,7 @@ export const POST = withErrorHandler(async (
   const binding = await prisma.characterVoiceBinding.create({
     data: {
       characterId: characterId,
-      voiceProfileId: validatedData.voiceProfileId,
+      voiceProfileId: voiceProfile.id,
       isDefault: validatedData.isPreferred,
       emotionMappings: toJsonValue({ emotionOverrides: validatedData.emotionOverrides }),
       customParameters: toJsonValue({ settings: validatedData.settings })
@@ -270,8 +334,19 @@ export const PUT = withErrorHandler(async (
   }
 
   if (validatedUpdates.voiceProfileId) {
+    const nextVoiceProfile = await resolveVoiceProfile({
+      voiceProfileId: validatedUpdates.voiceProfileId,
+      provider: validatedUpdates.provider,
+      voiceId: validatedUpdates.voiceId,
+      voiceName: validatedUpdates.voiceName,
+      isPreferred: false
+    })
+    if (!nextVoiceProfile) {
+      throw new ValidationError('声音配置不存在')
+    }
+
     updateData.voiceProfile = {
-      connect: { id: validatedUpdates.voiceProfileId }
+      connect: { id: nextVoiceProfile.id }
     }
   }
 
@@ -322,13 +397,29 @@ export const DELETE = withErrorHandler(async (
     throw new ValidationError('角色不存在')
   }
 
+  // 先解析绑定，避免把绑定ID误当成声音配置ID
+  const existingBinding = await prisma.characterVoiceBinding.findFirst({
+    where: {
+      id: bindingId,
+      characterId: characterId
+    },
+    select: {
+      id: true,
+      voiceProfileId: true
+    }
+  })
+
+  if (!existingBinding) {
+    throw new ValidationError('声音绑定不存在')
+  }
+
   // 检查是否有关联的音频文件
   const audioFiles = await prisma.audioFile.findMany({
     where: {
       scriptSentence: {
         characterId: characterId
       },
-      voiceProfileId: bindingId
+      voiceProfileId: existingBinding.voiceProfileId
     }
   })
 
@@ -337,16 +428,11 @@ export const DELETE = withErrorHandler(async (
   }
 
   // 删除绑定
-  const result = await prisma.characterVoiceBinding.deleteMany({
+  await prisma.characterVoiceBinding.delete({
     where: {
-      id: bindingId,
-      characterId: characterId
+      id: existingBinding.id
     }
   })
-
-  if (result.count === 0) {
-    throw new ValidationError('声音绑定不存在')
-  }
 
   return NextResponse.json({
     success: true,

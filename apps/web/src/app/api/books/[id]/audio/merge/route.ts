@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, ValidationError } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
 import { getAudioMerger, AudioMergeOptions } from '@/lib/audio-merger'
+import { resolveExistingAudioFilePath } from '@/lib/storage-path'
 
 // POST /api/books/[id]/audio/merge - 合并音频
 export const POST = withErrorHandler(async (
@@ -193,8 +194,15 @@ export const DELETE = withErrorHandler(async (
       // 删除物理文件
       try {
         const fs = await import('fs')
-        if (fs.existsSync(audioFile.filePath)) {
-          await import('fs/promises').then(fsp => fsp.unlink(audioFile.filePath))
+        const resolvedPath = resolveExistingAudioFilePath({
+          filePath: audioFile.filePath,
+          fileName: audioFile.fileName,
+          bookId: audioFile.bookId,
+          provider: audioFile.provider
+        })
+
+        if (resolvedPath && fs.existsSync(resolvedPath)) {
+          await import('fs/promises').then(fsp => fsp.unlink(resolvedPath))
         }
       } catch (error) {
         console.warn('删除物理文件失败:', error)
@@ -231,8 +239,15 @@ export const DELETE = withErrorHandler(async (
       for (const af of audioFiles) {
         try {
           const fs = await import('fs')
-          if (fs.existsSync(af.filePath)) {
-            await import('fs/promises').then(fsp => fsp.unlink(af.filePath))
+          const resolvedPath = resolveExistingAudioFilePath({
+            filePath: af.filePath,
+            fileName: af.fileName,
+            bookId: af.bookId,
+            provider: af.provider
+          })
+
+          if (resolvedPath && fs.existsSync(resolvedPath)) {
+            await import('fs/promises').then(fsp => fsp.unlink(resolvedPath))
           }
         } catch (error) {
           console.warn(`删除物理文件失败 ${af.filePath}:`, error)

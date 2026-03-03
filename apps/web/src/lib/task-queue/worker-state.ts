@@ -1,0 +1,210 @@
+import type Bull from "bull";
+import prisma from "@/lib/prisma";
+import { mergeTaskData } from "@/lib/processing-task-utils";
+import type { QueueTaskType } from "./replay-payload";
+
+export type BookFallbackStatus = "processed" | "script_generated";
+
+export interface DeadLetterInput {
+  taskId: string;
+  taskType: QueueTaskType;
+  bookId: string;
+  queueJobId: string;
+  errorMessage: string;
+  attempt: number;
+  maxAttempts: number;
+  payload: Record<string, unknown>;
+}
+
+const extractBackoffDelay = (job: Bull.Job<unknown>): number | null => {
+  if (typeof job.opts.backoff === "number") {
+    return job.opts.backoff;
+  }
+
+  if (
+    job.opts.backoff &&
+    typeof job.opts.backoff === "object" &&
+    "delay" in job.opts.backoff &&
+    typeof job.opts.backoff.delay === "number"
+  ) {
+    return job.opts.backoff.delay;
+  }
+
+  return null;
+};
+
+export async function markTaskAttemptStart(
+  taskId: string,
+  job: Bull.Job<unknown>
+): Promise<void> {
+  const taskData = await mergeTaskData(taskId, {
+    message: "任务已进入执行队列",
+    metadata: {
+      queueJobId: String(job.id || taskId),
+      queueAttempt: job.attemptsMade + 1,
+      heartbeatAt: new Date().toISOString(),
+    },
+  });
+
+  await prisma.processingTask.update({
+    where: { id: taskId },
+    data: {
+      status: "processing",
+      startedAt: new Date(),
+      completedAt: null,
+      errorMessage: null,
+      taskData,
+    },
+  });
+}
+
+async function touchTaskHeartbeat(
+  taskId: string,
+  job: Bull.Job<unknown>
+): Promise<void> {
+  const taskData = await mergeTaskData(taskId, {
+    metadata: {
+      queueJobId: String(job.id || taskId),
+      queueAttempt: job.attemptsMade + 1,
+      heartbeatAt: new Date().toISOString(),
+      workerPid: process.pid,
+    },
+  });
+
+  await prisma.processingTask.update({
+    where: { id: taskId },
+    data: {
+      taskData,
+    },
+  });
+}
+
+export async function withTaskHeartbeat<T>(
+  taskId: string,
+  job: Bull.Job<unknown>,
+  heartbeatIntervalMs: number,
+  run: () => Promise<T>
+): Promise<T> {
+  await touchTaskHeartbeat(taskId, job);
+
+  const timer = setInterval(() => {
+    void touchTaskHeartbeat(taskId, job).catch((error) => {
+      console.error("[task-queue] heartbeat update failed", {
+        taskId,
+        jobId: job.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  }, heartbeatIntervalMs);
+
+  if (typeof (timer as { unref?: () => void }).unref === "function") {
+    (timer as { unref: () => void }).unref();
+  }
+
+  try {
+    return await run();
+  } finally {
+    clearInterval(timer);
+  }
+}
+
+export async function markTaskFailed(
+  taskId: string,
+  bookId: string,
+  fallbackStatus: BookFallbackStatus,
+  message: string,
+  metadata: Record<string, unknown>
+): Promise<void> {
+  const taskData = await mergeTaskData(taskId, {
+    message: "任务执行失败",
+    metadata,
+  });
+
+  await prisma.processingTask.update({
+    where: { id: taskId },
+    data: {
+      status: "failed",
+      completedAt: new Date(),
+      errorMessage: message,
+      taskData,
+    },
+  });
+
+  await prisma.book.update({
+    where: { id: bookId },
+    data: { status: fallbackStatus },
+  });
+}
+
+async function handleRetryState(
+  job: Bull.Job<unknown>,
+  taskId: string,
+  errorMessage: string
+): Promise<void> {
+  const maxAttempts = job.opts.attempts ?? 1;
+  const currentAttempt = job.attemptsMade + 1;
+  const remaining = Math.max(maxAttempts - currentAttempt, 0);
+  const retryDelayMs = extractBackoffDelay(job);
+
+  const taskData = await mergeTaskData(taskId, {
+    message: `任务执行失败，准备重试（剩余 ${remaining} 次）`,
+    metadata: {
+      retryAttempt: currentAttempt,
+      retryRemaining: remaining,
+      retryDelayMs,
+      lastError: errorMessage,
+      queueJobId: String(job.id),
+      heartbeatAt: new Date().toISOString(),
+    },
+  });
+
+  await prisma.processingTask.update({
+    where: { id: taskId },
+    data: {
+      status: "processing",
+      errorMessage: null,
+      taskData,
+    },
+  });
+}
+
+export async function handleWorkerFailure(params: {
+  taskType: QueueTaskType;
+  job: Bull.Job<unknown>;
+  taskId: string;
+  bookId: string;
+  fallbackStatus: BookFallbackStatus;
+  error: unknown;
+  payload: Record<string, unknown>;
+  addDeadLetter: (params: DeadLetterInput) => Promise<void>;
+}): Promise<void> {
+  const { taskType, job, taskId, bookId, fallbackStatus, error, payload, addDeadLetter } = params;
+  const errorMessage = error instanceof Error ? error.message : "Unknown error";
+  const maxAttempts = job.opts.attempts ?? 1;
+  const currentAttempt = job.attemptsMade + 1;
+  const isLastAttempt = currentAttempt >= maxAttempts;
+
+  if (!isLastAttempt) {
+    await handleRetryState(job, taskId, errorMessage);
+    return;
+  }
+
+  await addDeadLetter({
+    taskId,
+    taskType,
+    bookId,
+    queueJobId: String(job.id),
+    errorMessage,
+    attempt: currentAttempt,
+    maxAttempts,
+    payload,
+  });
+
+  await markTaskFailed(taskId, bookId, fallbackStatus, errorMessage, {
+    retryAttempt: currentAttempt,
+    retryMaxAttempts: maxAttempts,
+    queueJobId: String(job.id),
+    lastError: errorMessage,
+    pushedToDeadLetter: true,
+  });
+}

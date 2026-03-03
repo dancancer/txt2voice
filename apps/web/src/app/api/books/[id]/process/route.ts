@@ -7,6 +7,7 @@ import { withErrorHandler, ValidationError } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
 import { processFileContent, createChapterSegmentRecords, TextProcessingOptions } from '@/lib/text-processor'
 import { readFile } from 'fs/promises'
+import { mergeTaskData } from '@/lib/processing-task-utils'
 
 // POST /api/books/[id]/process - 处理文件内容
 export const POST = withErrorHandler(async (
@@ -16,6 +17,7 @@ export const POST = withErrorHandler(async (
   const { id: bookId } = await params
   const body = await request.json()
   const { options = {} }: { options?: TextProcessingOptions } = body
+  let taskId: string | null = null
 
   // 验证书籍是否存在且已上传文件
   const book = await prisma.book.findUnique({
@@ -39,14 +41,51 @@ export const POST = withErrorHandler(async (
   }
 
   try {
+    const task = await prisma.processingTask.create({
+      data: {
+        bookId,
+        taskType: 'TEXT_PROCESSING',
+        status: 'processing',
+        progress: 5,
+        taskData: {
+          message: '开始文本处理',
+          metadata: {
+            stage: 'init'
+          }
+        }
+      }
+    })
+    taskId = task.id
+
+    const updateTaskProgress = async (
+      progress: number,
+      message: string,
+      metadata?: Record<string, unknown>
+    ) => {
+      if (!taskId) return
+      const taskData = await mergeTaskData(taskId, {
+        message,
+        metadata
+      })
+      await prisma.processingTask.update({
+        where: { id: taskId },
+        data: {
+          progress,
+          taskData
+        }
+      })
+    }
+
     // 更新状态为处理中
     await prisma.book.update({
       where: { id: bookId },
       data: { status: 'processing' }
     })
+    await updateTaskProgress(10, '读取原始文件', { stage: 'read_file' })
 
     // 读取文件内容
     const fileBuffer = await readFile(book.uploadedFilePath!)
+    await updateTaskProgress(30, '文本清洗与编码识别', { stage: 'text_cleaning' })
 
     // 处理文件内容
     const processedText = processFileContent(
@@ -64,6 +103,11 @@ export const POST = withErrorHandler(async (
       segmentRecords,
       statistics: segmentationStats
     } = createChapterSegmentRecords(bookId, processedText.content, options)
+    await updateTaskProgress(60, '写入章节与段落', {
+      stage: 'persist_records',
+      totalChapters: chapterRecords.length,
+      totalSegments: segmentRecords.length
+    })
 
     // 使用事务保存数据
     await prisma.$transaction(async (tx) => {
@@ -90,6 +134,7 @@ export const POST = withErrorHandler(async (
         }
       })
     })
+    await updateTaskProgress(90, '汇总处理结果', { stage: 'summary' })
 
     // 获取处理结果
     const processedBook = await prisma.book.findUnique({
@@ -128,9 +173,34 @@ export const POST = withErrorHandler(async (
       }
     })
 
+    if (taskId) {
+      const completedTaskData = await mergeTaskData(taskId, {
+        message: '文本处理完成',
+        metadata: {
+          stage: 'completed',
+          totalChapters: segmentationStats.totalChapters,
+          totalSegments: segmentationStats.totalSegments,
+          totalWords: processedText.wordCount,
+          totalCharacters: processedText.characterCount,
+          encoding: processedText.encoding,
+          fileFormat: processedText.detectedFormat
+        }
+      })
+      await prisma.processingTask.update({
+        where: { id: taskId },
+        data: {
+          status: 'completed',
+          progress: 100,
+          completedAt: new Date(),
+          taskData: completedTaskData
+        }
+      })
+    }
+
     return NextResponse.json({
       success: true,
       data: {
+        taskId,
         book: {
           id: processedBook!.id,
           title: processedBook!.title,
@@ -160,6 +230,25 @@ export const POST = withErrorHandler(async (
       where: { id: bookId },
       data: { status: 'uploaded' }
     })
+
+    if (taskId) {
+      const message = error instanceof Error ? error.message : '文本处理失败'
+      const failedTaskData = await mergeTaskData(taskId, {
+        message: '文本处理失败',
+        metadata: {
+          stage: 'failed'
+        }
+      })
+      await prisma.processingTask.update({
+        where: { id: taskId },
+        data: {
+          status: 'failed',
+          completedAt: new Date(),
+          errorMessage: message,
+          taskData: failedTaskData
+        }
+      })
+    }
     throw error
   }
 })

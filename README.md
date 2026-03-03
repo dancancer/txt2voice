@@ -51,6 +51,14 @@ pnpm docker:up
 
 - Web: [http://localhost:3001](http://localhost:3001)
 
+### 队列命名空间（重要）
+
+项目的脚本/音频任务通过 Redis 队列执行。  
+如果你会同时运行多个实例（例如：本地 `3000` + Docker `3001`），请确保每个实例的 `TASK_QUEUE_NAMESPACE` 不同，避免互相消费任务。
+
+- 本地开发建议：`TASK_QUEUE_NAMESPACE=txt2voice:3000`
+- Docker 开发建议：`TASK_QUEUE_NAMESPACE=txt2voice:3001`
+
 ## 常用命令
 
 ```bash

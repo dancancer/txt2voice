@@ -46,22 +46,27 @@ export function CharactersHeader({
   return (
     <div className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <Button variant="ghost" size="sm" onClick={onBack} className="mr-4">
+        <div className="flex flex-col gap-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="flex w-full min-w-0 items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onBack}
+              className="mr-3 min-h-11 min-w-11 sm:mr-4"
+            >
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回
             </Button>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">角色配置</h1>
-              <p className="text-sm text-gray-500">{title}</p>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">角色配置</h1>
+              <p className="text-sm text-gray-500 truncate">{title}</p>
             </div>
           </div>
-          <div className="flex items-center space-x-4">
-            <Badge variant="secondary">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
+            <Badge variant="secondary" className="whitespace-nowrap">
               {total} 个角色（共 {totalPages || 1} 页）
             </Badge>
-            <Button onClick={onAdd} disabled={disableAdd}>
+            <Button onClick={onAdd} disabled={disableAdd} className="min-h-11">
               <Plus className="w-4 h-4 mr-2" />
               添加角色
             </Button>
@@ -101,8 +106,8 @@ export function SearchInfoBar({
               />
             </div>
           </div>
-          <div className="flex items-center justify-between w-full sm:w-auto">
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
               <div className="flex items-center">
                 <Users className="w-4 h-4 mr-2" />
                 <span>
@@ -116,7 +121,7 @@ export function SearchInfoBar({
                 </div>
               )}
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-xs sm:text-sm text-gray-500">
               按提及次数、引用次数、对话次数降序排列
             </div>
           </div>
@@ -171,7 +176,12 @@ export function AcquisitionCards({
             <div className="flex-1 text-sm text-gray-500 mb-3">
               {hasTextSegments ? `已解析 ${segmentsCount} 个文本段落` : "请先完成文本处理"}
             </div>
-            <Button variant="outline" onClick={onAddCharacter} disabled={!hasTextSegments}>
+            <Button
+              variant="outline"
+              onClick={onAddCharacter}
+              disabled={!hasTextSegments}
+              className="min-h-11"
+            >
               <Plus className="w-4 h-4 mr-2" />
               新建角色
             </Button>
@@ -196,6 +206,7 @@ export function AcquisitionCards({
               variant="outline"
               onClick={onExtractFromScript}
               disabled={!hasScripts || actionLoading.scriptExtraction}
+              className="min-h-11"
             >
               {actionLoading.scriptExtraction ? (
                 <>
@@ -230,6 +241,7 @@ export function AcquisitionCards({
             <Button
               onClick={onOpenScript}
               disabled={!hasTextSegments}
+              className="min-h-11"
             >
               <Sparkles className="w-4 h-4 mr-2" />
               {hasScripts ? "查看台本" : "去生成台本"}
@@ -262,27 +274,28 @@ export function PaginationBar({
   return (
     <Card>
       <CardContent className="pt-4 p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-gray-600">
             显示第 {(page - 1) * limit + 1} - {Math.min(page * limit, total)} 个角色，共 {total} 个
           </div>
-          <div className="flex items-center space-x-2">
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onChange(page - 1)}
               disabled={!hasPrev}
+              className="min-h-11"
             >
               上一页
             </Button>
-            <div className="flex items-center space-x-1">
+            <div className="flex max-w-full items-center gap-1 overflow-x-auto py-1">
               {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
                 <Button
                   key={pageNum}
                   variant={pageNum === page ? "default" : "outline"}
                   size="sm"
                   onClick={() => onChange(pageNum)}
-                  className="min-w-[32px]"
+                  className="min-h-11 min-w-[44px]"
                 >
                   {pageNum}
                 </Button>
@@ -293,6 +306,7 @@ export function PaginationBar({
               size="sm"
               onClick={() => onChange(page + 1)}
               disabled={!hasNext}
+              className="min-h-11"
             >
               下一页
             </Button>

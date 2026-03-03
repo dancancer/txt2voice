@@ -7,6 +7,7 @@ import { ttsServiceManager, TTSRequest } from './tts-service'
 import prisma, { Prisma } from './prisma'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
+import { getBookAudioDir } from './storage-path'
 
 export interface AudioGenerationRequest {
   scriptSentenceId: string
@@ -585,7 +586,7 @@ export class AudioGenerator {
     request: AudioGenerationRequest
   ) {
     // 创建音频文件目录
-    const audioDir = join(process.cwd(), 'uploads', 'audio', scriptSentence.bookId)
+    const audioDir = getBookAudioDir(scriptSentence.bookId)
     try {
       await mkdir(audioDir, { recursive: true })
     } catch (error) {

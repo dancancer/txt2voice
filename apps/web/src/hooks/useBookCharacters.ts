@@ -5,6 +5,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { CharacterProfileSummary } from '@/types/book'
 import { toast } from 'sonner'
+import {
+  isFetchInterruptedError,
+  isRequestCanceled,
+} from '@/lib/request-guards'
 
 type Pagination = {
   page: number
@@ -31,8 +35,11 @@ export function useBookCharacters(bookId: string, initialLimit = 20) {
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(
-    async (page = 1, search = '') => {
+    async (page = 1, search = '', signal?: AbortSignal) => {
       try {
+        if (signal?.aborted) {
+          return
+        }
         setLoading(true)
         setError(null)
 
@@ -43,8 +50,8 @@ export function useBookCharacters(bookId: string, initialLimit = 20) {
         if (search) params.set('search', search)
 
         const [bookRes, charsRes] = await Promise.all([
-          fetch(`/api/books/${bookId}`),
-          fetch(`/api/books/${bookId}/characters?${params.toString()}`)
+          fetch(`/api/books/${bookId}`, { signal }),
+          fetch(`/api/books/${bookId}/characters?${params.toString()}`, { signal })
         ])
 
         if (!bookRes.ok) throw new Error('加载书籍失败')
@@ -52,6 +59,9 @@ export function useBookCharacters(bookId: string, initialLimit = 20) {
 
         const bookData = await bookRes.json()
         const charsData = await charsRes.json()
+        if (signal?.aborted) {
+          return
+        }
 
         setBook(bookData.data)
         setCharacters(charsData.data?.data || [])
@@ -59,18 +69,25 @@ export function useBookCharacters(bookId: string, initialLimit = 20) {
           setPagination(charsData.data.pagination)
         }
       } catch (err) {
+        if (isRequestCanceled(err, signal) || isFetchInterruptedError(err)) {
+          return
+        }
         console.error('Failed to load characters:', err)
         setError(err instanceof Error ? err.message : '加载角色配置失败')
         toast.error(err instanceof Error ? err.message : '加载角色配置失败')
       } finally {
-        setLoading(false)
+        if (!signal?.aborted) {
+          setLoading(false)
+        }
       }
     },
     [bookId, pagination.limit, initialLimit]
   )
 
   useEffect(() => {
-    load(1, '')
+    const controller = new AbortController()
+    void load(1, '', controller.signal)
+    return () => controller.abort()
   }, [load])
 
   return {

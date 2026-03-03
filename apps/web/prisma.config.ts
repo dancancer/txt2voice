@@ -1,8 +1,14 @@
 import { defineConfig } from "@prisma/config";
-import { config } from "dotenv";
 
-// 加载环境变量
-config({ path: "../../.env" });
+// 兼容未安装 dotenv 的环境，避免类型检查失败
+try {
+  const dotenv = require("dotenv") as {
+    config?: (options?: { path?: string }) => void;
+  };
+  dotenv.config?.({ path: "../../.env" });
+} catch {
+  // 忽略可选依赖缺失
+}
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

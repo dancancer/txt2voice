@@ -6,7 +6,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Mic, Users, Home, Sparkles } from "lucide-react";
+import { BookOpen, Mic, ListTodo, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NavigationProps {
@@ -15,26 +15,19 @@ interface NavigationProps {
 
 const navItems = [
   {
-    name: "首页",
-    href: "/",
-    icon: Home,
-  },
-  {
-    name: "我的书籍",
+    name: "书籍管理",
     href: "/",
     icon: BookOpen,
+  },
+  {
+    name: "任务中心",
+    href: "/tasks",
+    icon: ListTodo,
   },
   {
     name: "语音库",
     href: "/tts/speakers",
     icon: Mic,
-    disabled: false,
-  },
-  {
-    name: "角色管理",
-    href: "/characters",
-    icon: Users,
-    disabled: true,
   },
 ];
 
@@ -45,22 +38,18 @@ export function Navigation({ className }: NavigationProps) {
     <nav className={cn("flex items-center space-x-8", className)}>
       {navItems.map((item) => {
         const Icon = item.icon;
-        const isActive = pathname === item.href;
-        const isDisabled = item.disabled;
+        const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
         return (
           <Link
             key={item.name}
-            href={isDisabled ? "#" : item.href}
+            href={item.href}
             className={cn(
-              "flex items-center space-x-2 text-sm font-medium transition-colors",
+              "min-h-11 min-w-11 px-3 py-2 rounded-md inline-flex items-center gap-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
               isActive
-                ? "text-blue-600"
-                : isDisabled
-                ? "text-gray-400 cursor-not-allowed"
-                : "text-gray-600 hover:text-gray-900"
+                ? "bg-indigo-50 text-indigo-700"
+                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
             )}
-            onClick={(e) => isDisabled && e.preventDefault()}
           >
             <Icon className="w-4 h-4" />
             <span>{item.name}</span>

@@ -4,10 +4,15 @@
 // pos: 共享业务库
 import { exec } from 'child_process'
 import { promisify } from 'util'
-import { writeFile, unlink, readFile, mkdir } from 'fs/promises'
+import { writeFile, unlink, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import prisma from './prisma'
+import {
+  getBookMergedAudioDir,
+  getUploadTempDir,
+  resolveExistingAudioFilePath
+} from './storage-path'
 
 const execAsync = promisify(exec)
 
@@ -53,6 +58,25 @@ export class AudioMerger {
     bitrate: '128k',
     silenceDuration: 0.5,
     normalizeVolume: false
+  }
+
+  private resolveReadableAudioPath(audioFile: {
+    filePath: string
+    fileName?: string | null
+    bookId: string
+    provider?: string | null
+  }): string | null {
+    const directPath = audioFile.filePath
+    if (existsSync(directPath)) {
+      return directPath
+    }
+
+    return resolveExistingAudioFilePath({
+      filePath: audioFile.filePath,
+      fileName: audioFile.fileName,
+      bookId: audioFile.bookId,
+      provider: audioFile.provider
+    })
   }
 
   /**
@@ -135,13 +159,21 @@ export class AudioMerger {
         }
       }
 
+      const resolvedAudioFiles = audioFiles.map((audioFile) => ({
+        ...audioFile,
+        resolvedPath: this.resolveReadableAudioPath(audioFile)
+      }))
+
       // 验证所有音频文件是否存在
-      const missingFiles = audioFiles.filter(af => !existsSync(af.filePath))
+      const missingFiles = resolvedAudioFiles.filter(af => !af.resolvedPath)
       if (missingFiles.length > 0) {
         console.warn(`发现 ${missingFiles.length} 个缺失的音频文件`)
       }
 
-      const validAudioFiles = audioFiles.filter(af => existsSync(af.filePath))
+      const validAudioFiles = resolvedAudioFiles.filter(
+        (audioFile): audioFile is typeof audioFile & { resolvedPath: string } =>
+          Boolean(audioFile.resolvedPath)
+      )
       if (validAudioFiles.length === 0) {
         return {
           success: false,
@@ -154,7 +186,7 @@ export class AudioMerger {
         bookId,
         chapterId,
         chapter.title,
-        validAudioFiles.map(af => af.filePath),
+        validAudioFiles.map(af => af.resolvedPath),
         finalOptions
       )
 
@@ -256,7 +288,14 @@ export class AudioMerger {
         }
       }
 
-      const validAudioFiles = audioFiles.filter(af => existsSync(af.filePath))
+      const validAudioFiles = audioFiles
+        .map((audioFile) => ({
+          ...audioFile,
+          resolvedPath: this.resolveReadableAudioPath(audioFile)
+        }))
+        .filter((audioFile): audioFile is typeof audioFile & { resolvedPath: string } =>
+          Boolean(audioFile.resolvedPath)
+        )
       if (validAudioFiles.length === 0) {
         return {
           success: false,
@@ -269,7 +308,7 @@ export class AudioMerger {
         bookId,
         null,
         book.title,
-        validAudioFiles.map(af => af.filePath),
+        validAudioFiles.map(af => af.resolvedPath),
         finalOptions
       )
 
@@ -312,8 +351,8 @@ export class AudioMerger {
     options: AudioMergeOptions
   ): Promise<AudioMergeResult> {
     const timestamp = Date.now()
-    const tempDir = join(process.cwd(), 'uploads', 'temp')
-    const outputDir = join(process.cwd(), 'uploads', 'audio', bookId, 'merged')
+    const tempDir = getUploadTempDir()
+    const outputDir = getBookMergedAudioDir(bookId)
 
     try {
       // 确保目录存在
@@ -440,7 +479,14 @@ export class AudioMerger {
         }
       }
 
-      const validAudioFiles = audioFiles.filter(af => existsSync(af.filePath))
+      const validAudioFiles = audioFiles
+        .map((audioFile) => ({
+          ...audioFile,
+          resolvedPath: this.resolveReadableAudioPath(audioFile)
+        }))
+        .filter((audioFile): audioFile is typeof audioFile & { resolvedPath: string } =>
+          Boolean(audioFile.resolvedPath)
+        )
       if (validAudioFiles.length === 0) {
         return {
           success: false,
@@ -455,7 +501,7 @@ export class AudioMerger {
         bookId,
         chapterId,
         `segment_${segmentId}`,
-        validAudioFiles.map(af => af.filePath),
+        validAudioFiles.map(af => af.resolvedPath),
         finalOptions
       )
 

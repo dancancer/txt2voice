@@ -4,40 +4,47 @@
 // pos: 共享组件
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { FileText, Users, Play, List } from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import type { ComponentType } from "react";
+import { FileText, Users, Play, LayoutList, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TabsTrigger } from "@/components/ui/tabs";
 
 interface BookNavigationProps {
   bookId: string;
-  currentTab?: string;
 }
 
-const bookTabs = [
+type BookTab = {
+  id: string;
+  name: string;
+  href: string;
+  icon: ComponentType<{ className?: string }>;
+  isGlobal?: boolean;
+};
+
+const bookTabs: BookTab[] = [
   {
     id: "overview",
     name: "概览",
     href: "",
-    icon: List,
+    icon: LayoutList,
   },
   {
-    id: "segments",
+    id: "characters",
     name: "角色配置",
     href: "/characters",
     icon: Users,
   },
   {
-    id: "script",
-    name: "台本生成",
-    href: "/script",
+    id: "studio-script",
+    name: "高级台本",
+    href: "/studio/script",
     icon: FileText,
   },
   {
-    id: "audio",
-    name: "音频生成",
-    href: "/audio",
+    id: "studio-audio",
+    name: "高级音频",
+    href: "/studio/audio",
     icon: Play,
   },
   {
@@ -46,72 +53,65 @@ const bookTabs = [
     href: "/play",
     icon: Play,
   },
+  {
+    id: "tasks",
+    name: "任务中心",
+    href: "/tasks",
+    icon: ListTodo,
+    isGlobal: true,
+  },
 ];
 
-export function BookNavigation({ bookId, currentTab }: BookNavigationProps) {
-  const router = useRouter();
+const resolveTabHref = (bookId: string, tab: BookTab) => {
+  if (tab.isGlobal) {
+    return tab.href;
+  }
+  return `/books/${bookId}${tab.href}`;
+};
+
+const isOverviewPath = (path: string, basePath: string) => {
+  return path === basePath || path.startsWith(`${basePath}/chapters`);
+};
+
+export function BookNavigation({ bookId }: BookNavigationProps) {
   const pathname = usePathname();
-  const currentPath = pathname?.replace(/\/$/, "") || "";
+  const normalizedPath = pathname?.replace(/\/$/, "") || "";
   const basePath = `/books/${bookId}`;
 
-  const detectedTab = useMemo(() => {
-    return (
-      currentTab ||
-      bookTabs.find((tab) => {
-        if (tab.href === "") {
-          return currentPath === basePath;
-        }
-        return currentPath.startsWith(`${basePath}${tab.href}`);
-      })?.id ||
-      "overview"
-    );
-  }, [basePath, currentPath, currentTab]);
-
-  const [selectedTab, setSelectedTab] = useState<string>(detectedTab);
-
-  useEffect(() => {
-    setSelectedTab(detectedTab);
-  }, [detectedTab]);
-
-  const handleNavigate = (tabId: string, href: string) => {
-    if (tabId === selectedTab) {
-      return;
-    }
-    setSelectedTab(tabId);
-    router.push(href);
-  };
-
   return (
-    <div className="bg-white border-b border-gray-200 ">
-      <div className="container mx-auto px-4">
-        {/* 标签页导航 */}
-        <div className="flex items-center overflow-x-auto">
-          <div className="flex flex-1 flex-wrap gap-2  p-2 max-w-7xl">
-            {bookTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = selectedTab === tab.id;
-              const href = `/books/${bookId}${tab.href}`;
+    <div className="border-b border-slate-200 bg-white">
+      <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <nav
+          className="flex items-center gap-2 overflow-x-auto py-2"
+          aria-label="书籍内导航"
+        >
+          {bookTabs.map((tab) => {
+            const Icon = tab.icon;
+            const href = resolveTabHref(bookId, tab);
+            const active = tab.isGlobal
+              ? normalizedPath === tab.href
+              : tab.id === "overview"
+              ? isOverviewPath(normalizedPath, basePath)
+              : normalizedPath.startsWith(href);
 
-              return (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  activeTab={selectedTab}
-                  setActiveTab={() => handleNavigate(tab.id, href)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium shadow-sm transition",
-                    isActive
-                      ? "bg-white text-blue-600 shadow-md"
-                      : "bg-transparent text-gray-600 hover:bg-white hover:text-gray-900"
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{tab.name}</span>
-                </TabsTrigger>
-              );
-            })}
-          </div>
-        </div>
+            return (
+              <Link
+                key={tab.id}
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "inline-flex min-h-11 min-w-11 shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2",
+                  active
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tab.name}</span>
+              </Link>
+            );
+          })}
+        </nav>
       </div>
     </div>
   );

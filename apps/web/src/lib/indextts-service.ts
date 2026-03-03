@@ -306,11 +306,21 @@ export class IndexTTSService {
    * 语音合成
    */
   async synthesize(request: SynthesizeRequest): Promise<SynthesizeResult> {
+    const referenceAudio = request.referenceAudio?.trim();
+    if (!referenceAudio) {
+      throw new TTSError(
+        "referenceAudio is required for IndexTTS synthesis",
+        "TTS_SYNTHESIS_FAILED",
+        "indextts"
+      );
+    }
+
     // FastAPI 服务使用 snake_case 字段命名，因此在发送前需转换请求结构
     const payload: Record<string, any> = {
       text: request.text,
-      reference_audio: request.referenceAudio,
-      emo_control_method: request.emoControlMethod,
+      reference_audio: referenceAudio,
+      emo_control_method:
+        request.emoControlMethod || "Same as the voice reference",
       emotion_weight: request.emotionWeight,
       sample: request.sample,
       temperature: request.temperature,

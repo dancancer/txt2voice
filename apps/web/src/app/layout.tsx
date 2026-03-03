@@ -11,6 +11,12 @@ import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "Text to Voice",
   description: "Convert text to voice using modern web technologies",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "any" },
+    ],
+  },
 };
 
 export default function RootLayout({

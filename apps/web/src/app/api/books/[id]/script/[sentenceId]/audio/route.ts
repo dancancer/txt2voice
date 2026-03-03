@@ -8,6 +8,7 @@ import prisma, { Prisma } from '@/lib/prisma'
 import { indexTTSService, EmotionVector } from '@/lib/indextts-service'
 import { mkdir, writeFile, stat } from 'fs/promises'
 import { join, extname } from 'path'
+import { getBookAudioDir } from '@/lib/storage-path'
 
 interface GenerateAudioBody {
   speakerBindingId?: string
@@ -164,7 +165,7 @@ export const POST = withErrorHandler(async (
   }
 
   const buffer = Buffer.from(await audioResponse.arrayBuffer())
-  const audioDir = join(process.cwd(), 'uploads', 'audio', bookId)
+  const audioDir = getBookAudioDir(bookId)
   await mkdir(audioDir, { recursive: true })
 
   const audioUrl = synthesizeResult.audioUrl

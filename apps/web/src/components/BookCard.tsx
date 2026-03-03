@@ -19,6 +19,7 @@ import {
   Upload,
   Loader2,
   Clock,
+  HardDrive,
   CheckCircle,
   AlertCircle
 } from 'lucide-react'
@@ -131,7 +132,6 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
     book.status === 'completed_with_errors'
   const audioFilesCount = book.counts?.audioFiles ?? 0
   const hasAudio = audioFilesCount > 0
-  const canViewDetails = book.status !== 'uploaded'
   const showViewTaskButton = book.status !== 'uploaded' && book.status !== 'uploading'
 
   return (
@@ -175,6 +175,7 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
                 onClick={handleCardClick}
                 className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
                 title="进入任务"
+                aria-label="进入书籍详情"
               >
                 <BookOpen className="w-4 h-4" />
               </Button>
@@ -194,7 +195,7 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
           </div>
           {book.fileSize && (
             <div className="flex items-center text-gray-600">
-              <span className="w-4 h-4 mr-2 text-gray-400 text-center">💾</span>
+              <HardDrive className="w-4 h-4 mr-2 text-gray-400" />
               <span>{formatFileSize(book.fileSize)}</span>
             </div>
           )}
@@ -264,11 +265,11 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => router.push(`/books/${book.id}/script`)}
+              onClick={() => router.push(`/books/${book.id}`)}
               className="flex-1"
             >
               <FileText className="w-4 h-4 mr-2" />
-              生成台本
+              章节详情
             </Button>
           )}
 
@@ -276,11 +277,11 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
             <Button
               variant="default"
               size="sm"
-              onClick={() => router.push(`/books/${book.id}/audio`)}
+              onClick={() => router.push(`/books/${book.id}`)}
               className="flex-1"
             >
               <Play className="w-4 h-4 mr-2" />
-              生成音频
+              章节音频
             </Button>
           )}
 
@@ -304,6 +305,7 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
               className="text-red-600 hover:text-red-800 hover:bg-red-50"
+              aria-label="删除书籍"
             >
               <Trash2 className="w-4 h-4" />
             </Button>

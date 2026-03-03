@@ -3,7 +3,7 @@
 // output: 工具/服务导出
 // pos: 共享业务库
 import { TTSError } from "./error-handler";
-import { indexTTSService, ReferenceAudio } from "./indextts-service";
+import { EmotionVector, indexTTSService } from "./indextts-service";
 
 export interface TTSProvider {
   name: string;
@@ -45,6 +45,20 @@ export interface TTSRequest {
   volume?: number;
   emotion?: string;
   style?: string;
+  // IndexTTS provider-specific fields
+  referenceAudio?: string;
+  emoControlMethod?:
+    | "Same as the voice reference"
+    | "Use separate emotion reference"
+    | "Use emotion vectors";
+  emotionReference?: string;
+  emotionVector?: EmotionVector;
+  emotionWeight?: number;
+  sample?: number;
+  temperature?: number;
+  beamSearch?: boolean;
+  topK?: number;
+  topP?: number;
 }
 
 export interface TTSResponse {
@@ -579,11 +593,100 @@ export class TTSServiceManager {
       );
     }
 
+    if (providerName === "indextts") {
+      const referenceAudio = request.referenceAudio || request.voice?.id;
+      if (!referenceAudio) {
+        throw new TTSError(
+          "IndexTTS synthesis requires reference audio",
+          "TTS_SYNTHESIS_FAILED",
+          "indextts"
+        );
+      }
+
+      const synthesisResult = await indexTTSService.synthesizeAndWait(
+        {
+          text: request.text,
+          referenceAudio,
+          emoControlMethod:
+            request.emoControlMethod || "Same as the voice reference",
+          emotionReference: request.emotionReference,
+          emotionVector: request.emotionVector,
+          emotionWeight: request.emotionWeight,
+          sample: request.sample,
+          temperature: request.temperature,
+          beamSearch: request.beamSearch,
+          topK: request.topK,
+          topP: request.topP,
+        },
+        {
+          timeout: 300000,
+          interval: 3000,
+        }
+      );
+
+      if (!synthesisResult.audioUrl) {
+        throw new TTSError(
+          "IndexTTS synthesis completed without audio URL",
+          "TTS_SYNTHESIS_FAILED",
+          "indextts"
+        );
+      }
+
+      const audioResponse = await fetch(synthesisResult.audioUrl);
+      if (!audioResponse.ok) {
+        throw new TTSError(
+          `Failed to download IndexTTS audio: ${audioResponse.status} ${audioResponse.statusText}`,
+          "TTS_SYNTHESIS_FAILED",
+          "indextts",
+          true
+        );
+      }
+
+      const audioBuffer = await audioResponse.arrayBuffer();
+      return {
+        audioBuffer,
+        duration: synthesisResult.duration || 0,
+        format: this.resolveOutputFormat(
+          synthesisResult.audioUrl,
+          request.outputFormat
+        ),
+        sampleRate: request.voice.sampleRate || 24000,
+        metadata: {
+          provider: "indextts",
+          taskId: synthesisResult.taskId,
+          audioUrl: synthesisResult.audioUrl,
+          referenceAudio,
+          ...synthesisResult.metadata,
+        },
+      };
+    }
+
     return service.synthesize(request);
   }
 
   async ready(): Promise<void> {
     await this.initializationPromise;
+  }
+
+  private resolveOutputFormat(
+    audioUrl: string | undefined,
+    fallback: TTSRequest["outputFormat"]
+  ): string {
+    if (!audioUrl) return fallback;
+
+    try {
+      const pathname = audioUrl.startsWith("http")
+        ? new URL(audioUrl).pathname
+        : audioUrl;
+      const extension = pathname.split(".").pop()?.toLowerCase();
+      if (extension === "mp3" || extension === "wav" || extension === "ogg") {
+        return extension;
+      }
+    } catch (_error) {
+      // ignore parse errors and fall back to request format
+    }
+
+    return fallback;
   }
 }
 

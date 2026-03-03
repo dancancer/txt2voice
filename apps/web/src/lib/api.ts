@@ -55,11 +55,17 @@ export const booksApi = {
   },
 
   // 获取单本书籍详情
-  async getBook(id: string, include?: string[]): Promise<BookResponse> {
+  async getBook(
+    id: string,
+    include?: string[],
+    request?: { signal?: AbortSignal }
+  ): Promise<BookResponse> {
     const params = include && include.length > 0
       ? `?include=${include.join(',')}`
       : ''
-    const response = await fetch(`${API_BASE}/${id}${params}`)
+    const response = await fetch(`${API_BASE}/${id}${params}`, {
+      signal: request?.signal,
+    })
     if (!response.ok) {
       throw new Error('Failed to fetch book')
     }
@@ -132,8 +138,13 @@ export const booksApi = {
   },
 
   // 获取音频生成状态
-  async getAudioGenerationStatus(id: string): Promise<any> {
-    const response = await fetch(`${API_BASE}/${id}/audio/generate?includeProgress=true`)
+  async getAudioGenerationStatus(
+    id: string,
+    request?: { signal?: AbortSignal }
+  ): Promise<any> {
+    const response = await fetch(`${API_BASE}/${id}/audio/generate?includeProgress=true`, {
+      signal: request?.signal,
+    })
     if (!response.ok) {
       throw new Error('Failed to get audio generation status')
     }

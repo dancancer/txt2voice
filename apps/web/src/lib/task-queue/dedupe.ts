@@ -1,0 +1,49 @@
+import { createHash } from "crypto";
+import type { AudioGenerationOptions } from "@/lib/audio-generator";
+import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
+import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
+
+interface ScriptDedupeInput {
+  bookId: string;
+  extraParams?: ScriptGenerationExtraParams;
+}
+
+interface AudioDedupeInput {
+  bookId: string;
+  type: AudioGenerationTaskType;
+  chapterId?: string;
+  scriptSentenceIds?: string[];
+  voiceProfileId?: string;
+  options?: AudioGenerationOptions;
+}
+
+const hashScope = (payload: unknown): string => {
+  return createHash("sha1")
+    .update(JSON.stringify(payload))
+    .digest("hex")
+    .slice(0, 16);
+};
+
+export const buildScriptDedupeKey = (input: ScriptDedupeInput): string => {
+  const normalized = {
+    startFromSegmentId: input.extraParams?.startFromSegmentId || null,
+    startFromOrderIndex: input.extraParams?.startFromOrderIndex ?? null,
+    regenerateSegments: Boolean(input.extraParams?.regenerateSegments),
+    segmentIds: (input.extraParams?.segmentIds || []).slice().sort(),
+    limitToSegments: input.extraParams?.limitToSegments ?? null,
+  };
+
+  return `script:${input.bookId}:${hashScope(normalized)}`;
+};
+
+export const buildAudioDedupeKey = (input: AudioDedupeInput): string => {
+  const normalized = {
+    type: input.type,
+    chapterId: input.chapterId || null,
+    scriptSentenceIds: (input.scriptSentenceIds || []).slice().sort(),
+    voiceProfileId: input.voiceProfileId || null,
+    provider: input.options?.provider || null,
+  };
+
+  return `audio:${input.bookId}:${hashScope(normalized)}`;
+};

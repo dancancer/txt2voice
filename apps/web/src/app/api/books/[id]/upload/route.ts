@@ -6,11 +6,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, FileProcessingError, ValidationError } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
 import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
 import JSZip from 'jszip'
 import { CONFIG } from '@/lib/constants'
 import { sanitizeFilename, validateFilePath, validateBookExists } from '@/lib/api-utils'
 import { logger } from '@/lib/logger'
+import { getBookUploadDir } from '@/lib/storage-path'
+import { join } from 'path'
 
 // POST /api/books/[id]/upload - 上传文件
 export const POST = withErrorHandler(async (
@@ -55,7 +56,7 @@ export const POST = withErrorHandler(async (
   }
 
   // 创建上传目录
-  const uploadsDir = join(process.cwd(), 'uploads', 'books', bookId)
+  const uploadsDir = getBookUploadDir(bookId)
   try {
     await mkdir(uploadsDir, { recursive: true })
   } catch (error) {

@@ -23,6 +23,13 @@ pnpm --filter web dev
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
 
+队列隔离建议：
+
+- 如果同时运行多个实例（如本地 + Docker），请为每个实例设置不同的 `TASK_QUEUE_NAMESPACE`。
+- 推荐值：
+  - 本地 Web（3000）：`TASK_QUEUE_NAMESPACE=txt2voice:3000`
+  - Docker Web（3001）：`TASK_QUEUE_NAMESPACE=txt2voice:3001`
+
 停止依赖服务：
 
 ```bash

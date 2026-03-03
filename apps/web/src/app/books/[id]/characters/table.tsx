@@ -168,7 +168,7 @@ export function CharactersTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => onConfigSpeaker(character)}
-                          className="h-8 w-8 p-0 flex-shrink-0"
+                          className="min-h-11 min-w-11 p-0 flex-shrink-0"
                         >
                           <Mic className="w-4 h-4" />
                         </Button>
@@ -176,7 +176,7 @@ export function CharactersTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => onEdit(character)}
-                          className="h-8 w-8 p-0 flex-shrink-0"
+                          className="min-h-11 min-w-11 p-0 flex-shrink-0"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -184,7 +184,7 @@ export function CharactersTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => onAudioSettings(character)}
-                          className="h-8 w-8 p-0 flex-shrink-0"
+                          className="min-h-11 min-w-11 p-0 flex-shrink-0"
                         >
                           <Settings className="w-4 h-4" />
                         </Button>
@@ -192,7 +192,7 @@ export function CharactersTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => onDelete(character.id)}
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
+                          className="min-h-11 min-w-11 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
                           disabled={deletingId === character.id}
                         >
                           {deletingId === character.id ? (

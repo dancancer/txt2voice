@@ -195,7 +195,7 @@ export default function CharacterProfilesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-full bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">加载中...</p>
@@ -206,7 +206,7 @@ export default function CharacterProfilesPage() {
 
   if (error || !book) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="h-full bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Users className="w-8 h-8 text-red-500 mx-auto mb-4" />
           <p className="text-red-600 mb-4">{error || "书籍不存在"}</p>
@@ -217,7 +217,7 @@ export default function CharacterProfilesPage() {
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50">
+    <div className="min-h-full bg-gray-50">
       <CharactersHeader
         bookId={bookId}
         title={book.title}
@@ -228,7 +228,7 @@ export default function CharacterProfilesPage() {
         disableAdd={!hasTextSegments}
       />
 
-      <div className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-auto">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <SearchInfoBar
           search={searchTerm}
           onSearch={setSearchTerm}
@@ -245,7 +245,7 @@ export default function CharacterProfilesPage() {
           lastExtractionSummary={lastExtractionSummary}
           onAddCharacter={() => setShowAddCharacter(true)}
           onExtractFromScript={handleExtractFromScript}
-          onOpenScript={() => router.push(`/books/${bookId}/script`)}
+          onOpenScript={() => router.push(`/books/${bookId}/studio/script`)}
           actionLoading={actionLoading}
         />
 
@@ -257,7 +257,7 @@ export default function CharacterProfilesPage() {
               onDelete={handleDeleteCharacter}
               onConfigSpeaker={(c) => openDialog(c)}
               onAudioSettings={(c) =>
-                router.push(`/books/${bookId}/audio?character=${c.id}`)
+                router.push(`/books/${bookId}/studio/audio?character=${c.id}`)
               }
               deletingId={deletingCharacterId}
             />
@@ -285,6 +285,7 @@ export default function CharacterProfilesPage() {
                 <Button
                   onClick={() => setShowAddCharacter(true)}
                   disabled={!hasTextSegments}
+                  className="min-h-11"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   创建第一个角色
