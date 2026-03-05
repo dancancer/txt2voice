@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S20 全部完成，已完成第十轮（主链路自动编排首版）。
+- 当前进度：S0-S21 全部完成，已完成第十一轮（告警运营闭环首版）；待推进 S22-S24。
 
-## 总体目标回顾与现状判断（2026-03-05 17:12 CST）
+## 总体目标回顾与现状判断（2026-03-05 19:35 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -16,17 +16,12 @@
 
 ### 现状判断（按里程碑）
 
-1. M1（Annotation v2 + Auto Pipeline）：
-   - Annotation v2 已完成；
-   - `AUTO_PIPELINE` 编排入口与 `pipeline/auto|status` 已落地（支持子阶段追踪与任务恢复）。
-2. M2（Fast Gate + 自动返工 + 日志）：
-   - 已基本完成（Q1-Q3、`qc/retry`、重生回流、策略阈值、日志与队列链路齐备）。
-3. M3（Deep Gate + 人工复核工作台）：
-   - 人工复核 API 已完成；
-   - Deep Gate（Q4/Q5）与章节审计未落地，复核 UI 仍缺。
-4. M4（SLO + 告警 + 灰度）：
-   - 指标 API 与实时告警 API 已完成；
-   - 仍缺定时扫描告警、事件沉淀、通知联动、灰度/配置中心产品化。
+| 里程碑 | 当前状态 | 现状说明 |
+| --- | --- | --- |
+| M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
+| M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
+| M3（Deep Gate + 人工复核工作台） | 🔄 部分完成 | 复核 API 已完成；Q4/Q5、`chapter_quality_audit` 执行链路、复核工作台 UI 仍未落地。 |
+| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、生命周期与 Webhook 通知已就绪；缺配置中心化与策略治理 UI。 |
 
 ## 已完成内容
 
@@ -190,19 +185,39 @@
   - 新增书籍状态：`quality_checking`、`manual_review_pending`、`assembling_audio`；
   - 同步更新状态校验与展示映射（类型/验证/status meta/task label）。
 
+### 12) 第十一轮增量（S21：告警运营闭环）
+
+- Prisma 扩展：
+  - 新增 `qc_dispatch_alert_events` 表，沉淀告警事件生命周期与快照（`open/acked/resolved`、`fingerprint`、`triggerCount`、`snapshot`）。
+  - `Book` 增加 `qcDispatchAlerts` 反向关系。
+- 服务层落地：
+  - 新增 `qc-dispatch-alert-event-service`，支持：
+    - 单书扫描沉淀（新建/重开/自动收敛）
+    - 事件列表查询（status/source/issueType/alertCode 过滤）
+    - 事件生命周期处理（ack/resolve）
+    - 跨书籍批量扫描（定时任务入口）
+  - 新增 `qc-dispatch-alert-notifier`，支持 Webhook 通知（`QC_DISPATCH_ALERT_WEBHOOK_URL` + timeout）。
+- API 新增：
+  - `POST /api/books/[id]/qc/dispatch-alerts/scan`
+  - `GET /api/books/[id]/qc/dispatch-events`
+  - `POST /api/books/[id]/qc/dispatch-events/[eventId]/resolve`
+  - `POST /api/qc/dispatch-alerts/scan`（支持 `QC_DISPATCH_ALERT_SCAN_TOKEN`）
+- 闭环能力：
+  - 告警从“查询即算”升级为“扫描沉淀 + 生命周期管理 + 通知触达”。
+
 ## 待完成内容
 
-1. 当前策略配置已支持“书籍元数据 + 请求级 + issueType”，但尚未下沉到租户/项目/书籍三级配置中心与管理 API。
-2. 已有聚合指标 API + 实时告警 API，但还缺少“定时扫描任务 + 告警事件落库 + 通知联动”。
-3. Deep Gate（Q4/Q5）与章节审计尚未接入，Fast Gate 仍为轻量启发式规则。
-4. 人工复核工作台尚未形成最小可用页面（当前以 API 能力为主）。
+1. `dispatchPolicy` 仍以 `book.metadata` 为主入口，缺租户/项目/书籍三级配置中心与管理 API。
+2. Deep Gate（Q4/Q5）与 `chapter_quality_audit` 未接入，Fast Gate 仍是启发式规则。
+3. 人工复核工作台暂无最小可用 UI（当前仅有 API 能力）。
 
-## 剩余任务优先级（建议）
+## 剩余任务优先级（建议，S22-S24）
 
-1. P0：落地告警定时扫描、告警事件沉淀与通知联动，先保证异常能被持续发现与响应。
-2. P1：落地 `dispatchPolicy` 三级配置中心（租户/项目/书籍）与管理 API，替代 `book.metadata` 主入口。
-3. P1：推进 Deep Gate（Q4/Q5）与 `chapter_quality_audit`，提升质量决策准确性。
-4. P2：补齐人工复核最小工作台与运营看板整合，降低人工处理成本。
+| 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
+| --- | --- | --- | --- | --- | --- |
+| P0 | S22 | 配置中心化 | `dispatchPolicy` 租户/项目/书籍三级配置模型 + 查询/更新 API + 运行时合并规则 | 不依赖 `book.metadata` 作为主入口；策略变更可审计、可灰度、可回滚 | 无 |
+| P1 | S23 | Deep Gate 与章节审计 | Q4（情绪匹配）/Q5（章节一致性）+ `chapter_quality_audit` 执行链路 + 阈值模板 | 质检结果包含 Q4/Q5 指标；支持章节级验收与返工决策；误报率可观测 | S22（策略模板复用） |
+| P2 | S24 | 人工复核与运营体验补齐 | 人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 | 复核操作可视化；关键指标（backlog/pass/retry）可日常运营使用 | S22/S23 输出可直接复用 |
 
 ## 测试与验证结果
 
@@ -217,9 +232,13 @@
   - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-metrics-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-alert-service.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/qc-dispatch-alert-event-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/auto-pipeline-runner.test.ts`（新增）
   - `apps/web/src/lib/__tests__/task-replay-payload-auto.test.ts`（新增）
 - 已执行：
+  - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
+  - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-alert-event-service.test.ts src/lib/__tests__/qc-dispatch-alert-service.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-runner.test.ts src/lib/__tests__/task-replay-payload-auto.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-alert-service.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-metrics-service.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/qc-retry-service.test.ts`
@@ -233,6 +252,6 @@
 
 ## 下一步建议（接手即做）
 
-1. 先做告警定时扫描 + 告警事件沉淀 + 通知联动，形成可运营闭环（S21）。
-2. 再做 `dispatchPolicy` 配置中心化（租户/项目/书籍三级）（S22）。
-3. 随后推进 Deep Gate（Q4/Q5 + 章节审计）与人工复核工作台（S23/S24）。
+1. 先做 **S22（P0）**：`dispatchPolicy` 配置中心化（租户/项目/书籍三级）+ 变更审计/灰度/回滚。
+2. 随后做 **S23（P1）**：Deep Gate（Q4/Q5 + 章节审计）能力上线。
+3. 最后做 **S24（P2）**：人工复核工作台与运营看板整合。

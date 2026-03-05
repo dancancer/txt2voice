@@ -37,6 +37,7 @@ S0-S19（前九批改造）已完成，本次继续推进第十批“主链路�
 | S18 | 二次派单看板指标 API + `source` 透传 | ✅ 完成 | 提供 `GET /api/books/[id]/qc/dispatch-metrics`，并在质检回写中落库 `source` 字段，测试/回归/类型校验通过 |
 | S19 | 派单告警服务 + API（观测联动） | ✅ 完成 | 提供 `GET /api/books/[id]/qc/dispatch-alerts`，支持阈值参数和日增突变告警，测试/回归/类型校验通过 |
 | S20 | `AUTO_PIPELINE` 编排入口 + 状态 API + 队列联动 | ✅ 完成 | 提供 `POST /api/books/[id]/pipeline/auto`、`GET /api/books/[id]/pipeline/status`，并支持 `AUTO_PIPELINE` 任务重放/恢复、状态流转与测试回归 |
+| S21 | 告警扫描任务 + 事件沉淀 + 生命周期闭环 | ✅ 完成 | 提供定时扫描入口、`qc_dispatch_alert_events` 事件表、`dispatch-events` 查询/ack/resolve API、Webhook 通知联动，并完成测试回归 |
 
 ## 3. 执行日志
 
@@ -384,13 +385,41 @@ S0-S19（前九批改造）已完成，本次继续推进第十批“主链路�
   2. 执行 S22：将 `dispatchPolicy` 从 `book.metadata` 下沉到租户/项目/书籍三级配置中心。
   3. 执行 S23：接入 Deep Gate（Q4/Q5）与章节一致性审计链路。
 
+### [S21] 告警扫描任务 + 事件沉淀 + 生命周期闭环（2026-03-05 19:35 CST）
+
+- 完成内容：
+  1. Prisma 新增 `qc_dispatch_alert_events` 事件模型（含 `status/open|acked|resolved` 生命周期字段、`fingerprint` 去重键、`triggerCount` 与快照载荷），并在 `Book` 增加反向关系。
+  2. 新增 `qc-dispatch-alert-event-service`：
+     - 支持单书扫描沉淀（`scanQcDispatchAlertsForBook`）：新告警创建事件、已 ack 告警自动 reopen、已消失告警自动 `resolved(auto_resolved_by_scan)`；
+     - 支持事件列表查询（按 `status/source/issueType/alertCode` 过滤）；
+     - 支持事件生命周期处理（`ack/resolve`）；
+     - 支持跨书籍批量扫描（用于定时任务入口）。
+  3. 新增 `qc-dispatch-alert-notifier`，接入 Webhook 通知通道（`QC_DISPATCH_ALERT_WEBHOOK_URL`），对新建/重开事件执行投递并回传投递状态。
+  4. 新增 API：
+     - `POST /api/books/[id]/qc/dispatch-alerts/scan`（单书手动扫描）
+     - `GET /api/books/[id]/qc/dispatch-events`（事件列表）
+     - `POST /api/books/[id]/qc/dispatch-events/[eventId]/resolve`（ack/resolve）
+     - `POST /api/qc/dispatch-alerts/scan`（跨书籍定时扫描入口，支持 token 保护）
+  5. 新增测试：`apps/web/src/lib/__tests__/qc-dispatch-alert-event-service.test.ts`（覆盖事件创建、重开、自动收敛、生命周期处理与批量扫描容错）。
+  6. 执行命令：
+     - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
+     - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-alert-event-service.test.ts src/lib/__tests__/qc-dispatch-alert-service.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  7. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 执行 S22：落地 `dispatchPolicy` 配置中心（租户/项目/书籍三级）并替换 `book.metadata` 主入口。
+  2. 在 S22 同步补“策略变更审计 + 灰度开关 + 回滚快照”，避免策略上线风险。
+  3. 执行 S23：接入 Deep Gate（Q4/Q5）与 `chapter_quality_audit` 执行链路。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已落地 `AUTO_PIPELINE` 主链路入口、状态 API 与队列联动；当前仍缺少“定时扫描告警任务 + 告警事件沉淀 + 通知联动”与“策略配置中心化”。
+3. 已落地 `AUTO_PIPELINE` 主链路入口与 S21 告警运营闭环；当前仍缺“`dispatchPolicy` 配置中心化”与 Deep Gate（Q4/Q5 + 章节审计）。
 
-## 5. 总体回顾与剩余任务优先级（2026-03-05 17:12 CST）
+## 5. 总体回顾与剩余任务优先级（2026-03-05 19:35 CST）
 
 ### 5.1 总体目标回顾（对齐 `full-automation-plan`）
 
@@ -398,25 +427,30 @@ S0-S19（前九批改造）已完成，本次继续推进第十批“主链路�
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S20 完成后）
+### 5.2 当前现状（S0-S21 完成后）
 
-1. 已完成：Schema V2、Fast Gate（Q1-Q3）、`qc/retry`、人工复核 API、重生回流、策略阈值、派单指标/告警 API、`AUTO_PIPELINE` 编排入口与状态 API。
-2. 已完成：`AUTO_PIPELINE` 任务类型接入队列基础设施（enqueue/worker/replay/recovery/health）。
-3. 未完成：策略中心仍在 `book.metadata`，尚未下沉到租户/项目/书籍三级配置实体与管理 API。
-4. 未完成：告警仍为“请求时计算”，缺少定时扫描、事件落库与通知渠道。
-5. 未完成：Deep Gate（Q4/Q5）与章节审计尚未落地，人工复核工作台仍以 API 为主，缺少最小可用页面。
+| 里程碑 | 当前状态 | 现状说明 |
+| --- | --- | --- |
+| M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
+| M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
+| M3（Deep Gate + 人工复核工作台） | 🔄 部分完成 | 复核 API 已完成；Q4/Q5、`chapter_quality_audit` 执行链路、复核工作台 UI 仍未落地。 |
+| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、生命周期与 Webhook 通知已就绪；缺配置中心化与策略治理 UI。 |
 
-### 5.3 剩余任务目标与优先级
+### 5.3 剩余任务目标与优先级（重排）
 
-| 优先级 | 目标 | 建议落地项 | 验收标准 |
-| --- | --- | --- | --- |
-| P0 | 告警从“查询”升级到“运营联动” | S21：定时扫描任务、告警事件表（或统一事件流）、通知集成（站内/IM/Webhook） | 告警可追溯、可通知、可去重；支持按书籍/来源/问题类型检索 |
-| P1 | 配置中心化 | S22：`dispatchPolicy` 租户/项目/书籍三级配置模型 + 查询/更新 API + 运行时合并规则 | 不依赖 `book.metadata` 作为主入口；策略可审计、可灰度 |
-| P1 | Deep Gate 与章节审计 | S23：Q4（情绪匹配）/Q5（章节一致性）+ `chapter_quality_audit` 执行链路 | 质检结果包含 Q4/Q5 指标；可用于返工决策与章节级验收 |
-| P2 | 人工复核与运营体验补齐 | S24：人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 | 复核操作可视化；关键指标（backlog/pass/retry）可日常运营使用 |
+| 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
+| --- | --- | --- | --- | --- | --- |
+| P0 | S22 | 配置中心化 | `dispatchPolicy` 租户/项目/书籍三级配置模型 + 查询/更新 API + 运行时合并规则 | 不依赖 `book.metadata` 作为主入口；策略变更可审计、可灰度、可回滚 | 无 |
+| P1 | S23 | Deep Gate 与章节审计 | Q4（情绪匹配）/Q5（章节一致性）+ `chapter_quality_audit` 执行链路 + 阈值模板 | 质检结果包含 Q4/Q5 指标；支持章节级验收与返工决策；误报率可观测 | S22（策略模板复用） |
+| P2 | S24 | 人工复核与运营体验补齐 | 人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 | 复核操作可视化；关键指标（backlog/pass/retry）可日常运营使用 | S22/S23 输出可直接复用 |
 
 ### 5.4 推荐执行顺序（下一轮）
 
-1. 先做 S21（告警可运营），保障“能看住”。
-2. 再做 S22（配置中心），降低策略演进与多租户扩展成本。
-3. 最后推进 S23/S24，补齐质量深度与运营工作台。
+1. **S22（P0）**：先做配置中心化，收敛策略来源并补审计/灰度/回滚能力。
+2. **S23（P1）**：补齐 Deep Gate 与章节审计，提升质量判定深度。
+3. **S24（P2）**：最后补 UI 与运营看板，完成值班与复核体验闭环。
+
+### 5.5 本次文档同步说明
+
+1. 已同步更新本任务文档 S21 实施结果（代码落点、测试命令、风险与后续优先级）。
+2. 已同步更新 handoff 文档，确保接手人可直接从 S22 开始推进。

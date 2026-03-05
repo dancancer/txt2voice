@@ -10,22 +10,22 @@ datasource db {
 }
 
 model Book {
-  id                   String                @id @default(uuid())
+  id                   String                 @id @default(uuid())
   title                String
   author               String?
   originalFilename     String?
   uploadedFilePath     String?
   fileSize             BigInt?
   totalWords           Int?
-  totalCharacters      Int                   @default(0)
-  totalSegments        Int                   @default(0)
-  totalChapters        Int                   @default(0)
+  totalCharacters      Int                    @default(0)
+  totalSegments        Int                    @default(0)
+  totalChapters        Int                    @default(0)
   encoding             String?
   fileFormat           String?
-  status               String                @default("uploaded")
-  metadata             Json                  @default("{}")
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  status               String                 @default("uploaded")
+  metadata             Json                   @default("{}")
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime               @updatedAt
   audioFiles           AudioFile[]
   mergeAudits          CharacterMergeAudit[]
   characterProfiles    CharacterProfile[]
@@ -37,6 +37,7 @@ model Book {
   qualityCheckResults  QualityCheckResult[]
   manualReviewItems    ManualReviewItem[]
   chapterQualityAudits ChapterQualityAudit[]
+  qcDispatchAlerts     QcDispatchAlertEvent[]
 
   @@index([status, createdAt])
   @@index([author, createdAt])
@@ -495,6 +496,37 @@ model ManualReviewItem {
   @@index([assignedTo, status])
   @@index([issueType, status])
   @@map("manual_review_items")
+}
+
+model QcDispatchAlertEvent {
+  id                String    @id @default(uuid())
+  bookId            String
+  source            String?
+  issueType         String?
+  alertCode         String
+  severity          String
+  status            String    @default("open")
+  fingerprint       String
+  message           String
+  recommendedAction String?
+  values            Json      @default("{}")
+  snapshot          Json      @default("{}")
+  firstTriggeredAt  DateTime  @default(now())
+  lastTriggeredAt   DateTime  @default(now())
+  triggerCount      Int       @default(1)
+  ackedAt           DateTime?
+  resolvedAt        DateTime?
+  resolvedBy        String?
+  resolutionNote    String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  book              Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId, status, lastTriggeredAt])
+  @@index([bookId, source, issueType, status])
+  @@index([bookId, alertCode, lastTriggeredAt])
+  @@index([fingerprint, status])
+  @@map("qc_dispatch_alert_events")
 }
 
 model ChapterQualityAudit {

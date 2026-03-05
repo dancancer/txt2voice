@@ -426,6 +426,30 @@ exports.Prisma.ManualReviewItemScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.QcDispatchAlertEventScalarFieldEnum = {
+  id: 'id',
+  bookId: 'bookId',
+  source: 'source',
+  issueType: 'issueType',
+  alertCode: 'alertCode',
+  severity: 'severity',
+  status: 'status',
+  fingerprint: 'fingerprint',
+  message: 'message',
+  recommendedAction: 'recommendedAction',
+  values: 'values',
+  snapshot: 'snapshot',
+  firstTriggeredAt: 'firstTriggeredAt',
+  lastTriggeredAt: 'lastTriggeredAt',
+  triggerCount: 'triggerCount',
+  ackedAt: 'ackedAt',
+  resolvedAt: 'resolvedAt',
+  resolvedBy: 'resolvedBy',
+  resolutionNote: 'resolutionNote',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ChapterQualityAuditScalarFieldEnum = {
   id: 'id',
   bookId: 'bookId',
@@ -494,6 +518,7 @@ exports.Prisma.ModelName = {
   SynthesisAttempt: 'SynthesisAttempt',
   QualityCheckResult: 'QualityCheckResult',
   ManualReviewItem: 'ManualReviewItem',
+  QcDispatchAlertEvent: 'QcDispatchAlertEvent',
   ChapterQualityAudit: 'ChapterQualityAudit'
 };
 

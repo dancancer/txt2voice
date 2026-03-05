@@ -10,7 +10,7 @@ import {
   type QcDispatchMetricsResult,
 } from "@/lib/qc-dispatch-metrics-service";
 
-type QcDispatchAlertCode =
+export type QcDispatchAlertCode =
   | "threshold_blocked_spike"
   | "secondary_pending_backlog"
   | "auto_rejected_accumulated_pressure";

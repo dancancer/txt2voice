@@ -104,6 +104,11 @@ export type QualityCheckResult = $Result.DefaultSelection<Prisma.$QualityCheckRe
  */
 export type ManualReviewItem = $Result.DefaultSelection<Prisma.$ManualReviewItemPayload>
 /**
+ * Model QcDispatchAlertEvent
+ * 
+ */
+export type QcDispatchAlertEvent = $Result.DefaultSelection<Prisma.$QcDispatchAlertEventPayload>
+/**
  * Model ChapterQualityAudit
  * 
  */
@@ -406,6 +411,16 @@ export class PrismaClient<
     * ```
     */
   get manualReviewItem(): Prisma.ManualReviewItemDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.qcDispatchAlertEvent`: Exposes CRUD operations for the **QcDispatchAlertEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more QcDispatchAlertEvents
+    * const qcDispatchAlertEvents = await prisma.qcDispatchAlertEvent.findMany()
+    * ```
+    */
+  get qcDispatchAlertEvent(): Prisma.QcDispatchAlertEventDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.chapterQualityAudit`: Exposes CRUD operations for the **ChapterQualityAudit** model.
@@ -875,6 +890,7 @@ export namespace Prisma {
     SynthesisAttempt: 'SynthesisAttempt',
     QualityCheckResult: 'QualityCheckResult',
     ManualReviewItem: 'ManualReviewItem',
+    QcDispatchAlertEvent: 'QcDispatchAlertEvent',
     ChapterQualityAudit: 'ChapterQualityAudit'
   };
 
@@ -894,7 +910,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "chapterQualityAudit"
+      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "qcDispatchAlertEvent" | "chapterQualityAudit"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2230,6 +2246,80 @@ export namespace Prisma {
           }
         }
       }
+      QcDispatchAlertEvent: {
+        payload: Prisma.$QcDispatchAlertEventPayload<ExtArgs>
+        fields: Prisma.QcDispatchAlertEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.QcDispatchAlertEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.QcDispatchAlertEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>
+          }
+          findFirst: {
+            args: Prisma.QcDispatchAlertEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.QcDispatchAlertEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>
+          }
+          findMany: {
+            args: Prisma.QcDispatchAlertEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>[]
+          }
+          create: {
+            args: Prisma.QcDispatchAlertEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>
+          }
+          createMany: {
+            args: Prisma.QcDispatchAlertEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.QcDispatchAlertEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>[]
+          }
+          delete: {
+            args: Prisma.QcDispatchAlertEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>
+          }
+          update: {
+            args: Prisma.QcDispatchAlertEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.QcDispatchAlertEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.QcDispatchAlertEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.QcDispatchAlertEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.QcDispatchAlertEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchAlertEventPayload>
+          }
+          aggregate: {
+            args: Prisma.QcDispatchAlertEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateQcDispatchAlertEvent>
+          }
+          groupBy: {
+            args: Prisma.QcDispatchAlertEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<QcDispatchAlertEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.QcDispatchAlertEventCountArgs<ExtArgs>
+            result: $Utils.Optional<QcDispatchAlertEventCountAggregateOutputType> | number
+          }
+        }
+      }
       ChapterQualityAudit: {
         payload: Prisma.$ChapterQualityAuditPayload<ExtArgs>
         fields: Prisma.ChapterQualityAuditFieldRefs
@@ -2418,6 +2508,7 @@ export namespace Prisma {
     synthesisAttempt?: SynthesisAttemptOmit
     qualityCheckResult?: QualityCheckResultOmit
     manualReviewItem?: ManualReviewItemOmit
+    qcDispatchAlertEvent?: QcDispatchAlertEventOmit
     chapterQualityAudit?: ChapterQualityAuditOmit
   }
 
@@ -2510,6 +2601,7 @@ export namespace Prisma {
     qualityCheckResults: number
     manualReviewItems: number
     chapterQualityAudits: number
+    qcDispatchAlerts: number
   }
 
   export type BookCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2524,6 +2616,7 @@ export namespace Prisma {
     qualityCheckResults?: boolean | BookCountOutputTypeCountQualityCheckResultsArgs
     manualReviewItems?: boolean | BookCountOutputTypeCountManualReviewItemsArgs
     chapterQualityAudits?: boolean | BookCountOutputTypeCountChapterQualityAuditsArgs
+    qcDispatchAlerts?: boolean | BookCountOutputTypeCountQcDispatchAlertsArgs
   }
 
   // Custom InputTypes
@@ -2612,6 +2705,13 @@ export namespace Prisma {
    */
   export type BookCountOutputTypeCountChapterQualityAuditsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ChapterQualityAuditWhereInput
+  }
+
+  /**
+   * BookCountOutputType without action
+   */
+  export type BookCountOutputTypeCountQcDispatchAlertsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QcDispatchAlertEventWhereInput
   }
 
 
@@ -3463,6 +3563,7 @@ export namespace Prisma {
     qualityCheckResults?: boolean | Book$qualityCheckResultsArgs<ExtArgs>
     manualReviewItems?: boolean | Book$manualReviewItemsArgs<ExtArgs>
     chapterQualityAudits?: boolean | Book$chapterQualityAuditsArgs<ExtArgs>
+    qcDispatchAlerts?: boolean | Book$qcDispatchAlertsArgs<ExtArgs>
     _count?: boolean | BookCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["book"]>
 
@@ -3536,6 +3637,7 @@ export namespace Prisma {
     qualityCheckResults?: boolean | Book$qualityCheckResultsArgs<ExtArgs>
     manualReviewItems?: boolean | Book$manualReviewItemsArgs<ExtArgs>
     chapterQualityAudits?: boolean | Book$chapterQualityAuditsArgs<ExtArgs>
+    qcDispatchAlerts?: boolean | Book$qcDispatchAlertsArgs<ExtArgs>
     _count?: boolean | BookCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type BookIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3555,6 +3657,7 @@ export namespace Prisma {
       qualityCheckResults: Prisma.$QualityCheckResultPayload<ExtArgs>[]
       manualReviewItems: Prisma.$ManualReviewItemPayload<ExtArgs>[]
       chapterQualityAudits: Prisma.$ChapterQualityAuditPayload<ExtArgs>[]
+      qcDispatchAlerts: Prisma.$QcDispatchAlertEventPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3978,6 +4081,7 @@ export namespace Prisma {
     qualityCheckResults<T extends Book$qualityCheckResultsArgs<ExtArgs> = {}>(args?: Subset<T, Book$qualityCheckResultsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QualityCheckResultPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     manualReviewItems<T extends Book$manualReviewItemsArgs<ExtArgs> = {}>(args?: Subset<T, Book$manualReviewItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ManualReviewItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     chapterQualityAudits<T extends Book$chapterQualityAuditsArgs<ExtArgs> = {}>(args?: Subset<T, Book$chapterQualityAuditsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChapterQualityAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    qcDispatchAlerts<T extends Book$qcDispatchAlertsArgs<ExtArgs> = {}>(args?: Subset<T, Book$qcDispatchAlertsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4672,6 +4776,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ChapterQualityAuditScalarFieldEnum | ChapterQualityAuditScalarFieldEnum[]
+  }
+
+  /**
+   * Book.qcDispatchAlerts
+   */
+  export type Book$qcDispatchAlertsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    where?: QcDispatchAlertEventWhereInput
+    orderBy?: QcDispatchAlertEventOrderByWithRelationInput | QcDispatchAlertEventOrderByWithRelationInput[]
+    cursor?: QcDispatchAlertEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: QcDispatchAlertEventScalarFieldEnum | QcDispatchAlertEventScalarFieldEnum[]
   }
 
   /**
@@ -26743,6 +26871,1298 @@ export namespace Prisma {
 
 
   /**
+   * Model QcDispatchAlertEvent
+   */
+
+  export type AggregateQcDispatchAlertEvent = {
+    _count: QcDispatchAlertEventCountAggregateOutputType | null
+    _avg: QcDispatchAlertEventAvgAggregateOutputType | null
+    _sum: QcDispatchAlertEventSumAggregateOutputType | null
+    _min: QcDispatchAlertEventMinAggregateOutputType | null
+    _max: QcDispatchAlertEventMaxAggregateOutputType | null
+  }
+
+  export type QcDispatchAlertEventAvgAggregateOutputType = {
+    triggerCount: number | null
+  }
+
+  export type QcDispatchAlertEventSumAggregateOutputType = {
+    triggerCount: number | null
+  }
+
+  export type QcDispatchAlertEventMinAggregateOutputType = {
+    id: string | null
+    bookId: string | null
+    source: string | null
+    issueType: string | null
+    alertCode: string | null
+    severity: string | null
+    status: string | null
+    fingerprint: string | null
+    message: string | null
+    recommendedAction: string | null
+    firstTriggeredAt: Date | null
+    lastTriggeredAt: Date | null
+    triggerCount: number | null
+    ackedAt: Date | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type QcDispatchAlertEventMaxAggregateOutputType = {
+    id: string | null
+    bookId: string | null
+    source: string | null
+    issueType: string | null
+    alertCode: string | null
+    severity: string | null
+    status: string | null
+    fingerprint: string | null
+    message: string | null
+    recommendedAction: string | null
+    firstTriggeredAt: Date | null
+    lastTriggeredAt: Date | null
+    triggerCount: number | null
+    ackedAt: Date | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type QcDispatchAlertEventCountAggregateOutputType = {
+    id: number
+    bookId: number
+    source: number
+    issueType: number
+    alertCode: number
+    severity: number
+    status: number
+    fingerprint: number
+    message: number
+    recommendedAction: number
+    values: number
+    snapshot: number
+    firstTriggeredAt: number
+    lastTriggeredAt: number
+    triggerCount: number
+    ackedAt: number
+    resolvedAt: number
+    resolvedBy: number
+    resolutionNote: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type QcDispatchAlertEventAvgAggregateInputType = {
+    triggerCount?: true
+  }
+
+  export type QcDispatchAlertEventSumAggregateInputType = {
+    triggerCount?: true
+  }
+
+  export type QcDispatchAlertEventMinAggregateInputType = {
+    id?: true
+    bookId?: true
+    source?: true
+    issueType?: true
+    alertCode?: true
+    severity?: true
+    status?: true
+    fingerprint?: true
+    message?: true
+    recommendedAction?: true
+    firstTriggeredAt?: true
+    lastTriggeredAt?: true
+    triggerCount?: true
+    ackedAt?: true
+    resolvedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type QcDispatchAlertEventMaxAggregateInputType = {
+    id?: true
+    bookId?: true
+    source?: true
+    issueType?: true
+    alertCode?: true
+    severity?: true
+    status?: true
+    fingerprint?: true
+    message?: true
+    recommendedAction?: true
+    firstTriggeredAt?: true
+    lastTriggeredAt?: true
+    triggerCount?: true
+    ackedAt?: true
+    resolvedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type QcDispatchAlertEventCountAggregateInputType = {
+    id?: true
+    bookId?: true
+    source?: true
+    issueType?: true
+    alertCode?: true
+    severity?: true
+    status?: true
+    fingerprint?: true
+    message?: true
+    recommendedAction?: true
+    values?: true
+    snapshot?: true
+    firstTriggeredAt?: true
+    lastTriggeredAt?: true
+    triggerCount?: true
+    ackedAt?: true
+    resolvedAt?: true
+    resolvedBy?: true
+    resolutionNote?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type QcDispatchAlertEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QcDispatchAlertEvent to aggregate.
+     */
+    where?: QcDispatchAlertEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchAlertEvents to fetch.
+     */
+    orderBy?: QcDispatchAlertEventOrderByWithRelationInput | QcDispatchAlertEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: QcDispatchAlertEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchAlertEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchAlertEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned QcDispatchAlertEvents
+    **/
+    _count?: true | QcDispatchAlertEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: QcDispatchAlertEventAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: QcDispatchAlertEventSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: QcDispatchAlertEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: QcDispatchAlertEventMaxAggregateInputType
+  }
+
+  export type GetQcDispatchAlertEventAggregateType<T extends QcDispatchAlertEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateQcDispatchAlertEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateQcDispatchAlertEvent[P]>
+      : GetScalarType<T[P], AggregateQcDispatchAlertEvent[P]>
+  }
+
+
+
+
+  export type QcDispatchAlertEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QcDispatchAlertEventWhereInput
+    orderBy?: QcDispatchAlertEventOrderByWithAggregationInput | QcDispatchAlertEventOrderByWithAggregationInput[]
+    by: QcDispatchAlertEventScalarFieldEnum[] | QcDispatchAlertEventScalarFieldEnum
+    having?: QcDispatchAlertEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: QcDispatchAlertEventCountAggregateInputType | true
+    _avg?: QcDispatchAlertEventAvgAggregateInputType
+    _sum?: QcDispatchAlertEventSumAggregateInputType
+    _min?: QcDispatchAlertEventMinAggregateInputType
+    _max?: QcDispatchAlertEventMaxAggregateInputType
+  }
+
+  export type QcDispatchAlertEventGroupByOutputType = {
+    id: string
+    bookId: string
+    source: string | null
+    issueType: string | null
+    alertCode: string
+    severity: string
+    status: string
+    fingerprint: string
+    message: string
+    recommendedAction: string | null
+    values: JsonValue
+    snapshot: JsonValue
+    firstTriggeredAt: Date
+    lastTriggeredAt: Date
+    triggerCount: number
+    ackedAt: Date | null
+    resolvedAt: Date | null
+    resolvedBy: string | null
+    resolutionNote: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: QcDispatchAlertEventCountAggregateOutputType | null
+    _avg: QcDispatchAlertEventAvgAggregateOutputType | null
+    _sum: QcDispatchAlertEventSumAggregateOutputType | null
+    _min: QcDispatchAlertEventMinAggregateOutputType | null
+    _max: QcDispatchAlertEventMaxAggregateOutputType | null
+  }
+
+  type GetQcDispatchAlertEventGroupByPayload<T extends QcDispatchAlertEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<QcDispatchAlertEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof QcDispatchAlertEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], QcDispatchAlertEventGroupByOutputType[P]>
+            : GetScalarType<T[P], QcDispatchAlertEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type QcDispatchAlertEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bookId?: boolean
+    source?: boolean
+    issueType?: boolean
+    alertCode?: boolean
+    severity?: boolean
+    status?: boolean
+    fingerprint?: boolean
+    message?: boolean
+    recommendedAction?: boolean
+    values?: boolean
+    snapshot?: boolean
+    firstTriggeredAt?: boolean
+    lastTriggeredAt?: boolean
+    triggerCount?: boolean
+    ackedAt?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchAlertEvent"]>
+
+  export type QcDispatchAlertEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bookId?: boolean
+    source?: boolean
+    issueType?: boolean
+    alertCode?: boolean
+    severity?: boolean
+    status?: boolean
+    fingerprint?: boolean
+    message?: boolean
+    recommendedAction?: boolean
+    values?: boolean
+    snapshot?: boolean
+    firstTriggeredAt?: boolean
+    lastTriggeredAt?: boolean
+    triggerCount?: boolean
+    ackedAt?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchAlertEvent"]>
+
+  export type QcDispatchAlertEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    bookId?: boolean
+    source?: boolean
+    issueType?: boolean
+    alertCode?: boolean
+    severity?: boolean
+    status?: boolean
+    fingerprint?: boolean
+    message?: boolean
+    recommendedAction?: boolean
+    values?: boolean
+    snapshot?: boolean
+    firstTriggeredAt?: boolean
+    lastTriggeredAt?: boolean
+    triggerCount?: boolean
+    ackedAt?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchAlertEvent"]>
+
+  export type QcDispatchAlertEventSelectScalar = {
+    id?: boolean
+    bookId?: boolean
+    source?: boolean
+    issueType?: boolean
+    alertCode?: boolean
+    severity?: boolean
+    status?: boolean
+    fingerprint?: boolean
+    message?: boolean
+    recommendedAction?: boolean
+    values?: boolean
+    snapshot?: boolean
+    firstTriggeredAt?: boolean
+    lastTriggeredAt?: boolean
+    triggerCount?: boolean
+    ackedAt?: boolean
+    resolvedAt?: boolean
+    resolvedBy?: boolean
+    resolutionNote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type QcDispatchAlertEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "source" | "issueType" | "alertCode" | "severity" | "status" | "fingerprint" | "message" | "recommendedAction" | "values" | "snapshot" | "firstTriggeredAt" | "lastTriggeredAt" | "triggerCount" | "ackedAt" | "resolvedAt" | "resolvedBy" | "resolutionNote" | "createdAt" | "updatedAt", ExtArgs["result"]["qcDispatchAlertEvent"]>
+  export type QcDispatchAlertEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }
+  export type QcDispatchAlertEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }
+  export type QcDispatchAlertEventIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+  }
+
+  export type $QcDispatchAlertEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "QcDispatchAlertEvent"
+    objects: {
+      book: Prisma.$BookPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      bookId: string
+      source: string | null
+      issueType: string | null
+      alertCode: string
+      severity: string
+      status: string
+      fingerprint: string
+      message: string
+      recommendedAction: string | null
+      values: Prisma.JsonValue
+      snapshot: Prisma.JsonValue
+      firstTriggeredAt: Date
+      lastTriggeredAt: Date
+      triggerCount: number
+      ackedAt: Date | null
+      resolvedAt: Date | null
+      resolvedBy: string | null
+      resolutionNote: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["qcDispatchAlertEvent"]>
+    composites: {}
+  }
+
+  type QcDispatchAlertEventGetPayload<S extends boolean | null | undefined | QcDispatchAlertEventDefaultArgs> = $Result.GetResult<Prisma.$QcDispatchAlertEventPayload, S>
+
+  type QcDispatchAlertEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<QcDispatchAlertEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: QcDispatchAlertEventCountAggregateInputType | true
+    }
+
+  export interface QcDispatchAlertEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['QcDispatchAlertEvent'], meta: { name: 'QcDispatchAlertEvent' } }
+    /**
+     * Find zero or one QcDispatchAlertEvent that matches the filter.
+     * @param {QcDispatchAlertEventFindUniqueArgs} args - Arguments to find a QcDispatchAlertEvent
+     * @example
+     * // Get one QcDispatchAlertEvent
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends QcDispatchAlertEventFindUniqueArgs>(args: SelectSubset<T, QcDispatchAlertEventFindUniqueArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one QcDispatchAlertEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {QcDispatchAlertEventFindUniqueOrThrowArgs} args - Arguments to find a QcDispatchAlertEvent
+     * @example
+     * // Get one QcDispatchAlertEvent
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends QcDispatchAlertEventFindUniqueOrThrowArgs>(args: SelectSubset<T, QcDispatchAlertEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QcDispatchAlertEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchAlertEventFindFirstArgs} args - Arguments to find a QcDispatchAlertEvent
+     * @example
+     * // Get one QcDispatchAlertEvent
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends QcDispatchAlertEventFindFirstArgs>(args?: SelectSubset<T, QcDispatchAlertEventFindFirstArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QcDispatchAlertEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchAlertEventFindFirstOrThrowArgs} args - Arguments to find a QcDispatchAlertEvent
+     * @example
+     * // Get one QcDispatchAlertEvent
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends QcDispatchAlertEventFindFirstOrThrowArgs>(args?: SelectSubset<T, QcDispatchAlertEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more QcDispatchAlertEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchAlertEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all QcDispatchAlertEvents
+     * const qcDispatchAlertEvents = await prisma.qcDispatchAlertEvent.findMany()
+     * 
+     * // Get first 10 QcDispatchAlertEvents
+     * const qcDispatchAlertEvents = await prisma.qcDispatchAlertEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const qcDispatchAlertEventWithIdOnly = await prisma.qcDispatchAlertEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends QcDispatchAlertEventFindManyArgs>(args?: SelectSubset<T, QcDispatchAlertEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a QcDispatchAlertEvent.
+     * @param {QcDispatchAlertEventCreateArgs} args - Arguments to create a QcDispatchAlertEvent.
+     * @example
+     * // Create one QcDispatchAlertEvent
+     * const QcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.create({
+     *   data: {
+     *     // ... data to create a QcDispatchAlertEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends QcDispatchAlertEventCreateArgs>(args: SelectSubset<T, QcDispatchAlertEventCreateArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many QcDispatchAlertEvents.
+     * @param {QcDispatchAlertEventCreateManyArgs} args - Arguments to create many QcDispatchAlertEvents.
+     * @example
+     * // Create many QcDispatchAlertEvents
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends QcDispatchAlertEventCreateManyArgs>(args?: SelectSubset<T, QcDispatchAlertEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many QcDispatchAlertEvents and returns the data saved in the database.
+     * @param {QcDispatchAlertEventCreateManyAndReturnArgs} args - Arguments to create many QcDispatchAlertEvents.
+     * @example
+     * // Create many QcDispatchAlertEvents
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many QcDispatchAlertEvents and only return the `id`
+     * const qcDispatchAlertEventWithIdOnly = await prisma.qcDispatchAlertEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends QcDispatchAlertEventCreateManyAndReturnArgs>(args?: SelectSubset<T, QcDispatchAlertEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a QcDispatchAlertEvent.
+     * @param {QcDispatchAlertEventDeleteArgs} args - Arguments to delete one QcDispatchAlertEvent.
+     * @example
+     * // Delete one QcDispatchAlertEvent
+     * const QcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.delete({
+     *   where: {
+     *     // ... filter to delete one QcDispatchAlertEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends QcDispatchAlertEventDeleteArgs>(args: SelectSubset<T, QcDispatchAlertEventDeleteArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one QcDispatchAlertEvent.
+     * @param {QcDispatchAlertEventUpdateArgs} args - Arguments to update one QcDispatchAlertEvent.
+     * @example
+     * // Update one QcDispatchAlertEvent
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends QcDispatchAlertEventUpdateArgs>(args: SelectSubset<T, QcDispatchAlertEventUpdateArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more QcDispatchAlertEvents.
+     * @param {QcDispatchAlertEventDeleteManyArgs} args - Arguments to filter QcDispatchAlertEvents to delete.
+     * @example
+     * // Delete a few QcDispatchAlertEvents
+     * const { count } = await prisma.qcDispatchAlertEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends QcDispatchAlertEventDeleteManyArgs>(args?: SelectSubset<T, QcDispatchAlertEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QcDispatchAlertEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchAlertEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many QcDispatchAlertEvents
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends QcDispatchAlertEventUpdateManyArgs>(args: SelectSubset<T, QcDispatchAlertEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QcDispatchAlertEvents and returns the data updated in the database.
+     * @param {QcDispatchAlertEventUpdateManyAndReturnArgs} args - Arguments to update many QcDispatchAlertEvents.
+     * @example
+     * // Update many QcDispatchAlertEvents
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more QcDispatchAlertEvents and only return the `id`
+     * const qcDispatchAlertEventWithIdOnly = await prisma.qcDispatchAlertEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends QcDispatchAlertEventUpdateManyAndReturnArgs>(args: SelectSubset<T, QcDispatchAlertEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one QcDispatchAlertEvent.
+     * @param {QcDispatchAlertEventUpsertArgs} args - Arguments to update or create a QcDispatchAlertEvent.
+     * @example
+     * // Update or create a QcDispatchAlertEvent
+     * const qcDispatchAlertEvent = await prisma.qcDispatchAlertEvent.upsert({
+     *   create: {
+     *     // ... data to create a QcDispatchAlertEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the QcDispatchAlertEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends QcDispatchAlertEventUpsertArgs>(args: SelectSubset<T, QcDispatchAlertEventUpsertArgs<ExtArgs>>): Prisma__QcDispatchAlertEventClient<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of QcDispatchAlertEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchAlertEventCountArgs} args - Arguments to filter QcDispatchAlertEvents to count.
+     * @example
+     * // Count the number of QcDispatchAlertEvents
+     * const count = await prisma.qcDispatchAlertEvent.count({
+     *   where: {
+     *     // ... the filter for the QcDispatchAlertEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends QcDispatchAlertEventCountArgs>(
+      args?: Subset<T, QcDispatchAlertEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], QcDispatchAlertEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a QcDispatchAlertEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchAlertEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends QcDispatchAlertEventAggregateArgs>(args: Subset<T, QcDispatchAlertEventAggregateArgs>): Prisma.PrismaPromise<GetQcDispatchAlertEventAggregateType<T>>
+
+    /**
+     * Group by QcDispatchAlertEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchAlertEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends QcDispatchAlertEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: QcDispatchAlertEventGroupByArgs['orderBy'] }
+        : { orderBy?: QcDispatchAlertEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, QcDispatchAlertEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetQcDispatchAlertEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the QcDispatchAlertEvent model
+   */
+  readonly fields: QcDispatchAlertEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for QcDispatchAlertEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__QcDispatchAlertEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    book<T extends BookDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BookDefaultArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the QcDispatchAlertEvent model
+   */
+  interface QcDispatchAlertEventFieldRefs {
+    readonly id: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly bookId: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly source: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly issueType: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly alertCode: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly severity: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly status: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly fingerprint: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly message: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly recommendedAction: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly values: FieldRef<"QcDispatchAlertEvent", 'Json'>
+    readonly snapshot: FieldRef<"QcDispatchAlertEvent", 'Json'>
+    readonly firstTriggeredAt: FieldRef<"QcDispatchAlertEvent", 'DateTime'>
+    readonly lastTriggeredAt: FieldRef<"QcDispatchAlertEvent", 'DateTime'>
+    readonly triggerCount: FieldRef<"QcDispatchAlertEvent", 'Int'>
+    readonly ackedAt: FieldRef<"QcDispatchAlertEvent", 'DateTime'>
+    readonly resolvedAt: FieldRef<"QcDispatchAlertEvent", 'DateTime'>
+    readonly resolvedBy: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly resolutionNote: FieldRef<"QcDispatchAlertEvent", 'String'>
+    readonly createdAt: FieldRef<"QcDispatchAlertEvent", 'DateTime'>
+    readonly updatedAt: FieldRef<"QcDispatchAlertEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * QcDispatchAlertEvent findUnique
+   */
+  export type QcDispatchAlertEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchAlertEvent to fetch.
+     */
+    where: QcDispatchAlertEventWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchAlertEvent findUniqueOrThrow
+   */
+  export type QcDispatchAlertEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchAlertEvent to fetch.
+     */
+    where: QcDispatchAlertEventWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchAlertEvent findFirst
+   */
+  export type QcDispatchAlertEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchAlertEvent to fetch.
+     */
+    where?: QcDispatchAlertEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchAlertEvents to fetch.
+     */
+    orderBy?: QcDispatchAlertEventOrderByWithRelationInput | QcDispatchAlertEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QcDispatchAlertEvents.
+     */
+    cursor?: QcDispatchAlertEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchAlertEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchAlertEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QcDispatchAlertEvents.
+     */
+    distinct?: QcDispatchAlertEventScalarFieldEnum | QcDispatchAlertEventScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchAlertEvent findFirstOrThrow
+   */
+  export type QcDispatchAlertEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchAlertEvent to fetch.
+     */
+    where?: QcDispatchAlertEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchAlertEvents to fetch.
+     */
+    orderBy?: QcDispatchAlertEventOrderByWithRelationInput | QcDispatchAlertEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QcDispatchAlertEvents.
+     */
+    cursor?: QcDispatchAlertEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchAlertEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchAlertEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QcDispatchAlertEvents.
+     */
+    distinct?: QcDispatchAlertEventScalarFieldEnum | QcDispatchAlertEventScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchAlertEvent findMany
+   */
+  export type QcDispatchAlertEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchAlertEvents to fetch.
+     */
+    where?: QcDispatchAlertEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchAlertEvents to fetch.
+     */
+    orderBy?: QcDispatchAlertEventOrderByWithRelationInput | QcDispatchAlertEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing QcDispatchAlertEvents.
+     */
+    cursor?: QcDispatchAlertEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchAlertEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchAlertEvents.
+     */
+    skip?: number
+    distinct?: QcDispatchAlertEventScalarFieldEnum | QcDispatchAlertEventScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchAlertEvent create
+   */
+  export type QcDispatchAlertEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a QcDispatchAlertEvent.
+     */
+    data: XOR<QcDispatchAlertEventCreateInput, QcDispatchAlertEventUncheckedCreateInput>
+  }
+
+  /**
+   * QcDispatchAlertEvent createMany
+   */
+  export type QcDispatchAlertEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many QcDispatchAlertEvents.
+     */
+    data: QcDispatchAlertEventCreateManyInput | QcDispatchAlertEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * QcDispatchAlertEvent createManyAndReturn
+   */
+  export type QcDispatchAlertEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many QcDispatchAlertEvents.
+     */
+    data: QcDispatchAlertEventCreateManyInput | QcDispatchAlertEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QcDispatchAlertEvent update
+   */
+  export type QcDispatchAlertEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a QcDispatchAlertEvent.
+     */
+    data: XOR<QcDispatchAlertEventUpdateInput, QcDispatchAlertEventUncheckedUpdateInput>
+    /**
+     * Choose, which QcDispatchAlertEvent to update.
+     */
+    where: QcDispatchAlertEventWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchAlertEvent updateMany
+   */
+  export type QcDispatchAlertEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update QcDispatchAlertEvents.
+     */
+    data: XOR<QcDispatchAlertEventUpdateManyMutationInput, QcDispatchAlertEventUncheckedUpdateManyInput>
+    /**
+     * Filter which QcDispatchAlertEvents to update
+     */
+    where?: QcDispatchAlertEventWhereInput
+    /**
+     * Limit how many QcDispatchAlertEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * QcDispatchAlertEvent updateManyAndReturn
+   */
+  export type QcDispatchAlertEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * The data used to update QcDispatchAlertEvents.
+     */
+    data: XOR<QcDispatchAlertEventUpdateManyMutationInput, QcDispatchAlertEventUncheckedUpdateManyInput>
+    /**
+     * Filter which QcDispatchAlertEvents to update
+     */
+    where?: QcDispatchAlertEventWhereInput
+    /**
+     * Limit how many QcDispatchAlertEvents to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QcDispatchAlertEvent upsert
+   */
+  export type QcDispatchAlertEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the QcDispatchAlertEvent to update in case it exists.
+     */
+    where: QcDispatchAlertEventWhereUniqueInput
+    /**
+     * In case the QcDispatchAlertEvent found by the `where` argument doesn't exist, create a new QcDispatchAlertEvent with this data.
+     */
+    create: XOR<QcDispatchAlertEventCreateInput, QcDispatchAlertEventUncheckedCreateInput>
+    /**
+     * In case the QcDispatchAlertEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<QcDispatchAlertEventUpdateInput, QcDispatchAlertEventUncheckedUpdateInput>
+  }
+
+  /**
+   * QcDispatchAlertEvent delete
+   */
+  export type QcDispatchAlertEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+    /**
+     * Filter which QcDispatchAlertEvent to delete.
+     */
+    where: QcDispatchAlertEventWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchAlertEvent deleteMany
+   */
+  export type QcDispatchAlertEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QcDispatchAlertEvents to delete
+     */
+    where?: QcDispatchAlertEventWhereInput
+    /**
+     * Limit how many QcDispatchAlertEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * QcDispatchAlertEvent without action
+   */
+  export type QcDispatchAlertEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchAlertEvent
+     */
+    select?: QcDispatchAlertEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchAlertEvent
+     */
+    omit?: QcDispatchAlertEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchAlertEventInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model ChapterQualityAudit
    */
 
@@ -28345,6 +29765,33 @@ export namespace Prisma {
   export type ManualReviewItemScalarFieldEnum = (typeof ManualReviewItemScalarFieldEnum)[keyof typeof ManualReviewItemScalarFieldEnum]
 
 
+  export const QcDispatchAlertEventScalarFieldEnum: {
+    id: 'id',
+    bookId: 'bookId',
+    source: 'source',
+    issueType: 'issueType',
+    alertCode: 'alertCode',
+    severity: 'severity',
+    status: 'status',
+    fingerprint: 'fingerprint',
+    message: 'message',
+    recommendedAction: 'recommendedAction',
+    values: 'values',
+    snapshot: 'snapshot',
+    firstTriggeredAt: 'firstTriggeredAt',
+    lastTriggeredAt: 'lastTriggeredAt',
+    triggerCount: 'triggerCount',
+    ackedAt: 'ackedAt',
+    resolvedAt: 'resolvedAt',
+    resolvedBy: 'resolvedBy',
+    resolutionNote: 'resolutionNote',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type QcDispatchAlertEventScalarFieldEnum = (typeof QcDispatchAlertEventScalarFieldEnum)[keyof typeof QcDispatchAlertEventScalarFieldEnum]
+
+
   export const ChapterQualityAuditScalarFieldEnum: {
     id: 'id',
     bookId: 'bookId',
@@ -28572,6 +30019,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultListRelationFilter
     manualReviewItems?: ManualReviewItemListRelationFilter
     chapterQualityAudits?: ChapterQualityAuditListRelationFilter
+    qcDispatchAlerts?: QcDispatchAlertEventListRelationFilter
   }
 
   export type BookOrderByWithRelationInput = {
@@ -28602,6 +30050,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultOrderByRelationAggregateInput
     manualReviewItems?: ManualReviewItemOrderByRelationAggregateInput
     chapterQualityAudits?: ChapterQualityAuditOrderByRelationAggregateInput
+    qcDispatchAlerts?: QcDispatchAlertEventOrderByRelationAggregateInput
   }
 
   export type BookWhereUniqueInput = Prisma.AtLeast<{
@@ -28635,6 +30084,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultListRelationFilter
     manualReviewItems?: ManualReviewItemListRelationFilter
     chapterQualityAudits?: ChapterQualityAuditListRelationFilter
+    qcDispatchAlerts?: QcDispatchAlertEventListRelationFilter
   }, "id">
 
   export type BookOrderByWithAggregationInput = {
@@ -30587,6 +32037,143 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"ManualReviewItem"> | Date | string
   }
 
+  export type QcDispatchAlertEventWhereInput = {
+    AND?: QcDispatchAlertEventWhereInput | QcDispatchAlertEventWhereInput[]
+    OR?: QcDispatchAlertEventWhereInput[]
+    NOT?: QcDispatchAlertEventWhereInput | QcDispatchAlertEventWhereInput[]
+    id?: StringFilter<"QcDispatchAlertEvent"> | string
+    bookId?: StringFilter<"QcDispatchAlertEvent"> | string
+    source?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    issueType?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    alertCode?: StringFilter<"QcDispatchAlertEvent"> | string
+    severity?: StringFilter<"QcDispatchAlertEvent"> | string
+    status?: StringFilter<"QcDispatchAlertEvent"> | string
+    fingerprint?: StringFilter<"QcDispatchAlertEvent"> | string
+    message?: StringFilter<"QcDispatchAlertEvent"> | string
+    recommendedAction?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    values?: JsonFilter<"QcDispatchAlertEvent">
+    snapshot?: JsonFilter<"QcDispatchAlertEvent">
+    firstTriggeredAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    lastTriggeredAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    triggerCount?: IntFilter<"QcDispatchAlertEvent"> | number
+    ackedAt?: DateTimeNullableFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedAt?: DateTimeNullableFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    resolutionNote?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    updatedAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    book?: XOR<BookScalarRelationFilter, BookWhereInput>
+  }
+
+  export type QcDispatchAlertEventOrderByWithRelationInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    source?: SortOrderInput | SortOrder
+    issueType?: SortOrderInput | SortOrder
+    alertCode?: SortOrder
+    severity?: SortOrder
+    status?: SortOrder
+    fingerprint?: SortOrder
+    message?: SortOrder
+    recommendedAction?: SortOrderInput | SortOrder
+    values?: SortOrder
+    snapshot?: SortOrder
+    firstTriggeredAt?: SortOrder
+    lastTriggeredAt?: SortOrder
+    triggerCount?: SortOrder
+    ackedAt?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolutionNote?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    book?: BookOrderByWithRelationInput
+  }
+
+  export type QcDispatchAlertEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: QcDispatchAlertEventWhereInput | QcDispatchAlertEventWhereInput[]
+    OR?: QcDispatchAlertEventWhereInput[]
+    NOT?: QcDispatchAlertEventWhereInput | QcDispatchAlertEventWhereInput[]
+    bookId?: StringFilter<"QcDispatchAlertEvent"> | string
+    source?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    issueType?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    alertCode?: StringFilter<"QcDispatchAlertEvent"> | string
+    severity?: StringFilter<"QcDispatchAlertEvent"> | string
+    status?: StringFilter<"QcDispatchAlertEvent"> | string
+    fingerprint?: StringFilter<"QcDispatchAlertEvent"> | string
+    message?: StringFilter<"QcDispatchAlertEvent"> | string
+    recommendedAction?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    values?: JsonFilter<"QcDispatchAlertEvent">
+    snapshot?: JsonFilter<"QcDispatchAlertEvent">
+    firstTriggeredAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    lastTriggeredAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    triggerCount?: IntFilter<"QcDispatchAlertEvent"> | number
+    ackedAt?: DateTimeNullableFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedAt?: DateTimeNullableFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    resolutionNote?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    updatedAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    book?: XOR<BookScalarRelationFilter, BookWhereInput>
+  }, "id">
+
+  export type QcDispatchAlertEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    source?: SortOrderInput | SortOrder
+    issueType?: SortOrderInput | SortOrder
+    alertCode?: SortOrder
+    severity?: SortOrder
+    status?: SortOrder
+    fingerprint?: SortOrder
+    message?: SortOrder
+    recommendedAction?: SortOrderInput | SortOrder
+    values?: SortOrder
+    snapshot?: SortOrder
+    firstTriggeredAt?: SortOrder
+    lastTriggeredAt?: SortOrder
+    triggerCount?: SortOrder
+    ackedAt?: SortOrderInput | SortOrder
+    resolvedAt?: SortOrderInput | SortOrder
+    resolvedBy?: SortOrderInput | SortOrder
+    resolutionNote?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: QcDispatchAlertEventCountOrderByAggregateInput
+    _avg?: QcDispatchAlertEventAvgOrderByAggregateInput
+    _max?: QcDispatchAlertEventMaxOrderByAggregateInput
+    _min?: QcDispatchAlertEventMinOrderByAggregateInput
+    _sum?: QcDispatchAlertEventSumOrderByAggregateInput
+  }
+
+  export type QcDispatchAlertEventScalarWhereWithAggregatesInput = {
+    AND?: QcDispatchAlertEventScalarWhereWithAggregatesInput | QcDispatchAlertEventScalarWhereWithAggregatesInput[]
+    OR?: QcDispatchAlertEventScalarWhereWithAggregatesInput[]
+    NOT?: QcDispatchAlertEventScalarWhereWithAggregatesInput | QcDispatchAlertEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"QcDispatchAlertEvent"> | string
+    bookId?: StringWithAggregatesFilter<"QcDispatchAlertEvent"> | string
+    source?: StringNullableWithAggregatesFilter<"QcDispatchAlertEvent"> | string | null
+    issueType?: StringNullableWithAggregatesFilter<"QcDispatchAlertEvent"> | string | null
+    alertCode?: StringWithAggregatesFilter<"QcDispatchAlertEvent"> | string
+    severity?: StringWithAggregatesFilter<"QcDispatchAlertEvent"> | string
+    status?: StringWithAggregatesFilter<"QcDispatchAlertEvent"> | string
+    fingerprint?: StringWithAggregatesFilter<"QcDispatchAlertEvent"> | string
+    message?: StringWithAggregatesFilter<"QcDispatchAlertEvent"> | string
+    recommendedAction?: StringNullableWithAggregatesFilter<"QcDispatchAlertEvent"> | string | null
+    values?: JsonWithAggregatesFilter<"QcDispatchAlertEvent">
+    snapshot?: JsonWithAggregatesFilter<"QcDispatchAlertEvent">
+    firstTriggeredAt?: DateTimeWithAggregatesFilter<"QcDispatchAlertEvent"> | Date | string
+    lastTriggeredAt?: DateTimeWithAggregatesFilter<"QcDispatchAlertEvent"> | Date | string
+    triggerCount?: IntWithAggregatesFilter<"QcDispatchAlertEvent"> | number
+    ackedAt?: DateTimeNullableWithAggregatesFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedAt?: DateTimeNullableWithAggregatesFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedBy?: StringNullableWithAggregatesFilter<"QcDispatchAlertEvent"> | string | null
+    resolutionNote?: StringNullableWithAggregatesFilter<"QcDispatchAlertEvent"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"QcDispatchAlertEvent"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"QcDispatchAlertEvent"> | Date | string
+  }
+
   export type ChapterQualityAuditWhereInput = {
     AND?: ChapterQualityAuditWhereInput | ChapterQualityAuditWhereInput[]
     OR?: ChapterQualityAuditWhereInput[]
@@ -30725,6 +32312,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateInput = {
@@ -30755,6 +32343,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookUpdateInput = {
@@ -30785,6 +32374,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateInput = {
@@ -30815,6 +32405,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type BookCreateManyInput = {
@@ -32969,6 +34560,173 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type QcDispatchAlertEventCreateInput = {
+    id?: string
+    source?: string | null
+    issueType?: string | null
+    alertCode: string
+    severity: string
+    status?: string
+    fingerprint: string
+    message: string
+    recommendedAction?: string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: Date | string
+    lastTriggeredAt?: Date | string
+    triggerCount?: number
+    ackedAt?: Date | string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book: BookCreateNestedOneWithoutQcDispatchAlertsInput
+  }
+
+  export type QcDispatchAlertEventUncheckedCreateInput = {
+    id?: string
+    bookId: string
+    source?: string | null
+    issueType?: string | null
+    alertCode: string
+    severity: string
+    status?: string
+    fingerprint: string
+    message: string
+    recommendedAction?: string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: Date | string
+    lastTriggeredAt?: Date | string
+    triggerCount?: number
+    ackedAt?: Date | string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchAlertEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    issueType?: NullableStringFieldUpdateOperationsInput | string | null
+    alertCode?: StringFieldUpdateOperationsInput | string
+    severity?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    recommendedAction?: NullableStringFieldUpdateOperationsInput | string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    triggerCount?: IntFieldUpdateOperationsInput | number
+    ackedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneRequiredWithoutQcDispatchAlertsNestedInput
+  }
+
+  export type QcDispatchAlertEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    issueType?: NullableStringFieldUpdateOperationsInput | string | null
+    alertCode?: StringFieldUpdateOperationsInput | string
+    severity?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    recommendedAction?: NullableStringFieldUpdateOperationsInput | string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    triggerCount?: IntFieldUpdateOperationsInput | number
+    ackedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchAlertEventCreateManyInput = {
+    id?: string
+    bookId: string
+    source?: string | null
+    issueType?: string | null
+    alertCode: string
+    severity: string
+    status?: string
+    fingerprint: string
+    message: string
+    recommendedAction?: string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: Date | string
+    lastTriggeredAt?: Date | string
+    triggerCount?: number
+    ackedAt?: Date | string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchAlertEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    issueType?: NullableStringFieldUpdateOperationsInput | string | null
+    alertCode?: StringFieldUpdateOperationsInput | string
+    severity?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    recommendedAction?: NullableStringFieldUpdateOperationsInput | string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    triggerCount?: IntFieldUpdateOperationsInput | number
+    ackedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchAlertEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    issueType?: NullableStringFieldUpdateOperationsInput | string | null
+    alertCode?: StringFieldUpdateOperationsInput | string
+    severity?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    recommendedAction?: NullableStringFieldUpdateOperationsInput | string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    triggerCount?: IntFieldUpdateOperationsInput | number
+    ackedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ChapterQualityAuditCreateInput = {
     id?: string
     auditBatchId: string
@@ -33256,6 +35014,12 @@ export namespace Prisma {
     none?: ChapterQualityAuditWhereInput
   }
 
+  export type QcDispatchAlertEventListRelationFilter = {
+    every?: QcDispatchAlertEventWhereInput
+    some?: QcDispatchAlertEventWhereInput
+    none?: QcDispatchAlertEventWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -33302,6 +35066,10 @@ export namespace Prisma {
   }
 
   export type ChapterQualityAuditOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type QcDispatchAlertEventOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -34791,6 +36559,82 @@ export namespace Prisma {
     updatedAt?: SortOrder
   }
 
+  export type QcDispatchAlertEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    source?: SortOrder
+    issueType?: SortOrder
+    alertCode?: SortOrder
+    severity?: SortOrder
+    status?: SortOrder
+    fingerprint?: SortOrder
+    message?: SortOrder
+    recommendedAction?: SortOrder
+    values?: SortOrder
+    snapshot?: SortOrder
+    firstTriggeredAt?: SortOrder
+    lastTriggeredAt?: SortOrder
+    triggerCount?: SortOrder
+    ackedAt?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QcDispatchAlertEventAvgOrderByAggregateInput = {
+    triggerCount?: SortOrder
+  }
+
+  export type QcDispatchAlertEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    source?: SortOrder
+    issueType?: SortOrder
+    alertCode?: SortOrder
+    severity?: SortOrder
+    status?: SortOrder
+    fingerprint?: SortOrder
+    message?: SortOrder
+    recommendedAction?: SortOrder
+    firstTriggeredAt?: SortOrder
+    lastTriggeredAt?: SortOrder
+    triggerCount?: SortOrder
+    ackedAt?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QcDispatchAlertEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    bookId?: SortOrder
+    source?: SortOrder
+    issueType?: SortOrder
+    alertCode?: SortOrder
+    severity?: SortOrder
+    status?: SortOrder
+    fingerprint?: SortOrder
+    message?: SortOrder
+    recommendedAction?: SortOrder
+    firstTriggeredAt?: SortOrder
+    lastTriggeredAt?: SortOrder
+    triggerCount?: SortOrder
+    ackedAt?: SortOrder
+    resolvedAt?: SortOrder
+    resolvedBy?: SortOrder
+    resolutionNote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QcDispatchAlertEventSumOrderByAggregateInput = {
+    triggerCount?: SortOrder
+  }
+
   export type ChapterScalarRelationFilter = {
     is?: ChapterWhereInput
     isNot?: ChapterWhereInput
@@ -34935,6 +36779,13 @@ export namespace Prisma {
     connect?: ChapterQualityAuditWhereUniqueInput | ChapterQualityAuditWhereUniqueInput[]
   }
 
+  export type QcDispatchAlertEventCreateNestedManyWithoutBookInput = {
+    create?: XOR<QcDispatchAlertEventCreateWithoutBookInput, QcDispatchAlertEventUncheckedCreateWithoutBookInput> | QcDispatchAlertEventCreateWithoutBookInput[] | QcDispatchAlertEventUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchAlertEventCreateOrConnectWithoutBookInput | QcDispatchAlertEventCreateOrConnectWithoutBookInput[]
+    createMany?: QcDispatchAlertEventCreateManyBookInputEnvelope
+    connect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+  }
+
   export type AudioFileUncheckedCreateNestedManyWithoutBookInput = {
     create?: XOR<AudioFileCreateWithoutBookInput, AudioFileUncheckedCreateWithoutBookInput> | AudioFileCreateWithoutBookInput[] | AudioFileUncheckedCreateWithoutBookInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutBookInput | AudioFileCreateOrConnectWithoutBookInput[]
@@ -35010,6 +36861,13 @@ export namespace Prisma {
     connectOrCreate?: ChapterQualityAuditCreateOrConnectWithoutBookInput | ChapterQualityAuditCreateOrConnectWithoutBookInput[]
     createMany?: ChapterQualityAuditCreateManyBookInputEnvelope
     connect?: ChapterQualityAuditWhereUniqueInput | ChapterQualityAuditWhereUniqueInput[]
+  }
+
+  export type QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput = {
+    create?: XOR<QcDispatchAlertEventCreateWithoutBookInput, QcDispatchAlertEventUncheckedCreateWithoutBookInput> | QcDispatchAlertEventCreateWithoutBookInput[] | QcDispatchAlertEventUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchAlertEventCreateOrConnectWithoutBookInput | QcDispatchAlertEventCreateOrConnectWithoutBookInput[]
+    createMany?: QcDispatchAlertEventCreateManyBookInputEnvelope
+    connect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -35202,6 +37060,20 @@ export namespace Prisma {
     deleteMany?: ChapterQualityAuditScalarWhereInput | ChapterQualityAuditScalarWhereInput[]
   }
 
+  export type QcDispatchAlertEventUpdateManyWithoutBookNestedInput = {
+    create?: XOR<QcDispatchAlertEventCreateWithoutBookInput, QcDispatchAlertEventUncheckedCreateWithoutBookInput> | QcDispatchAlertEventCreateWithoutBookInput[] | QcDispatchAlertEventUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchAlertEventCreateOrConnectWithoutBookInput | QcDispatchAlertEventCreateOrConnectWithoutBookInput[]
+    upsert?: QcDispatchAlertEventUpsertWithWhereUniqueWithoutBookInput | QcDispatchAlertEventUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: QcDispatchAlertEventCreateManyBookInputEnvelope
+    set?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    disconnect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    delete?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    connect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    update?: QcDispatchAlertEventUpdateWithWhereUniqueWithoutBookInput | QcDispatchAlertEventUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: QcDispatchAlertEventUpdateManyWithWhereWithoutBookInput | QcDispatchAlertEventUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: QcDispatchAlertEventScalarWhereInput | QcDispatchAlertEventScalarWhereInput[]
+  }
+
   export type AudioFileUncheckedUpdateManyWithoutBookNestedInput = {
     create?: XOR<AudioFileCreateWithoutBookInput, AudioFileUncheckedCreateWithoutBookInput> | AudioFileCreateWithoutBookInput[] | AudioFileUncheckedCreateWithoutBookInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutBookInput | AudioFileCreateOrConnectWithoutBookInput[]
@@ -35354,6 +37226,20 @@ export namespace Prisma {
     update?: ChapterQualityAuditUpdateWithWhereUniqueWithoutBookInput | ChapterQualityAuditUpdateWithWhereUniqueWithoutBookInput[]
     updateMany?: ChapterQualityAuditUpdateManyWithWhereWithoutBookInput | ChapterQualityAuditUpdateManyWithWhereWithoutBookInput[]
     deleteMany?: ChapterQualityAuditScalarWhereInput | ChapterQualityAuditScalarWhereInput[]
+  }
+
+  export type QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput = {
+    create?: XOR<QcDispatchAlertEventCreateWithoutBookInput, QcDispatchAlertEventUncheckedCreateWithoutBookInput> | QcDispatchAlertEventCreateWithoutBookInput[] | QcDispatchAlertEventUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchAlertEventCreateOrConnectWithoutBookInput | QcDispatchAlertEventCreateOrConnectWithoutBookInput[]
+    upsert?: QcDispatchAlertEventUpsertWithWhereUniqueWithoutBookInput | QcDispatchAlertEventUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: QcDispatchAlertEventCreateManyBookInputEnvelope
+    set?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    disconnect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    delete?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    connect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+    update?: QcDispatchAlertEventUpdateWithWhereUniqueWithoutBookInput | QcDispatchAlertEventUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: QcDispatchAlertEventUpdateManyWithWhereWithoutBookInput | QcDispatchAlertEventUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: QcDispatchAlertEventScalarWhereInput | QcDispatchAlertEventScalarWhereInput[]
   }
 
   export type BookCreateNestedOneWithoutChaptersInput = {
@@ -37516,6 +39402,20 @@ export namespace Prisma {
     update?: XOR<XOR<QualityCheckResultUpdateToOneWithWhereWithoutManualReviewItemsInput, QualityCheckResultUpdateWithoutManualReviewItemsInput>, QualityCheckResultUncheckedUpdateWithoutManualReviewItemsInput>
   }
 
+  export type BookCreateNestedOneWithoutQcDispatchAlertsInput = {
+    create?: XOR<BookCreateWithoutQcDispatchAlertsInput, BookUncheckedCreateWithoutQcDispatchAlertsInput>
+    connectOrCreate?: BookCreateOrConnectWithoutQcDispatchAlertsInput
+    connect?: BookWhereUniqueInput
+  }
+
+  export type BookUpdateOneRequiredWithoutQcDispatchAlertsNestedInput = {
+    create?: XOR<BookCreateWithoutQcDispatchAlertsInput, BookUncheckedCreateWithoutQcDispatchAlertsInput>
+    connectOrCreate?: BookCreateOrConnectWithoutQcDispatchAlertsInput
+    upsert?: BookUpsertWithoutQcDispatchAlertsInput
+    connect?: BookWhereUniqueInput
+    update?: XOR<XOR<BookUpdateToOneWithWhereWithoutQcDispatchAlertsInput, BookUpdateWithoutQcDispatchAlertsInput>, BookUncheckedUpdateWithoutQcDispatchAlertsInput>
+  }
+
   export type BookCreateNestedOneWithoutChapterQualityAuditsInput = {
     create?: XOR<BookCreateWithoutChapterQualityAuditsInput, BookUncheckedCreateWithoutChapterQualityAuditsInput>
     connectOrCreate?: BookCreateOrConnectWithoutChapterQualityAuditsInput
@@ -38455,6 +40355,62 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type QcDispatchAlertEventCreateWithoutBookInput = {
+    id?: string
+    source?: string | null
+    issueType?: string | null
+    alertCode: string
+    severity: string
+    status?: string
+    fingerprint: string
+    message: string
+    recommendedAction?: string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: Date | string
+    lastTriggeredAt?: Date | string
+    triggerCount?: number
+    ackedAt?: Date | string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchAlertEventUncheckedCreateWithoutBookInput = {
+    id?: string
+    source?: string | null
+    issueType?: string | null
+    alertCode: string
+    severity: string
+    status?: string
+    fingerprint: string
+    message: string
+    recommendedAction?: string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: Date | string
+    lastTriggeredAt?: Date | string
+    triggerCount?: number
+    ackedAt?: Date | string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchAlertEventCreateOrConnectWithoutBookInput = {
+    where: QcDispatchAlertEventWhereUniqueInput
+    create: XOR<QcDispatchAlertEventCreateWithoutBookInput, QcDispatchAlertEventUncheckedCreateWithoutBookInput>
+  }
+
+  export type QcDispatchAlertEventCreateManyBookInputEnvelope = {
+    data: QcDispatchAlertEventCreateManyBookInput | QcDispatchAlertEventCreateManyBookInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AudioFileUpsertWithWhereUniqueWithoutBookInput = {
     where: AudioFileWhereUniqueInput
     update: XOR<AudioFileUpdateWithoutBookInput, AudioFileUncheckedUpdateWithoutBookInput>
@@ -38875,6 +40831,49 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ChapterQualityAudit"> | Date | string
   }
 
+  export type QcDispatchAlertEventUpsertWithWhereUniqueWithoutBookInput = {
+    where: QcDispatchAlertEventWhereUniqueInput
+    update: XOR<QcDispatchAlertEventUpdateWithoutBookInput, QcDispatchAlertEventUncheckedUpdateWithoutBookInput>
+    create: XOR<QcDispatchAlertEventCreateWithoutBookInput, QcDispatchAlertEventUncheckedCreateWithoutBookInput>
+  }
+
+  export type QcDispatchAlertEventUpdateWithWhereUniqueWithoutBookInput = {
+    where: QcDispatchAlertEventWhereUniqueInput
+    data: XOR<QcDispatchAlertEventUpdateWithoutBookInput, QcDispatchAlertEventUncheckedUpdateWithoutBookInput>
+  }
+
+  export type QcDispatchAlertEventUpdateManyWithWhereWithoutBookInput = {
+    where: QcDispatchAlertEventScalarWhereInput
+    data: XOR<QcDispatchAlertEventUpdateManyMutationInput, QcDispatchAlertEventUncheckedUpdateManyWithoutBookInput>
+  }
+
+  export type QcDispatchAlertEventScalarWhereInput = {
+    AND?: QcDispatchAlertEventScalarWhereInput | QcDispatchAlertEventScalarWhereInput[]
+    OR?: QcDispatchAlertEventScalarWhereInput[]
+    NOT?: QcDispatchAlertEventScalarWhereInput | QcDispatchAlertEventScalarWhereInput[]
+    id?: StringFilter<"QcDispatchAlertEvent"> | string
+    bookId?: StringFilter<"QcDispatchAlertEvent"> | string
+    source?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    issueType?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    alertCode?: StringFilter<"QcDispatchAlertEvent"> | string
+    severity?: StringFilter<"QcDispatchAlertEvent"> | string
+    status?: StringFilter<"QcDispatchAlertEvent"> | string
+    fingerprint?: StringFilter<"QcDispatchAlertEvent"> | string
+    message?: StringFilter<"QcDispatchAlertEvent"> | string
+    recommendedAction?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    values?: JsonFilter<"QcDispatchAlertEvent">
+    snapshot?: JsonFilter<"QcDispatchAlertEvent">
+    firstTriggeredAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    lastTriggeredAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    triggerCount?: IntFilter<"QcDispatchAlertEvent"> | number
+    ackedAt?: DateTimeNullableFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedAt?: DateTimeNullableFilter<"QcDispatchAlertEvent"> | Date | string | null
+    resolvedBy?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    resolutionNote?: StringNullableFilter<"QcDispatchAlertEvent"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+    updatedAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
+  }
+
   export type BookCreateWithoutChaptersInput = {
     id?: string
     title: string
@@ -38902,6 +40901,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutChaptersInput = {
@@ -38931,6 +40931,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutChaptersInput = {
@@ -39362,6 +41363,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutChaptersInput = {
@@ -39391,6 +41393,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type TextSegmentUpsertWithWhereUniqueWithoutChapterInput = {
@@ -39614,6 +41617,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutCharacterProfilesInput = {
@@ -39643,6 +41647,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutCharacterProfilesInput = {
@@ -39866,6 +41871,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutCharacterProfilesInput = {
@@ -39895,6 +41901,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterVoiceBindingUpsertWithWhereUniqueWithoutCharacterInput = {
@@ -40711,6 +42718,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutTextSegmentsInput = {
@@ -40740,6 +42748,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutTextSegmentsInput = {
@@ -40916,6 +42925,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutTextSegmentsInput = {
@@ -40945,6 +42955,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutSegmentsInput = {
@@ -41261,6 +43272,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutScriptSentencesInput = {
@@ -41290,6 +43302,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutScriptSentencesInput = {
@@ -41546,6 +43559,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutScriptSentencesInput = {
@@ -41575,6 +43589,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterProfileUpsertWithoutScriptSentencesInput = {
@@ -41769,6 +43784,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutAudioFilesInput = {
@@ -41798,6 +43814,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutAudioFilesInput = {
@@ -42203,6 +44220,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutAudioFilesInput = {
@@ -42232,6 +44250,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type TextSegmentUpsertWithoutAudioFilesInput = {
@@ -42527,6 +44546,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutMergeAuditsInput = {
@@ -42556,6 +44576,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutMergeAuditsInput = {
@@ -42699,6 +44720,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutMergeAuditsInput = {
@@ -42728,6 +44750,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterProfileUpsertWithoutMergeAuditsSourceInput = {
@@ -42867,6 +44890,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutProcessingTasksInput = {
@@ -42896,6 +44920,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutProcessingTasksInput = {
@@ -42941,6 +44966,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutProcessingTasksInput = {
@@ -42970,6 +44996,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterSpeakerBindingCreateWithoutSpeakerProfileInput = {
@@ -43718,6 +45745,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutSynthesisAttemptsInput = {
@@ -43747,6 +45775,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutSynthesisAttemptsInput = {
@@ -44187,6 +46216,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutSynthesisAttemptsInput = {
@@ -44216,6 +46246,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutSynthesisAttemptsInput = {
@@ -44606,6 +46637,7 @@ export namespace Prisma {
     chapters?: ChapterCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutQualityCheckResultsInput = {
@@ -44635,6 +46667,7 @@ export namespace Prisma {
     chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutQualityCheckResultsInput = {
@@ -45001,6 +47034,7 @@ export namespace Prisma {
     chapters?: ChapterUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutQualityCheckResultsInput = {
@@ -45030,6 +47064,7 @@ export namespace Prisma {
     chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutQualityCheckResultsInput = {
@@ -45376,6 +47411,7 @@ export namespace Prisma {
     chapters?: ChapterCreateNestedManyWithoutBookInput
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutManualReviewItemsInput = {
@@ -45405,6 +47441,7 @@ export namespace Prisma {
     chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutManualReviewItemsInput = {
@@ -45768,6 +47805,7 @@ export namespace Prisma {
     chapters?: ChapterUpdateManyWithoutBookNestedInput
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutManualReviewItemsInput = {
@@ -45797,6 +47835,7 @@ export namespace Prisma {
     chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutManualReviewItemsInput = {
@@ -46153,6 +48192,142 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type BookCreateWithoutQcDispatchAlertsInput = {
+    id?: string
+    title: string
+    author?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
+    synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
+    qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
+    manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
+    chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+  }
+
+  export type BookUncheckedCreateWithoutQcDispatchAlertsInput = {
+    id?: string
+    title: string
+    author?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
+    synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
+    qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
+    manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
+    chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+  }
+
+  export type BookCreateOrConnectWithoutQcDispatchAlertsInput = {
+    where: BookWhereUniqueInput
+    create: XOR<BookCreateWithoutQcDispatchAlertsInput, BookUncheckedCreateWithoutQcDispatchAlertsInput>
+  }
+
+  export type BookUpsertWithoutQcDispatchAlertsInput = {
+    update: XOR<BookUpdateWithoutQcDispatchAlertsInput, BookUncheckedUpdateWithoutQcDispatchAlertsInput>
+    create: XOR<BookCreateWithoutQcDispatchAlertsInput, BookUncheckedCreateWithoutQcDispatchAlertsInput>
+    where?: BookWhereInput
+  }
+
+  export type BookUpdateToOneWithWhereWithoutQcDispatchAlertsInput = {
+    where?: BookWhereInput
+    data: XOR<BookUpdateWithoutQcDispatchAlertsInput, BookUncheckedUpdateWithoutQcDispatchAlertsInput>
+  }
+
+  export type BookUpdateWithoutQcDispatchAlertsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
+    synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
+    qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
+    manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
+    chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+  }
+
+  export type BookUncheckedUpdateWithoutQcDispatchAlertsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
+    synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
+    qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
+    manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
+    chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+  }
+
   export type BookCreateWithoutChapterQualityAuditsInput = {
     id?: string
     title: string
@@ -46180,6 +48355,7 @@ export namespace Prisma {
     chapters?: ChapterCreateNestedManyWithoutBookInput
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutChapterQualityAuditsInput = {
@@ -46209,6 +48385,7 @@ export namespace Prisma {
     chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutChapterQualityAuditsInput = {
@@ -46305,6 +48482,7 @@ export namespace Prisma {
     chapters?: ChapterUpdateManyWithoutBookNestedInput
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutChapterQualityAuditsInput = {
@@ -46334,6 +48512,7 @@ export namespace Prisma {
     chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutQualityAuditsInput = {
@@ -46589,6 +48768,29 @@ export namespace Prisma {
     speakerDrift?: JsonNullValueInput | InputJsonValue
     actions?: JsonNullValueInput | InputJsonValue
     auditedAt?: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchAlertEventCreateManyBookInput = {
+    id?: string
+    source?: string | null
+    issueType?: string | null
+    alertCode: string
+    severity: string
+    status?: string
+    fingerprint: string
+    message: string
+    recommendedAction?: string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: Date | string
+    lastTriggeredAt?: Date | string
+    triggerCount?: number
+    ackedAt?: Date | string | null
+    resolvedAt?: Date | string | null
+    resolvedBy?: string | null
+    resolutionNote?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -47245,6 +49447,75 @@ export namespace Prisma {
     speakerDrift?: JsonNullValueInput | InputJsonValue
     actions?: JsonNullValueInput | InputJsonValue
     auditedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchAlertEventUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    issueType?: NullableStringFieldUpdateOperationsInput | string | null
+    alertCode?: StringFieldUpdateOperationsInput | string
+    severity?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    recommendedAction?: NullableStringFieldUpdateOperationsInput | string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    triggerCount?: IntFieldUpdateOperationsInput | number
+    ackedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchAlertEventUncheckedUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    issueType?: NullableStringFieldUpdateOperationsInput | string | null
+    alertCode?: StringFieldUpdateOperationsInput | string
+    severity?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    recommendedAction?: NullableStringFieldUpdateOperationsInput | string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    triggerCount?: IntFieldUpdateOperationsInput | number
+    ackedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchAlertEventUncheckedUpdateManyWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    source?: NullableStringFieldUpdateOperationsInput | string | null
+    issueType?: NullableStringFieldUpdateOperationsInput | string | null
+    alertCode?: StringFieldUpdateOperationsInput | string
+    severity?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    fingerprint?: StringFieldUpdateOperationsInput | string
+    message?: StringFieldUpdateOperationsInput | string
+    recommendedAction?: NullableStringFieldUpdateOperationsInput | string | null
+    values?: JsonNullValueInput | InputJsonValue
+    snapshot?: JsonNullValueInput | InputJsonValue
+    firstTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastTriggeredAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    triggerCount?: IntFieldUpdateOperationsInput | number
+    ackedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
