@@ -446,6 +446,8 @@ export const resolveManualReviewItem = async ({
           voiceProfileId: payload.voiceProfileId || null,
           autoMerge: payload.autoMerge,
           provider: payload.provider || null,
+          skipExisting: false,
+          overwriteExisting: true,
         },
       },
     },
@@ -461,6 +463,8 @@ export const resolveManualReviewItem = async ({
       autoMerge: payload.autoMerge,
       options: {
         provider: payload.provider,
+        skipExisting: false,
+        overwriteExisting: true,
       },
     });
   } catch (queueError) {

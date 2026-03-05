@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S10 全部完成，已进入第三轮（人工复核列表 + resolve + 重生入队）。
+- 当前进度：S0-S12 全部完成，已进入第四轮（重生自动回流 + 后置 QC 联动）。
 
 ## 已完成内容
 
@@ -57,10 +57,24 @@
   - `regenerate` 入队失败时会把 retry task 标记为 `failed` 并写入 `queueError`。
   - 仅允许 `pending` 状态复核项被处理，避免重复提交导致状态冲突。
 
+### 5) 第四轮增量（重生自动回流闭环）
+
+- 重生强制覆盖：
+  - `resolve(regenerate)` 入队参数改为 `skipExisting=false` + `overwriteExisting=true`，避免复用旧音频造成“重生未生效”。
+- 音频任务联动：
+  - `runAudioGenerationTask` 识别 `source=manual_review` 上下文。
+  - 重生失败（全部失败）自动将复核项从 `reprocessing` 回写为 `rejected(regenerate_failed)`。
+  - 重生成功后自动创建并入队 `QUALITY_CHECK(batch)` 任务，保留 `manualReviewFollowup` 追踪信息。
+- 质检回写联动：
+  - `runQualityCheckTask` 新增 `reprocessing` 自动回流：
+    - `pass/repair -> resolved(auto_resolved)`
+    - `manual_review/hard_fail -> rejected(auto_rejected)`
+  - 同步更新 `qcResultId/audioFileId/attemptId`，并在 `resolutionNote` 追加自动回写标记。
+
 ## 待完成内容
 
-1. 仍缺“重生后自动状态回流”：`reprocessing -> resolved/rejected` 依赖后续任务联动。
-2. `POST /api/books/[id]/qc/retry` 尚未落地，当前无法按错误类型批量返工。
+1. `POST /api/books/[id]/qc/retry` 尚未落地，当前无法按错误类型批量返工。
+2. `rejected(auto_rejected)` 暂未自动生成二次派单（新 pending 项），后续可按策略补齐。
 3. 当前 Fast Gate 仍为轻量规则，需要后续接入真实 ASR/CER 与声纹模型。
 
 ## 测试与验证结果
@@ -71,7 +85,9 @@
   - `apps/web/src/lib/__tests__/quality-check-runner.test.ts`（新增）
   - `apps/web/src/lib/__tests__/task-replay-payload-quality.test.ts`（新增）
   - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（新增）
 - 已执行：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
   - `pnpm --filter web test:regression`
   - `pnpm --filter web typecheck`
@@ -79,6 +95,6 @@
 
 ## 下一步建议（接手即做）
 
-1. 增加重生任务结果回写器，自动关闭/重开 `manual_review_items`（消除手工同步分支）。
-2. 新增 `POST /api/books/[id]/qc/retry`，按 issueType/score 区间批量返工并打标签。
+1. 新增 `POST /api/books/[id]/qc/retry`，按 issueType/score 区间批量返工并打标签。
+2. 为 `rejected(auto_rejected)` 增加“自动转新 pending”策略开关，降低人工漏单风险。
 3. 扩展 Deep Gate（Q4/Q5）与章节审计，并沉淀阈值模板（按引擎/角色类型）。

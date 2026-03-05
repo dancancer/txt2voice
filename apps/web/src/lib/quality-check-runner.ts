@@ -39,6 +39,145 @@ interface FastGateDecision {
   repairPlan: string[];
 }
 
+interface ManualReviewTaskContext {
+  manualReviewItemId: string;
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const extractManualReviewTaskContext = (
+  taskData: Prisma.JsonValue | null | undefined
+): ManualReviewTaskContext | null => {
+  const taskDataRecord = asRecord(taskData);
+  const metadata = asRecord(taskDataRecord?.metadata);
+
+  if (!metadata || metadata.source !== "manual_review") {
+    return null;
+  }
+
+  const manualReviewItemId =
+    typeof metadata.manualReviewItemId === "string"
+      ? metadata.manualReviewItemId
+      : null;
+
+  if (!manualReviewItemId) {
+    return null;
+  }
+
+  return {
+    manualReviewItemId,
+  };
+};
+
+const appendResolutionNote = (
+  current: string | null | undefined,
+  next: string
+): string => {
+  if (!current) {
+    return next;
+  }
+  if (current.includes(next)) {
+    return current;
+  }
+  return `${current}\n${next}`;
+};
+
+export const resolveReprocessingStatusFromVerdict = (
+  verdict: FastGateVerdict
+): { status: "resolved" | "rejected"; resolutionType: string } => {
+  if (verdict === "pass" || verdict === "repair") {
+    return {
+      status: "resolved",
+      resolutionType: "auto_resolved",
+    };
+  }
+
+  return {
+    status: "rejected",
+    resolutionType: "auto_rejected",
+  };
+};
+
+const syncReprocessingManualReviewItems = async ({
+  tx,
+  bookId,
+  sentenceId,
+  audioFileId,
+  attemptId,
+  qualityResultId,
+  decision,
+  taskId,
+  manualReviewItemId,
+}: {
+  tx: Prisma.TransactionClient;
+  bookId: string;
+  sentenceId: string | null;
+  audioFileId: string;
+  attemptId?: string;
+  qualityResultId: string;
+  decision: FastGateDecision;
+  taskId: string;
+  manualReviewItemId?: string;
+}): Promise<number> => {
+  const where: Prisma.ManualReviewItemWhereInput = {
+    bookId,
+    status: "reprocessing",
+  };
+
+  if (manualReviewItemId) {
+    where.id = manualReviewItemId;
+  } else if (sentenceId) {
+    where.sentenceId = sentenceId;
+    where.issueType = "FAST_GATE";
+  } else {
+    return 0;
+  }
+
+  const reprocessingItems = await tx.manualReviewItem.findMany({
+    where,
+    select: {
+      id: true,
+      resolutionNote: true,
+    },
+  });
+
+  if (reprocessingItems.length === 0) {
+    return 0;
+  }
+
+  const resolution = resolveReprocessingStatusFromVerdict(decision.verdict);
+  const marker = `auto_qc:${decision.verdict};score=${decision.score};task=${taskId};qc=${qualityResultId}`;
+
+  for (const item of reprocessingItems) {
+    await tx.manualReviewItem.update({
+      where: { id: item.id },
+      data: {
+        status: resolution.status,
+        resolutionType: resolution.resolutionType,
+        resolutionNote: appendResolutionNote(item.resolutionNote, marker),
+        resolvedAt: new Date(),
+        qcResultId: qualityResultId,
+        audioFileId,
+        attemptId: attemptId || null,
+        issueDetail: {
+          reasons: decision.reasons,
+          repairPlan: decision.repairPlan,
+          score: decision.score,
+          verdict: decision.verdict,
+          syncedByTaskId: taskId,
+        } as Prisma.InputJsonValue,
+      },
+    });
+  }
+
+  return reprocessingItems.length;
+};
+
 const clampScore = (value: number): number => {
   return Math.max(0, Math.min(100, Number(value.toFixed(2))));
 };
@@ -177,6 +316,14 @@ export async function runQualityCheckTask({
   chapterId,
   audioFileIds,
 }: QualityCheckRunParams): Promise<void> {
+  const taskSnapshot = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: {
+      taskData: true,
+    },
+  });
+  const manualReviewContext = extractManualReviewTaskContext(taskSnapshot?.taskData);
+
   await updateTaskProgress(taskId, 10, "准备执行 Fast Gate 质检");
 
   const where = buildQualityWhere({
@@ -246,7 +393,7 @@ export async function runQualityCheckTask({
     });
 
     await prisma.$transaction(async (tx) => {
-      await tx.qualityCheckResult.create({
+      const qualityResult = await tx.qualityCheckResult.create({
         data: {
           bookId: audioFile.bookId,
           chapterId: audioFile.chapterId,
@@ -283,7 +430,22 @@ export async function runQualityCheckTask({
         },
       });
 
-      if (decision.verdict === "manual_review" || decision.verdict === "hard_fail") {
+      const syncedReprocessingCount = await syncReprocessingManualReviewItems({
+        tx,
+        bookId,
+        sentenceId: audioFile.sentenceId,
+        audioFileId: audioFile.id,
+        attemptId: audioFile.synthesisAttempts[0]?.id,
+        qualityResultId: qualityResult.id,
+        decision,
+        taskId,
+        manualReviewItemId: manualReviewContext?.manualReviewItemId,
+      });
+
+      if (
+        syncedReprocessingCount === 0 &&
+        (decision.verdict === "manual_review" || decision.verdict === "hard_fail")
+      ) {
         const existingReview = await tx.manualReviewItem.findFirst({
           where: {
             bookId,

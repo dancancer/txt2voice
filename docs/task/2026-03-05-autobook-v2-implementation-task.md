@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S7（前两批改造）已完成，本次继续推进第三批可落地增量：
+S0-S10（前三批改造）已完成，本次继续推进第四批闭环增量：
 
-1. 新增人工复核队列读取 API（支持分页与状态过滤）。
-2. 新增人工复核处理 API（通过/驳回/重生）。
-3. 将“重生”动作接入 `AUDIO_GENERATION` 队列，形成可追踪返工入口。
+1. 落地人工复核“重生后自动回流”：`reprocessing -> resolved/rejected`。
+2. 重生任务成功后自动触发 `QUALITY_CHECK(batch)`，保留可追踪任务链路。
+3. 重生任务失败或后置 QC 入队失败时自动回写 `manual_review_items` 为 `rejected`。
 4. 补齐测试、更新 task/handoff，并提交本轮增量。
 
 ## 2. 执行步骤
@@ -28,6 +28,8 @@ S0-S7（前两批改造）已完成，本次继续推进第三批可落地增量
 | S8 | 人工复核列表/处理 API 落地 | ✅ 完成 | 支持 `GET review/items` 和 `POST resolve`（通过/驳回/重生） |
 | S9 | 测试与回归验证（复核 API） | ✅ 完成 | 新增服务测试通过，回归测试与类型校验通过 |
 | S10 | task/handoff 回写与提交 | ✅ 完成 | 文档同步本轮进展、建议与验证结论，并提交代码 |
+| S11 | 重生自动回流 + 后置 QC 任务联动 | ✅ 完成 | `reprocessing` 在重生链路中可自动收敛到 `resolved/rejected`，并自动触发 `QUALITY_CHECK(batch)` |
+| S12 | 测试回归 + 文档回写 + 提交 | ✅ 完成 | 新增/更新测试通过，task/handoff 同步本轮进展并提交 |
 
 ## 3. 执行日志
 
@@ -168,8 +170,42 @@ S0-S7（前两批改造）已完成，本次继续推进第三批可落地增量
   2. 落地 `POST /api/books/[id]/qc/retry`，支持按错误类型批量返工。
   3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
 
+### [S11] 重生自动回流 + 后置 QC 联动（2026-03-05 14:30 CST）
+
+- 完成内容：
+  1. `resolve(regenerate)` 触发音频重生时，强制 `skipExisting=false` + `overwriteExisting=true`，避免直接复用旧音频导致“伪重生”。
+  2. `runAudioGenerationTask` 新增人工复核上下文识别：
+     - 重生失败（全部失败）时自动把对应 `manual_review_items` 从 `reprocessing` 回写为 `rejected`。
+     - 重生成功后自动创建并入队后置 `QUALITY_CHECK(batch)` 任务，形成 `AUDIO_GENERATION -> QUALITY_CHECK` 的可追踪返工链路。
+  3. `runQualityCheckTask` 新增 `reprocessing` 同步逻辑：
+     - `pass/repair` 自动回写 `resolved(auto_resolved)`；
+     - `manual_review/hard_fail` 自动回写 `rejected(auto_rejected)`；
+     - 同步 `qcResultId/audioFileId/attemptId`，并追加自动回写标记到 `resolutionNote`。
+- 关键文件：
+  - `apps/web/src/lib/manual-review-service.ts`
+  - `apps/web/src/lib/audio-generation-runner.ts`
+  - `apps/web/src/lib/quality-check-runner.ts`
+- 下一步建议：执行 S12，补齐自动回流测试并完成文档与提交。
+
+### [S12] 测试验证 + 文档回写 + 提交（2026-03-05 14:35 CST）
+
+- 完成内容：
+  1. 新增测试：`apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（覆盖“重生成功触发后置 QC”与“重生失败自动拒绝”）。
+  2. 更新测试：
+     - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（校验重生强制覆盖参数）
+     - `apps/web/src/lib/__tests__/quality-check-runner.test.ts`（覆盖 reprocessing verdict 映射）
+  3. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  4. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 落地 `POST /api/books/[id]/qc/retry`，按 issueType/score 区间批量返工并打标签。
+  2. 在 `rejected(auto_rejected)` 场景补“二次派单策略”（可选自动转新 pending 项）。
+  3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已具备复核列表与处理 API，但“重生后自动闭环（状态回流 + 二次质检联动）”仍未落地。
+3. 已完成“重生后自动闭环（状态回流 + 二次质检联动）”第一版，但 `qc/retry` 与二次派单策略仍未落地。

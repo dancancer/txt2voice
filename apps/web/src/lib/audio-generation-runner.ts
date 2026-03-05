@@ -9,12 +9,13 @@ import type {
   AudioGenerationRequest,
   AudioGenerationOptions,
 } from "@/lib/audio-generator";
-import prisma from "@/lib/prisma";
+import prisma, { Prisma } from "@/lib/prisma";
 import {
   jsonObject,
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import { enqueueQualityCheckJob } from "@/lib/task-queue";
 
 export type AudioGenerationTaskType = "single" | "batch" | "book" | "chapter";
 
@@ -28,6 +29,174 @@ export interface AudioGenerationRunParams {
   autoMerge?: boolean;
   options?: AudioGenerationOptions;
 }
+
+interface ManualReviewTaskContext {
+  manualReviewItemId: string;
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const extractManualReviewTaskContext = (
+  taskData: Prisma.JsonValue | null | undefined
+): ManualReviewTaskContext | null => {
+  const taskDataRecord = asRecord(taskData);
+  const metadata = asRecord(taskDataRecord?.metadata);
+
+  if (!metadata || metadata.source !== "manual_review") {
+    return null;
+  }
+
+  const manualReviewItemId =
+    typeof metadata.manualReviewItemId === "string"
+      ? metadata.manualReviewItemId
+      : null;
+
+  if (!manualReviewItemId) {
+    return null;
+  }
+
+  return {
+    manualReviewItemId,
+  };
+};
+
+const appendResolutionNote = (
+  current: string | null | undefined,
+  next: string
+): string => {
+  if (!current) {
+    return next;
+  }
+  if (current.includes(next)) {
+    return current;
+  }
+  return `${current}\n${next}`;
+};
+
+const rejectManualReviewReprocessingItem = async ({
+  bookId,
+  manualReviewItemId,
+  resolutionType,
+  note,
+}: {
+  bookId: string;
+  manualReviewItemId: string;
+  resolutionType: string;
+  note: string;
+}): Promise<boolean> => {
+  const reprocessingItem = await prisma.manualReviewItem.findFirst({
+    where: {
+      id: manualReviewItemId,
+      bookId,
+      status: "reprocessing",
+    },
+    select: {
+      id: true,
+      resolutionNote: true,
+    },
+  });
+
+  if (!reprocessingItem) {
+    return false;
+  }
+
+  await prisma.manualReviewItem.update({
+    where: { id: reprocessingItem.id },
+    data: {
+      status: "rejected",
+      resolutionType,
+      resolutionNote: appendResolutionNote(reprocessingItem.resolutionNote, note),
+      resolvedAt: new Date(),
+    },
+  });
+
+  return true;
+};
+
+const enqueueManualReviewFollowupQualityCheck = async ({
+  bookId,
+  audioTaskId,
+  manualReviewItemId,
+  audioFileIds,
+}: {
+  bookId: string;
+  audioTaskId: string;
+  manualReviewItemId: string;
+  audioFileIds: string[];
+}): Promise<{ taskId: string; status: "processing" | "failed"; error?: string }> => {
+  const qcTask = await prisma.processingTask.create({
+    data: {
+      bookId,
+      taskType: "QUALITY_CHECK",
+      status: "processing",
+      progress: 0,
+      totalItems: audioFileIds.length,
+      taskData: {
+        message: "人工复核重生后自动触发 Fast Gate 质检",
+        metadata: {
+          source: "manual_review",
+          manualReviewItemId,
+          type: "batch",
+          audioFileIds,
+          triggeredByTaskId: audioTaskId,
+          totalItems: audioFileIds.length,
+        },
+      },
+    },
+  });
+
+  try {
+    await enqueueQualityCheckJob({
+      taskId: qcTask.id,
+      bookId,
+      type: "batch",
+      audioFileIds,
+    });
+
+    return {
+      taskId: qcTask.id,
+      status: "processing",
+    };
+  } catch (queueError) {
+    const message =
+      queueError instanceof Error ? queueError.message : "人工复核后置质检入队失败";
+    const failedTaskData = await mergeTaskData(qcTask.id, {
+      message: "人工复核后置质检入队失败",
+      metadata: {
+        queueError: message,
+        triggeredByTaskId: audioTaskId,
+      },
+    });
+
+    await prisma.processingTask.update({
+      where: { id: qcTask.id },
+      data: {
+        status: "failed",
+        completedAt: new Date(),
+        errorMessage: message,
+        taskData: failedTaskData,
+      },
+    });
+
+    await rejectManualReviewReprocessingItem({
+      bookId,
+      manualReviewItemId,
+      resolutionType: "regenerate_qc_enqueue_failed",
+      note: `auto_reject:后置质检入队失败:${message}`,
+    });
+
+    return {
+      taskId: qcTask.id,
+      status: "failed",
+      error: message,
+    };
+  }
+};
 
 /**
  * 执行音频生成任务。
@@ -44,6 +213,13 @@ export async function runAudioGenerationTask({
   options = {},
 }: AudioGenerationRunParams): Promise<void> {
   const audioGenerator = getAudioGenerator();
+  const taskSnapshot = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: {
+      taskData: true,
+    },
+  });
+  const manualReviewContext = extractManualReviewTaskContext(taskSnapshot?.taskData);
 
   await updateTaskProgress(taskId, 10, "准备生成音频");
 
@@ -149,6 +325,7 @@ export async function runAudioGenerationTask({
         success: r.success,
         error: r.error,
         duration: r.duration,
+        audioFileId: typeof r.audioFileId === "string" ? r.audioFileId : null,
       })),
     },
   });
@@ -179,6 +356,15 @@ export async function runAudioGenerationTask({
         },
       },
     });
+
+    if (manualReviewContext) {
+      await rejectManualReviewReprocessingItem({
+        bookId,
+        manualReviewItemId: manualReviewContext.manualReviewItemId,
+        resolutionType: "regenerate_failed",
+        note: `auto_reject:音频重生失败:task=${taskId}`,
+      });
+    }
     return;
   }
 
@@ -205,6 +391,52 @@ export async function runAudioGenerationTask({
         totalAudioDuration: generatedDuration,
         lastAudioFailureCount: failedCount,
       },
+    },
+  });
+
+  if (!manualReviewContext) {
+    return;
+  }
+
+  const generatedAudioFileIds = Array.from(
+    new Set(
+      results
+        .filter((result) => result.success && typeof result.audioFileId === "string")
+        .map((result) => result.audioFileId as string)
+    )
+  );
+
+  if (generatedAudioFileIds.length === 0) {
+    await rejectManualReviewReprocessingItem({
+      bookId,
+      manualReviewItemId: manualReviewContext.manualReviewItemId,
+      resolutionType: "regenerate_missing_audio_ref",
+      note: `auto_reject:重生无有效音频引用:task=${taskId}`,
+    });
+    return;
+  }
+
+  const followupQc = await enqueueManualReviewFollowupQualityCheck({
+    bookId,
+    audioTaskId: taskId,
+    manualReviewItemId: manualReviewContext.manualReviewItemId,
+    audioFileIds: generatedAudioFileIds,
+  });
+
+  const taskDataWithFollowup = await mergeTaskData(taskId, {
+    metadata: {
+      manualReviewFollowup: {
+        qualityTaskId: followupQc.taskId,
+        qualityTaskStatus: followupQc.status,
+        qualityTaskError: followupQc.error || null,
+      },
+    },
+  });
+
+  await prisma.processingTask.update({
+    where: { id: taskId },
+    data: {
+      taskData: taskDataWithFollowup,
     },
   });
 }

@@ -2,7 +2,10 @@
 // input: Fast Gate 输入样本
 // output: 质检判定断言
 // pos: 任务执行器测试
-import { evaluateFastGate } from '@/lib/quality-check-runner'
+import {
+  evaluateFastGate,
+  resolveReprocessingStatusFromVerdict
+} from '@/lib/quality-check-runner'
 
 describe('evaluateFastGate', () => {
   it('should pass stable narration sample', () => {
@@ -54,5 +57,29 @@ describe('evaluateFastGate', () => {
 
     expect(result.verdict).toBe('manual_review')
     expect(result.reasons).toContain('voice_profile_missing_for_dialogue')
+  })
+})
+
+describe('resolveReprocessingStatusFromVerdict', () => {
+  it('should resolve when verdict is pass/repair', () => {
+    expect(resolveReprocessingStatusFromVerdict('pass')).toEqual({
+      status: 'resolved',
+      resolutionType: 'auto_resolved'
+    })
+    expect(resolveReprocessingStatusFromVerdict('repair')).toEqual({
+      status: 'resolved',
+      resolutionType: 'auto_resolved'
+    })
+  })
+
+  it('should reject when verdict requires manual intervention', () => {
+    expect(resolveReprocessingStatusFromVerdict('manual_review')).toEqual({
+      status: 'rejected',
+      resolutionType: 'auto_rejected'
+    })
+    expect(resolveReprocessingStatusFromVerdict('hard_fail')).toEqual({
+      status: 'rejected',
+      resolutionType: 'auto_rejected'
+    })
   })
 })

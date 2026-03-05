@@ -246,6 +246,8 @@ describe("manual-review-service", () => {
       autoMerge: false,
       options: {
         provider: "voxcpm",
+        skipExisting: false,
+        overwriteExisting: true,
       },
     });
     expect(result.retryTask).toMatchObject({
