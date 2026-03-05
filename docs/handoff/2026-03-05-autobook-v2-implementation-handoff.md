@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S22 全部完成，已完成第十二轮（策略配置中心化）；待推进 S23-S24。
+- 当前进度：S0-S23 全部完成，已完成第十三轮（Deep Gate + 章节审计）；待推进 S24。
 
-## 总体目标回顾与现状判断（2026-03-05 20:18 CST）
+## 总体目标回顾与现状判断（2026-03-05 21:08 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
 | M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
-| M3（Deep Gate + 人工复核工作台） | 🔄 部分完成 | 复核 API 已完成；Q4/Q5、`chapter_quality_audit` 执行链路、复核工作台 UI 仍未落地。 |
+| M3（Deep Gate + 人工复核工作台） | 🔄 部分完成 | Q4/Q5 与 `chapter_quality_audit` 执行链路已完成；复核工作台 UI 仍未落地。 |
 | M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook 通知与 `dispatchPolicy` 配置中心已就绪；缺 SLO 看板与策略治理 UI。 |
 
 ## 已完成内容
@@ -224,18 +224,35 @@
   - `GET/PUT /api/books/[id]/qc/dispatch-policy`
   - `POST /api/books/[id]/qc/dispatch-policy/rollback`
 
+### 14) 第十三轮增量（S23：Deep Gate + 章节审计）
+
+- Deep Gate 接入与融合判定：
+  - 新增 `quality-gate` 模块（`types/thresholds/evaluator`），支持 Q4（情绪匹配）/Q5（章节一致性）评分；
+  - `runQualityCheckTask` 升级为 Fast + Deep 融合判定，`quality_check_results` 落库 `Q1_Q5` 指标、融合分数、阈值快照与 issueType。
+- 阈值模板能力：
+  - 支持从 `book.metadata.qualityCheck.deepGateThresholdTemplate` 读取书籍默认阈值；
+  - `POST /api/books/[id]/qc/run` 支持 `deepGateThresholdTemplate`（兼容 `thresholdTemplate`）任务级覆盖。
+- 章节审计落地：
+  - 质检任务结束后按章写入 `chapter_quality_audits`（`auditBatchId=taskId`）；
+  - 审计记录包含 `overallScore/verdict/continuityMetric/speakerDrift/actions`，可直接支撑章节验收和返工决策。
+- 误报观测与回流增强：
+  - 新增 `deepGateOverrideCount/falsePositiveCandidateCount` 指标并回写 `taskData`/`book.metadata.qualityCheck`；
+  - `reprocessing` 同步支持 `retryReviewItemIds` 精准回写，issueType 扩展到 `EMOTION/CONTINUITY`。
+- 文案与入口同步：
+  - 自动后置质检文案从 “Fast Gate” 升级为 “Fast/Deep Gate”；
+  - `qc/run` 创建任务 metadata 增补阈值模板上下文，便于回放排障。
+
 ## 待完成内容
 
-1. Deep Gate（Q4/Q5）与 `chapter_quality_audit` 未接入，Fast Gate 仍是启发式规则。
-2. 人工复核工作台暂无最小可用 UI（当前仅有 API 能力）。
-3. SLO/运营看板仍缺前端入口与策略治理交互面板。
+1. 人工复核工作台暂无最小可用 UI（当前仅有 API 能力）。
+2. SLO/运营看板仍缺前端入口与策略治理交互面板。
+3. Deep Gate 当前为启发式代理规则，尚未替换为真实情绪/一致性模型。
 
-## 剩余任务优先级（建议，S23-S24）
+## 剩余任务优先级（建议，S24）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S23 | Deep Gate 与章节审计 | Q4（情绪匹配）/Q5（章节一致性）+ `chapter_quality_audit` 执行链路 + 阈值模板 | 质检结果包含 Q4/Q5 指标；支持章节级验收与返工决策；误报率可观测 | S22（策略模板复用） |
-| P1 | S24 | 人工复核与运营体验补齐 | 人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 | 复核操作可视化；关键指标（backlog/pass/retry）可日常运营使用 | S22/S23 输出可直接复用 |
+| P0 | S24 | 人工复核与运营体验补齐 | 人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 + Deep Gate issueType 视图 | 复核操作可视化；关键指标（backlog/pass/retry/false-positive）可日常运营使用 | S23 |
 
 ## 测试与验证结果
 
@@ -254,6 +271,7 @@
   - `apps/web/src/lib/__tests__/qc-dispatch-alert-event-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/auto-pipeline-runner.test.ts`（新增）
   - `apps/web/src/lib/__tests__/task-replay-payload-auto.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/quality-gate.test.ts`（新增）
 - 已执行：
   - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
   - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
@@ -267,12 +285,13 @@
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-gate.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/qc-retry-service.test.ts`
   - `pnpm --filter web test:regression`
   - `pnpm --filter web typecheck`
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S23（P0）**：Deep Gate（Q4/Q5 + 章节审计）能力上线，并复用 S22 的策略模板。
-2. 随后做 **S24（P1）**：人工复核工作台与运营看板整合。
-3. 同步补充 SLO 与策略治理前端入口，形成运营侧闭环。
+1. 先做 **S24（P0）**：人工复核最小工作台（列表/试听/重生）并接入 `EMOTION/CONTINUITY` issueType 筛选与快捷返工。
+2. 随后补 **SLO/运营看板**：整合 backlog/pass/retry/false-positive，复用 S23 产出的 `book.metadata.qualityCheck` 与章节审计数据。
+3. 在 S24 收尾阶段规划 **S24.1（模型替换）**：将 Deep Gate 启发式代理替换为真实情绪分类与章节一致性 embedding。

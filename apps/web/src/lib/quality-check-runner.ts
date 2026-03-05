@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
 // input: 任务参数/数据库依赖
-// output: Fast Gate 质检执行结果
+// output: Fast+Deep Gate 质检执行结果
 // pos: 任务执行器
 import prisma, { Prisma } from "@/lib/prisma";
 import {
@@ -8,6 +8,18 @@ import {
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import {
+  buildChapterGateContextMap,
+  combineQualityGateDecision,
+  evaluateDeepGate,
+  isFalsePositiveCandidate,
+  resolveDeepGateThresholdTemplate,
+} from "@/lib/quality-gate";
+import type {
+  ChapterGateSample,
+  CombinedQualityDecision,
+  FastGateSnapshot,
+} from "@/lib/quality-gate";
 
 export type QualityCheckTaskType = "book" | "chapter" | "batch";
 export type FastGateVerdict = "pass" | "repair" | "manual_review" | "hard_fail";
@@ -27,24 +39,16 @@ interface FastGateInput {
   hasVoiceProfile: boolean;
 }
 
-interface FastGateDecision {
-  verdict: FastGateVerdict;
-  hardFail: boolean;
-  score: number;
-  q1Score: number;
-  q2Score: number;
-  q3Score: number;
-  charsPerSecond: number;
-  reasons: string[];
-  repairPlan: string[];
-}
+type FastGateDecision = FastGateSnapshot;
 
 interface QualityCheckTaskContext {
   source: string | null;
   manualReviewItemId: string;
+  retryReviewItemIds: string[];
   autoCreatePendingOnReject: boolean;
   maxAutoRejectedCount: number | null;
   issueTypePolicies: Record<string, IssueTypeDispatchPolicy>;
+  taskMetadata: Record<string, unknown>;
 }
 
 interface ReprocessingSyncResult {
@@ -70,6 +74,20 @@ const asBoolean = (value: unknown): boolean | undefined => {
     return value;
   }
   return undefined;
+};
+
+const asStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+        .filter((entry) => entry.length > 0)
+    )
+  );
 };
 
 const asNonNegativeInteger = (value: unknown): number | undefined => {
@@ -144,6 +162,7 @@ const extractQualityCheckTaskContext = (
     typeof metadata?.manualReviewItemId === "string"
       ? metadata.manualReviewItemId
       : "";
+  const retryReviewItemIds = asStringArray(metadata?.retryReviewItemIds);
 
   const policySource = asRecord(metadata?.dispatchPolicy) || metadata;
   const autoCreatePendingOnReject =
@@ -156,9 +175,11 @@ const extractQualityCheckTaskContext = (
   return {
     source,
     manualReviewItemId: source === "manual_review" ? manualReviewItemId : "",
+    retryReviewItemIds: source === "qc_retry" ? retryReviewItemIds : [],
     autoCreatePendingOnReject,
     maxAutoRejectedCount,
     issueTypePolicies,
+    taskMetadata: metadata || {},
   };
 };
 
@@ -234,6 +255,7 @@ const syncReprocessingManualReviewItems = async ({
   decision,
   taskId,
   manualReviewItemId,
+  candidateReviewItemIds,
   autoCreatePendingOnReject,
   maxAutoRejectedCount,
   issueTypePolicies,
@@ -245,9 +267,10 @@ const syncReprocessingManualReviewItems = async ({
   audioFileId: string;
   attemptId?: string;
   qualityResultId: string;
-  decision: FastGateDecision;
+  decision: CombinedQualityDecision;
   taskId: string;
   manualReviewItemId?: string;
+  candidateReviewItemIds?: string[];
   autoCreatePendingOnReject: boolean;
   maxAutoRejectedCount: number | null;
   issueTypePolicies: Record<string, IssueTypeDispatchPolicy>;
@@ -260,9 +283,15 @@ const syncReprocessingManualReviewItems = async ({
 
   if (manualReviewItemId) {
     where.id = manualReviewItemId;
+  } else if (candidateReviewItemIds && candidateReviewItemIds.length > 0) {
+    where.id = {
+      in: candidateReviewItemIds,
+    };
+    if (sentenceId) {
+      where.sentenceId = sentenceId;
+    }
   } else if (sentenceId) {
     where.sentenceId = sentenceId;
-    where.issueType = "FAST_GATE";
   } else {
     return {
       syncedCount: 0,
@@ -333,6 +362,7 @@ const syncReprocessingManualReviewItems = async ({
       repairPlan: decision.repairPlan as Prisma.InputJsonValue,
       score: decision.score,
       verdict: decision.verdict,
+      issueType: decision.issueType,
       syncedByTaskId: taskId,
       source: dispatchSource,
       autoRejectedCount: nextAutoRejectedCount,
@@ -422,6 +452,7 @@ const syncReprocessingManualReviewItems = async ({
             repairPlan: decision.repairPlan,
             score: decision.score,
             verdict: decision.verdict,
+            issueType: decision.issueType,
             source: dispatchSource,
             sourceReviewItemId: item.id,
             dispatch: "secondary_pending",
@@ -452,6 +483,10 @@ const clampScore = (value: number): number => {
   return Math.max(0, Math.min(100, Number(value.toFixed(2))));
 };
 
+const toInputJsonValue = (value: unknown): Prisma.InputJsonValue => {
+  return JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
+};
+
 const buildRepairPlan = (reasons: string[]): string[] => {
   const plans: string[] = [];
 
@@ -469,6 +504,18 @@ const buildRepairPlan = (reasons: string[]): string[] => {
 
   if (reasons.includes("invalid_duration")) {
     plans.push("regenerate_audio_with_same_params");
+  }
+
+  if (reasons.includes("emotion_underexpressed")) {
+    plans.push("increase_emotion_intensity_0.10");
+  }
+
+  if (reasons.includes("emotion_overexpressed")) {
+    plans.push("decrease_emotion_intensity_0.10");
+  }
+
+  if (reasons.includes("chapter_pace_drift") || reasons.includes("chapter_pace_drift_high")) {
+    plans.push("align_chapter_pace_profile");
   }
 
   if (plans.length === 0) {
@@ -579,6 +626,102 @@ const buildQualityWhere = ({
   };
 };
 
+interface ChapterAuditAccumulator {
+  chapterId: string;
+  checked: number;
+  passCount: number;
+  repairCount: number;
+  manualReviewCount: number;
+  hardFailCount: number;
+  issueTypeCounts: Record<string, number>;
+  scoreSum: number;
+  q4ScoreSum: number;
+  q5ScoreSum: number;
+  charsPerSecondValues: number[];
+  voiceProfileBuckets: Record<string, number[]>;
+}
+
+const updateIssueTypeCount = (
+  bucket: Record<string, number>,
+  issueType: string
+): void => {
+  bucket[issueType] = (bucket[issueType] || 0) + 1;
+};
+
+const pushVoiceProfileStats = (
+  bucket: Record<string, number[]>,
+  voiceProfileId: string | null,
+  charsPerSecond: number
+): void => {
+  if (!voiceProfileId) {
+    return;
+  }
+
+  const normalizedId = voiceProfileId.trim();
+  if (!normalizedId) {
+    return;
+  }
+
+  if (!bucket[normalizedId]) {
+    bucket[normalizedId] = [];
+  }
+  bucket[normalizedId].push(charsPerSecond);
+};
+
+const average = (values: number[]): number | null => {
+  if (values.length === 0) {
+    return null;
+  }
+
+  return Number(
+    (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(4)
+  );
+};
+
+const standardDeviation = (values: number[]): number | null => {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const mean = average(values);
+  if (mean === null) {
+    return null;
+  }
+
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
+  return Number(Math.sqrt(variance).toFixed(4));
+};
+
+const toChapterAuditVerdict = ({
+  overallScore,
+  averageQ5Score,
+  hardFailCount,
+  template,
+}: {
+  overallScore: number;
+  averageQ5Score: number;
+  hardFailCount: number;
+  template: ReturnType<typeof resolveDeepGateThresholdTemplate>["template"];
+}): FastGateVerdict => {
+  if (
+    hardFailCount > 0 ||
+    overallScore < template.chapterRepairScore ||
+    averageQ5Score < template.q5ManualReviewScore
+  ) {
+    return "manual_review";
+  }
+
+  if (
+    overallScore < template.chapterPassScore ||
+    averageQ5Score < template.q5PassScore
+  ) {
+    return "repair";
+  }
+
+  return "pass";
+};
+
 export async function runQualityCheckTask({
   taskId,
   bookId,
@@ -594,7 +737,7 @@ export async function runQualityCheckTask({
   });
   const taskContext = extractQualityCheckTaskContext(taskSnapshot?.taskData);
 
-  await updateTaskProgress(taskId, 10, "准备执行 Fast Gate 质检");
+  await updateTaskProgress(taskId, 10, "准备执行 Fast/Deep Gate 质检");
 
   const where = buildQualityWhere({
     bookId,
@@ -623,6 +766,8 @@ export async function runQualityCheckTask({
             id: true,
             text: true,
             roleType: true,
+            emotionLabel: true,
+            emotionIntensity: true,
           },
         },
         synthesisAttempts: {
@@ -641,7 +786,39 @@ export async function runQualityCheckTask({
     throw new Error("没有可执行质检的音频");
   }
 
-  await updateTaskProgress(taskId, 20, "开始逐句质检");
+  const thresholdResolution = resolveDeepGateThresholdTemplate({
+    taskMetadata: taskContext.taskMetadata,
+    bookMetadata: book?.metadata,
+  });
+  const chapterContextMap = buildChapterGateContextMap(
+    audioFiles
+      .map((audioFile) => {
+        if (!audioFile.chapterId || !audioFile.scriptSentence) {
+          return null;
+        }
+
+        const durationSeconds = Number(audioFile.duration || 0);
+        if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
+          return null;
+        }
+
+        const charsPerSecond = Number(
+          (
+            audioFile.scriptSentence.text.trim().length / Math.max(durationSeconds, 0.0001)
+          ).toFixed(4)
+        );
+
+        return {
+          chapterId: audioFile.chapterId,
+          roleType: audioFile.scriptSentence.roleType || "narration",
+          voiceProfileId: audioFile.voiceProfileId || "",
+          charsPerSecond,
+        } satisfies ChapterGateSample;
+      })
+      .filter((item): item is ChapterGateSample => Boolean(item))
+  );
+
+  await updateTaskProgress(taskId, 20, "开始逐句执行 Fast/Deep Gate 质检");
 
   let checked = 0;
   let passCount = 0;
@@ -650,6 +827,14 @@ export async function runQualityCheckTask({
   let hardFailCount = 0;
   let secondaryDispatchCount = 0;
   let secondaryDispatchSkippedByThresholdCount = 0;
+  let deepGateOverrideCount = 0;
+  let falsePositiveCandidateCount = 0;
+  const issueTypeCounts: Record<string, number> = {};
+  const chapterAuditMap = new Map<string, ChapterAuditAccumulator>();
+  const candidateReviewItemIds =
+    taskContext.retryReviewItemIds.length > 0
+      ? taskContext.retryReviewItemIds
+      : undefined;
 
   for (let index = 0; index < audioFiles.length; index += 1) {
     const audioFile = audioFiles[index];
@@ -657,12 +842,53 @@ export async function runQualityCheckTask({
       continue;
     }
 
-    const decision = evaluateFastGate({
+    const durationSeconds = Number(audioFile.duration || 0);
+    const fastDecision = evaluateFastGate({
       text: audioFile.scriptSentence.text,
       roleType: audioFile.scriptSentence.roleType,
-      durationSeconds: Number(audioFile.duration || 0),
+      durationSeconds,
       hasVoiceProfile: Boolean(audioFile.voiceProfileId),
     });
+    const deepDecision = evaluateDeepGate({
+      input: {
+        text: audioFile.scriptSentence.text,
+        roleType: audioFile.scriptSentence.roleType,
+        emotionLabel: audioFile.scriptSentence.emotionLabel,
+        emotionIntensity:
+          audioFile.scriptSentence.emotionIntensity !== null &&
+          audioFile.scriptSentence.emotionIntensity !== undefined
+            ? Number(audioFile.scriptSentence.emotionIntensity)
+            : null,
+        charsPerSecond: fastDecision.charsPerSecond,
+        chapterContext: audioFile.chapterId
+          ? chapterContextMap.get(audioFile.chapterId)
+          : undefined,
+        voiceProfileId: audioFile.voiceProfileId,
+      },
+      thresholds: thresholdResolution.template,
+    });
+    const decision = combineQualityGateDecision({
+      fast: fastDecision,
+      deep: deepDecision,
+    });
+
+    if (
+      fastDecision.verdict === "pass" &&
+      (deepDecision.verdict === "manual_review" || deepDecision.verdict === "hard_fail") &&
+      (decision.verdict === "manual_review" || decision.verdict === "hard_fail")
+    ) {
+      deepGateOverrideCount += 1;
+    }
+    if (
+      isFalsePositiveCandidate({
+        fast: fastDecision,
+        deep: deepDecision,
+        combined: decision,
+        thresholds: thresholdResolution.template,
+      })
+    ) {
+      falsePositiveCandidateCount += 1;
+    }
 
     await prisma.$transaction(async (tx) => {
       const qualityResult = await tx.qualityCheckResult.create({
@@ -673,23 +899,40 @@ export async function runQualityCheckTask({
           sentenceId: audioFile.sentenceId,
           audioFileId: audioFile.id,
           attemptId: audioFile.synthesisAttempts[0]?.id,
-          gate: "FAST_GATE",
-          stage: "Q1_Q3",
+          gate: "FAST_DEEP_GATE",
+          stage: "Q1_Q5",
           verdict: decision.verdict,
           score: new Prisma.Decimal(decision.score.toFixed(2)),
           hardFail: decision.hardFail,
-          thresholdKey: "fast_gate_default_v1",
+          thresholdKey: "fast_deep_gate_v2",
           metrics: {
             q1Score: decision.q1Score,
             q2Score: decision.q2Score,
             q3Score: decision.q3Score,
+            q4Score: decision.q4Score,
+            q5Score: decision.q5Score,
+            fastGateScore: decision.fastGateScore,
+            deepGateScore: decision.deepGateScore,
             charsPerSecond: decision.charsPerSecond,
-            durationSeconds: Number(audioFile.duration || 0),
+            durationSeconds,
           } as Prisma.InputJsonValue,
           reasons: decision.reasons as Prisma.InputJsonValue,
-          detail: {
+          detail: toInputJsonValue({
             repairPlan: decision.repairPlan,
-          } as Prisma.InputJsonValue,
+            issueType: decision.issueType,
+            thresholdTemplate: thresholdResolution.template,
+            thresholdTemplateSource: thresholdResolution.source,
+            fastGate: {
+              verdict: fastDecision.verdict,
+              score: fastDecision.score,
+              hardFail: fastDecision.hardFail,
+            },
+            deepGate: {
+              verdict: deepDecision.verdict,
+              score: deepDecision.score,
+              issueType: deepDecision.issueType,
+            },
+          }),
         },
       });
 
@@ -712,6 +955,7 @@ export async function runQualityCheckTask({
         decision,
         taskId,
         manualReviewItemId: taskContext.manualReviewItemId || undefined,
+        candidateReviewItemIds,
         autoCreatePendingOnReject: taskContext.autoCreatePendingOnReject,
         maxAutoRejectedCount: taskContext.maxAutoRejectedCount,
         issueTypePolicies: taskContext.issueTypePolicies,
@@ -729,7 +973,7 @@ export async function runQualityCheckTask({
           where: {
             bookId,
             audioFileId: audioFile.id,
-            issueType: "FAST_GATE",
+            issueType: decision.issueType,
             status: "pending",
           },
           select: { id: true },
@@ -744,13 +988,14 @@ export async function runQualityCheckTask({
               sentenceId: audioFile.sentenceId,
               audioFileId: audioFile.id,
               attemptId: audioFile.synthesisAttempts[0]?.id,
-              issueType: "FAST_GATE",
+              issueType: decision.issueType,
               priority: decision.verdict === "hard_fail" ? "high" : "normal",
               status: "pending",
               issueDetail: {
                 reasons: decision.reasons,
                 repairPlan: decision.repairPlan,
                 score: decision.score,
+                issueType: decision.issueType,
                 source: taskContext.source || "unknown",
               } as Prisma.InputJsonValue,
             },
@@ -770,13 +1015,140 @@ export async function runQualityCheckTask({
     } else {
       manualReviewCount += 1;
     }
+    updateIssueTypeCount(issueTypeCounts, decision.issueType);
+
+    if (audioFile.chapterId) {
+      const chapterAudit = chapterAuditMap.get(audioFile.chapterId) || {
+        chapterId: audioFile.chapterId,
+        checked: 0,
+        passCount: 0,
+        repairCount: 0,
+        manualReviewCount: 0,
+        hardFailCount: 0,
+        issueTypeCounts: {},
+        scoreSum: 0,
+        q4ScoreSum: 0,
+        q5ScoreSum: 0,
+        charsPerSecondValues: [],
+        voiceProfileBuckets: {},
+      };
+
+      chapterAudit.checked += 1;
+      chapterAudit.scoreSum += decision.score;
+      chapterAudit.q4ScoreSum += decision.q4Score;
+      chapterAudit.q5ScoreSum += decision.q5Score;
+      chapterAudit.charsPerSecondValues.push(decision.charsPerSecond);
+      pushVoiceProfileStats(
+        chapterAudit.voiceProfileBuckets,
+        audioFile.voiceProfileId,
+        decision.charsPerSecond
+      );
+      updateIssueTypeCount(chapterAudit.issueTypeCounts, decision.issueType);
+
+      if (decision.verdict === "pass") {
+        chapterAudit.passCount += 1;
+      } else if (decision.verdict === "repair") {
+        chapterAudit.repairCount += 1;
+      } else if (decision.verdict === "hard_fail") {
+        chapterAudit.hardFailCount += 1;
+        chapterAudit.manualReviewCount += 1;
+      } else {
+        chapterAudit.manualReviewCount += 1;
+      }
+
+      chapterAuditMap.set(audioFile.chapterId, chapterAudit);
+    }
 
     const progress = 20 + Math.round(((index + 1) / audioFiles.length) * 70);
-    await updateTaskProgress(taskId, progress, `Fast Gate 质检进度 ${index + 1}/${audioFiles.length}`);
+    await updateTaskProgress(
+      taskId,
+      progress,
+      `Fast/Deep Gate 质检进度 ${index + 1}/${audioFiles.length}`
+    );
   }
 
   if (checked === 0) {
     throw new Error("没有可执行质检的句子数据");
+  }
+
+  await updateTaskProgress(taskId, 92, "写入章节一致性审计");
+
+  let chapterAuditCount = 0;
+  let chapterAuditManualReviewCount = 0;
+  let chapterAuditRepairCount = 0;
+
+  for (const chapterAudit of chapterAuditMap.values()) {
+    if (chapterAudit.checked <= 0) {
+      continue;
+    }
+
+    const overallScore = clampScore(chapterAudit.scoreSum / chapterAudit.checked);
+    const averageQ4Score = clampScore(chapterAudit.q4ScoreSum / chapterAudit.checked);
+    const averageQ5Score = clampScore(chapterAudit.q5ScoreSum / chapterAudit.checked);
+    const paceMean = average(chapterAudit.charsPerSecondValues);
+    const paceStdDev = standardDeviation(chapterAudit.charsPerSecondValues);
+
+    const speakerDrift: Record<string, Prisma.InputJsonValue> = {};
+    for (const [voiceProfileId, values] of Object.entries(
+      chapterAudit.voiceProfileBuckets
+    )) {
+      speakerDrift[voiceProfileId] = {
+        sampleCount: values.length,
+        averageCharsPerSecond: average(values),
+        stdDevCharsPerSecond: standardDeviation(values),
+      } as Prisma.InputJsonValue;
+    }
+
+    const verdict = toChapterAuditVerdict({
+      overallScore,
+      averageQ5Score,
+      hardFailCount: chapterAudit.hardFailCount,
+      template: thresholdResolution.template,
+    });
+
+    const actions: string[] = [];
+    if (averageQ4Score < thresholdResolution.template.q4PassScore) {
+      actions.push("review_emotion_template");
+    }
+    if (averageQ5Score < thresholdResolution.template.q5PassScore) {
+      actions.push("review_chapter_continuity");
+    }
+    if (chapterAudit.manualReviewCount > 0) {
+      actions.push("prioritize_manual_review_queue");
+    }
+    if (actions.length === 0) {
+      actions.push("no_action_required");
+    }
+
+    await prisma.chapterQualityAudit.create({
+      data: {
+        bookId,
+        chapterId: chapterAudit.chapterId,
+        auditBatchId: taskId,
+        verdict,
+        overallScore: new Prisma.Decimal(overallScore.toFixed(2)),
+        targetLufs: new Prisma.Decimal("-19.00"),
+        actualLufs: null,
+        peakDbtp: null,
+        continuityMetric: {
+          checked: chapterAudit.checked,
+          averageQ4Score,
+          averageQ5Score,
+          averageCharsPerSecond: paceMean,
+          stdDevCharsPerSecond: paceStdDev,
+          issueTypeCounts: chapterAudit.issueTypeCounts,
+        } as Prisma.InputJsonValue,
+        speakerDrift: speakerDrift as Prisma.InputJsonValue,
+        actions: actions as Prisma.InputJsonValue,
+      },
+    });
+
+    chapterAuditCount += 1;
+    if (verdict === "manual_review") {
+      chapterAuditManualReviewCount += 1;
+    } else if (verdict === "repair") {
+      chapterAuditRepairCount += 1;
+    }
   }
 
   const summary = {
@@ -790,10 +1162,18 @@ export async function runQualityCheckTask({
     hardFailCount,
     secondaryDispatchCount,
     secondaryDispatchSkippedByThresholdCount,
+    issueTypeCounts,
+    deepGateOverrideCount,
+    falsePositiveCandidateCount,
+    thresholdTemplate: thresholdResolution.template,
+    thresholdTemplateSource: thresholdResolution.source,
+    chapterAuditCount,
+    chapterAuditRepairCount,
+    chapterAuditManualReviewCount,
     source: taskContext.source,
   };
 
-  const message = `质检完成：通过 ${passCount}，返工 ${repairCount}，人工复核 ${manualReviewCount}`;
+  const message = `质检完成：通过 ${passCount}，返工 ${repairCount}，人工复核 ${manualReviewCount}，章节审计 ${chapterAuditCount}`;
   const taskData = await mergeTaskData(taskId, {
     message,
     metadata: {
@@ -817,13 +1197,23 @@ export async function runQualityCheckTask({
   await prisma.book.update({
     where: { id: bookId },
     data: {
-      metadata: {
+      metadata: toInputJsonValue({
         ...jsonObject(book?.metadata),
         qualityCheck: {
           ...summary,
           checkedAt: new Date().toISOString(),
+          chapterAudits: {
+            batchId: taskId,
+            total: chapterAuditCount,
+            repairCount: chapterAuditRepairCount,
+            manualReviewCount: chapterAuditManualReviewCount,
+          },
+          falsePositiveSignals: {
+            deepGateOverrideCount,
+            candidateCount: falsePositiveCandidateCount,
+          },
         },
-      },
+      }),
     },
   });
 }

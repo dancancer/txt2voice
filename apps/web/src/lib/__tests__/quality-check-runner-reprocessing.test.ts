@@ -29,6 +29,9 @@ jest.mock("@/lib/prisma", () => ({
     audioFile: {
       findMany: jest.fn(),
     },
+    chapterQualityAudit: {
+      create: jest.fn(),
+    },
     $transaction: jest.fn(),
   },
 }));
@@ -51,6 +54,7 @@ const mockTaskUpdate = (prisma as any).processingTask.update as jest.Mock;
 const mockBookFindUnique = (prisma as any).book.findUnique as jest.Mock;
 const mockBookUpdate = (prisma as any).book.update as jest.Mock;
 const mockAudioFindMany = (prisma as any).audioFile.findMany as jest.Mock;
+const mockChapterAuditCreate = (prisma as any).chapterQualityAudit.create as jest.Mock;
 const mockTransaction = (prisma as any).$transaction as jest.Mock;
 const mockMergeTaskData = mergeTaskData as jest.MockedFunction<typeof mergeTaskData>;
 
@@ -66,6 +70,8 @@ const buildAudioFile = () => ({
     id: "sentence-1",
     text: "你是谁？",
     roleType: "dialogue",
+    emotionLabel: "calm",
+    emotionIntensity: 0.55,
   },
   synthesisAttempts: [{ id: "attempt-1" }],
 });
@@ -85,6 +91,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
     mockBookFindUnique.mockResolvedValue({ metadata: {} });
     mockBookUpdate.mockResolvedValue({});
     mockAudioFindMany.mockResolvedValue([buildAudioFile()]);
+    mockChapterAuditCreate.mockResolvedValue({ id: "chapter-audit-base" });
     mockTaskUpdate.mockResolvedValue({});
     mockMergeTaskData.mockImplementation(async (_taskId, updates) => updates as any);
   });
@@ -96,6 +103,9 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       },
       audioFile: {
         update: jest.fn().mockResolvedValue({}),
+      },
+      chapterQualityAudit: {
+        create: jest.fn().mockResolvedValue({ id: "chapter-audit-1" }),
       },
       manualReviewItem: {
         findMany: jest.fn().mockResolvedValue([
@@ -179,6 +189,9 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       },
       audioFile: {
         update: jest.fn().mockResolvedValue({}),
+      },
+      chapterQualityAudit: {
+        create: jest.fn().mockResolvedValue({ id: "chapter-audit-2" }),
       },
       manualReviewItem: {
         findMany: jest.fn().mockResolvedValue([

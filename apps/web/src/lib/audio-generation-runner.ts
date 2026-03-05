@@ -341,7 +341,7 @@ const enqueueManualReviewFollowupQualityCheck = async ({
       progress: 0,
       totalItems: audioFileIds.length,
       taskData: {
-        message: "人工复核重生后自动触发 Fast Gate 质检",
+        message: "人工复核重生后自动触发 Fast/Deep Gate 质检",
         metadata: {
           source: "manual_review",
           manualReviewItemId,
@@ -428,7 +428,7 @@ const enqueueQcRetryFollowupQualityCheck = async ({
       progress: 0,
       totalItems: audioFileIds.length,
       taskData: {
-        message: "质量返工后自动触发 Fast Gate 质检",
+        message: "质量返工后自动触发 Fast/Deep Gate 质检",
         metadata: {
           source: "qc_retry",
           type: "batch",

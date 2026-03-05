@@ -4,13 +4,24 @@
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, ValidationError } from '@/lib/error-handler'
-import prisma from '@/lib/prisma'
+import prisma, { Prisma } from '@/lib/prisma'
 import { mergeTaskData, formatProcessingTask } from '@/lib/processing-task-utils'
 import { enqueueQualityCheckJob } from '@/lib/task-queue'
 import type { QualityCheckTaskType } from '@/lib/quality-check-runner'
 
 const isValidQualityType = (value: unknown): value is QualityCheckTaskType => {
   return value === 'book' || value === 'chapter' || value === 'batch'
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null
+  }
+  return value as Record<string, unknown>
+}
+
+const toInputJsonValue = (value: unknown): Prisma.InputJsonValue => {
+  return JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue
 }
 
 const buildAudioFilter = (
@@ -43,6 +54,9 @@ export const POST = withErrorHandler(async (
   const audioFileIds = Array.isArray(body.audioFileIds)
     ? body.audioFileIds.filter((item: unknown): item is string => typeof item === 'string')
     : undefined
+  const deepGateThresholdTemplate = asRecord(
+    body.deepGateThresholdTemplate || body.thresholdTemplate
+  )
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -76,6 +90,16 @@ export const POST = withErrorHandler(async (
     throw new ValidationError('没有可质检的已完成音频')
   }
 
+  const taskMetadata: Record<string, Prisma.InputJsonValue> = {
+    type,
+    chapterId: chapterId || null,
+    audioFileIds: audioFileIds || [],
+    totalItems
+  }
+  if (deepGateThresholdTemplate) {
+    taskMetadata.deepGateThresholdTemplate = toInputJsonValue(deepGateThresholdTemplate)
+  }
+
   const task = await prisma.processingTask.create({
     data: {
       bookId,
@@ -83,15 +107,10 @@ export const POST = withErrorHandler(async (
       status: 'processing',
       progress: 0,
       totalItems,
-      taskData: {
-        message: 'Fast Gate 质检任务已创建',
-        metadata: {
-          type,
-          chapterId: chapterId || null,
-          audioFileIds: audioFileIds || [],
-          totalItems
-        }
-      }
+      taskData: toInputJsonValue({
+        message: 'Fast/Deep Gate 质检任务已创建',
+        metadata: taskMetadata
+      })
     }
   })
 
