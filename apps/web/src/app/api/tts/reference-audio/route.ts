@@ -4,12 +4,116 @@
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/error-handler";
+import { cosyVoiceService } from "@/lib/cosyvoice-service";
 import { indexTTSService, IndexTTSService } from "@/lib/indextts-service";
+import { voxCPMService } from "@/lib/voxcpm-service";
 import prisma from "@/lib/prisma";
+
+type ReferenceProvider = "indextts" | "cosyvoice" | "voxcpm";
+
+interface UnifiedReferenceAudio {
+  filename: string;
+  originalName: string;
+  filePath: string;
+  fileSize: number;
+  duration: number;
+  sampleRate: number;
+  format: string;
+  audioType: "example" | "uploaded" | "emotion";
+  description?: string;
+  speakerId?: string;
+  url: string;
+  provider: ReferenceProvider;
+}
+
+const SUPPORTED_PROVIDERS: readonly ReferenceProvider[] = [
+  "indextts",
+  "cosyvoice",
+  "voxcpm",
+];
+
+const resolveProvider = (value: string | null): ReferenceProvider =>
+  SUPPORTED_PROVIDERS.includes(value as ReferenceProvider)
+    ? (value as ReferenceProvider)
+    : "indextts";
+
+const inferAudioFormat = (filename: string): string => {
+  const extension = filename.split(".").pop()?.toLowerCase();
+  return extension || "wav";
+};
+
+const mapIndexTTSAudios = async (): Promise<UnifiedReferenceAudio[]> => {
+  const audios = await indexTTSService.getReferenceAudios();
+  return audios.map((audio) => ({
+    filename: audio.filename,
+    originalName: audio.originalName,
+    filePath: audio.filePath || "",
+    fileSize: audio.fileSize,
+    duration: audio.duration || 0,
+    sampleRate: audio.sampleRate || 0,
+    format: audio.format || inferAudioFormat(audio.filename),
+    audioType: audio.audioType,
+    description: audio.description,
+    speakerId: audio.speakerId,
+    url: audio.url,
+    provider: "indextts",
+  }));
+};
+
+const mapCosyVoiceAudios = async (): Promise<UnifiedReferenceAudio[]> => {
+  const audios = await cosyVoiceService.getReferenceAudios();
+  return audios.map((audio) => ({
+    filename: audio.filename,
+    originalName: audio.originalName,
+    filePath: "",
+    fileSize: audio.fileSize,
+    duration: 0,
+    sampleRate: 0,
+    format: inferAudioFormat(audio.filename),
+    audioType: audio.audioType === "example" ? "example" : "uploaded",
+    description: audio.originalName,
+    speakerId: undefined,
+    url: audio.url,
+    provider: "cosyvoice",
+  }));
+};
+
+const mapVoxCPMAudios = async (): Promise<UnifiedReferenceAudio[]> => {
+  const audios = await voxCPMService.getReferenceAudios();
+  return audios.map((audio) => ({
+    filename: audio.filename,
+    originalName: audio.originalName,
+    filePath: "",
+    fileSize: audio.fileSize,
+    duration: 0,
+    sampleRate: 0,
+    format: inferAudioFormat(audio.filename),
+    audioType: "uploaded",
+    description: audio.originalName,
+    speakerId: undefined,
+    url: audio.url,
+    provider: "voxcpm",
+  }));
+};
+
+const listReferenceAudiosByProvider = async (
+  provider: ReferenceProvider
+): Promise<UnifiedReferenceAudio[]> => {
+  if (provider === "cosyvoice") {
+    return mapCosyVoiceAudios();
+  }
+
+  if (provider === "voxcpm") {
+    return mapVoxCPMAudios();
+  }
+
+  return mapIndexTTSAudios();
+};
 
 // GET /api/tts/reference-audio - 获取参考音频列表
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
+  const provider = resolveProvider(searchParams.get("provider"));
   const audioType = searchParams.get("audioType") as
     | "example"
     | "uploaded"
@@ -20,7 +124,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const search = searchParams.get("search");
 
   try {
-    const referenceAudios = await indexTTSService.getReferenceAudios();
+    const referenceAudios = await listReferenceAudiosByProvider(provider);
 
     // 过滤音频
     let filteredAudios = referenceAudios;
@@ -49,11 +153,16 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const paginatedAudios = filteredAudios.slice(startIndex, endIndex);
 
     // 获取关联的说话人信息
-    const speakerIds = [
-      ...new Set(
-        paginatedAudios.map((audio) => audio.speakerId).filter(Boolean)
-      ),
-    ];
+    const speakerIds =
+      provider === "indextts"
+        ? [
+            ...new Set(
+              paginatedAudios
+                .map((audio) => audio.speakerId)
+                .filter((id): id is string => Boolean(id))
+            ),
+          ]
+        : [];
     const speakers =
       speakerIds.length > 0
         ? await prisma.speakerProfile.findMany({
@@ -82,6 +191,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           description: audio.description,
           speakerId: audio.speakerId,
           url: audio.url,
+          provider: audio.provider,
           speaker: audio.speakerId ? speakerMap.get(audio.speakerId) : null,
         })),
         pagination: {
@@ -93,6 +203,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
           hasPrev: page > 1,
         },
         summary: {
+          provider,
           totalAudios: referenceAudios.length,
           exampleCount: referenceAudios.filter((a) => a.audioType === "example")
             .length,
@@ -112,6 +223,8 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
 // POST /api/tts/reference-audio/upload - 上传参考音频
 export const POST = withErrorHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const provider = resolveProvider(searchParams.get("provider"));
   const formData = await request.formData();
   const file = formData.get("file") as File;
   const description = formData.get("description") as string;
@@ -139,6 +252,27 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   }
 
   try {
+    if (provider !== "indextts") {
+      const uploadResult =
+        provider === "cosyvoice"
+          ? await cosyVoiceService.uploadAudio(file)
+          : await voxCPMService.uploadAudio(file);
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          upload: {
+            ...uploadResult,
+            provider,
+            format: inferAudioFormat(uploadResult.filename),
+          },
+          analysis: null,
+          speaker: null,
+          message: `音频已上传到 ${provider}`,
+        },
+      });
+    }
+
     // 上传到 IndexTTS
     const uploadResult = await indexTTSService.uploadAudio(file, description);
 
@@ -226,8 +360,9 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
 
 // DELETE /api/tts/reference-audio/[filename] - 删除参考音频
 export const DELETE = withErrorHandler(async (request: NextRequest) => {
-  const urlParts = request.url.split("/");
-  const filename = urlParts[urlParts.length - 1];
+  const { searchParams } = new URL(request.url);
+  const provider = resolveProvider(searchParams.get("provider"));
+  const filename = searchParams.get("filename");
 
   if (!filename) {
     return NextResponse.json(
@@ -237,6 +372,30 @@ export const DELETE = withErrorHandler(async (request: NextRequest) => {
       },
       { status: 400 }
     );
+  }
+
+  if (provider === "cosyvoice") {
+    await cosyVoiceService.deleteAudio(filename);
+    return NextResponse.json({
+      success: true,
+      data: {
+        provider,
+        filename,
+        deletedAt: new Date(),
+      },
+    });
+  }
+
+  if (provider === "voxcpm") {
+    await voxCPMService.deleteAudio(filename);
+    return NextResponse.json({
+      success: true,
+      data: {
+        provider,
+        filename,
+        deletedAt: new Date(),
+      },
+    });
   }
 
   try {

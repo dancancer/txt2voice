@@ -12,6 +12,7 @@
 - audio-utils.ts | 地位: 功能模块 | 功能: 提供 audio utils 相关能力
 - book-api.ts | 地位: 功能模块 | 功能: 提供 book api 相关能力
 - cache.ts | 地位: 功能模块 | 功能: 提供 cache 相关能力
+- cosyvoice-service.ts | 地位: 功能模块 | 功能: 提供 cosyvoice service 相关能力
 - constants.ts | 地位: 功能模块 | 功能: 提供 constants 相关能力
 - error-handler.ts | 地位: 功能模块 | 功能: 提供 error handler 相关能力
 - indextts-service.ts | 地位: 功能模块 | 功能: 提供 indextts service 相关能力
@@ -40,3 +41,4 @@
 - types.ts | 地位: 类型定义 | 功能: 定义本目录共享类型
 - utils.ts | 地位: 功能模块 | 功能: 提供 utils 相关能力
 - validation.ts | 地位: 功能模块 | 功能: 提供 validation 相关能力
+- voxcpm-service.ts | 地位: 功能模块 | 功能: 提供 voxcpm service 相关能力

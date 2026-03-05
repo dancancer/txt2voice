@@ -1,3 +1,16 @@
+export type TTSReferenceProvider = "indextts" | "cosyvoice" | "voxcpm";
+
+export interface ProviderServiceStatus {
+  provider: TTSReferenceProvider;
+  name: string;
+  endpoint: string;
+  healthy: boolean;
+  message: string;
+  configuredFromEnv: boolean;
+  supportsSpeakerManagement: boolean;
+  defaultMode?: string;
+}
+
 export interface Speaker {
   id: string;
   speakerId: string;
@@ -27,6 +40,7 @@ export interface ReferenceAudio {
   description?: string;
   speakerId?: string;
   url: string;
+  provider?: TTSReferenceProvider;
   speaker?: Speaker | null;
 }
 

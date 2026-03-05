@@ -16,6 +16,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     provider = "indextts",
     voiceId,
     referenceAudio,
+    mode,
+    promptText,
+    speakerId,
+    instructText,
+    cosyMode,
+    cosyPromptText,
+    cosySpeakerId,
+    cosyInstructText,
+    voxcpmPromptText,
     emotionControlMethod = "Same as the voice reference",
     emotionReference,
     emotionVector,
@@ -132,10 +141,16 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       const ttsRequest = {
         text,
         voice,
+        referenceAudio,
         outputFormat,
         speed,
         pitch,
         volume,
+        cosyMode: cosyMode || mode,
+        cosyPromptText: cosyPromptText || promptText,
+        cosySpeakerId: cosySpeakerId || speakerId,
+        cosyInstructText: cosyInstructText || instructText,
+        voxcpmPromptText: voxcpmPromptText || promptText,
       };
 
       synthesisResult = await ttsServiceManager.synthesize(
@@ -144,12 +159,15 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
       );
     }
 
+    const audioUrl =
+      synthesisResult.audioUrl || synthesisResult.metadata?.audioUrl || null;
+
     return NextResponse.json({
       success: true,
       data: {
         taskId: synthesisResult.taskId || `local-${Date.now()}`,
         status: synthesisResult.status || "completed",
-        audioUrl: synthesisResult.audioUrl,
+        audioUrl,
         duration: synthesisResult.duration,
         format: outputFormat,
         metadata: {

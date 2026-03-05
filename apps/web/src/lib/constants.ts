@@ -34,6 +34,24 @@ export const CONFIG = {
     DEFAULT_SAMPLE_RATE: 24000,
     SUPPORTED_FORMATS: ['mp3', 'wav', 'ogg'] as const,
   },
+  AUDIO_PROVIDER_STRATEGY: {
+    main: {
+      primary: ['indextts'],
+      fallback: ['cosyvoice', 'voxcpm', 'azure', 'openai'],
+    },
+    supporting: {
+      primary: ['cosyvoice'],
+      fallback: ['indextts', 'voxcpm', 'openai', 'azure'],
+    },
+    minor: {
+      primary: ['voxcpm'],
+      fallback: ['cosyvoice', 'indextts', 'azure', 'openai'],
+    },
+    default: {
+      primary: ['indextts'],
+      fallback: ['cosyvoice', 'voxcpm', 'azure', 'openai'],
+    },
+  },
 
   // 缓存配置
   CACHE: {
@@ -105,7 +123,9 @@ export const BOOK_STATUS = {
 export const TTS_PROVIDERS = {
   AZURE: 'azure',
   OPENAI: 'openai',
-  EDGE_TTS: 'edge-tts',
+  INDEXTTS: 'indextts',
+  COSYVOICE: 'cosyvoice',
+  VOXCPM: 'voxcpm',
 } as const
 
 // 错误代码

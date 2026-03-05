@@ -297,7 +297,12 @@ export interface CharacterCandidate {
 
 // TTS 服务类型
 export interface TTSServiceConfig {
-  provider: "azure" | "openai" | "edge-tts";
+  provider:
+    | "azure"
+    | "openai"
+    | "indextts"
+    | "cosyvoice"
+    | "voxcpm";
   apiKey?: string;
   region?: string;
   voiceId: string;

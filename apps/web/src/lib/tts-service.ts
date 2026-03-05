@@ -3,11 +3,20 @@
 // output: 工具/服务导出
 // pos: 共享业务库
 import { TTSError } from "./error-handler";
+import { cosyVoiceService } from "./cosyvoice-service";
+import type { CosyVoiceMode } from "./cosyvoice-service";
 import { EmotionVector, indexTTSService } from "./indextts-service";
+import { voxCPMService } from "./voxcpm-service";
 
 export interface TTSProvider {
   name: string;
-  type: "azure" | "openai" | "edge-tts" | "indextts" | "custom";
+  type:
+    | "azure"
+    | "openai"
+    | "indextts"
+    | "cosyvoice"
+    | "voxcpm"
+    | "custom";
   apiKey?: string;
   region?: string;
   endpoint?: string;
@@ -59,6 +68,13 @@ export interface TTSRequest {
   beamSearch?: boolean;
   topK?: number;
   topP?: number;
+  // CosyVoice provider-specific fields
+  cosyMode?: CosyVoiceMode;
+  cosyPromptText?: string;
+  cosySpeakerId?: string;
+  cosyInstructText?: string;
+  // VoxCPM provider-specific fields
+  voxcpmPromptText?: string;
 }
 
 export interface TTSResponse {
@@ -355,82 +371,6 @@ export class OpenAITTSService {
 }
 
 /**
- * Edge TTS 服务 (免费)
- */
-export class EdgeTTSService {
-  async getAvailableVoices(): Promise<TTSVoice[]> {
-    try {
-      // 这是一个简化的Edge TTS声音列表，实际应用中可以动态获取
-      const voices = [
-        {
-          id: "zh-CN-XiaoxiaoNeural",
-          name: "Xiaoxiao",
-          displayName: "晓晓 (女声)",
-          language: "zh-CN",
-          gender: "female" as const,
-          age: "adult" as const,
-          style: ["neutral", "gentle", "cheerful"],
-          description: "中文女声，自然清晰",
-          isNeural: true,
-          locale: "zh-CN",
-        },
-        {
-          id: "zh-CN-YunxiNeural",
-          name: "Yunxi",
-          displayName: "云希 (男声)",
-          language: "zh-CN",
-          gender: "male" as const,
-          age: "adult" as const,
-          style: ["neutral", "calm", "serious"],
-          description: "中文男声，沉稳有力",
-          isNeural: true,
-          locale: "zh-CN",
-        },
-        {
-          id: "zh-CN-YunjianNeural",
-          name: "Yunjian",
-          displayName: "云健 (男声)",
-          language: "zh-CN",
-          gender: "male" as const,
-          age: "adult" as const,
-          style: ["neutral", "gentle"],
-          description: "中文男声，亲和自然",
-          isNeural: true,
-          locale: "zh-CN",
-        },
-        {
-          id: "zh-CN-XiaoyiNeural",
-          name: "Xiaoyi",
-          displayName: "晓伊 (女声)",
-          language: "zh-CN",
-          gender: "female" as const,
-          age: "adult" as const,
-          style: ["neutral", "sweet"],
-          description: "中文女声，甜美可爱",
-          isNeural: true,
-          locale: "zh-CN",
-        },
-      ];
-
-      return voices;
-    } catch (error) {
-      console.error("Failed to fetch Edge TTS voices:", error);
-      return [];
-    }
-  }
-
-  async synthesize(request: TTSRequest): Promise<TTSResponse> {
-    // Edge TTS 实现需要使用 WebSocket 或专门的库
-    // 这里提供一个基础框架，实际实现需要更多工作
-    throw new TTSError(
-      "Edge TTS service not fully implemented",
-      "TTS_SERVICE_DOWN",
-      "edge-tts"
-    );
-  }
-}
-
-/**
  * TTS 服务管理器
  */
 export class TTSServiceManager {
@@ -500,27 +440,6 @@ export class TTSServiceManager {
       }
     }
 
-    // Edge TTS (免费服务，总是可用)
-    const edgeService = new EdgeTTSService();
-    try {
-      const voices = await edgeService.getAvailableVoices();
-      this.providers.set("edge-tts", {
-        name: "Edge TTS",
-        type: "edge-tts",
-        isAvailable: true,
-        supportedLanguages: ["zh-CN"],
-        supportedVoices: voices,
-        maxCharacters: 5000,
-        rateLimits: {
-          requestsPerMinute: 60,
-          charactersPerMinute: 100000,
-        },
-      });
-      this.services.set("edge-tts", edgeService);
-    } catch (error) {
-      console.error("Failed to initialize Edge TTS:", error);
-    }
-
     // IndexTTS
     try {
       const referenceAudios = await indexTTSService.getReferenceAudios();
@@ -553,6 +472,96 @@ export class TTSServiceManager {
       this.services.set("indextts", indexTTSService);
     } catch (error) {
       console.error("Failed to initialize IndexTTS:", error);
+    }
+
+    // CosyVoice
+    try {
+      await cosyVoiceService.healthCheck();
+      const referenceAudios = await cosyVoiceService.getReferenceAudios();
+      const cosyVoiceVoices = referenceAudios.map((audio) => ({
+        id: audio.filename,
+        name: audio.filename,
+        displayName: audio.originalName || audio.filename,
+        language: "zh-CN",
+        gender: "neutral" as const,
+        age: "adult" as const,
+        style:
+          audio.audioType === "example"
+            ? ["zero-shot", "cross-lingual"]
+            : ["zero-shot"],
+        description: `参考音频(${audio.audioType}): ${
+          audio.originalName || audio.filename
+        }`,
+        isNeural: true,
+        sampleRate: 22050,
+      }));
+
+      this.providers.set("cosyvoice", {
+        name: "CosyVoice",
+        type: "cosyvoice",
+        endpoint: process.env.COSYVOICE_API_URL || "http://192.168.88.9:8011",
+        isAvailable: true,
+        supportedLanguages: ["zh-CN", "en-US", "ja-JP", "ko-KR"],
+        supportedVoices: cosyVoiceVoices,
+        maxCharacters: 2000,
+        rateLimits: {
+          requestsPerMinute: 20,
+          charactersPerMinute: 80000,
+        },
+      });
+      this.services.set("cosyvoice", cosyVoiceService);
+    } catch (error) {
+      console.error("Failed to initialize CosyVoice:", error);
+    }
+
+    // VoxCPM
+    try {
+      await voxCPMService.healthCheck();
+      const referenceAudios = await voxCPMService.getReferenceAudios();
+      const voxCPMVoices = referenceAudios.map((audio) => ({
+        id: audio.filename,
+        name: audio.filename,
+        displayName: audio.originalName || audio.filename,
+        language: "zh-CN",
+        gender: "neutral" as const,
+        age: "adult" as const,
+        style: ["cloning"],
+        description: `参考音频: ${audio.originalName || audio.filename}`,
+        isNeural: true,
+        sampleRate: 24000,
+      }));
+
+      if (voxCPMVoices.length === 0) {
+        voxCPMVoices.push({
+          id: "__voxcpm_default__",
+          name: "default",
+          displayName: "VoxCPM 默认音色",
+          language: "zh-CN",
+          gender: "neutral" as const,
+          age: "adult" as const,
+          style: ["default"],
+          description: "不使用参考音频，直接用模型默认音色",
+          isNeural: true,
+          sampleRate: 24000,
+        });
+      }
+
+      this.providers.set("voxcpm", {
+        name: "VoxCPM",
+        type: "voxcpm",
+        endpoint: process.env.VOXCPM_API_URL || "http://192.168.88.9:8012",
+        isAvailable: true,
+        supportedLanguages: ["zh-CN", "en-US"],
+        supportedVoices: voxCPMVoices,
+        maxCharacters: 2000,
+        rateLimits: {
+          requestsPerMinute: 20,
+          charactersPerMinute: 80000,
+        },
+      });
+      this.services.set("voxcpm", voxCPMService);
+    } catch (error) {
+      console.error("Failed to initialize VoxCPM:", error);
     }
   }
 
@@ -632,33 +641,78 @@ export class TTSServiceManager {
         );
       }
 
-      const audioResponse = await fetch(synthesisResult.audioUrl);
-      if (!audioResponse.ok) {
-        throw new TTSError(
-          `Failed to download IndexTTS audio: ${audioResponse.status} ${audioResponse.statusText}`,
-          "TTS_SYNTHESIS_FAILED",
-          "indextts",
-          true
-        );
-      }
-
-      const audioBuffer = await audioResponse.arrayBuffer();
-      return {
-        audioBuffer,
-        duration: synthesisResult.duration || 0,
-        format: this.resolveOutputFormat(
-          synthesisResult.audioUrl,
-          request.outputFormat
-        ),
-        sampleRate: request.voice.sampleRate || 24000,
-        metadata: {
+      return this.createRemoteAudioResponse(
+        synthesisResult.audioUrl,
+        {
           provider: "indextts",
+          fallbackFormat: request.outputFormat,
+          fallbackSampleRate: request.voice.sampleRate || 24000,
+          duration: synthesisResult.duration || 0,
+        },
+        {
           taskId: synthesisResult.taskId,
-          audioUrl: synthesisResult.audioUrl,
           referenceAudio,
           ...synthesisResult.metadata,
+        }
+      );
+    }
+
+    if (providerName === "cosyvoice") {
+      const selectedMode = this.resolveCosyVoiceMode(
+        request.cosyMode || process.env.COSYVOICE_DEFAULT_MODE
+      );
+      const referenceAudio =
+        request.referenceAudio || this.resolveReferenceAudioFromVoice(request.voice.id);
+
+      const synthesisResult = await cosyVoiceService.synthesize({
+        text: request.text,
+        mode: selectedMode,
+        referenceAudio,
+        promptText: request.cosyPromptText,
+        speakerId: request.cosySpeakerId,
+        instructText: request.cosyInstructText,
+      });
+
+      return this.createRemoteAudioResponse(
+        synthesisResult.audioUrl,
+        {
+          provider: "cosyvoice",
+          fallbackFormat: request.outputFormat,
+          fallbackSampleRate:
+            synthesisResult.sampleRate || request.voice.sampleRate || 22050,
+          duration: synthesisResult.duration || 0,
         },
-      };
+        {
+          mode: synthesisResult.mode || selectedMode,
+          referenceAudio,
+          ...synthesisResult.metadata,
+        }
+      );
+    }
+
+    if (providerName === "voxcpm") {
+      const referenceAudio =
+        request.referenceAudio || this.resolveReferenceAudioFromVoice(request.voice.id);
+      const synthesisResult = await voxCPMService.synthesize({
+        text: request.text,
+        referenceAudio,
+        promptText: request.voxcpmPromptText,
+      });
+
+      return this.createRemoteAudioResponse(
+        synthesisResult.audioUrl,
+        {
+          provider: "voxcpm",
+          fallbackFormat: request.outputFormat,
+          fallbackSampleRate:
+            synthesisResult.sampleRate || request.voice.sampleRate || 24000,
+          duration: synthesisResult.duration || 0,
+        },
+        {
+          referenceAudio,
+          ...synthesisResult.metadata,
+        }
+      );
     }
 
     return service.synthesize(request);
@@ -666,6 +720,55 @@ export class TTSServiceManager {
 
   async ready(): Promise<void> {
     await this.initializationPromise;
+  }
+
+  private async createRemoteAudioResponse(
+    audioUrl: string,
+    options: {
+      provider: string;
+      fallbackFormat: TTSRequest["outputFormat"];
+      fallbackSampleRate: number;
+      duration?: number;
+    },
+    metadata: Record<string, any>
+  ): Promise<TTSResponse> {
+    const audioBuffer = await this.downloadAudioBuffer(audioUrl, options.provider);
+
+    return {
+      audioBuffer,
+      duration: options.duration || 0,
+      format: this.resolveOutputFormat(audioUrl, options.fallbackFormat),
+      sampleRate: options.fallbackSampleRate,
+      metadata: {
+        provider: options.provider,
+        audioUrl,
+        ...metadata,
+      },
+    };
+  }
+
+  private async downloadAudioBuffer(
+    audioUrl: string,
+    provider: string
+  ): Promise<ArrayBuffer> {
+    const audioResponse = await fetch(audioUrl);
+    if (!audioResponse.ok) {
+      throw new TTSError(
+        `Failed to download ${provider} audio: ${audioResponse.status} ${audioResponse.statusText}`,
+        "TTS_SYNTHESIS_FAILED",
+        provider,
+        true
+      );
+    }
+
+    return audioResponse.arrayBuffer();
+  }
+
+  private resolveReferenceAudioFromVoice(voiceId: string | undefined): string | undefined {
+    if (!voiceId || voiceId.startsWith("__")) {
+      return undefined;
+    }
+    return voiceId;
   }
 
   private resolveOutputFormat(
@@ -687,6 +790,18 @@ export class TTSServiceManager {
     }
 
     return fallback;
+  }
+
+  private resolveCosyVoiceMode(input?: string): CosyVoiceMode {
+    if (
+      input === "zero_shot" ||
+      input === "cross_lingual" ||
+      input === "sft" ||
+      input === "instruct2"
+    ) {
+      return input;
+    }
+    return "cross_lingual";
   }
 }
 

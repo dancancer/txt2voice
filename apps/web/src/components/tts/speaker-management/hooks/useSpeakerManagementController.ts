@@ -3,16 +3,30 @@ import { toast } from "sonner";
 import { IndexTTSService } from "@/lib/indextts-service";
 import type {
   NewSpeakerForm,
+  ProviderServiceStatus,
   ReferenceAudio,
   Speaker,
+  TTSReferenceProvider,
   UploadAudioPreview,
 } from "../types";
 import { AUDIO_PAGE_SIZE, DEFAULT_NEW_SPEAKER_FORM } from "../utils";
+
+const PROVIDER_STORAGE_KEY = "tts.speaker-management.provider";
+const SUPPORTED_PROVIDER_LIST: readonly TTSReferenceProvider[] = [
+  "indextts",
+  "cosyvoice",
+  "voxcpm",
+];
+
+const isTTSReferenceProvider = (value: unknown): value is TTSReferenceProvider =>
+  SUPPORTED_PROVIDER_LIST.includes(value as TTSReferenceProvider);
 
 export function useSpeakerManagementController() {
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
   const [referenceAudios, setReferenceAudios] = useState<ReferenceAudio[]>([]);
   const [loading, setLoading] = useState(true);
+  const [providerStatuses, setProviderStatuses] = useState<ProviderServiceStatus[]>([]);
+  const [providerStatusLoading, setProviderStatusLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterGender, setFilterGender] = useState("");
@@ -37,8 +51,59 @@ export function useSpeakerManagementController() {
     useState<UploadAudioPreview | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedAudioFilenames, setSelectedAudioFilenames] = useState<string[]>(
+    []
+  );
 
   const [isPlaying, setIsPlaying] = useState<string | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<TTSReferenceProvider>(
+    () => {
+      if (typeof window === "undefined") {
+        return "indextts";
+      }
+      const storedProvider = window.localStorage.getItem(PROVIDER_STORAGE_KEY);
+      return isTTSReferenceProvider(storedProvider) ? storedProvider : "indextts";
+    }
+  );
+
+  const supportsSpeakerManagement = selectedProvider === "indextts";
+  const selectedProviderStatus = useMemo(
+    () =>
+      providerStatuses.find((status) => status.provider === selectedProvider) ||
+      null,
+    [providerStatuses, selectedProvider]
+  );
+
+  const fetchProviderStatuses = useCallback(async () => {
+    setProviderStatusLoading(true);
+    try {
+      const response = await fetch("/api/tts/providers/status", {
+        cache: "no-store",
+      });
+      const data = await response.json();
+
+      if (data.success && Array.isArray(data.data?.providers)) {
+        setProviderStatuses(data.data.providers as ProviderServiceStatus[]);
+        return;
+      }
+    } catch (error) {
+      console.error("Failed to fetch TTS provider statuses:", error);
+    } finally {
+      setProviderStatusLoading(false);
+    }
+
+    setProviderStatuses([]);
+  }, []);
+
+  const changeProvider = useCallback((provider: TTSReferenceProvider) => {
+    if (provider === selectedProvider) {
+      return;
+    }
+    setSelectedProvider(provider);
+    setCurrentPage(1);
+    setAudioPage(1);
+    setSelectedAudioFilenames([]);
+  }, [selectedProvider]);
 
   const audioTotalPages = Math.max(
     1,
@@ -52,6 +117,12 @@ export function useSpeakerManagementController() {
   }, [referenceAudios, clampedAudioPage]);
 
   const fetchSpeakers = useCallback(async () => {
+    if (!supportsSpeakerManagement) {
+      setSpeakers([]);
+      setTotalPages(1);
+      return;
+    }
+
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -73,7 +144,14 @@ export function useSpeakerManagementController() {
       console.error("Failed to fetch speakers:", error);
       toast.error("获取说话人列表失败");
     }
-  }, [currentPage, filterActive, filterAgeGroup, filterGender, searchTerm]);
+  }, [
+    currentPage,
+    filterActive,
+    filterAgeGroup,
+    filterGender,
+    searchTerm,
+    supportsSpeakerManagement,
+  ]);
 
   const fetchReferenceAudios = useCallback(async () => {
     try {
@@ -86,6 +164,7 @@ export function useSpeakerManagementController() {
         const params = new URLSearchParams({
           page: page.toString(),
           limit: limit.toString(),
+          provider: selectedProvider,
         });
 
         const response = await fetch(`/api/tts/reference-audio?${params}`);
@@ -105,13 +184,29 @@ export function useSpeakerManagementController() {
       console.error("Failed to fetch reference audios:", error);
       toast.error("获取参考音频列表失败");
     }
-  }, []);
+  }, [selectedProvider]);
+
+  useEffect(() => {
+    setSelectedAudioFilenames((previous) => {
+      const available = new Set(
+        referenceAudios
+          .filter((audio) => audio.audioType !== "example")
+          .map((audio) => audio.filename)
+      );
+      return previous.filter((filename) => available.has(filename));
+    });
+  }, [referenceAudios]);
 
   const resetNewSpeaker = useCallback(() => {
     setNewSpeaker({ ...DEFAULT_NEW_SPEAKER_FORM });
   }, []);
 
   const createSpeaker = useCallback(async () => {
+    if (!supportsSpeakerManagement) {
+      toast.error("当前提供商不支持说话人管理");
+      return;
+    }
+
     try {
       const response = await fetch("/api/tts/speakers", {
         method: "POST",
@@ -134,9 +229,14 @@ export function useSpeakerManagementController() {
       console.error("Failed to create speaker:", error);
       toast.error("创建说话人失败");
     }
-  }, [fetchSpeakers, newSpeaker, resetNewSpeaker]);
+  }, [fetchSpeakers, newSpeaker, resetNewSpeaker, supportsSpeakerManagement]);
 
   const updateSpeaker = useCallback(async () => {
+    if (!supportsSpeakerManagement) {
+      toast.error("当前提供商不支持说话人管理");
+      return;
+    }
+
     if (!editingSpeaker) {
       return;
     }
@@ -171,10 +271,15 @@ export function useSpeakerManagementController() {
       console.error("Failed to update speaker:", error);
       toast.error("更新说话人失败");
     }
-  }, [editingSpeaker, fetchSpeakers]);
+  }, [editingSpeaker, fetchSpeakers, supportsSpeakerManagement]);
 
   const deleteSpeaker = useCallback(
     async (speakerId: string, speakerName: string) => {
+      if (!supportsSpeakerManagement) {
+        toast.error("当前提供商不支持说话人管理");
+        return;
+      }
+
       if (!confirm(`确定要删除说话人"${speakerName}"吗？此操作不可撤销。`)) {
         return;
       }
@@ -198,7 +303,7 @@ export function useSpeakerManagementController() {
         toast.error("删除说话人失败");
       }
     },
-    [fetchSpeakers]
+    [fetchSpeakers, supportsSpeakerManagement]
   );
 
   const openEditDialog = useCallback((speaker: Speaker) => {
@@ -269,11 +374,14 @@ export function useSpeakerManagementController() {
           resolve();
         });
 
-        xhr.open("POST", "/api/tts/reference-audio");
+        xhr.open(
+          "POST",
+          `/api/tts/reference-audio?provider=${encodeURIComponent(selectedProvider)}`
+        );
         xhr.send(formData);
       });
     },
-    [fetchReferenceAudios, fetchSpeakers]
+    [fetchReferenceAudios, fetchSpeakers, selectedProvider]
   );
 
   const submitSelectedAudio = useCallback(async () => {
@@ -293,15 +401,13 @@ export function useSpeakerManagementController() {
     );
   }, [selectedUploadFile, selectedUploadPreview?.originalName, uploadReferenceAudio]);
 
-  const deleteReferenceAudio = useCallback(
-    async (filename: string) => {
-      if (!confirm("确定要删除这个参考音频吗？")) {
-        return;
-      }
-
+  const requestDeleteReferenceAudio = useCallback(
+    async (filename: string): Promise<{ ok: boolean; error?: string }> => {
       try {
         const response = await fetch(
-          `/api/tts/reference-audio?filename=${encodeURIComponent(filename)}`,
+          `/api/tts/reference-audio?provider=${encodeURIComponent(
+            selectedProvider
+          )}&filename=${encodeURIComponent(filename)}`,
           {
             method: "DELETE",
           }
@@ -310,18 +416,115 @@ export function useSpeakerManagementController() {
         const data = await response.json();
 
         if (!data.success) {
-          toast.error(data.error || "音频删除失败");
-          return;
+          return {
+            ok: false,
+            error: data.error || "音频删除失败",
+          };
         }
-
-        toast.success("音频删除成功");
-        await Promise.all([fetchReferenceAudios(), fetchSpeakers()]);
+        return { ok: true };
       } catch (error) {
         console.error("Failed to delete audio:", error);
-        toast.error("音频删除失败");
+        return {
+          ok: false,
+          error: "音频删除失败",
+        };
       }
     },
-    [fetchReferenceAudios, fetchSpeakers]
+    [selectedProvider]
+  );
+
+  const deleteReferenceAudio = useCallback(
+    async (filename: string) => {
+      if (!confirm("确定要删除这个参考音频吗？")) {
+        return;
+      }
+
+      const result = await requestDeleteReferenceAudio(filename);
+      if (!result.ok) {
+        toast.error(result.error || "音频删除失败");
+        return;
+      }
+
+      toast.success("音频删除成功");
+      setSelectedAudioFilenames((previous) =>
+        previous.filter((item) => item !== filename)
+      );
+      await Promise.all([fetchReferenceAudios(), fetchSpeakers()]);
+    },
+    [fetchReferenceAudios, fetchSpeakers, requestDeleteReferenceAudio]
+  );
+
+  const toggleAudioSelection = useCallback((filename: string, checked: boolean) => {
+    setSelectedAudioFilenames((previous) => {
+      if (checked) {
+        if (previous.includes(filename)) {
+          return previous;
+        }
+        return [...previous, filename];
+      }
+      return previous.filter((item) => item !== filename);
+    });
+  }, []);
+
+  const setAudioSelectionForMany = useCallback(
+    (filenames: string[], checked: boolean) => {
+      const targets = filenames.filter(Boolean);
+      if (targets.length === 0) {
+        return;
+      }
+
+      setSelectedAudioFilenames((previous) => {
+        if (checked) {
+          const merged = new Set([...previous, ...targets]);
+          return Array.from(merged);
+        }
+        const blocked = new Set(targets);
+        return previous.filter((item) => !blocked.has(item));
+      });
+    },
+    []
+  );
+
+  const clearSelectedAudios = useCallback(() => {
+    setSelectedAudioFilenames([]);
+  }, []);
+
+  const deleteSelectedReferenceAudios = useCallback(
+    async (filenames: string[]) => {
+      const targets = Array.from(new Set(filenames));
+      if (targets.length === 0) {
+        return;
+      }
+
+      if (!confirm(`确定要删除选中的 ${targets.length} 个参考音频吗？`)) {
+        return;
+      }
+
+      let successCount = 0;
+      let failedCount = 0;
+
+      for (const filename of targets) {
+        const result = await requestDeleteReferenceAudio(filename);
+        if (result.ok) {
+          successCount += 1;
+        } else {
+          failedCount += 1;
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`成功删除 ${successCount} 个音频`);
+      }
+      if (failedCount > 0) {
+        toast.error(`删除失败 ${failedCount} 个音频`);
+      }
+
+      setSelectedAudioFilenames((previous) =>
+        previous.filter((item) => !targets.includes(item))
+      );
+      await Promise.all([fetchReferenceAudios(), fetchSpeakers()]);
+    },
+    [fetchReferenceAudios, fetchSpeakers, requestDeleteReferenceAudio]
   );
 
   const togglePlay = useCallback(
@@ -353,9 +556,28 @@ export function useSpeakerManagementController() {
     void loadData();
   }, [fetchReferenceAudios, fetchSpeakers]);
 
+  useEffect(() => {
+    void fetchProviderStatuses();
+  }, [fetchProviderStatuses]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(PROVIDER_STORAGE_KEY, selectedProvider);
+  }, [selectedProvider]);
+
   return {
+    selectedProvider,
+    selectedProviderStatus,
+    providerStatuses,
+    providerStatusLoading,
+    setSelectedProvider: changeProvider,
+    refreshProviderStatuses: fetchProviderStatuses,
+    supportsSpeakerManagement,
     speakers,
     referenceAudios,
+    selectedAudioFilenames,
     loading,
     searchTerm,
     filterGender,
@@ -394,6 +616,10 @@ export function useSpeakerManagementController() {
     selectUploadFile,
     submitSelectedAudio,
     deleteReferenceAudio,
+    toggleAudioSelection,
+    setAudioSelectionForMany,
+    clearSelectedAudios,
+    deleteSelectedReferenceAudios,
     togglePlay,
   };
 }

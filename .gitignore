@@ -70,3 +70,5 @@ docs/test.txt
 .venv-macos-tf210/
 characters.txt
 1.txt
+.pnpm-home
+.codex

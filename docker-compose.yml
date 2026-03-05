@@ -116,6 +116,9 @@ services:
       
       # IndexTTS Service (从 .env 文件读取，指向外部 IndexTTS 服务)
       INDEXTTS_API_URL: ${INDEXTTS_API_URL:-http://192.168.88.9:8001}
+      COSYVOICE_API_URL: ${COSYVOICE_API_URL:-http://192.168.88.9:8011}
+      COSYVOICE_DEFAULT_MODE: ${COSYVOICE_DEFAULT_MODE:-cross_lingual}
+      VOXCPM_API_URL: ${VOXCPM_API_URL:-http://192.168.88.9:8012}
 
       # 开发模式特定配置
       WATCHPACK_POLLING: "true"

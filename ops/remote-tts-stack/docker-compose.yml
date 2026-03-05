@@ -1,0 +1,48 @@
+services:
+  cosyvoice-api:
+    build:
+      context: ./cosyvoice-api
+    container_name: cosyvoice-api
+    restart: unless-stopped
+    ports:
+      - "8011:8000"
+    environment:
+      PORT: "8000"
+      CUDA_VISIBLE_DEVICES: "0"
+      NVIDIA_VISIBLE_DEVICES: "0"
+      SERVICE_DATA_ROOT: "/data"
+      COSYVOICE_MODEL_DIR: "FunAudioLLM/Fun-CosyVoice3-0.5B-2512"
+    volumes:
+      - ./data/cosyvoice/uploads:/data/uploads
+      - ./data/cosyvoice/outputs:/data/outputs
+      - ./data/cosyvoice/models:/models
+      - ./data/cosyvoice/modelscope:/root/.cache/modelscope
+    gpus:
+      - driver: nvidia
+        device_ids: ["0"]
+        capabilities: [gpu]
+
+  voxcpm-api:
+    build:
+      context: ./voxcpm-api
+    container_name: voxcpm-api
+    restart: unless-stopped
+    ports:
+      - "8012:8000"
+    environment:
+      PORT: "8000"
+      CUDA_VISIBLE_DEVICES: "0"
+      NVIDIA_VISIBLE_DEVICES: "1"
+      SERVICE_DATA_ROOT: "/data"
+      VOXCPM_MODEL_ID: "OpenBMB/VoxCPM-0.5B"
+      VOXCPM_MODEL_ROOT: "/models"
+      VOXCPM_DISABLE_TORCH_COMPILE: "1"
+    volumes:
+      - ./data/voxcpm/uploads:/data/uploads
+      - ./data/voxcpm/outputs:/data/outputs
+      - ./data/voxcpm/models:/models
+      - ./data/voxcpm/modelscope:/root/.cache/modelscope
+    gpus:
+      - driver: nvidia
+        device_ids: ["1"]
+        capabilities: [gpu]
