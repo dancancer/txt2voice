@@ -43,11 +43,19 @@ interface QualityCheckTaskContext {
   source: string | null;
   manualReviewItemId: string;
   autoCreatePendingOnReject: boolean;
+  maxAutoRejectedCount: number | null;
+  issueTypePolicies: Record<string, IssueTypeDispatchPolicy>;
 }
 
 interface ReprocessingSyncResult {
   syncedCount: number;
   secondaryPendingCount: number;
+  secondarySkippedByThresholdCount: number;
+}
+
+interface IssueTypeDispatchPolicy {
+  autoCreatePendingOnReject?: boolean;
+  maxAutoRejectedCount?: number;
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -56,6 +64,74 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
   }
   return value as Record<string, unknown>;
 };
+
+const asBoolean = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return undefined;
+};
+
+const asNonNegativeInteger = (value: unknown): number | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0) {
+    return undefined;
+  }
+
+  return Number(numeric);
+};
+
+const parseIssueTypePolicies = (
+  value: unknown
+): Record<string, IssueTypeDispatchPolicy> => {
+  const record = asRecord(value);
+  if (!record) {
+    return {};
+  }
+
+  const issueTypePolicies: Record<string, IssueTypeDispatchPolicy> = {};
+  for (const [rawIssueType, policyValue] of Object.entries(record)) {
+    const issueType = rawIssueType.trim().toUpperCase();
+    if (!issueType) {
+      continue;
+    }
+
+    const policy = asRecord(policyValue);
+    if (!policy) {
+      continue;
+    }
+
+    const autoCreatePendingOnReject = asBoolean(policy.autoCreatePendingOnReject);
+    const maxAutoRejectedCount = asNonNegativeInteger(policy.maxAutoRejectedCount);
+    if (
+      autoCreatePendingOnReject === undefined &&
+      maxAutoRejectedCount === undefined
+    ) {
+      continue;
+    }
+
+    issueTypePolicies[issueType] = {
+      ...(autoCreatePendingOnReject !== undefined
+        ? {
+            autoCreatePendingOnReject,
+          }
+        : {}),
+      ...(maxAutoRejectedCount !== undefined
+        ? {
+            maxAutoRejectedCount,
+          }
+        : {}),
+    };
+  }
+
+  return issueTypePolicies;
+};
+
+const DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT = 2;
 
 const extractQualityCheckTaskContext = (
   taskData: Prisma.JsonValue | null | undefined
@@ -69,13 +145,20 @@ const extractQualityCheckTaskContext = (
       ? metadata.manualReviewItemId
       : "";
 
+  const policySource = asRecord(metadata?.dispatchPolicy) || metadata;
   const autoCreatePendingOnReject =
-    metadata?.autoCreatePendingOnReject === true || source === "qc_retry";
+    asBoolean(policySource?.autoCreatePendingOnReject) ?? source === "qc_retry";
+  const maxAutoRejectedCount =
+    asNonNegativeInteger(policySource?.maxAutoRejectedCount) ??
+    (source === "qc_retry" ? DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT : null);
+  const issueTypePolicies = parseIssueTypePolicies(policySource?.issueTypePolicies);
 
   return {
     source,
     manualReviewItemId: source === "manual_review" ? manualReviewItemId : "",
     autoCreatePendingOnReject,
+    maxAutoRejectedCount,
+    issueTypePolicies,
   };
 };
 
@@ -108,6 +191,39 @@ export const resolveReprocessingStatusFromVerdict = (
   };
 };
 
+const getAutoRejectedCount = (issueDetail: Prisma.JsonValue): number => {
+  const detailRecord = asRecord(issueDetail);
+  return asNonNegativeInteger(detailRecord?.autoRejectedCount) || 0;
+};
+
+const resolveIssueTypeDispatchPolicy = ({
+  issueType,
+  autoCreatePendingOnReject,
+  maxAutoRejectedCount,
+  issueTypePolicies,
+}: {
+  issueType: string;
+  autoCreatePendingOnReject: boolean;
+  maxAutoRejectedCount: number | null;
+  issueTypePolicies: Record<string, IssueTypeDispatchPolicy>;
+}): { autoCreatePendingOnReject: boolean; maxAutoRejectedCount: number | null } => {
+  const normalizedIssueType = issueType.trim().toUpperCase();
+  const issuePolicy = issueTypePolicies[normalizedIssueType];
+
+  if (!issuePolicy) {
+    return {
+      autoCreatePendingOnReject,
+      maxAutoRejectedCount,
+    };
+  }
+
+  return {
+    autoCreatePendingOnReject:
+      issuePolicy.autoCreatePendingOnReject ?? autoCreatePendingOnReject,
+    maxAutoRejectedCount: issuePolicy.maxAutoRejectedCount ?? maxAutoRejectedCount,
+  };
+};
+
 const syncReprocessingManualReviewItems = async ({
   tx,
   bookId,
@@ -119,6 +235,8 @@ const syncReprocessingManualReviewItems = async ({
   taskId,
   manualReviewItemId,
   autoCreatePendingOnReject,
+  maxAutoRejectedCount,
+  issueTypePolicies,
 }: {
   tx: Prisma.TransactionClient;
   bookId: string;
@@ -130,6 +248,8 @@ const syncReprocessingManualReviewItems = async ({
   taskId: string;
   manualReviewItemId?: string;
   autoCreatePendingOnReject: boolean;
+  maxAutoRejectedCount: number | null;
+  issueTypePolicies: Record<string, IssueTypeDispatchPolicy>;
 }): Promise<ReprocessingSyncResult> => {
   const where: Prisma.ManualReviewItemWhereInput = {
     bookId,
@@ -145,6 +265,7 @@ const syncReprocessingManualReviewItems = async ({
     return {
       syncedCount: 0,
       secondaryPendingCount: 0,
+      secondarySkippedByThresholdCount: 0,
     };
   }
 
@@ -168,13 +289,59 @@ const syncReprocessingManualReviewItems = async ({
     return {
       syncedCount: 0,
       secondaryPendingCount: 0,
+      secondarySkippedByThresholdCount: 0,
     };
   }
 
   const resolution = resolveReprocessingStatusFromVerdict(decision.verdict);
   const marker = `auto_qc:${decision.verdict};score=${decision.score};task=${taskId};qc=${qualityResultId}`;
+  let secondarySkippedByThresholdCount = 0;
+  const secondaryDispatchCandidates: Array<{
+    item: (typeof reprocessingItems)[number];
+    nextAutoRejectedCount: number;
+    maxAutoRejectedCount: number | null;
+  }> = [];
 
   for (const item of reprocessingItems) {
+    const currentAutoRejectedCount = getAutoRejectedCount(item.issueDetail);
+    const nextAutoRejectedCount =
+      resolution.status === "rejected"
+        ? currentAutoRejectedCount + 1
+        : currentAutoRejectedCount;
+    const dispatchPolicy = resolveIssueTypeDispatchPolicy({
+      issueType: item.issueType,
+      autoCreatePendingOnReject,
+      maxAutoRejectedCount,
+      issueTypePolicies,
+    });
+    const isThresholdExceeded =
+      resolution.status === "rejected" &&
+      dispatchPolicy.autoCreatePendingOnReject &&
+      dispatchPolicy.maxAutoRejectedCount !== null &&
+      nextAutoRejectedCount > dispatchPolicy.maxAutoRejectedCount;
+
+    if (isThresholdExceeded) {
+      secondarySkippedByThresholdCount += 1;
+    }
+
+    const issueDetailPayload: Record<string, Prisma.InputJsonValue> = {
+      ...((asRecord(item.issueDetail) || {}) as Record<string, Prisma.InputJsonValue>),
+      reasons: decision.reasons as Prisma.InputJsonValue,
+      repairPlan: decision.repairPlan as Prisma.InputJsonValue,
+      score: decision.score,
+      verdict: decision.verdict,
+      syncedByTaskId: taskId,
+      autoRejectedCount: nextAutoRejectedCount,
+    };
+
+    if (dispatchPolicy.maxAutoRejectedCount !== null) {
+      issueDetailPayload.maxAutoRejectedCount = dispatchPolicy.maxAutoRejectedCount;
+    }
+
+    if (isThresholdExceeded) {
+      issueDetailPayload.secondaryDispatch = "threshold_blocked";
+    }
+
     await tx.manualReviewItem.update({
       where: { id: item.id },
       data: {
@@ -185,23 +352,28 @@ const syncReprocessingManualReviewItems = async ({
         qcResultId: qualityResultId,
         audioFileId,
         attemptId: attemptId || null,
-        issueDetail: {
-          reasons: decision.reasons,
-          repairPlan: decision.repairPlan,
-          score: decision.score,
-          verdict: decision.verdict,
-          syncedByTaskId: taskId,
-        } as Prisma.InputJsonValue,
+        issueDetail: issueDetailPayload as Prisma.InputJsonValue,
       },
     });
+
+    const shouldCreateSecondaryPending =
+      resolution.status === "rejected" &&
+      dispatchPolicy.autoCreatePendingOnReject &&
+      !isThresholdExceeded;
+
+    if (shouldCreateSecondaryPending) {
+      secondaryDispatchCandidates.push({
+        item,
+        nextAutoRejectedCount,
+        maxAutoRejectedCount: dispatchPolicy.maxAutoRejectedCount,
+      });
+    }
   }
 
   let secondaryPendingCount = 0;
-  const shouldCreateSecondaryPending =
-    autoCreatePendingOnReject && resolution.status === "rejected";
-
-  if (shouldCreateSecondaryPending) {
-    for (const item of reprocessingItems) {
+  if (secondaryDispatchCandidates.length > 0) {
+    for (const candidate of secondaryDispatchCandidates) {
+      const item = candidate.item;
       const duplicateWhere: Prisma.ManualReviewItemWhereInput = {
         bookId,
         issueType: item.issueType,
@@ -250,6 +422,12 @@ const syncReprocessingManualReviewItems = async ({
             dispatch: "secondary_pending",
             dispatchedByTaskId: taskId,
             dispatchedFromQcResultId: qualityResultId,
+            autoRejectedCount: candidate.nextAutoRejectedCount,
+            ...(candidate.maxAutoRejectedCount !== null
+              ? {
+                  maxAutoRejectedCount: candidate.maxAutoRejectedCount,
+                }
+              : {}),
           } as Prisma.InputJsonValue,
         },
       });
@@ -261,6 +439,7 @@ const syncReprocessingManualReviewItems = async ({
   return {
     syncedCount: reprocessingItems.length,
     secondaryPendingCount,
+    secondarySkippedByThresholdCount,
   };
 };
 
@@ -465,6 +644,7 @@ export async function runQualityCheckTask({
   let manualReviewCount = 0;
   let hardFailCount = 0;
   let secondaryDispatchCount = 0;
+  let secondaryDispatchSkippedByThresholdCount = 0;
 
   for (let index = 0; index < audioFiles.length; index += 1) {
     const audioFile = audioFiles[index];
@@ -528,8 +708,12 @@ export async function runQualityCheckTask({
         taskId,
         manualReviewItemId: taskContext.manualReviewItemId || undefined,
         autoCreatePendingOnReject: taskContext.autoCreatePendingOnReject,
+        maxAutoRejectedCount: taskContext.maxAutoRejectedCount,
+        issueTypePolicies: taskContext.issueTypePolicies,
       });
       secondaryDispatchCount += reprocessingSync.secondaryPendingCount;
+      secondaryDispatchSkippedByThresholdCount +=
+        reprocessingSync.secondarySkippedByThresholdCount;
 
       if (
         reprocessingSync.syncedCount === 0 &&
@@ -598,6 +782,7 @@ export async function runQualityCheckTask({
     manualReviewCount,
     hardFailCount,
     secondaryDispatchCount,
+    secondaryDispatchSkippedByThresholdCount,
     source: taskContext.source,
   };
 

@@ -14,6 +14,9 @@ jest.mock("@/lib/prisma", () => ({
       create: jest.fn(),
       update: jest.fn(),
     },
+    book: {
+      findUnique: jest.fn(),
+    },
   },
 }));
 
@@ -39,6 +42,7 @@ const mockUpdateManualItem = (prisma as any).manualReviewItem.update as jest.Moc
 const mockFindActiveAudioTask = (prisma as any).processingTask.findFirst as jest.Mock;
 const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
+const mockFindBook = (prisma as any).book.findUnique as jest.Mock;
 const mockEnqueueAudio = enqueueAudioGenerationJob as jest.MockedFunction<
   typeof enqueueAudioGenerationJob
 >;
@@ -64,6 +68,9 @@ const buildCandidate = (overrides: Record<string, unknown> = {}) => ({
 describe("qc-retry-service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockFindBook.mockResolvedValue({
+      metadata: {},
+    });
   });
 
   it("should parse payload with defaults", () => {
@@ -90,6 +97,16 @@ describe("qc-retry-service", () => {
       parseQualityRetryPayload({
         minScore: 90,
         maxScore: 80,
+      })
+    ).toThrow(ValidationError);
+  });
+
+  it("should throw when dispatch policy is invalid", () => {
+    expect(() =>
+      parseQualityRetryPayload({
+        dispatchPolicy: {
+          maxAutoRejectedCount: -1,
+        },
       })
     ).toThrow(ValidationError);
   });
@@ -146,6 +163,12 @@ describe("qc-retry-service", () => {
         bookId: "book-1",
         taskType: "AUDIO_GENERATION",
         totalItems: 2,
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            autoCreatePendingOnReject: true,
+            maxAutoRejectedCount: 2,
+          }),
+        }),
       }),
     });
     expect(mockEnqueueAudio).toHaveBeenCalledWith({
@@ -172,6 +195,85 @@ describe("qc-retry-service", () => {
       selectedSentenceCount: 2,
       selectedReviewItemIds: ["review-2", "review-1"],
       selectedSentenceIds: ["sentence-2", "sentence-1"],
+      dispatchPolicy: {
+        autoCreatePendingOnReject: true,
+        maxAutoRejectedCount: 2,
+      },
+    });
+  });
+
+  it("should merge book policy and payload dispatch policy", async () => {
+    mockFindBook.mockResolvedValueOnce({
+      metadata: {
+        qcRetryPolicy: {
+          autoCreatePendingOnReject: false,
+          maxAutoRejectedCount: 1,
+          issueTypePolicies: {
+            FAST_GATE: {
+              maxAutoRejectedCount: 1,
+            },
+          },
+        },
+      },
+    });
+    mockFindActiveAudioTask.mockResolvedValueOnce(null);
+    mockFindManualItems.mockResolvedValueOnce([
+      buildCandidate({
+        issueType: "FAST_GATE",
+      }),
+    ]);
+    mockCreateTask.mockResolvedValueOnce({
+      id: "task-qc-retry-merge-policy",
+      status: "processing",
+    });
+    mockEnqueueAudio.mockResolvedValueOnce({
+      jobId: "task-qc-retry-merge-policy",
+      dedupeKey: "audio:book-1:batch",
+      reused: false,
+      state: "waiting",
+    });
+    mockUpdateManualItem.mockResolvedValue({});
+
+    const result = await retryQualityIssues({
+      bookId: "book-1",
+      payload: {
+        includeRejected: false,
+        limit: 5,
+        autoMerge: false,
+        dispatchPolicy: {
+          autoCreatePendingOnReject: true,
+          issueTypePolicies: {
+            FAST_GATE: {
+              maxAutoRejectedCount: 3,
+            },
+          },
+        },
+      },
+    });
+
+    expect(mockCreateTask).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            autoCreatePendingOnReject: true,
+            maxAutoRejectedCount: 1,
+            issueTypePolicies: {
+              FAST_GATE: {
+                maxAutoRejectedCount: 3,
+              },
+            },
+          }),
+        }),
+      }),
+    });
+    expect(result.dispatchPolicy).toMatchObject({
+      autoCreatePendingOnReject: true,
+      maxAutoRejectedCount: 1,
+      issueTypePolicies: {
+        FAST_GATE: {
+          maxAutoRejectedCount: 3,
+        },
+      },
     });
   });
 

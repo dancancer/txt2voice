@@ -149,7 +149,79 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       expect.objectContaining({
         metadata: expect.objectContaining({
           secondaryDispatchCount: 1,
+          secondaryDispatchSkippedByThresholdCount: 0,
           source: "qc_retry",
+        }),
+      })
+    );
+  });
+
+  it("should stop secondary dispatch when auto rejected count exceeds threshold", async () => {
+    mockTaskFindUnique.mockResolvedValueOnce({
+      taskData: {
+        metadata: {
+          source: "qc_retry",
+          autoCreatePendingOnReject: true,
+          maxAutoRejectedCount: 1,
+        },
+      },
+    });
+
+    const tx = {
+      qualityCheckResult: {
+        create: jest.fn().mockResolvedValue({ id: "qc-2" }),
+      },
+      audioFile: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      manualReviewItem: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: "review-reprocessing-2",
+            chapterId: "chapter-1",
+            segmentId: "segment-1",
+            sentenceId: "sentence-1",
+            issueType: "FAST_GATE",
+            priority: "high",
+            assignedTo: "operator-a",
+            issueDetail: {
+              score: 58,
+              autoRejectedCount: 1,
+            },
+            resolutionNote: "qc_retry_task:audio-task-2",
+          },
+        ]),
+        update: jest.fn().mockResolvedValue({}),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: "review-pending-2" }),
+      },
+    };
+
+    mockTransaction.mockImplementation(async (callback: (innerTx: any) => Promise<unknown>) => {
+      return callback(tx as any);
+    });
+
+    await runQualityCheckTask({
+      taskId: "quality-task-2",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-1"],
+    });
+
+    expect(tx.manualReviewItem.create).not.toHaveBeenCalled();
+    expect(tx.manualReviewItem.update).toHaveBeenCalledWith({
+      where: { id: "review-reprocessing-2" },
+      data: expect.objectContaining({
+        status: "rejected",
+        resolutionType: "auto_rejected",
+      }),
+    });
+    expect(mockMergeTaskData).toHaveBeenCalledWith(
+      "quality-task-2",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          secondaryDispatchCount: 0,
+          secondaryDispatchSkippedByThresholdCount: 1,
         }),
       })
     );

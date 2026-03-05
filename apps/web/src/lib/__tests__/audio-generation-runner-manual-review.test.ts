@@ -224,6 +224,8 @@ describe("runAudioGenerationTask manual review followup", () => {
             source: "qc_retry",
             retryReviewItemIds: ["review-11", "review-12"],
             autoCreatePendingOnReject: true,
+            maxAutoRejectedCount: 2,
+            issueTypePolicies: {},
           }),
         }),
       }),
@@ -235,6 +237,70 @@ describe("runAudioGenerationTask manual review followup", () => {
       audioFileIds: ["audio-11", "audio-12"],
     });
     expect(mockManualReviewUpdate).not.toHaveBeenCalled();
+  });
+
+  it("should forward qc_retry dispatch policy to followup quality task", async () => {
+    mockProcessingTaskFindUnique.mockResolvedValue({
+      taskData: {
+        metadata: {
+          source: "qc_retry",
+          selectedReviewItemIds: ["review-31"],
+          autoCreatePendingOnReject: false,
+          maxAutoRejectedCount: 4,
+          issueTypePolicies: {
+            FAST_GATE: {
+              autoCreatePendingOnReject: true,
+              maxAutoRejectedCount: 2,
+            },
+          },
+        },
+      },
+    });
+
+    mockGetAudioGenerator.mockReturnValue({
+      generateBatchAudio: jest.fn().mockResolvedValue([
+        {
+          success: true,
+          audioFileId: "audio-31",
+          duration: 3.6,
+        },
+      ]),
+    } as any);
+
+    mockEnqueueQualityCheck.mockResolvedValue({
+      jobId: "qc-task-qc-retry-policy",
+      dedupeKey: "quality:batch:audio-31",
+      reused: false,
+      state: "waiting",
+    });
+
+    mockProcessingTaskCreate.mockResolvedValueOnce({
+      id: "qc-task-qc-retry-policy",
+    });
+
+    await runAudioGenerationTask({
+      bookId: "book-1",
+      taskId: "task-audio-qc-retry-policy",
+      type: "batch",
+      scriptSentenceIds: ["sentence-31"],
+    });
+
+    expect(mockProcessingTaskCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            autoCreatePendingOnReject: false,
+            maxAutoRejectedCount: 4,
+            issueTypePolicies: {
+              FAST_GATE: {
+                autoCreatePendingOnReject: true,
+                maxAutoRejectedCount: 2,
+              },
+            },
+          }),
+        }),
+      }),
+    });
   });
 
   it("should reject qc_retry items when generated audio is empty", async () => {

@@ -34,15 +34,49 @@ interface ManualReviewTaskContext {
   manualReviewItemId: string;
 }
 
+interface QcRetryIssueTypePolicy {
+  autoCreatePendingOnReject?: boolean;
+  maxAutoRejectedCount?: number;
+}
+
+interface QcRetryDispatchPolicy {
+  autoCreatePendingOnReject: boolean;
+  maxAutoRejectedCount: number;
+  issueTypePolicies: Record<string, QcRetryIssueTypePolicy>;
+}
+
 interface QcRetryTaskContext {
   selectedReviewItemIds: string[];
+  dispatchPolicy: QcRetryDispatchPolicy;
 }
+
+const DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT = 2;
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
   }
   return value as Record<string, unknown>;
+};
+
+const asBoolean = (value: unknown): boolean | undefined => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return undefined;
+};
+
+const asNonNegativeInteger = (value: unknown): number | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isInteger(numeric) || numeric < 0) {
+    return undefined;
+  }
+
+  return Number(numeric);
 };
 
 const extractManualReviewTaskContext = (
@@ -83,6 +117,79 @@ const asStringArray = (value: unknown): string[] => {
   );
 };
 
+const parseQcRetryIssueTypePolicies = (
+  value: unknown
+): Record<string, QcRetryIssueTypePolicy> => {
+  const policyRecord = asRecord(value);
+  if (!policyRecord) {
+    return {};
+  }
+
+  const issueTypePolicies: Record<string, QcRetryIssueTypePolicy> = {};
+
+  for (const [rawIssueType, issuePolicyValue] of Object.entries(policyRecord)) {
+    const issueType = rawIssueType.trim().toUpperCase();
+    if (!issueType) {
+      continue;
+    }
+
+    const issuePolicy = asRecord(issuePolicyValue);
+    if (!issuePolicy) {
+      continue;
+    }
+
+    const autoCreatePendingOnReject = asBoolean(issuePolicy.autoCreatePendingOnReject);
+    const maxAutoRejectedCount = asNonNegativeInteger(issuePolicy.maxAutoRejectedCount);
+
+    if (
+      autoCreatePendingOnReject === undefined &&
+      maxAutoRejectedCount === undefined
+    ) {
+      continue;
+    }
+
+    issueTypePolicies[issueType] = {
+      ...(autoCreatePendingOnReject !== undefined
+        ? {
+            autoCreatePendingOnReject,
+          }
+        : {}),
+      ...(maxAutoRejectedCount !== undefined
+        ? {
+            maxAutoRejectedCount,
+          }
+        : {}),
+    };
+  }
+
+  return issueTypePolicies;
+};
+
+const toJsonQcRetryDispatchPolicy = (
+  dispatchPolicy: QcRetryDispatchPolicy
+): Prisma.InputJsonValue => {
+  const issueTypePolicies: Record<string, Prisma.InputJsonValue> = {};
+  for (const [issueType, issuePolicy] of Object.entries(dispatchPolicy.issueTypePolicies)) {
+    const issuePolicyPayload: Record<string, Prisma.InputJsonValue> = {};
+    if (issuePolicy.autoCreatePendingOnReject !== undefined) {
+      issuePolicyPayload.autoCreatePendingOnReject =
+        issuePolicy.autoCreatePendingOnReject;
+    }
+    if (issuePolicy.maxAutoRejectedCount !== undefined) {
+      issuePolicyPayload.maxAutoRejectedCount = issuePolicy.maxAutoRejectedCount;
+    }
+    if (Object.keys(issuePolicyPayload).length > 0) {
+      issueTypePolicies[issueType] = issuePolicyPayload;
+    }
+  }
+
+  return {
+    autoCreatePendingOnReject: dispatchPolicy.autoCreatePendingOnReject,
+    maxAutoRejectedCount: dispatchPolicy.maxAutoRejectedCount,
+    issueTypePolicies,
+  };
+};
+
 const extractQcRetryTaskContext = (
   taskData: Prisma.JsonValue | null | undefined
 ): QcRetryTaskContext | null => {
@@ -98,8 +205,19 @@ const extractQcRetryTaskContext = (
     return null;
   }
 
+  const policySource = asRecord(metadata.dispatchPolicy) || metadata;
+  const dispatchPolicy: QcRetryDispatchPolicy = {
+    autoCreatePendingOnReject:
+      asBoolean(policySource.autoCreatePendingOnReject) ?? true,
+    maxAutoRejectedCount:
+      asNonNegativeInteger(policySource.maxAutoRejectedCount) ??
+      DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT,
+    issueTypePolicies: parseQcRetryIssueTypePolicies(policySource.issueTypePolicies),
+  };
+
   return {
     selectedReviewItemIds,
+    dispatchPolicy,
   };
 };
 
@@ -289,12 +407,19 @@ const enqueueQcRetryFollowupQualityCheck = async ({
   audioTaskId,
   reviewItemIds,
   audioFileIds,
+  dispatchPolicy,
 }: {
   bookId: string;
   audioTaskId: string;
   reviewItemIds: string[];
   audioFileIds: string[];
+  dispatchPolicy: QcRetryDispatchPolicy;
 }): Promise<{ taskId: string; status: "processing" | "failed"; error?: string }> => {
+  const dispatchPolicyMetadata = toJsonQcRetryDispatchPolicy(dispatchPolicy) as Record<
+    string,
+    Prisma.InputJsonValue
+  >;
+
   const qcTask = await prisma.processingTask.create({
     data: {
       bookId,
@@ -310,7 +435,10 @@ const enqueueQcRetryFollowupQualityCheck = async ({
           audioFileIds,
           retryReviewItemIds: reviewItemIds,
           triggeredByTaskId: audioTaskId,
-          autoCreatePendingOnReject: true,
+          autoCreatePendingOnReject: dispatchPolicy.autoCreatePendingOnReject,
+          maxAutoRejectedCount: dispatchPolicy.maxAutoRejectedCount,
+          issueTypePolicies: dispatchPolicyMetadata.issueTypePolicies || {},
+          dispatchPolicy: dispatchPolicyMetadata,
           totalItems: audioFileIds.length,
         },
       },
@@ -634,6 +762,7 @@ export async function runAudioGenerationTask({
       audioTaskId: taskId,
       reviewItemIds: qcRetryContext.selectedReviewItemIds,
       audioFileIds: generatedAudioFileIds,
+      dispatchPolicy: qcRetryContext.dispatchPolicy,
     });
 
     const taskDataWithFollowup = await mergeTaskData(taskId, {

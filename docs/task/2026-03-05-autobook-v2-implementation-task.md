@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S12（前四批改造）已完成，本次继续推进第五批闭环增量：
+S0-S16（前六批改造）已完成，本次继续推进第七批策略化增量：
 
-1. 落地 `POST /api/books/[id]/qc/retry`，支持按 `issueType/score` 区间批量返工。
-2. 批量返工统一走 `AUDIO_GENERATION(batch)`，并强制 `skipExisting=false + overwriteExisting=true`。
-3. 入队成功后批量回写复核项为 `reprocessing(batch_regenerate)`，保留任务追踪标记。
+1. 将 `autoCreatePendingOnReject` 从固定行为升级为可配置策略（支持书籍元数据 + 请求级覆盖 + issueType 粒度）。
+2. 在 `auto_rejected` 二次派单链路增加“累计失败次数阈值”控制，超过阈值后停止自动再派单。
+3. 确保 `qc_retry` 返工任务到后置 `QUALITY_CHECK` 任务的策略参数全链路透传。
 4. 补齐测试、更新 task/handoff，并提交本轮增量。
 
 ## 2. 执行步骤
@@ -34,6 +34,7 @@ S0-S12（前四批改造）已完成，本次继续推进第五批闭环增量�
 | S14 | 测试回归 + 文档回写 + 提交 | ✅ 完成 | 新增测试通过，回归与类型校验通过，task/handoff 同步并提交 |
 | S15 | `source=qc_retry` 自动后置 QC 联动 | ✅ 完成 | 返工音频任务成功后自动创建并入队 `QUALITY_CHECK(batch)`，失败场景自动回写复核项状态 |
 | S16 | `auto_rejected` 二次派单策略 + 测试回归 | ✅ 完成 | `rejected(auto_rejected)` 可按策略自动转新 `pending`，新增测试通过并完成文档回写 |
+| S17 | `qc_retry` 派单策略配置化 + 失败阈值落地 | ✅ 完成 | 支持 `dispatchPolicy`（书籍 + 请求 + issueType）并实现 `maxAutoRejectedCount` 阈值拦截，测试/回归/类型校验通过 |
 
 ## 3. 执行日志
 
@@ -273,8 +274,38 @@ S0-S12（前四批改造）已完成，本次继续推进第五批闭环增量�
   2. 在二次派单链路增加“累计失败次数阈值”，超过阈值后切换为人工强制介入。
   3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
 
+### [S17] `qc_retry` 策略配置化 + 阈值落地（2026-03-05 15:50 CST）
+
+- 完成内容：
+  1. `qc-retry-service` 支持 `dispatchPolicy` 参数解析，新增策略结构：
+     - `autoCreatePendingOnReject`
+     - `maxAutoRejectedCount`
+     - `issueTypePolicies`
+  2. `qc-retry-service` 新增策略合并逻辑：
+     - 默认策略：`autoCreatePendingOnReject=true`、`maxAutoRejectedCount=2`
+     - 书籍策略来源：`book.metadata.qcRetryPolicy`（兼容 `book.metadata.qualityCheck.qcRetryPolicy`）
+     - 请求级策略可覆盖默认/书籍策略，并回写到返工任务 `taskData.metadata`。
+  3. `audio-generation-runner` 在 `source=qc_retry` 场景下透传策略到后置 `QUALITY_CHECK(batch)` 任务，避免上下文丢失。
+  4. `quality-check-runner` 落地阈值控制：
+     - 二次派单前读取 `issueDetail.autoRejectedCount` 做累计；
+     - 支持 issueType 级策略覆盖；
+     - 超阈值时拒绝再次自动派单，回写 `secondaryDispatch=threshold_blocked` 并统计 `secondaryDispatchSkippedByThresholdCount`。
+  5. 新增/更新测试：
+     - `apps/web/src/lib/__tests__/qc-retry-service.test.ts`
+     - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`
+     - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  6. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  7. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 把策略配置从 `book.metadata` 下沉到可管理实体（如租户级/项目级配置表）并补管理 API。
+  2. 为 `autoRejectedCount` 增加看板指标（按 `issueType/source` 聚合）并做告警阈值。
+  3. 继续推进 Deep Gate（Q4/Q5）与章节审计阈值模板化。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已落地 `qc_retry` 自动后置 QC 与 `auto_rejected` 二次派单第一版；当前仍缺少按租户/书籍粒度的策略开关与失败次数上限。
+3. 已落地 `qc_retry` 自动后置 QC + 策略配置化 + 失败次数阈值；当前仍缺少租户级统一配置入口与管理 API。

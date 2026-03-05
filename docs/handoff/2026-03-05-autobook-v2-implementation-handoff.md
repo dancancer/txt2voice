@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S16 全部完成，已进入第六轮（`qc_retry` 自动复检 + 二次派单闭环）。
+- 当前进度：S0-S17 全部完成，已进入第七轮（`qc_retry` 策略配置化 + 自动派单阈值收敛）。
 
 ## 已完成内容
 
@@ -99,10 +99,27 @@
     - 在无重复 `pending` 项时自动复制生成新的 `pending` 复核项，并打 `dispatch=secondary_pending` 追踪标记。
   - 质检任务汇总新增 `secondaryDispatchCount` 和 `source`，便于统计自动派单规模与来源。
 
+### 8) 第七轮增量（`qc_retry` 策略配置化 + 失败阈值）
+
+- `qc_retry` 策略配置化：
+  - `qc-retry-service` 新增 `dispatchPolicy` 参数解析与校验，支持：
+    - `autoCreatePendingOnReject`
+    - `maxAutoRejectedCount`
+    - `issueTypePolicies`
+  - 策略合并顺序：默认值 -> `book.metadata.qcRetryPolicy`（兼容 `book.metadata.qualityCheck.qcRetryPolicy`）-> 请求级 `dispatchPolicy`。
+  - 返工任务 `taskData.metadata` 新增策略快照，保证任务重放可复现。
+- 策略透传联动：
+  - `runAudioGenerationTask` 读取 `qc_retry` 任务策略并透传到后置 `QUALITY_CHECK(batch)` 任务 metadata。
+  - 后置质检不再依赖“固定开启”逻辑，改为策略驱动。
+- 阈值收敛：
+  - `runQualityCheckTask` 在 `auto_rejected` 链路引入 `issueDetail.autoRejectedCount` 累计计数。
+  - 当累计次数超过 `maxAutoRejectedCount` 时，不再创建二次 `pending` 项，并回写 `secondaryDispatch=threshold_blocked`。
+  - 质检汇总新增 `secondaryDispatchSkippedByThresholdCount`，用于监控阈值拦截量。
+
 ## 待完成内容
 
-1. `autoCreatePendingOnReject` 目前是任务级策略（`source=qc_retry` 默认开启），尚未下沉到书籍/租户/issueType 粒度配置。
-2. 二次派单尚未引入“累计失败次数上限”与熔断策略，可能在极端场景形成重复派单。
+1. 当前策略配置已支持“书籍元数据 + 请求级 + issueType”，但尚未下沉到租户级统一配置中心与管理 API。
+2. 已有 `maxAutoRejectedCount` 阈值，但还缺少全局熔断（例如按时间窗口/书籍维度停派）与告警策略。
 3. 当前 Fast Gate 仍为轻量规则，需要后续接入真实 ASR/CER 与声纹模型。
 
 ## 测试与验证结果
@@ -127,6 +144,6 @@
 
 ## 下一步建议（接手即做）
 
-1. 将 `autoCreatePendingOnReject` 策略开关产品化（按书籍/租户/issueType 配置），并补充管理接口。
-2. 在二次派单链路引入“累计失败次数阈值 + 熔断”策略，避免极端场景重复入队。
+1. 将策略配置从 `book.metadata` 产品化为“租户/项目/书籍”三级配置，并提供查询/更新 API。
+2. 在阈值基础上补全熔断机制（例如 `secondaryDispatch` 按时间窗口上限）并加监控告警。
 3. 扩展 Deep Gate（Q4/Q5）与章节审计，并沉淀阈值模板（按引擎/角色类型）。
