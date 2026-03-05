@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S7 全部完成，已进入第二轮（失败路径双写 + Fast Gate worker + QC API）。
+- 当前进度：S0-S10 全部完成，已进入第三轮（人工复核列表 + resolve + 重生入队）。
 
 ## 已完成内容
 
@@ -45,10 +45,23 @@
   - 新增 `POST/GET /api/books/[id]/qc/run`，支持整书/章节/批量音频触发与状态查询。
   - `/api/tasks/[taskId]/retry` 与 `/api/tasks/[taskId]/replay` 已支持 `QUALITY_CHECK`。
 
+### 4) 第三轮增量（人工复核闭环第一版）
+
+- 人工复核 API：
+  - 新增 `GET /api/books/[id]/review/items`（分页 + 过滤 + summary 统计）。
+  - 新增 `POST /api/books/[id]/review/items/[itemId]/resolve`（`approve/reject/regenerate`）。
+- 复核服务层：
+  - 新增 `manual-review-service`，统一封装 query 解析、resolve 动作、格式化输出。
+  - `regenerate` 会创建 `AUDIO_GENERATION(single)` 任务并入队，复核项状态流转到 `reprocessing`。
+- 风险兜底：
+  - `regenerate` 入队失败时会把 retry task 标记为 `failed` 并写入 `queueError`。
+  - 仅允许 `pending` 状态复核项被处理，避免重复提交导致状态冲突。
+
 ## 待完成内容
 
-1. 暂无阻塞项，可直接交接到下一开发批次。
-2. 当前 Fast Gate 仍为轻量规则，需要后续接入真实 ASR/CER 与声纹模型。
+1. 仍缺“重生后自动状态回流”：`reprocessing -> resolved/rejected` 依赖后续任务联动。
+2. `POST /api/books/[id]/qc/retry` 尚未落地，当前无法按错误类型批量返工。
+3. 当前 Fast Gate 仍为轻量规则，需要后续接入真实 ASR/CER 与声纹模型。
 
 ## 测试与验证结果
 
@@ -57,14 +70,15 @@
   - `apps/web/src/lib/__tests__/script-sentence-contract.test.ts`（更新）
   - `apps/web/src/lib/__tests__/quality-check-runner.test.ts`（新增）
   - `apps/web/src/lib/__tests__/task-replay-payload-quality.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（新增）
 - 已执行：
-  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts src/lib/__tests__/task-replay-route.test.ts`
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
   - `pnpm --filter web test:regression`
   - `pnpm --filter web typecheck`
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 增加 `manual_review_items` API（列表 + resolve + 重生）并落地复核闭环。
-2. 扩展 Deep Gate（Q4/Q5），补充情绪匹配与章节一致性审计。
-3. 增加质检阈值模板（按引擎/角色类型）与灰度开关。
+1. 增加重生任务结果回写器，自动关闭/重开 `manual_review_items`（消除手工同步分支）。
+2. 新增 `POST /api/books/[id]/qc/retry`，按 issueType/score 区间批量返工并打标签。
+3. 扩展 Deep Gate（Q4/Q5）与章节审计，并沉淀阈值模板（按引擎/角色类型）。

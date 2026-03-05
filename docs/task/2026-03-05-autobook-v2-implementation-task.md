@@ -6,12 +6,12 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S4（第一批改造）已完成，本次继续推进第二批可落地增量：
+S0-S7（前两批改造）已完成，本次继续推进第三批可落地增量：
 
-1. 音频生成失败路径补齐 `synthesis_attempts(status=failed)` 写入。
-2. 增加 `QUALITY_CHECK` 任务类型与 Fast Gate（Q1-Q3）Worker 骨架。
-3. 打通质检任务入队与 API 触发（按整书/章节/批量音频）。
-4. 补齐回归测试、更新 task/handoff，并提交本轮增量。
+1. 新增人工复核队列读取 API（支持分页与状态过滤）。
+2. 新增人工复核处理 API（通过/驳回/重生）。
+3. 将“重生”动作接入 `AUDIO_GENERATION` 队列，形成可追踪返工入口。
+4. 补齐测试、更新 task/handoff，并提交本轮增量。
 
 ## 2. 执行步骤
 
@@ -25,6 +25,9 @@ S0-S4（第一批改造）已完成，本次继续推进第二批可落地增量
 | S5 | 失败路径补齐 attempt 双写 | ✅ 完成 | `generateSingleAudio` 失败场景写入 `synthesis_attempts(status=failed)` |
 | S6 | Fast Gate worker + 任务队列接入 | ✅ 完成 | 支持 `QUALITY_CHECK` 入队、执行、重放、恢复与健康检查 |
 | S7 | 质检 API + 测试验证 + 文档回写 | ✅ 完成 | `/api/books/[id]/qc/run` 可触发任务，测试与类型校验通过 |
+| S8 | 人工复核列表/处理 API 落地 | ✅ 完成 | 支持 `GET review/items` 和 `POST resolve`（通过/驳回/重生） |
+| S9 | 测试与回归验证（复核 API） | ✅ 完成 | 新增服务测试通过，回归测试与类型校验通过 |
+| S10 | task/handoff 回写与提交 | ✅ 完成 | 文档同步本轮进展、建议与验证结论，并提交代码 |
 
 ## 3. 执行日志
 
@@ -130,8 +133,43 @@ S0-S4（第一批改造）已完成，本次继续推进第二批可落地增量
   1. 增加 `manual_review_items` 列表与 resolve API（闭环处理）。
   2. 补 Q4/Q5（情绪与章节一致性）并沉淀阈值配置。
 
+### [S8] 人工复核列表 + resolve API（2026-03-05 13:58 CST）
+
+- 完成内容：
+  1. 新增 `GET /api/books/[id]/review/items`，支持分页、`status/priority/issueType/chapterId/sentenceId` 过滤，默认返回 pending 队列。
+  2. 新增 `POST /api/books/[id]/review/items/[itemId]/resolve`，支持 `approve/reject/regenerate`（兼容“通过/驳回/重生”别名）。
+  3. 新增 `manual-review-service` 统一承载查询、格式化与复核处理逻辑。
+  4. `regenerate` 动作会创建 `AUDIO_GENERATION(single)` 任务并入队，同时把复核项状态切到 `reprocessing`。
+- 关键文件：
+  - `apps/web/src/lib/manual-review-service.ts`
+  - `apps/web/src/app/api/books/[id]/review/items/route.ts`
+  - `apps/web/src/app/api/books/[id]/review/items/[itemId]/resolve/route.ts`
+- 下一步建议：执行 S9，补充服务层测试并跑回归，确认复核闭环基础稳定。
+
+### [S9] 测试与回归验证（2026-03-05 14:02 CST）
+
+- 完成内容：
+  1. 新增测试：`apps/web/src/lib/__tests__/manual-review-service.test.ts`（覆盖 query 解析、resolve 三动作、重生入队失败回滚）。
+  2. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  3. 结果：测试与类型校验全部通过。
+- 下一步建议：执行 S10，同步 task/handoff 并提交本轮增量。
+
+### [S10] 文档回写与提交（2026-03-05 14:05 CST）
+
+- 完成内容：
+  1. 回写 task/handoff 的 S8-S10 进展、验证与后续建议。
+  2. 本轮增量聚焦“人工复核闭环第一版”：列表、处理、重生入队、测试与验证。
+  3. 已提交本轮代码与文档。
+- 下一步建议：
+  1. 增加 `reprocessing -> resolved/rejected` 自动回流（基于重生任务结果与 QC 回写）。
+  2. 落地 `POST /api/books/[id]/qc/retry`，支持按错误类型批量返工。
+  3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已有 `manual_review_items` 自动写入，但尚未提供复核处理 API（resolve/驳回/重生）。
+3. 已具备复核列表与处理 API，但“重生后自动闭环（状态回流 + 二次质检联动）”仍未落地。
