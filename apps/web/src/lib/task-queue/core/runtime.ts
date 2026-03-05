@@ -3,6 +3,7 @@ import type { QueueTaskType } from "@/lib/task-queue/replay-payload";
 import type { DeadLetterInput } from "@/lib/task-queue/worker-state";
 import {
   AUDIO_QUEUE_NAME,
+  AUTO_PIPELINE_QUEUE_NAME,
   DEAD_LETTER_JOB_OPTIONS,
   DEAD_LETTER_QUEUE_NAME,
   QUALITY_QUEUE_NAME,
@@ -11,6 +12,7 @@ import {
 } from "./constants";
 import type {
   AudioGenerationJobData,
+  AutoPipelineJobData,
   DeadLetterJobData,
   JobRuntimeState,
   QualityCheckJobData,
@@ -27,6 +29,7 @@ export const queueState: TaskQueueState = globalThis.__txt2voiceTaskQueueState ?
   scriptQueue: null,
   audioQueue: null,
   qualityQueue: null,
+  autoPipelineQueue: null,
   deadLetterQueue: null,
   workerStarted: false,
   recovering: false,
@@ -105,6 +108,15 @@ export function getQualityQueue(): Bull.Queue<QualityCheckJobData> {
     queueState.qualityQueue = createQueue<QualityCheckJobData>(QUALITY_QUEUE_NAME);
   }
   return queueState.qualityQueue;
+}
+
+export function getAutoPipelineQueue(): Bull.Queue<AutoPipelineJobData> {
+  if (!queueState.autoPipelineQueue) {
+    queueState.autoPipelineQueue = createQueue<AutoPipelineJobData>(
+      AUTO_PIPELINE_QUEUE_NAME
+    );
+  }
+  return queueState.autoPipelineQueue;
 }
 
 export function getDeadLetterQueue(): Bull.Queue<DeadLetterJobData> {
@@ -188,7 +200,9 @@ export async function getQueueJobState(
       ? getScriptQueue()
       : taskType === "AUDIO_GENERATION"
         ? getAudioQueue()
-        : getQualityQueue();
+        : taskType === "QUALITY_CHECK"
+          ? getQualityQueue()
+          : getAutoPipelineQueue();
   const job = await queue.getJob(taskId);
   if (!job) {
     return { state: null, exists: false };

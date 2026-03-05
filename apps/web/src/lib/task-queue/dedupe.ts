@@ -1,4 +1,5 @@
 import { createHash } from "crypto";
+import type { AutoPipelineOptions } from "@/lib/auto-pipeline-runner";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
@@ -23,6 +24,11 @@ interface QualityDedupeInput {
   type: QualityCheckTaskType;
   chapterId?: string;
   audioFileIds?: string[];
+}
+
+interface AutoPipelineDedupeInput {
+  bookId: string;
+  options?: AutoPipelineOptions;
 }
 
 const hashScope = (payload: unknown): string => {
@@ -64,4 +70,14 @@ export const buildQualityDedupeKey = (input: QualityDedupeInput): string => {
   };
 
   return `quality:${input.bookId}:${hashScope(normalized)}`;
+};
+
+export const buildAutoPipelineDedupeKey = (
+  input: AutoPipelineDedupeInput
+): string => {
+  const normalized = {
+    options: input.options || {},
+  };
+
+  return `auto_pipeline:${input.bookId}:${hashScope(normalized)}`;
 };

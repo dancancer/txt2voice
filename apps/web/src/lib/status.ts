@@ -67,6 +67,23 @@ const STATUS_META: Record<BookStatus, BookStatusMeta> = {
     icon: Loader2,
     animated: true,
   },
+  quality_checking: {
+    label: '质量检查中',
+    className: 'bg-cyan-100 text-cyan-800',
+    icon: Loader2,
+    animated: true,
+  },
+  manual_review_pending: {
+    label: '待人工复核',
+    className: 'bg-amber-100 text-amber-800',
+    icon: AlertCircle,
+  },
+  assembling_audio: {
+    label: '合并音频中',
+    className: 'bg-indigo-100 text-indigo-800',
+    icon: Volume2,
+    animated: true,
+  },
   completed_with_errors: {
     label: '部分完成',
     className: 'bg-amber-100 text-amber-800',

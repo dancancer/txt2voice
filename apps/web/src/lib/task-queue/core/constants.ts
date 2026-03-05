@@ -10,6 +10,7 @@ export const LEGACY_QUEUE_NAMESPACE = "txt2voice";
 export const SCRIPT_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:script-generation`;
 export const AUDIO_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:audio-generation`;
 export const QUALITY_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:quality-check`;
+export const AUTO_PIPELINE_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:auto-pipeline`;
 export const DEAD_LETTER_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:dead-letter`;
 
 export const HEARTBEAT_INTERVAL_MS = Number(
@@ -61,6 +62,13 @@ export const QUALITY_JOB_OPTIONS: Bull.JobOptions = {
   timeout: 30 * 60 * 1_000,
   removeOnComplete: 500,
   removeOnFail: 1_000,
+};
+
+export const AUTO_PIPELINE_JOB_OPTIONS: Bull.JobOptions = {
+  attempts: 1,
+  timeout: 180 * 60 * 1_000,
+  removeOnComplete: 200,
+  removeOnFail: 500,
 };
 
 export const DEAD_LETTER_JOB_OPTIONS: Bull.JobOptions = {

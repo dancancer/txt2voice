@@ -3,6 +3,7 @@
 // output: 队列入队/worker 启动能力
 // pos: 任务基础设施
 export type {
+  AutoPipelineQueueInput,
   AudioGenerationQueueInput,
   QualityCheckQueueInput,
   QueueControlOptions,
@@ -13,6 +14,7 @@ export type {
 } from "@/lib/task-queue/core/types";
 
 export {
+  enqueueAutoPipelineJob,
   enqueueAudioGenerationJob,
   enqueueQualityCheckJob,
   enqueueScriptGenerationJob,

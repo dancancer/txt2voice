@@ -3,7 +3,11 @@ import prisma from "@/lib/prisma";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import type { QueueTaskType } from "./replay-payload";
 
-export type BookFallbackStatus = "processed" | "script_generated" | "completed_with_errors";
+export type BookFallbackStatus =
+  | "processed"
+  | "script_generated"
+  | "completed_with_errors"
+  | "error";
 
 export interface DeadLetterInput {
   taskId: string;

@@ -3,6 +3,7 @@
 // output: 可重放的队列载荷
 // pos: 任务队列辅助模块
 import type { ProcessingTask } from "@/lib/prisma";
+import type { AutoPipelineOptions } from "@/lib/auto-pipeline-runner";
 import { jsonObject } from "@/lib/processing-task-utils";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
@@ -10,7 +11,11 @@ import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 
-export type QueueTaskType = "SCRIPT_GENERATION" | "AUDIO_GENERATION" | "QUALITY_CHECK";
+export type QueueTaskType =
+  | "SCRIPT_GENERATION"
+  | "AUDIO_GENERATION"
+  | "QUALITY_CHECK"
+  | "AUTO_PIPELINE";
 
 export interface ScriptReplayInput {
   taskId: string;
@@ -38,6 +43,12 @@ export interface QualityReplayInput {
   audioFileIds?: string[];
 }
 
+export interface AutoPipelineReplayInput {
+  taskId: string;
+  bookId: string;
+  options?: AutoPipelineOptions;
+}
+
 interface ScriptPayloadContainer {
   kind: "script";
   input: ScriptReplayInput;
@@ -53,10 +64,16 @@ interface QualityPayloadContainer {
   input: QualityReplayInput;
 }
 
+interface AutoPipelinePayloadContainer {
+  kind: "auto_pipeline";
+  input: AutoPipelineReplayInput;
+}
+
 export type PayloadContainer =
   | ScriptPayloadContainer
   | AudioPayloadContainer
-  | QualityPayloadContainer;
+  | QualityPayloadContainer
+  | AutoPipelinePayloadContainer;
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -166,6 +183,20 @@ const buildQualityReplayPayloadFromTask = (task: ProcessingTask): QualityReplayI
   };
 };
 
+const buildAutoPipelineReplayPayloadFromTask = (
+  task: ProcessingTask
+): AutoPipelineReplayInput => {
+  const rawTaskData = jsonObject(task.taskData);
+  const metadata = asRecord(rawTaskData.metadata);
+  const options = asRecord(metadata?.options) || {};
+
+  return {
+    taskId: task.id,
+    bookId: task.bookId,
+    options: options as AutoPipelineOptions,
+  };
+};
+
 export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer | null => {
   const rawTaskData = jsonObject(task.taskData);
   const metadata = asRecord(rawTaskData.metadata);
@@ -259,6 +290,24 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
     };
   }
 
+  if (task.taskType === "AUTO_PIPELINE") {
+    if (queuePayload) {
+      return {
+        kind: "auto_pipeline",
+        input: {
+          taskId: task.id,
+          bookId: task.bookId,
+          options: (asRecord(queuePayload.options) || {}) as AutoPipelineOptions,
+        },
+      };
+    }
+
+    return {
+      kind: "auto_pipeline",
+      input: buildAutoPipelineReplayPayloadFromTask(task),
+    };
+  }
+
   return null;
 };
 
@@ -266,6 +315,7 @@ export const isRecoverableTask = (taskType: string): taskType is QueueTaskType =
   return (
     taskType === "SCRIPT_GENERATION" ||
     taskType === "AUDIO_GENERATION" ||
-    taskType === "QUALITY_CHECK"
+    taskType === "QUALITY_CHECK" ||
+    taskType === "AUTO_PIPELINE"
   );
 };

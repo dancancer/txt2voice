@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S19 全部完成，已进入第九轮（观测告警联动首版）。
+- 当前进度：S0-S20 全部完成，已完成第十轮（主链路自动编排首版）。
 
-## 总体目标回顾与现状判断（2026-03-05 17:05 CST）
+## 总体目标回顾与现状判断（2026-03-05 17:12 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -18,7 +18,7 @@
 
 1. M1（Annotation v2 + Auto Pipeline）：
    - Annotation v2 已完成；
-   - `AUTO_PIPELINE` 编排入口与 `pipeline/auto|status` 未落地（当前主要通过分段 API/任务触发）。
+   - `AUTO_PIPELINE` 编排入口与 `pipeline/auto|status` 已落地（支持子阶段追踪与任务恢复）。
 2. M2（Fast Gate + 自动返工 + 日志）：
    - 已基本完成（Q1-Q3、`qc/retry`、重生回流、策略阈值、日志与队列链路齐备）。
 3. M3（Deep Gate + 人工复核工作台）：
@@ -173,21 +173,36 @@
   - `snapshot`（窗口总览 + 24h 对比）
   - `thresholds`（生效阈值回显）
 
+### 11) 第十轮增量（`AUTO_PIPELINE` 主链路自动编排）
+
+- 新增自动编排执行器与阶段编排：
+  - 新增 `auto-pipeline-runner`（拆分为 `common/task-stage-utils/runner`）；
+  - 四阶段串行编排：`TEXT_PROCESSING -> SCRIPT_GENERATION -> AUDIO_GENERATION -> QUALITY_CHECK`；
+  - `QUALITY_CHECK` 可按请求开关；
+  - 主任务写入 `currentStage/stages/failedStage` 结构化元数据。
+- 队列体系新增 `AUTO_PIPELINE` 全链路能力：
+  - dedupe、enqueue、worker、health、replay payload、manual replay/retry、watchdog recovery、legacy namespace 检查；
+  - 支持 `GET /api/tasks` 统一查询与 `taskType=AUTO_PIPELINE` 追踪。
+- API 落地：
+  - 新增 `POST /api/books/[id]/pipeline/auto`（触发自动编排）；
+  - 新增 `GET /api/books/[id]/pipeline/status`（阶段进度、当前阶段、质检摘要、待复核数量）。
+- 状态机扩展：
+  - 新增书籍状态：`quality_checking`、`manual_review_pending`、`assembling_audio`；
+  - 同步更新状态校验与展示映射（类型/验证/status meta/task label）。
+
 ## 待完成内容
 
-1. `AUTO_PIPELINE` 编排入口与状态查询 API 尚未落地（影响“上传即自动生成”主目标验收）。
-2. 当前策略配置已支持“书籍元数据 + 请求级 + issueType”，但尚未下沉到租户/项目/书籍三级配置中心与管理 API。
-3. 已有聚合指标 API + 实时告警 API，但还缺少“定时扫描任务 + 告警事件落库 + 通知联动”。
-4. Deep Gate（Q4/Q5）与章节审计尚未接入，Fast Gate 仍为轻量启发式规则。
-5. 人工复核工作台尚未形成最小可用页面（当前以 API 能力为主）。
+1. 当前策略配置已支持“书籍元数据 + 请求级 + issueType”，但尚未下沉到租户/项目/书籍三级配置中心与管理 API。
+2. 已有聚合指标 API + 实时告警 API，但还缺少“定时扫描任务 + 告警事件落库 + 通知联动”。
+3. Deep Gate（Q4/Q5）与章节审计尚未接入，Fast Gate 仍为轻量启发式规则。
+4. 人工复核工作台尚未形成最小可用页面（当前以 API 能力为主）。
 
 ## 剩余任务优先级（建议）
 
-1. P0：落地 `AUTO_PIPELINE` + `pipeline/auto|status` + 状态机扩展，先保证主链路可一键触发和可观测。
-2. P0：落地告警定时扫描、告警事件沉淀与通知联动，先保证异常能被持续发现与响应。
-3. P1：落地 `dispatchPolicy` 三级配置中心（租户/项目/书籍）与管理 API，替代 `book.metadata` 主入口。
-4. P1：推进 Deep Gate（Q4/Q5）与 `chapter_quality_audit`，提升质量决策准确性。
-5. P2：补齐人工复核最小工作台与运营看板整合，降低人工处理成本。
+1. P0：落地告警定时扫描、告警事件沉淀与通知联动，先保证异常能被持续发现与响应。
+2. P1：落地 `dispatchPolicy` 三级配置中心（租户/项目/书籍）与管理 API，替代 `book.metadata` 主入口。
+3. P1：推进 Deep Gate（Q4/Q5）与 `chapter_quality_audit`，提升质量决策准确性。
+4. P2：补齐人工复核最小工作台与运营看板整合，降低人工处理成本。
 
 ## 测试与验证结果
 
@@ -202,7 +217,10 @@
   - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-metrics-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-alert-service.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/auto-pipeline-runner.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/task-replay-payload-auto.test.ts`（新增）
 - 已执行：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-runner.test.ts src/lib/__tests__/task-replay-payload-auto.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-alert-service.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-metrics-service.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/qc-retry-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
@@ -215,6 +233,6 @@
 
 ## 下一步建议（接手即做）
 
-1. 先落地 `AUTO_PIPELINE` 编排入口与 `pipeline/status`（并补任务类型/状态流转），打通“上传即自动生成”主路径。
-2. 再落地告警定时扫描 + 告警事件沉淀 + 通知联动，形成可运营闭环。
-3. 随后推进配置中心化（租户/项目/书籍三级）与 Deep Gate（Q4/Q5 + 章节审计）。
+1. 先做告警定时扫描 + 告警事件沉淀 + 通知联动，形成可运营闭环（S21）。
+2. 再做 `dispatchPolicy` 配置中心化（租户/项目/书籍三级）（S22）。
+3. 随后推进 Deep Gate（Q4/Q5 + 章节审计）与人工复核工作台（S23/S24）。

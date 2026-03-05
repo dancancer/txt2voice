@@ -1,4 +1,5 @@
 import type Bull from "bull";
+import type { AutoPipelineOptions } from "@/lib/auto-pipeline-runner";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
@@ -34,6 +35,12 @@ export interface QualityCheckQueueInput {
   audioFileIds?: string[];
 }
 
+export interface AutoPipelineQueueInput {
+  taskId: string;
+  bookId: string;
+  options?: AutoPipelineOptions;
+}
+
 export interface ScriptGenerationJobData extends ScriptGenerationQueueInput {
   options: Partial<ScriptGenerationOptions>;
   extraParams: ScriptGenerationExtraParams;
@@ -48,6 +55,11 @@ export interface AudioGenerationJobData extends AudioGenerationQueueInput {
 
 export interface QualityCheckJobData extends QualityCheckQueueInput {
   audioFileIds: string[];
+  dedupeKey: string;
+}
+
+export interface AutoPipelineJobData extends AutoPipelineQueueInput {
+  options: AutoPipelineOptions;
   dedupeKey: string;
 }
 
@@ -67,6 +79,7 @@ export interface TaskQueueState {
   scriptQueue: Bull.Queue<ScriptGenerationJobData> | null;
   audioQueue: Bull.Queue<AudioGenerationJobData> | null;
   qualityQueue: Bull.Queue<QualityCheckJobData> | null;
+  autoPipelineQueue: Bull.Queue<AutoPipelineJobData> | null;
   deadLetterQueue: Bull.Queue<DeadLetterJobData> | null;
   workerStarted: boolean;
   recovering: boolean;

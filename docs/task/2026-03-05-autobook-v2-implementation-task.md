@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S18（前八批改造）已完成，本次继续推进第九批“观测 -> 告警”联动增量：
+S0-S19（前九批改造）已完成，本次继续推进第十批“主链路自动编排”增量：
 
-1. 新增 `dispatch-alerts` 服务，对 `threshold_blocked` 日增突变、`secondary_pending` 堆积、`autoRejected` 累计压力给出告警。
-2. 新增 `GET /api/books/[id]/qc/dispatch-alerts`，支持按 `days/source/issueType` 与阈值参数查询告警。
-3. 补齐服务层测试、更新 task/handoff，并提交本轮增量。
+1. 落地 `AUTO_PIPELINE` 任务类型，打通 queue enqueue/worker/replay/recovery/health 全链路。
+2. 新增 `POST /api/books/[id]/pipeline/auto` 与 `GET /api/books/[id]/pipeline/status`。
+3. 扩展书籍状态流转（`quality_checking/manual_review_pending/assembling_audio`），并完成测试回归、task/handoff 回写与提交。
 
 ## 2. 执行步骤
 
@@ -36,6 +36,7 @@ S0-S18（前八批改造）已完成，本次继续推进第九批“观测 -> �
 | S17 | `qc_retry` 派单策略配置化 + 失败阈值落地 | ✅ 完成 | 支持 `dispatchPolicy`（书籍 + 请求 + issueType）并实现 `maxAutoRejectedCount` 阈值拦截，测试/回归/类型校验通过 |
 | S18 | 二次派单看板指标 API + `source` 透传 | ✅ 完成 | 提供 `GET /api/books/[id]/qc/dispatch-metrics`，并在质检回写中落库 `source` 字段，测试/回归/类型校验通过 |
 | S19 | 派单告警服务 + API（观测联动） | ✅ 完成 | 提供 `GET /api/books/[id]/qc/dispatch-alerts`，支持阈值参数和日增突变告警，测试/回归/类型校验通过 |
+| S20 | `AUTO_PIPELINE` 编排入口 + 状态 API + 队列联动 | ✅ 完成 | 提供 `POST /api/books/[id]/pipeline/auto`、`GET /api/books/[id]/pipeline/status`，并支持 `AUTO_PIPELINE` 任务重放/恢复、状态流转与测试回归 |
 
 ## 3. 执行日志
 
@@ -355,13 +356,41 @@ S0-S18（前八批改造）已完成，本次继续推进第九批“观测 -> �
   2. 补充租户/项目级 `dispatchPolicy` 配置中心，替代 `book.metadata` 作为主配置入口。
   3. 继续推进 Deep Gate（Q4/Q5）与章节一致性审计落地。
 
+### [S20] `AUTO_PIPELINE` 编排入口 + 状态 API（2026-03-05 17:12 CST）
+
+- 完成内容：
+  1. 新增 `auto-pipeline-runner`（拆分为 `common/task-stage-utils/runner` 三个模块），实现四阶段串行编排：
+     - `TEXT_PROCESSING -> SCRIPT_GENERATION -> AUDIO_GENERATION -> QUALITY_CHECK`（可按参数关闭质检阶段）
+     - 自动创建子任务并回写 `AUTO_PIPELINE` 主任务阶段状态
+     - 失败场景保留 `failedStage/error` 追踪信息
+  2. 队列体系新增 `AUTO_PIPELINE` 全链路支持：
+     - dedupe key、enqueue、worker、health、replay payload、manual replay/retry、watchdog recovery、legacy namespace 检查
+  3. 新增 API：
+     - `POST /api/books/[id]/pipeline/auto`（创建并入队自动编排任务）
+     - `GET /api/books/[id]/pipeline/status`（返回阶段任务状态、当前阶段、质检摘要与待复核数量）
+  4. 状态机扩展：
+     - `BookStatus`/`validation`/`constants`/`status meta` 新增 `quality_checking/manual_review_pending/assembling_audio`
+     - 任务视图新增 `AUTO_PIPELINE` 标签
+  5. 新增测试：
+     - `apps/web/src/lib/__tests__/auto-pipeline-runner.test.ts`
+     - `apps/web/src/lib/__tests__/task-replay-payload-auto.test.ts`
+  6. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-runner.test.ts src/lib/__tests__/task-replay-payload-auto.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  7. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 执行 S21：把“实时查询告警”升级成定时扫描 + 事件落库 + 通知联动。
+  2. 执行 S22：将 `dispatchPolicy` 从 `book.metadata` 下沉到租户/项目/书籍三级配置中心。
+  3. 执行 S23：接入 Deep Gate（Q4/Q5）与章节一致性审计链路。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已落地 `qc_retry` 自动后置 QC + 策略配置化 + 失败次数阈值 + 二次派单聚合指标/告警 API；当前仍缺少“定时扫描告警任务 + 告警事件沉淀 + 通知联动”。
+3. 已落地 `AUTO_PIPELINE` 主链路入口、状态 API 与队列联动；当前仍缺少“定时扫描告警任务 + 告警事件沉淀 + 通知联动”与“策略配置中心化”。
 
-## 5. 总体回顾与剩余任务优先级（2026-03-05 17:05 CST）
+## 5. 总体回顾与剩余任务优先级（2026-03-05 17:12 CST）
 
 ### 5.1 总体目标回顾（对齐 `full-automation-plan`）
 
@@ -369,10 +398,10 @@ S0-S18（前八批改造）已完成，本次继续推进第九批“观测 -> �
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S19 完成后）
+### 5.2 当前现状（S0-S20 完成后）
 
-1. 已完成：Schema V2、Fast Gate（Q1-Q3）、`qc/retry`、人工复核 API、重生回流、策略阈值、派单指标与实时告警 API。
-2. 未完成：`AUTO_PIPELINE` 编排入口与阶段状态 API（`pipeline/auto`、`pipeline/status`）、相关任务类型与状态机扩展。
+1. 已完成：Schema V2、Fast Gate（Q1-Q3）、`qc/retry`、人工复核 API、重生回流、策略阈值、派单指标/告警 API、`AUTO_PIPELINE` 编排入口与状态 API。
+2. 已完成：`AUTO_PIPELINE` 任务类型接入队列基础设施（enqueue/worker/replay/recovery/health）。
 3. 未完成：策略中心仍在 `book.metadata`，尚未下沉到租户/项目/书籍三级配置实体与管理 API。
 4. 未完成：告警仍为“请求时计算”，缺少定时扫描、事件落库与通知渠道。
 5. 未完成：Deep Gate（Q4/Q5）与章节审计尚未落地，人工复核工作台仍以 API 为主，缺少最小可用页面。
@@ -381,7 +410,6 @@ S0-S18（前八批改造）已完成，本次继续推进第九批“观测 -> �
 
 | 优先级 | 目标 | 建议落地项 | 验收标准 |
 | --- | --- | --- | --- |
-| P0 | 打通“上传即自动生成”主链路 | S20：`AUTO_PIPELINE` 任务类型、`POST /api/books/[id]/pipeline/auto`、`GET /api/books/[id]/pipeline/status`、书籍状态流转扩展 | 可一键触发并查看全阶段进度；失败可重试/可恢复；核心回归通过 |
 | P0 | 告警从“查询”升级到“运营联动” | S21：定时扫描任务、告警事件表（或统一事件流）、通知集成（站内/IM/Webhook） | 告警可追溯、可通知、可去重；支持按书籍/来源/问题类型检索 |
 | P1 | 配置中心化 | S22：`dispatchPolicy` 租户/项目/书籍三级配置模型 + 查询/更新 API + 运行时合并规则 | 不依赖 `book.metadata` 作为主入口；策略可审计、可灰度 |
 | P1 | Deep Gate 与章节审计 | S23：Q4（情绪匹配）/Q5（章节一致性）+ `chapter_quality_audit` 执行链路 | 质检结果包含 Q4/Q5 指标；可用于返工决策与章节级验收 |
@@ -389,6 +417,6 @@ S0-S18（前八批改造）已完成，本次继续推进第九批“观测 -> �
 
 ### 5.4 推荐执行顺序（下一轮）
 
-1. 先做 S20（主链路可触发）与 S21（告警可运营），保障“能跑通 + 能看住”。
+1. 先做 S21（告警可运营），保障“能看住”。
 2. 再做 S22（配置中心），降低策略演进与多租户扩展成本。
 3. 最后推进 S23/S24，补齐质量深度与运营工作台。

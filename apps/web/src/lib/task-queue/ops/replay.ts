@@ -8,6 +8,7 @@ import type {
   ReplayResult,
 } from "@/lib/task-queue/core/types";
 import {
+  enqueueAutoPipelineJob,
   enqueueAudioGenerationJob,
   enqueueQualityCheckJob,
   enqueueScriptGenerationJob,
@@ -61,6 +62,21 @@ export async function replayProcessingTask(
     return {
       taskId: payload.input.taskId,
       taskType: "AUDIO_GENERATION",
+      jobId: result.jobId,
+      reused: result.reused,
+      reason,
+    };
+  }
+
+  if (payload.kind === "auto_pipeline") {
+    const result = await enqueueAutoPipelineJob(payload.input, {
+      allowReuse: !force,
+      reason,
+    });
+
+    return {
+      taskId: payload.input.taskId,
+      taskType: "AUTO_PIPELINE",
       jobId: result.jobId,
       reused: result.reused,
       reason,

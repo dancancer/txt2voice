@@ -16,14 +16,17 @@ import { markTaskFailed } from "@/lib/task-queue/worker-state";
 
 const getFallbackStatus = (
   taskType: string
-): "processed" | "script_generated" | "completed_with_errors" => {
+): "processed" | "script_generated" | "completed_with_errors" | "error" => {
   if (taskType === "SCRIPT_GENERATION") {
     return "processed";
   }
   if (taskType === "AUDIO_GENERATION") {
     return "script_generated";
   }
-  return "completed_with_errors";
+  if (taskType === "QUALITY_CHECK") {
+    return "completed_with_errors";
+  }
+  return "error";
 };
 
 export async function recoverStalledProcessingTasks(): Promise<RecoveryResult> {
@@ -64,7 +67,12 @@ export async function recoverStalledProcessingTasks(): Promise<RecoveryResult> {
       where: {
         status: "processing",
         taskType: {
-          in: ["SCRIPT_GENERATION", "AUDIO_GENERATION", "QUALITY_CHECK"],
+          in: [
+            "SCRIPT_GENERATION",
+            "AUDIO_GENERATION",
+            "QUALITY_CHECK",
+            "AUTO_PIPELINE",
+          ],
         },
         updatedAt: {
           lt: staleBefore,

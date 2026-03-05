@@ -1,10 +1,12 @@
 import type Bull from "bull";
+import { runAutoPipelineTask } from "@/lib/auto-pipeline-runner";
 import { runAudioGenerationTask } from "@/lib/audio-generation-runner";
 import { runQualityCheckTask } from "@/lib/quality-check-runner";
 import { runScriptGenerationTask } from "@/lib/script-generation-runner";
 import { warnIfLegacyNamespaceHasPendingJobs } from "@/lib/task-queue/namespace-check";
 import {
   AUDIO_QUEUE_NAME,
+  AUTO_PIPELINE_QUEUE_NAME,
   HEARTBEAT_INTERVAL_MS,
   LEGACY_QUEUE_NAMESPACE,
   QUALITY_QUEUE_NAME,
@@ -13,6 +15,7 @@ import {
 } from "@/lib/task-queue/core/constants";
 import {
   addDeadLetter,
+  getAutoPipelineQueue,
   getAudioQueue,
   getDeadLetterQueue,
   getQualityQueue,
@@ -20,6 +23,7 @@ import {
   queueState,
 } from "@/lib/task-queue/core/runtime";
 import type {
+  AutoPipelineJobData,
   AudioGenerationJobData,
   QualityCheckJobData,
   ScriptGenerationJobData,
@@ -38,6 +42,7 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
   const scriptQueue = getScriptQueue();
   const audioQueue = getAudioQueue();
   const qualityQueue = getQualityQueue();
+  const autoPipelineQueue = getAutoPipelineQueue();
   getDeadLetterQueue();
 
   console.info("[task-queue] worker started", {
@@ -45,6 +50,7 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
     scriptQueue: SCRIPT_QUEUE_NAME,
     audioQueue: AUDIO_QUEUE_NAME,
     qualityQueue: QUALITY_QUEUE_NAME,
+    autoPipelineQueue: AUTO_PIPELINE_QUEUE_NAME,
   });
 
   await warnIfLegacyNamespaceHasPendingJobs(
@@ -135,6 +141,34 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         taskId: job.data.taskId,
         bookId: job.data.bookId,
         fallbackStatus: "completed_with_errors",
+        error,
+        payload: {
+          ...job.data,
+        },
+        addDeadLetter,
+      });
+      throw error;
+    }
+  });
+
+  autoPipelineQueue.process(1, async (job: Bull.Job<AutoPipelineJobData>) => {
+    await markTaskAttemptStart(job.data.taskId, job);
+
+    try {
+      await withTaskHeartbeat(job.data.taskId, job, HEARTBEAT_INTERVAL_MS, async () =>
+        runAutoPipelineTask({
+          taskId: job.data.taskId,
+          bookId: job.data.bookId,
+          options: job.data.options,
+        })
+      );
+    } catch (error) {
+      await handleWorkerFailure({
+        taskType: "AUTO_PIPELINE",
+        job,
+        taskId: job.data.taskId,
+        bookId: job.data.bookId,
+        fallbackStatus: "error",
         error,
         payload: {
           ...job.data,

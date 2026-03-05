@@ -3,6 +3,7 @@ import {
   STALLED_TASK_THRESHOLD_MS,
 } from "@/lib/task-queue/core/constants";
 import {
+  getAutoPipelineQueue,
   getAudioQueue,
   getDeadLetterQueue,
   getQualityQueue,
@@ -22,10 +23,18 @@ export async function getTaskQueueHealth(): Promise<Record<string, unknown>> {
   try {
     await ensureTaskWorkerStarted();
 
-    const [scriptCounts, audioCounts, qualityCounts, deadLetterCounts, recovery] = await Promise.all([
+    const [
+      scriptCounts,
+      audioCounts,
+      qualityCounts,
+      autoPipelineCounts,
+      deadLetterCounts,
+      recovery,
+    ] = await Promise.all([
       getScriptQueue().getJobCounts(),
       getAudioQueue().getJobCounts(),
       getQualityQueue().getJobCounts(),
+      getAutoPipelineQueue().getJobCounts(),
       getDeadLetterQueue().getJobCounts(),
       recoverStalledProcessingTasks(),
     ]);
@@ -36,6 +45,7 @@ export async function getTaskQueueHealth(): Promise<Record<string, unknown>> {
       script: scriptCounts,
       audio: audioCounts,
       quality: qualityCounts,
+      autoPipeline: autoPipelineCounts,
       deadLetter: deadLetterCounts,
       recovery,
       heartbeat: {
