@@ -34,6 +34,10 @@ interface ManualReviewTaskContext {
   manualReviewItemId: string;
 }
 
+interface QcRetryTaskContext {
+  selectedReviewItemIds: string[];
+}
+
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -62,6 +66,40 @@ const extractManualReviewTaskContext = (
 
   return {
     manualReviewItemId,
+  };
+};
+
+const asStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      value
+        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
+        .filter((entry) => entry.length > 0)
+    )
+  );
+};
+
+const extractQcRetryTaskContext = (
+  taskData: Prisma.JsonValue | null | undefined
+): QcRetryTaskContext | null => {
+  const taskDataRecord = asRecord(taskData);
+  const metadata = asRecord(taskDataRecord?.metadata);
+
+  if (!metadata || metadata.source !== "qc_retry") {
+    return null;
+  }
+
+  const selectedReviewItemIds = asStringArray(metadata.selectedReviewItemIds);
+  if (selectedReviewItemIds.length === 0) {
+    return null;
+  }
+
+  return {
+    selectedReviewItemIds,
   };
 };
 
@@ -116,6 +154,54 @@ const rejectManualReviewReprocessingItem = async ({
   });
 
   return true;
+};
+
+const rejectQcRetryReprocessingItems = async ({
+  bookId,
+  reviewItemIds,
+  resolutionType,
+  note,
+}: {
+  bookId: string;
+  reviewItemIds: string[];
+  resolutionType: string;
+  note: string;
+}): Promise<number> => {
+  if (reviewItemIds.length === 0) {
+    return 0;
+  }
+
+  const reprocessingItems = await prisma.manualReviewItem.findMany({
+    where: {
+      bookId,
+      id: {
+        in: reviewItemIds,
+      },
+      status: "reprocessing",
+    },
+    select: {
+      id: true,
+      resolutionNote: true,
+    },
+  });
+
+  if (reprocessingItems.length === 0) {
+    return 0;
+  }
+
+  for (const item of reprocessingItems) {
+    await prisma.manualReviewItem.update({
+      where: { id: item.id },
+      data: {
+        status: "rejected",
+        resolutionType,
+        resolutionNote: appendResolutionNote(item.resolutionNote, note),
+        resolvedAt: new Date(),
+      },
+    });
+  }
+
+  return reprocessingItems.length;
 };
 
 const enqueueManualReviewFollowupQualityCheck = async ({
@@ -198,6 +284,86 @@ const enqueueManualReviewFollowupQualityCheck = async ({
   }
 };
 
+const enqueueQcRetryFollowupQualityCheck = async ({
+  bookId,
+  audioTaskId,
+  reviewItemIds,
+  audioFileIds,
+}: {
+  bookId: string;
+  audioTaskId: string;
+  reviewItemIds: string[];
+  audioFileIds: string[];
+}): Promise<{ taskId: string; status: "processing" | "failed"; error?: string }> => {
+  const qcTask = await prisma.processingTask.create({
+    data: {
+      bookId,
+      taskType: "QUALITY_CHECK",
+      status: "processing",
+      progress: 0,
+      totalItems: audioFileIds.length,
+      taskData: {
+        message: "质量返工后自动触发 Fast Gate 质检",
+        metadata: {
+          source: "qc_retry",
+          type: "batch",
+          audioFileIds,
+          retryReviewItemIds: reviewItemIds,
+          triggeredByTaskId: audioTaskId,
+          autoCreatePendingOnReject: true,
+          totalItems: audioFileIds.length,
+        },
+      },
+    },
+  });
+
+  try {
+    await enqueueQualityCheckJob({
+      taskId: qcTask.id,
+      bookId,
+      type: "batch",
+      audioFileIds,
+    });
+
+    return {
+      taskId: qcTask.id,
+      status: "processing",
+    };
+  } catch (queueError) {
+    const message = queueError instanceof Error ? queueError.message : "质量返工后置质检入队失败";
+    const failedTaskData = await mergeTaskData(qcTask.id, {
+      message: "质量返工后置质检入队失败",
+      metadata: {
+        queueError: message,
+        triggeredByTaskId: audioTaskId,
+      },
+    });
+
+    await prisma.processingTask.update({
+      where: { id: qcTask.id },
+      data: {
+        status: "failed",
+        completedAt: new Date(),
+        errorMessage: message,
+        taskData: failedTaskData,
+      },
+    });
+
+    await rejectQcRetryReprocessingItems({
+      bookId,
+      reviewItemIds,
+      resolutionType: "batch_regenerate_qc_enqueue_failed",
+      note: `auto_reject:qc_retry后置质检入队失败:${message}`,
+    });
+
+    return {
+      taskId: qcTask.id,
+      status: "failed",
+      error: message,
+    };
+  }
+};
+
 /**
  * 执行音频生成任务。
  * 注意：异常交由队列层决定是否重试和最终失败落库。
@@ -220,6 +386,7 @@ export async function runAudioGenerationTask({
     },
   });
   const manualReviewContext = extractManualReviewTaskContext(taskSnapshot?.taskData);
+  const qcRetryContext = extractQcRetryTaskContext(taskSnapshot?.taskData);
 
   await updateTaskProgress(taskId, 10, "准备生成音频");
 
@@ -365,6 +532,15 @@ export async function runAudioGenerationTask({
         note: `auto_reject:音频重生失败:task=${taskId}`,
       });
     }
+
+    if (qcRetryContext) {
+      await rejectQcRetryReprocessingItems({
+        bookId,
+        reviewItemIds: qcRetryContext.selectedReviewItemIds,
+        resolutionType: "batch_regenerate_failed",
+        note: `auto_reject:qc_retry音频返工失败:task=${taskId}`,
+      });
+    }
     return;
   }
 
@@ -394,7 +570,7 @@ export async function runAudioGenerationTask({
     },
   });
 
-  if (!manualReviewContext) {
+  if (!manualReviewContext && !qcRetryContext) {
     return;
   }
 
@@ -402,41 +578,80 @@ export async function runAudioGenerationTask({
     new Set(
       results
         .filter((result) => result.success && typeof result.audioFileId === "string")
-        .map((result) => result.audioFileId as string)
+      .map((result) => result.audioFileId as string)
     )
   );
 
   if (generatedAudioFileIds.length === 0) {
-    await rejectManualReviewReprocessingItem({
-      bookId,
-      manualReviewItemId: manualReviewContext.manualReviewItemId,
-      resolutionType: "regenerate_missing_audio_ref",
-      note: `auto_reject:重生无有效音频引用:task=${taskId}`,
-    });
+    if (manualReviewContext) {
+      await rejectManualReviewReprocessingItem({
+        bookId,
+        manualReviewItemId: manualReviewContext.manualReviewItemId,
+        resolutionType: "regenerate_missing_audio_ref",
+        note: `auto_reject:重生无有效音频引用:task=${taskId}`,
+      });
+    }
+    if (qcRetryContext) {
+      await rejectQcRetryReprocessingItems({
+        bookId,
+        reviewItemIds: qcRetryContext.selectedReviewItemIds,
+        resolutionType: "batch_regenerate_missing_audio_ref",
+        note: `auto_reject:qc_retry重生无有效音频引用:task=${taskId}`,
+      });
+    }
     return;
   }
 
-  const followupQc = await enqueueManualReviewFollowupQualityCheck({
-    bookId,
-    audioTaskId: taskId,
-    manualReviewItemId: manualReviewContext.manualReviewItemId,
-    audioFileIds: generatedAudioFileIds,
-  });
+  if (manualReviewContext) {
+    const followupQc = await enqueueManualReviewFollowupQualityCheck({
+      bookId,
+      audioTaskId: taskId,
+      manualReviewItemId: manualReviewContext.manualReviewItemId,
+      audioFileIds: generatedAudioFileIds,
+    });
 
-  const taskDataWithFollowup = await mergeTaskData(taskId, {
-    metadata: {
-      manualReviewFollowup: {
-        qualityTaskId: followupQc.taskId,
-        qualityTaskStatus: followupQc.status,
-        qualityTaskError: followupQc.error || null,
+    const taskDataWithFollowup = await mergeTaskData(taskId, {
+      metadata: {
+        manualReviewFollowup: {
+          qualityTaskId: followupQc.taskId,
+          qualityTaskStatus: followupQc.status,
+          qualityTaskError: followupQc.error || null,
+        },
       },
-    },
-  });
+    });
 
-  await prisma.processingTask.update({
-    where: { id: taskId },
-    data: {
-      taskData: taskDataWithFollowup,
-    },
-  });
+    await prisma.processingTask.update({
+      where: { id: taskId },
+      data: {
+        taskData: taskDataWithFollowup,
+      },
+    });
+  }
+
+  if (qcRetryContext) {
+    const followupQc = await enqueueQcRetryFollowupQualityCheck({
+      bookId,
+      audioTaskId: taskId,
+      reviewItemIds: qcRetryContext.selectedReviewItemIds,
+      audioFileIds: generatedAudioFileIds,
+    });
+
+    const taskDataWithFollowup = await mergeTaskData(taskId, {
+      metadata: {
+        qcRetryFollowup: {
+          qualityTaskId: followupQc.taskId,
+          qualityTaskStatus: followupQc.status,
+          qualityTaskError: followupQc.error || null,
+          targetReviewItemCount: qcRetryContext.selectedReviewItemIds.length,
+        },
+      },
+    });
+
+    await prisma.processingTask.update({
+      where: { id: taskId },
+      data: {
+        taskData: taskDataWithFollowup,
+      },
+    });
+  }
 }

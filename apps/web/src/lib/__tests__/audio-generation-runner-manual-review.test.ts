@@ -16,6 +16,7 @@ jest.mock("@/lib/prisma", () => ({
     },
     manualReviewItem: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       update: jest.fn(),
     },
     book: {
@@ -57,6 +58,7 @@ const mockProcessingTaskFindUnique = (prisma as any).processingTask.findUnique a
 const mockProcessingTaskUpdate = (prisma as any).processingTask.update as jest.Mock;
 const mockProcessingTaskCreate = (prisma as any).processingTask.create as jest.Mock;
 const mockManualReviewFindFirst = (prisma as any).manualReviewItem.findFirst as jest.Mock;
+const mockManualReviewFindMany = (prisma as any).manualReviewItem.findMany as jest.Mock;
 const mockManualReviewUpdate = (prisma as any).manualReviewItem.update as jest.Mock;
 const mockBookFindUnique = (prisma as any).book.findUnique as jest.Mock;
 const mockBookUpdate = (prisma as any).book.update as jest.Mock;
@@ -73,6 +75,7 @@ describe("runAudioGenerationTask manual review followup", () => {
     mockProcessingTaskUpdate.mockResolvedValue({});
     mockProcessingTaskCreate.mockResolvedValue({ id: "qc-task-1" });
     mockManualReviewFindFirst.mockResolvedValue(null);
+    mockManualReviewFindMany.mockResolvedValue([]);
     mockManualReviewUpdate.mockResolvedValue({});
   });
 
@@ -162,6 +165,126 @@ describe("runAudioGenerationTask manual review followup", () => {
       data: expect.objectContaining({
         status: "rejected",
         resolutionType: "regenerate_failed",
+      }),
+    });
+  });
+
+  it("should enqueue followup quality check for qc_retry source", async () => {
+    mockProcessingTaskFindUnique.mockResolvedValue({
+      taskData: {
+        metadata: {
+          source: "qc_retry",
+          selectedReviewItemIds: ["review-11", "review-12"],
+        },
+      },
+    });
+
+    mockGetAudioGenerator.mockReturnValue({
+      generateBatchAudio: jest.fn().mockResolvedValue([
+        {
+          success: true,
+          audioFileId: "audio-11",
+          duration: 2.8,
+        },
+        {
+          success: true,
+          audioFileId: "audio-12",
+          duration: 3.1,
+        },
+      ]),
+    } as any);
+
+    mockEnqueueQualityCheck.mockResolvedValue({
+      jobId: "qc-task-qc-retry",
+      dedupeKey: "quality:batch:audio-11,audio-12",
+      reused: false,
+      state: "waiting",
+    });
+
+    mockProcessingTaskCreate.mockResolvedValueOnce({
+      id: "qc-task-qc-retry",
+    });
+
+    await runAudioGenerationTask({
+      bookId: "book-1",
+      taskId: "task-audio-qc-retry",
+      type: "batch",
+      scriptSentenceIds: ["sentence-11", "sentence-12"],
+      options: {
+        provider: "voxcpm",
+      },
+    });
+
+    expect(mockProcessingTaskCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookId: "book-1",
+        taskType: "QUALITY_CHECK",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            source: "qc_retry",
+            retryReviewItemIds: ["review-11", "review-12"],
+            autoCreatePendingOnReject: true,
+          }),
+        }),
+      }),
+    });
+    expect(mockEnqueueQualityCheck).toHaveBeenCalledWith({
+      taskId: "qc-task-qc-retry",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-11", "audio-12"],
+    });
+    expect(mockManualReviewUpdate).not.toHaveBeenCalled();
+  });
+
+  it("should reject qc_retry items when generated audio is empty", async () => {
+    mockProcessingTaskFindUnique.mockResolvedValue({
+      taskData: {
+        metadata: {
+          source: "qc_retry",
+          selectedReviewItemIds: ["review-21", "review-22"],
+        },
+      },
+    });
+
+    mockGetAudioGenerator.mockReturnValue({
+      generateBatchAudio: jest.fn().mockResolvedValue([
+        {
+          success: false,
+          error: "tts failed",
+        },
+        {
+          success: false,
+          error: "voice unavailable",
+        },
+      ]),
+    } as any);
+
+    mockManualReviewFindMany.mockResolvedValue([
+      {
+        id: "review-21",
+        resolutionNote: "qc_retry_task:task-audio-qc-retry-fail",
+      },
+      {
+        id: "review-22",
+        resolutionNote: null,
+      },
+    ]);
+
+    await runAudioGenerationTask({
+      bookId: "book-1",
+      taskId: "task-audio-qc-retry-fail",
+      type: "batch",
+      scriptSentenceIds: ["sentence-21", "sentence-22"],
+    });
+
+    expect(mockProcessingTaskCreate).not.toHaveBeenCalled();
+    expect(mockManualReviewUpdate).toHaveBeenCalledTimes(2);
+    expect(mockManualReviewUpdate).toHaveBeenCalledWith({
+      where: { id: "review-21" },
+      data: expect.objectContaining({
+        status: "rejected",
+        resolutionType: "batch_regenerate_failed",
       }),
     });
   });

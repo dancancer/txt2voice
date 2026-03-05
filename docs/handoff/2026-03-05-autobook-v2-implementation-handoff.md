@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S14 全部完成，已进入第五轮（`qc/retry` 批量返工闭环）。
+- 当前进度：S0-S16 全部完成，已进入第六轮（`qc_retry` 自动复检 + 二次派单闭环）。
 
 ## 已完成内容
 
@@ -82,10 +82,27 @@
 - 失败兜底：
   - 入队失败时自动将返工任务标记为 `failed` 并写入 `queueError`，避免“任务卡 processing”。
 
+### 7) 第六轮增量（`qc_retry` 自动复检 + 二次派单）
+
+- `qc_retry` 后置质检自动联动：
+  - `runAudioGenerationTask` 识别 `source=qc_retry` 任务上下文，并在返工成功后自动创建/入队 `QUALITY_CHECK(batch)`。
+  - 后置质检任务 metadata 新增：
+    - `source=qc_retry`
+    - `retryReviewItemIds`
+    - `autoCreatePendingOnReject=true`
+  - 返工失败（全部失败）或“无有效音频引用”时，自动将目标 `manual_review_items` 从 `reprocessing` 回写为 `rejected`，避免状态悬挂。
+  - 后置质检入队失败时，自动把该质检任务标记为 `failed`，并批量回写复核项为 `rejected(batch_regenerate_qc_enqueue_failed)`。
+- `auto_rejected` 二次派单策略：
+  - `runQualityCheckTask` 新增任务上下文策略解析（`autoCreatePendingOnReject`）。
+  - `syncReprocessingManualReviewItems` 支持“先拒绝后派单”：
+    - 对命中的 `reprocessing` 项回写 `rejected(auto_rejected)`；
+    - 在无重复 `pending` 项时自动复制生成新的 `pending` 复核项，并打 `dispatch=secondary_pending` 追踪标记。
+  - 质检任务汇总新增 `secondaryDispatchCount` 和 `source`，便于统计自动派单规模与来源。
+
 ## 待完成内容
 
-1. `rejected(auto_rejected)` 暂未自动生成二次派单（新 pending 项），后续可按策略补齐。
-2. `source=qc_retry` 任务完成后尚未自动触发后置 `QUALITY_CHECK(batch)`，当前仍需手动触发或依赖外层编排。
+1. `autoCreatePendingOnReject` 目前是任务级策略（`source=qc_retry` 默认开启），尚未下沉到书籍/租户/issueType 粒度配置。
+2. 二次派单尚未引入“累计失败次数上限”与熔断策略，可能在极端场景形成重复派单。
 3. 当前 Fast Gate 仍为轻量规则，需要后续接入真实 ASR/CER 与声纹模型。
 
 ## 测试与验证结果
@@ -98,7 +115,9 @@
   - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-retry-service.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（新增）
 - 已执行：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
@@ -108,6 +127,6 @@
 
 ## 下一步建议（接手即做）
 
-1. 为 `rejected(auto_rejected)` 增加“自动转新 pending”策略开关，降低人工漏单风险。
-2. 为 `source=qc_retry` 增加自动后置 `QUALITY_CHECK(batch)` 联动，形成“返工后必复检”的稳定链路。
+1. 将 `autoCreatePendingOnReject` 策略开关产品化（按书籍/租户/issueType 配置），并补充管理接口。
+2. 在二次派单链路引入“累计失败次数阈值 + 熔断”策略，避免极端场景重复入队。
 3. 扩展 Deep Gate（Q4/Q5）与章节审计，并沉淀阈值模板（按引擎/角色类型）。

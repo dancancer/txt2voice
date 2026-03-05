@@ -32,6 +32,8 @@ S0-S12（前四批改造）已完成，本次继续推进第五批闭环增量�
 | S12 | 测试回归 + 文档回写 + 提交 | ✅ 完成 | 新增/更新测试通过，task/handoff 同步本轮进展并提交 |
 | S13 | `qc/retry` 批量返工 API + 服务落地 | ✅ 完成 | 支持 `issueType/chapterId/sentenceIds/score` 过滤，创建并入队 `AUDIO_GENERATION(batch)`，复核项回写 `reprocessing` |
 | S14 | 测试回归 + 文档回写 + 提交 | ✅ 完成 | 新增测试通过，回归与类型校验通过，task/handoff 同步并提交 |
+| S15 | `source=qc_retry` 自动后置 QC 联动 | ✅ 完成 | 返工音频任务成功后自动创建并入队 `QUALITY_CHECK(batch)`，失败场景自动回写复核项状态 |
+| S16 | `auto_rejected` 二次派单策略 + 测试回归 | ✅ 完成 | `rejected(auto_rejected)` 可按策略自动转新 `pending`，新增测试通过并完成文档回写 |
 
 ## 3. 执行日志
 
@@ -233,11 +235,46 @@ S0-S12（前四批改造）已完成，本次继续推进第五批闭环增量�
   3. 结果：新增测试、回归测试与类型校验全部通过。
 - 下一步建议：
   1. 在 `rejected(auto_rejected)` 场景补“二次派单策略”（可选自动复制为新 pending 项）。
-  2. 为 `source=qc_retry` 增加“自动后置 QC”联动，降低返工后漏检风险。
+ 2. 为 `source=qc_retry` 增加“自动后置 QC”联动，降低返工后漏检风险。
+ 3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
+
+### [S15] `source=qc_retry` 自动后置 QC 联动（2026-03-05 15:31 CST）
+
+- 完成内容：
+  1. `runAudioGenerationTask` 新增 `qc_retry` 任务上下文识别（`selectedReviewItemIds`）。
+  2. `qc_retry` 返工成功后自动创建并入队 `QUALITY_CHECK(batch)`，并在质检任务 metadata 中注入：
+     - `source=qc_retry`
+     - `retryReviewItemIds`
+     - `autoCreatePendingOnReject=true`
+  3. `qc_retry` 返工失败（全部失败）或无有效音频引用时，自动将命中的 `manual_review_items` 从 `reprocessing` 回写为 `rejected`，避免状态悬挂。
+  4. 若后置质检入队失败，自动标记质检任务为 `failed` 并回写返工复核项为 `rejected(batch_regenerate_qc_enqueue_failed)`。
+- 关键文件：
+  - `apps/web/src/lib/audio-generation-runner.ts`
+- 下一步建议：执行 S16，补齐 `auto_rejected` 二次派单策略并补充测试回归。
+
+### [S16] `auto_rejected` 二次派单策略 + 测试回归（2026-03-05 15:34 CST）
+
+- 完成内容：
+  1. `runQualityCheckTask` 新增任务上下文解析，支持 `autoCreatePendingOnReject` 策略开关（`source=qc_retry` 默认开启）。
+  2. `syncReprocessingManualReviewItems` 在 `verdict=manual_review/hard_fail` 且策略开启时，自动执行“二次派单”：
+     - 先回写原 `reprocessing` 项为 `rejected(auto_rejected)`；
+     - 再复制生成新的 `pending` 复核项（去重后创建），并标记 `dispatch=secondary_pending`。
+  3. 质检任务统计新增 `secondaryDispatchCount` 与 `source`，便于后续看板追踪自动派单规模。
+  4. 新增测试：
+     - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+     - 更新 `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（覆盖 `qc_retry` 后置 QC 与失败回写）
+  5. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  6. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 将 `autoCreatePendingOnReject` 抽为可配置策略（按书籍/租户/issueType 粒度），避免全局固定行为。
+  2. 在二次派单链路增加“累计失败次数阈值”，超过阈值后切换为人工强制介入。
   3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
 
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已落地 `qc/retry` 批量返工第一版，但 `rejected(auto_rejected)` 二次派单策略与 `qc_retry` 自动后置 QC 仍未落地。
+3. 已落地 `qc_retry` 自动后置 QC 与 `auto_rejected` 二次派单第一版；当前仍缺少按租户/书籍粒度的策略开关与失败次数上限。

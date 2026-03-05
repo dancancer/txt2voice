@@ -39,8 +39,15 @@ interface FastGateDecision {
   repairPlan: string[];
 }
 
-interface ManualReviewTaskContext {
+interface QualityCheckTaskContext {
+  source: string | null;
   manualReviewItemId: string;
+  autoCreatePendingOnReject: boolean;
+}
+
+interface ReprocessingSyncResult {
+  syncedCount: number;
+  secondaryPendingCount: number;
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -50,27 +57,25 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
   return value as Record<string, unknown>;
 };
 
-const extractManualReviewTaskContext = (
+const extractQualityCheckTaskContext = (
   taskData: Prisma.JsonValue | null | undefined
-): ManualReviewTaskContext | null => {
+): QualityCheckTaskContext => {
   const taskDataRecord = asRecord(taskData);
   const metadata = asRecord(taskDataRecord?.metadata);
 
-  if (!metadata || metadata.source !== "manual_review") {
-    return null;
-  }
-
+  const source = typeof metadata?.source === "string" ? metadata.source : null;
   const manualReviewItemId =
-    typeof metadata.manualReviewItemId === "string"
+    typeof metadata?.manualReviewItemId === "string"
       ? metadata.manualReviewItemId
-      : null;
+      : "";
 
-  if (!manualReviewItemId) {
-    return null;
-  }
+  const autoCreatePendingOnReject =
+    metadata?.autoCreatePendingOnReject === true || source === "qc_retry";
 
   return {
-    manualReviewItemId,
+    source,
+    manualReviewItemId: source === "manual_review" ? manualReviewItemId : "",
+    autoCreatePendingOnReject,
   };
 };
 
@@ -113,6 +118,7 @@ const syncReprocessingManualReviewItems = async ({
   decision,
   taskId,
   manualReviewItemId,
+  autoCreatePendingOnReject,
 }: {
   tx: Prisma.TransactionClient;
   bookId: string;
@@ -123,7 +129,8 @@ const syncReprocessingManualReviewItems = async ({
   decision: FastGateDecision;
   taskId: string;
   manualReviewItemId?: string;
-}): Promise<number> => {
+  autoCreatePendingOnReject: boolean;
+}): Promise<ReprocessingSyncResult> => {
   const where: Prisma.ManualReviewItemWhereInput = {
     bookId,
     status: "reprocessing",
@@ -135,19 +142,33 @@ const syncReprocessingManualReviewItems = async ({
     where.sentenceId = sentenceId;
     where.issueType = "FAST_GATE";
   } else {
-    return 0;
+    return {
+      syncedCount: 0,
+      secondaryPendingCount: 0,
+    };
   }
 
   const reprocessingItems = await tx.manualReviewItem.findMany({
     where,
     select: {
       id: true,
+      chapterId: true,
+      segmentId: true,
+      sentenceId: true,
+      audioFileId: true,
+      issueType: true,
+      priority: true,
+      assignedTo: true,
+      issueDetail: true,
       resolutionNote: true,
     },
   });
 
   if (reprocessingItems.length === 0) {
-    return 0;
+    return {
+      syncedCount: 0,
+      secondaryPendingCount: 0,
+    };
   }
 
   const resolution = resolveReprocessingStatusFromVerdict(decision.verdict);
@@ -175,7 +196,72 @@ const syncReprocessingManualReviewItems = async ({
     });
   }
 
-  return reprocessingItems.length;
+  let secondaryPendingCount = 0;
+  const shouldCreateSecondaryPending =
+    autoCreatePendingOnReject && resolution.status === "rejected";
+
+  if (shouldCreateSecondaryPending) {
+    for (const item of reprocessingItems) {
+      const duplicateWhere: Prisma.ManualReviewItemWhereInput = {
+        bookId,
+        issueType: item.issueType,
+        status: "pending",
+        ...(item.sentenceId
+          ? {
+              sentenceId: item.sentenceId,
+            }
+          : item.audioFileId
+            ? {
+                audioFileId: item.audioFileId,
+              }
+          : {}),
+      };
+
+      const existingPending = await tx.manualReviewItem.findFirst({
+        where: duplicateWhere,
+        select: {
+          id: true,
+        },
+      });
+
+      if (existingPending) {
+        continue;
+      }
+
+      await tx.manualReviewItem.create({
+        data: {
+          bookId,
+          chapterId: item.chapterId,
+          segmentId: item.segmentId,
+          sentenceId: item.sentenceId,
+          audioFileId,
+          attemptId: attemptId || null,
+          qcResultId: qualityResultId,
+          issueType: item.issueType,
+          priority: item.priority,
+          status: "pending",
+          assignedTo: item.assignedTo,
+          issueDetail: {
+            reasons: decision.reasons,
+            repairPlan: decision.repairPlan,
+            score: decision.score,
+            verdict: decision.verdict,
+            sourceReviewItemId: item.id,
+            dispatch: "secondary_pending",
+            dispatchedByTaskId: taskId,
+            dispatchedFromQcResultId: qualityResultId,
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      secondaryPendingCount += 1;
+    }
+  }
+
+  return {
+    syncedCount: reprocessingItems.length,
+    secondaryPendingCount,
+  };
 };
 
 const clampScore = (value: number): number => {
@@ -322,7 +408,7 @@ export async function runQualityCheckTask({
       taskData: true,
     },
   });
-  const manualReviewContext = extractManualReviewTaskContext(taskSnapshot?.taskData);
+  const taskContext = extractQualityCheckTaskContext(taskSnapshot?.taskData);
 
   await updateTaskProgress(taskId, 10, "准备执行 Fast Gate 质检");
 
@@ -378,6 +464,7 @@ export async function runQualityCheckTask({
   let repairCount = 0;
   let manualReviewCount = 0;
   let hardFailCount = 0;
+  let secondaryDispatchCount = 0;
 
   for (let index = 0; index < audioFiles.length; index += 1) {
     const audioFile = audioFiles[index];
@@ -430,7 +517,7 @@ export async function runQualityCheckTask({
         },
       });
 
-      const syncedReprocessingCount = await syncReprocessingManualReviewItems({
+      const reprocessingSync = await syncReprocessingManualReviewItems({
         tx,
         bookId,
         sentenceId: audioFile.sentenceId,
@@ -439,11 +526,13 @@ export async function runQualityCheckTask({
         qualityResultId: qualityResult.id,
         decision,
         taskId,
-        manualReviewItemId: manualReviewContext?.manualReviewItemId,
+        manualReviewItemId: taskContext.manualReviewItemId || undefined,
+        autoCreatePendingOnReject: taskContext.autoCreatePendingOnReject,
       });
+      secondaryDispatchCount += reprocessingSync.secondaryPendingCount;
 
       if (
-        syncedReprocessingCount === 0 &&
+        reprocessingSync.syncedCount === 0 &&
         (decision.verdict === "manual_review" || decision.verdict === "hard_fail")
       ) {
         const existingReview = await tx.manualReviewItem.findFirst({
@@ -508,6 +597,8 @@ export async function runQualityCheckTask({
     repairCount,
     manualReviewCount,
     hardFailCount,
+    secondaryDispatchCount,
+    source: taskContext.source,
   };
 
   const message = `质检完成：通过 ${passCount}，返工 ${repairCount}，人工复核 ${manualReviewCount}`;
