@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S10（前三批改造）已完成，本次继续推进第四批闭环增量：
+S0-S12（前四批改造）已完成，本次继续推进第五批闭环增量：
 
-1. 落地人工复核“重生后自动回流”：`reprocessing -> resolved/rejected`。
-2. 重生任务成功后自动触发 `QUALITY_CHECK(batch)`，保留可追踪任务链路。
-3. 重生任务失败或后置 QC 入队失败时自动回写 `manual_review_items` 为 `rejected`。
+1. 落地 `POST /api/books/[id]/qc/retry`，支持按 `issueType/score` 区间批量返工。
+2. 批量返工统一走 `AUDIO_GENERATION(batch)`，并强制 `skipExisting=false + overwriteExisting=true`。
+3. 入队成功后批量回写复核项为 `reprocessing(batch_regenerate)`，保留任务追踪标记。
 4. 补齐测试、更新 task/handoff，并提交本轮增量。
 
 ## 2. 执行步骤
@@ -30,6 +30,8 @@ S0-S10（前三批改造）已完成，本次继续推进第四批闭环增量�
 | S10 | task/handoff 回写与提交 | ✅ 完成 | 文档同步本轮进展、建议与验证结论，并提交代码 |
 | S11 | 重生自动回流 + 后置 QC 任务联动 | ✅ 完成 | `reprocessing` 在重生链路中可自动收敛到 `resolved/rejected`，并自动触发 `QUALITY_CHECK(batch)` |
 | S12 | 测试回归 + 文档回写 + 提交 | ✅ 完成 | 新增/更新测试通过，task/handoff 同步本轮进展并提交 |
+| S13 | `qc/retry` 批量返工 API + 服务落地 | ✅ 完成 | 支持 `issueType/chapterId/sentenceIds/score` 过滤，创建并入队 `AUDIO_GENERATION(batch)`，复核项回写 `reprocessing` |
+| S14 | 测试回归 + 文档回写 + 提交 | ✅ 完成 | 新增测试通过，回归与类型校验通过，task/handoff 同步并提交 |
 
 ## 3. 执行日志
 
@@ -204,8 +206,38 @@ S0-S10（前三批改造）已完成，本次继续推进第四批闭环增量�
   2. 在 `rejected(auto_rejected)` 场景补“二次派单策略”（可选自动转新 pending 项）。
   3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
 
+### [S13] `qc/retry` 批量返工 API + 服务落地（2026-03-05 15:21 CST）
+
+- 完成内容：
+  1. 新增 `qc-retry-service`，支持返工参数解析与校验：`issueType/issueTypes/chapterId/sentenceIds/minScore/maxScore/includeRejected/limit/provider/voiceProfileId`。
+  2. 新增批量筛选与排序策略（优先级 + 时间），并支持从 `qualityCheckResult.score`/`issueDetail.score` 双来源做分数过滤。
+  3. 落地 `POST /api/books/[id]/qc/retry`：
+     - 创建 `AUDIO_GENERATION(batch)` 任务；
+     - 入队参数强制 `skipExisting=false + overwriteExisting=true`；
+     - 入队成功后将命中 `manual_review_items` 回写到 `reprocessing`，并追加 `qc_retry_task:<taskId>` 标记。
+  4. 入队失败兜底：任务自动置为 `failed` 并写入 `taskData.metadata.queueError`。
+- 关键文件：
+  - `apps/web/src/lib/qc-retry-service.ts`
+  - `apps/web/src/app/api/books/[id]/qc/retry/route.ts`
+  - `apps/web/src/app/api/books/[id]/qc/retry/README.md`
+- 下一步建议：执行 S14，补齐单测/回归并完成文档回写和提交。
+
+### [S14] 测试回归 + 文档回写 + 提交（2026-03-05 15:24 CST）
+
+- 完成内容：
+  1. 新增测试：`apps/web/src/lib/__tests__/qc-retry-service.test.ts`（覆盖 payload 解析、成功入队、无候选、活跃任务冲突、入队失败回滚）。
+  2. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  3. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 在 `rejected(auto_rejected)` 场景补“二次派单策略”（可选自动复制为新 pending 项）。
+  2. 为 `source=qc_retry` 增加“自动后置 QC”联动，降低返工后漏检风险。
+  3. 继续推进 Q4/Q5（情绪匹配与章节一致性）与阈值模板化。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已完成“重生后自动闭环（状态回流 + 二次质检联动）”第一版，但 `qc/retry` 与二次派单策略仍未落地。
+3. 已落地 `qc/retry` 批量返工第一版，但 `rejected(auto_rejected)` 二次派单策略与 `qc_retry` 自动后置 QC 仍未落地。

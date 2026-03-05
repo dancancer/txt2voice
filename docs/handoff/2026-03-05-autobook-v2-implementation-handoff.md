@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S12 全部完成，已进入第四轮（重生自动回流 + 后置 QC 联动）。
+- 当前进度：S0-S14 全部完成，已进入第五轮（`qc/retry` 批量返工闭环）。
 
 ## 已完成内容
 
@@ -71,10 +71,21 @@
     - `manual_review/hard_fail -> rejected(auto_rejected)`
   - 同步更新 `qcResultId/audioFileId/attemptId`，并在 `resolutionNote` 追加自动回写标记。
 
+### 6) 第五轮增量（`qc/retry` 批量返工）
+
+- 新增批量返工 API：
+  - 新增 `POST /api/books/[id]/qc/retry`，支持按 `issueType/chapterId/sentenceIds/minScore/maxScore/includeRejected/limit` 过滤返工对象。
+- 新增返工服务层：
+  - 新增 `qc-retry-service`，统一封装 payload 解析、候选筛选、任务创建、入队与失败回滚。
+  - 返工任务统一创建 `AUDIO_GENERATION(batch)`，并强制 `skipExisting=false + overwriteExisting=true`。
+  - 入队成功后将命中 `manual_review_items` 批量回写到 `reprocessing(batch_regenerate)`，并追加 `qc_retry_task:<taskId>` 标记。
+- 失败兜底：
+  - 入队失败时自动将返工任务标记为 `failed` 并写入 `queueError`，避免“任务卡 processing”。
+
 ## 待完成内容
 
-1. `POST /api/books/[id]/qc/retry` 尚未落地，当前无法按错误类型批量返工。
-2. `rejected(auto_rejected)` 暂未自动生成二次派单（新 pending 项），后续可按策略补齐。
+1. `rejected(auto_rejected)` 暂未自动生成二次派单（新 pending 项），后续可按策略补齐。
+2. `source=qc_retry` 任务完成后尚未自动触发后置 `QUALITY_CHECK(batch)`，当前仍需手动触发或依赖外层编排。
 3. 当前 Fast Gate 仍为轻量规则，需要后续接入真实 ASR/CER 与声纹模型。
 
 ## 测试与验证结果
@@ -86,7 +97,9 @@
   - `apps/web/src/lib/__tests__/task-replay-payload-quality.test.ts`（新增）
   - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/qc-retry-service.test.ts`（新增）
 - 已执行：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
   - `pnpm --filter web test:regression`
@@ -95,6 +108,6 @@
 
 ## 下一步建议（接手即做）
 
-1. 新增 `POST /api/books/[id]/qc/retry`，按 issueType/score 区间批量返工并打标签。
-2. 为 `rejected(auto_rejected)` 增加“自动转新 pending”策略开关，降低人工漏单风险。
+1. 为 `rejected(auto_rejected)` 增加“自动转新 pending”策略开关，降低人工漏单风险。
+2. 为 `source=qc_retry` 增加自动后置 `QUALITY_CHECK(batch)` 联动，形成“返工后必复检”的稳定链路。
 3. 扩展 Deep Gate（Q4/Q5）与章节审计，并沉淀阈值模板（按引擎/角色类型）。
