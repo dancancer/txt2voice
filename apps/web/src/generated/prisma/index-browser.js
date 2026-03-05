@@ -238,6 +238,12 @@ exports.Prisma.ScriptSentenceScalarFieldEnum = {
   text: 'text',
   orderInSegment: 'orderInSegment',
   tone: 'tone',
+  roleType: 'roleType',
+  emotionLabel: 'emotionLabel',
+  emotionIntensity: 'emotionIntensity',
+  engineHint: 'engineHint',
+  priority: 'priority',
+  prosody: 'prosody',
   strength: 'strength',
   pauseAfter: 'pauseAfter',
   ttsParameters: 'ttsParameters',
@@ -259,6 +265,11 @@ exports.Prisma.AudioFileScalarFieldEnum = {
   errorMessage: 'errorMessage',
   retryCount: 'retryCount',
   provider: 'provider',
+  attemptNo: 'attemptNo',
+  engineUsed: 'engineUsed',
+  qualityScore: 'qualityScore',
+  qualityVerdict: 'qualityVerdict',
+  qualityStatus: 'qualityStatus',
   voiceProfileId: 'voiceProfileId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -320,6 +331,119 @@ exports.Prisma.CharacterSpeakerBindingScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.SpeakerEngineVariantScalarFieldEnum = {
+  id: 'id',
+  speakerProfileId: 'speakerProfileId',
+  engine: 'engine',
+  providerVoiceId: 'providerVoiceId',
+  referenceAudio: 'referenceAudio',
+  capability: 'capability',
+  routingWeight: 'routingWeight',
+  isDefault: 'isDefault',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SpeakerEmotionPresetScalarFieldEnum = {
+  id: 'id',
+  speakerEngineVariantId: 'speakerEngineVariantId',
+  emotionLabel: 'emotionLabel',
+  rawAliases: 'rawAliases',
+  intensityDefault: 'intensityDefault',
+  prosodyPreset: 'prosodyPreset',
+  engineParams: 'engineParams',
+  isActive: 'isActive',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.SynthesisAttemptScalarFieldEnum = {
+  id: 'id',
+  bookId: 'bookId',
+  chapterId: 'chapterId',
+  segmentId: 'segmentId',
+  sentenceId: 'sentenceId',
+  audioFileId: 'audioFileId',
+  speakerProfileId: 'speakerProfileId',
+  speakerEngineVariantId: 'speakerEngineVariantId',
+  engine: 'engine',
+  status: 'status',
+  attemptNo: 'attemptNo',
+  triggerType: 'triggerType',
+  requestPayload: 'requestPayload',
+  appliedParams: 'appliedParams',
+  metrics: 'metrics',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  durationMs: 'durationMs',
+  errorCode: 'errorCode',
+  errorMessage: 'errorMessage',
+  isFinal: 'isFinal',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QualityCheckResultScalarFieldEnum = {
+  id: 'id',
+  bookId: 'bookId',
+  chapterId: 'chapterId',
+  segmentId: 'segmentId',
+  sentenceId: 'sentenceId',
+  audioFileId: 'audioFileId',
+  attemptId: 'attemptId',
+  gate: 'gate',
+  stage: 'stage',
+  verdict: 'verdict',
+  score: 'score',
+  hardFail: 'hardFail',
+  thresholdKey: 'thresholdKey',
+  metrics: 'metrics',
+  reasons: 'reasons',
+  detail: 'detail',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ManualReviewItemScalarFieldEnum = {
+  id: 'id',
+  bookId: 'bookId',
+  chapterId: 'chapterId',
+  segmentId: 'segmentId',
+  sentenceId: 'sentenceId',
+  audioFileId: 'audioFileId',
+  attemptId: 'attemptId',
+  qcResultId: 'qcResultId',
+  issueType: 'issueType',
+  priority: 'priority',
+  status: 'status',
+  issueDetail: 'issueDetail',
+  assignedTo: 'assignedTo',
+  resolutionType: 'resolutionType',
+  resolutionNote: 'resolutionNote',
+  resolvedAt: 'resolvedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ChapterQualityAuditScalarFieldEnum = {
+  id: 'id',
+  bookId: 'bookId',
+  chapterId: 'chapterId',
+  auditBatchId: 'auditBatchId',
+  verdict: 'verdict',
+  overallScore: 'overallScore',
+  targetLufs: 'targetLufs',
+  actualLufs: 'actualLufs',
+  peakDbtp: 'peakDbtp',
+  continuityMetric: 'continuityMetric',
+  speakerDrift: 'speakerDrift',
+  actions: 'actions',
+  auditedAt: 'auditedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -364,7 +488,13 @@ exports.Prisma.ModelName = {
   CharacterMergeAudit: 'CharacterMergeAudit',
   ProcessingTask: 'ProcessingTask',
   SpeakerProfile: 'SpeakerProfile',
-  CharacterSpeakerBinding: 'CharacterSpeakerBinding'
+  CharacterSpeakerBinding: 'CharacterSpeakerBinding',
+  SpeakerEngineVariant: 'SpeakerEngineVariant',
+  SpeakerEmotionPreset: 'SpeakerEmotionPreset',
+  SynthesisAttempt: 'SynthesisAttempt',
+  QualityCheckResult: 'QualityCheckResult',
+  ManualReviewItem: 'ManualReviewItem',
+  ChapterQualityAudit: 'ChapterQualityAudit'
 };
 
 /**

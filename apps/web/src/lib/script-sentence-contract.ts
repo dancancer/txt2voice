@@ -18,6 +18,12 @@ export interface NormalizedScriptUpdate {
   text?: string;
   rawSpeaker?: string | null;
   tone?: string;
+  roleType?: string;
+  emotionLabel?: string;
+  emotionIntensity?: number;
+  engineHint?: string;
+  priority?: string;
+  prosody?: unknown;
   strength?: number;
   pauseAfter?: number;
   ttsParameters?: unknown;
@@ -119,6 +125,12 @@ export function normalizeScriptUpdatePayload(
       id,
       text,
       tone,
+      roleType: asString(row.roleType),
+      emotionLabel: asString(row.emotionLabel),
+      emotionIntensity: asNumber(row.emotionIntensity),
+      engineHint: asString(row.engineHint),
+      priority: asString(row.priority),
+      prosody: row.prosody,
       characterId,
       rawSpeaker:
         row.rawSpeaker === null
@@ -144,6 +156,12 @@ export function formatScriptSentence(sentence: any) {
     text: sentence.text,
     rawSpeaker: sentence.rawSpeaker,
     tone: sentence.tone,
+    roleType: sentence.roleType,
+    emotionLabel: sentence.emotionLabel,
+    emotionIntensity: sentence.emotionIntensity,
+    engineHint: sentence.engineHint,
+    priority: sentence.priority,
+    prosody: sentence.prosody,
     strength: sentence.strength,
     pauseAfter: sentence.pauseAfter,
     ttsParameters: sentence.ttsParameters,

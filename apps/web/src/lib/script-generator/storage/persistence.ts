@@ -1,4 +1,4 @@
-import prisma from "@/lib/prisma";
+import prisma, { Prisma } from "@/lib/prisma";
 import { addCharacterToMap } from "./character-utils";
 import type { DialogueLine, GeneratedScript } from "../types";
 
@@ -8,11 +8,110 @@ interface CharacterProfileLike {
   aliases?: Array<{ alias: string }>;
 }
 
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const toJsonValue = (value: unknown): Prisma.InputJsonValue | undefined =>
+  value === undefined ? undefined : (value as Prisma.InputJsonValue);
+
+const EMOTION_LABEL_MAP: Array<{ label: string; aliases: string[] }> = [
+  { label: "calm", aliases: ["平静", "冷静", "calm", "neutral", "中性"] },
+  { label: "joy", aliases: ["开心", "喜悦", "兴奋", "joy", "happy"] },
+  { label: "angry", aliases: ["愤怒", "生气", "angry"] },
+  { label: "sad", aliases: ["悲伤", "伤心", "sad"] },
+  { label: "cold", aliases: ["冷笑", "冷漠", "cold"] },
+  { label: "romantic_arousal", aliases: ["春情萌动", "暧昧", "romantic"] },
+];
+
+export const normalizeEmotionLabel = (tone?: string | null): string => {
+  if (!tone || tone.trim().length === 0) {
+    return "calm";
+  }
+
+  const normalizedTone = tone.trim().toLowerCase();
+  const matched = EMOTION_LABEL_MAP.find(({ aliases }) =>
+    aliases.some((alias) => normalizedTone.includes(alias.toLowerCase()))
+  );
+
+  return matched?.label || "calm";
+};
+
+const resolveRoleType = (line: DialogueLine): string => {
+  const speaker = (line.characterName || line.rawSpeaker || "").trim();
+  return line.isNarration || speaker === "旁白" ? "narration" : "dialogue";
+};
+
+const resolveEmotionIntensity = (strength?: number): number | null => {
+  if (typeof strength !== "number" || Number.isNaN(strength)) {
+    return null;
+  }
+
+  const value = Math.max(0, Math.min(100, strength)) / 100;
+  return Number(value.toFixed(2));
+};
+
+const resolveEngineHint = (line: DialogueLine): string | null => {
+  const ttsParams = asRecord(line.ttsParameters);
+  if (!ttsParams) {
+    return null;
+  }
+
+  const directHint = ttsParams.engineHint;
+  if (typeof directHint === "string" && directHint.trim().length > 0) {
+    return directHint.trim();
+  }
+
+  const hints = asRecord(ttsParams.ttsHints);
+  const hintEngine = hints?.engine ?? hints?.provider;
+  return typeof hintEngine === "string" && hintEngine.trim().length > 0
+    ? hintEngine.trim()
+    : null;
+};
+
+const resolvePriority = (line: DialogueLine): string => {
+  const text = line.text.trim();
+  if (text.includes("！") || text.includes("!")) {
+    return "high";
+  }
+  if (text.length <= 6) {
+    return "low";
+  }
+  return "normal";
+};
+
+const resolveProsody = (line: DialogueLine): Record<string, number> => {
+  const ttsParams = asRecord(line.ttsParameters);
+  const hints = asRecord(ttsParams?.ttsHints);
+
+  const pace =
+    typeof hints?.rate === "number" && Number.isFinite(hints.rate)
+      ? Number(hints.rate.toFixed(2))
+      : 1;
+  const pitch =
+    typeof hints?.pitch === "number" && Number.isFinite(hints.pitch)
+      ? Number(hints.pitch.toFixed(2))
+      : 0;
+  const pauseMsAfter =
+    typeof line.pauseAfter === "number" && Number.isFinite(line.pauseAfter)
+      ? Math.round(line.pauseAfter * 1000)
+      : 1500;
+
+  return {
+    pace,
+    pitch,
+    pauseMsAfter,
+  };
+};
+
 const buildSentenceData = (
   bookId: string,
   line: DialogueLine,
   characterId: string | null
 ) => {
+  const roleType = resolveRoleType(line);
+
   return {
     bookId,
     segmentId: line.segmentId,
@@ -21,6 +120,12 @@ const buildSentenceData = (
     rawSpeaker: line.rawSpeaker || line.characterName || null,
     text: line.text,
     tone: line.tone,
+    roleType,
+    emotionLabel: normalizeEmotionLabel(line.tone),
+    emotionIntensity: resolveEmotionIntensity(line.strength),
+    engineHint: resolveEngineHint(line),
+    priority: line.priority || resolvePriority(line),
+    prosody: toJsonValue(line.prosody ?? resolveProsody(line)),
     strength:
       typeof line.strength === "number"
         ? Math.max(0, Math.min(100, Math.round(line.strength)))
@@ -30,7 +135,7 @@ const buildSentenceData = (
         ? Number(line.pauseAfter.toFixed(1))
         : 1.5,
     orderInSegment: line.orderInSegment,
-    ttsParameters: line.ttsParameters || {},
+    ttsParameters: toJsonValue(line.ttsParameters || {}),
   };
 };
 

@@ -142,6 +142,7 @@ export class AudioGenerator {
       )
 
       // 调用TTS服务
+      const startedAt = new Date()
       const ttsResponse = await ttsServiceManager.synthesize(
         ttsRequest,
         voiceProfile.provider
@@ -152,7 +153,9 @@ export class AudioGenerator {
         scriptSentence,
         voiceProfile,
         ttsResponse,
-        request
+        request,
+        ttsRequest,
+        startedAt
       )
 
       return {
@@ -583,7 +586,9 @@ export class AudioGenerator {
     scriptSentence: any,
     voiceProfile: any,
     ttsResponse: any,
-    request: AudioGenerationRequest
+    request: AudioGenerationRequest,
+    ttsRequest: TTSRequest,
+    startedAt: Date
   ) {
     // 创建音频文件目录
     const audioDir = getBookAudioDir(scriptSentence.bookId)
@@ -610,24 +615,70 @@ export class AudioGenerator {
       ttsResponse?.duration
     )
 
-    // 创建数据库记录
-    const audioFile = await prisma.audioFile.create({
-      data: {
-        sentenceId: scriptSentence.id,
-        segmentId: scriptSentence.segmentId,
-        chapterId: scriptSentence.chapterId ?? scriptSentence.segment?.chapterId,
-        bookId: scriptSentence.bookId,
-        voiceProfileId: voiceProfile.id,
-        filePath,
-        fileName: filename,
-        fileSize: BigInt(fileSize),
-        duration: durationSeconds,
-        format: request.outputFormat || 'mp3',
-        status: 'completed'
-      }
-    })
+    const attemptNo =
+      (await prisma.audioFile.count({
+        where: {
+          sentenceId: scriptSentence.id
+        }
+      })) + 1
 
-    return audioFile
+    return prisma.$transaction(async (tx) => {
+      const audioFile = await tx.audioFile.create({
+        data: {
+          sentenceId: scriptSentence.id,
+          segmentId: scriptSentence.segmentId,
+          chapterId: scriptSentence.chapterId ?? scriptSentence.segment?.chapterId,
+          bookId: scriptSentence.bookId,
+          voiceProfileId: voiceProfile.id,
+          filePath,
+          fileName: filename,
+          fileSize: BigInt(fileSize),
+          duration: durationSeconds,
+          format: request.outputFormat || 'mp3',
+          status: 'completed',
+          attemptNo,
+          engineUsed: voiceProfile.provider,
+          qualityStatus: 'pending'
+        }
+      })
+
+      const now = new Date()
+      await tx.synthesisAttempt.create({
+        data: {
+          bookId: scriptSentence.bookId,
+          chapterId: scriptSentence.chapterId ?? scriptSentence.segment?.chapterId,
+          segmentId: scriptSentence.segmentId,
+          sentenceId: scriptSentence.id,
+          audioFileId: audioFile.id,
+          engine: voiceProfile.provider || 'unknown',
+          status: 'completed',
+          attemptNo,
+          triggerType: 'auto',
+          requestPayload: {
+            outputFormat: request.outputFormat || 'mp3',
+            overrides: request.overrides || {},
+            voiceProfileId: voiceProfile.id
+          } as Prisma.InputJsonValue,
+          appliedParams: {
+            speed: ttsRequest.speed,
+            pitch: ttsRequest.pitch,
+            volume: ttsRequest.volume,
+            emotion: ttsRequest.emotion,
+            style: ttsRequest.style
+          } as Prisma.InputJsonValue,
+          metrics: {
+            durationSeconds,
+            fileSize
+          } as Prisma.InputJsonValue,
+          startedAt,
+          finishedAt: now,
+          durationMs: Math.max(0, now.getTime() - startedAt.getTime()),
+          isFinal: true
+        }
+      })
+
+      return audioFile
+    })
   }
 
   /**

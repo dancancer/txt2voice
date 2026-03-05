@@ -168,6 +168,15 @@ const mapDialogueLines = (params: {
       characterName = characterMap.get(characterName) || characterName;
     }
 
+    const ttsHints =
+      sentence.ttsHints && typeof sentence.ttsHints === "object"
+        ? sentence.ttsHints
+        : {
+            pitch: 1.0,
+            rate: 1.0,
+            emphasis: "",
+          };
+
     return {
       id: sentence.id || `${segment.id}_${index}`,
       characterName,
@@ -175,6 +184,25 @@ const mapDialogueLines = (params: {
         typeof sentence.speaker === "string" ? sentence.speaker : undefined,
       text: sentence.text || "",
       tone: sentence.tone || "中性",
+      roleType: characterName === "旁白" ? "narration" : "dialogue",
+      emotionLabel:
+        typeof sentence.emotionLabel === "string" ? sentence.emotionLabel : undefined,
+      emotionIntensity:
+        typeof sentence.emotionIntensity === "number"
+          ? sentence.emotionIntensity
+          : undefined,
+      engineHint:
+        typeof sentence.engineHint === "string" ? sentence.engineHint : undefined,
+      priority:
+        sentence.priority === "high" ||
+        sentence.priority === "normal" ||
+        sentence.priority === "low"
+          ? sentence.priority
+          : undefined,
+      prosody:
+        sentence.prosody && typeof sentence.prosody === "object"
+          ? sentence.prosody
+          : undefined,
       strength: typeof sentence.strength === "number" ? sentence.strength : 75,
       pauseAfter:
         typeof sentence.pauseAfter === "number" ? sentence.pauseAfter : 1.5,
@@ -183,12 +211,10 @@ const mapDialogueLines = (params: {
       orderInSegment: index,
       isNarration: characterName === "旁白",
       ttsParameters: {
-        ttsHints: sentence.ttsHints || {
-          pitch: 1.0,
-          rate: 1.0,
-          emphasis: "",
-        },
+        ttsHints,
         originalSpeaker: sentence.speaker,
+        engineHint:
+          typeof sentence.engineHint === "string" ? sentence.engineHint : undefined,
         strength: typeof sentence.strength === "number" ? sentence.strength : 75,
         pauseAfter:
           typeof sentence.pauseAfter === "number" ? sentence.pauseAfter : 1.5,

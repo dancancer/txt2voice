@@ -63,6 +63,9 @@ const scriptSentenceInclude = {
 const toJsonValue = (value: unknown): Prisma.InputJsonValue | undefined =>
   value === undefined ? undefined : (value as Prisma.InputJsonValue);
 
+const toStringValue = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+
 async function ensureBookExists(bookId: string): Promise<void> {
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -214,6 +217,16 @@ export async function createBookScriptSentence(bookId: string, body: unknown) {
         typeof payload.tone === "string"
           ? payload.tone
           : undefined,
+      roleType: toStringValue(payload.roleType),
+      emotionLabel: toStringValue(payload.emotionLabel),
+      emotionIntensity:
+        typeof payload.emotionIntensity === "number" &&
+        Number.isFinite(payload.emotionIntensity)
+          ? payload.emotionIntensity
+          : undefined,
+      engineHint: toStringValue(payload.engineHint),
+      priority: toStringValue(payload.priority),
+      prosody: toJsonValue(payload.prosody),
       strength:
         typeof payload.strength === "number" && Number.isFinite(payload.strength)
           ? payload.strength
@@ -257,6 +270,12 @@ export async function updateBookScriptSentences(bookId: string, body: unknown) {
         text: item.text,
         rawSpeaker: item.rawSpeaker,
         tone: item.tone,
+        roleType: item.roleType,
+        emotionLabel: item.emotionLabel,
+        emotionIntensity: item.emotionIntensity,
+        engineHint: item.engineHint,
+        priority: item.priority,
+        prosody: toJsonValue(item.prosody),
         strength: item.strength,
         pauseAfter: item.pauseAfter,
         ttsParameters: toJsonValue(item.ttsParameters),

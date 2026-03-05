@@ -6,6 +6,17 @@ export interface DialogueLine {
   text: string;
   orderInSegment: number;
   tone?: string;
+  roleType?: "narration" | "dialogue" | "monologue" | "effect";
+  emotionLabel?: string;
+  emotionIntensity?: number;
+  engineHint?: string;
+  priority?: "high" | "normal" | "low";
+  prosody?: {
+    pace?: number;
+    pitch?: number;
+    energy?: number;
+    pauseMsAfter?: number;
+  };
   strength?: number;
   pauseAfter?: number;
   ttsParameters?: Record<string, any>;

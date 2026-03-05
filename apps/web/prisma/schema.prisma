@@ -10,29 +10,33 @@ datasource db {
 }
 
 model Book {
-  id                String                @id @default(uuid())
-  title             String
-  author            String?
-  originalFilename  String?
-  uploadedFilePath  String?
-  fileSize          BigInt?
-  totalWords        Int?
-  totalCharacters   Int                   @default(0)
-  totalSegments     Int                   @default(0)
-  totalChapters     Int                   @default(0)
-  encoding          String?
-  fileFormat        String?
-  status            String                @default("uploaded")
-  metadata          Json                  @default("{}")
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  audioFiles        AudioFile[]
-  mergeAudits       CharacterMergeAudit[]
-  characterProfiles CharacterProfile[]
-  processingTasks   ProcessingTask[]
-  scriptSentences   ScriptSentence[]
-  textSegments      TextSegment[]
-  chapters          Chapter[]
+  id                   String                @id @default(uuid())
+  title                String
+  author               String?
+  originalFilename     String?
+  uploadedFilePath     String?
+  fileSize             BigInt?
+  totalWords           Int?
+  totalCharacters      Int                   @default(0)
+  totalSegments        Int                   @default(0)
+  totalChapters        Int                   @default(0)
+  encoding             String?
+  fileFormat           String?
+  status               String                @default("uploaded")
+  metadata             Json                  @default("{}")
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  audioFiles           AudioFile[]
+  mergeAudits          CharacterMergeAudit[]
+  characterProfiles    CharacterProfile[]
+  processingTasks      ProcessingTask[]
+  scriptSentences      ScriptSentence[]
+  synthesisAttempts    SynthesisAttempt[]
+  textSegments         TextSegment[]
+  chapters             Chapter[]
+  qualityCheckResults  QualityCheckResult[]
+  manualReviewItems    ManualReviewItem[]
+  chapterQualityAudits ChapterQualityAudit[]
 
   @@index([status, createdAt])
   @@index([author, createdAt])
@@ -40,49 +44,53 @@ model Book {
 }
 
 model Chapter {
-  id             String           @id @default(uuid())
-  bookId         String
-  chapterIndex   Int
-  title          String
-  rawTitle       String?
-  startPosition  Int              @default(0)
-  endPosition    Int              @default(0)
-  wordCount      Int?             @default(0)
-  characterCount Int?             @default(0)
-  totalSegments  Int              @default(0)
-  status         String           @default("pending")
-  metadata       Json?            @default("{}")
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  book           Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  segments       TextSegment[]
-  scriptSentences ScriptSentence[]
-  audioFiles     AudioFile[]
+  id                  String                @id @default(uuid())
+  bookId              String
+  chapterIndex        Int
+  title               String
+  rawTitle            String?
+  startPosition       Int                   @default(0)
+  endPosition         Int                   @default(0)
+  wordCount           Int?                  @default(0)
+  characterCount      Int?                  @default(0)
+  totalSegments       Int                   @default(0)
+  status              String                @default("pending")
+  metadata            Json?                 @default("{}")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  book                Book                  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  segments            TextSegment[]
+  scriptSentences     ScriptSentence[]
+  audioFiles          AudioFile[]
+  synthesisAttempts   SynthesisAttempt[]
+  qualityCheckResults QualityCheckResult[]
+  manualReviewItems   ManualReviewItem[]
+  qualityAudits       ChapterQualityAudit[]
 
-  @@index([bookId])
   @@unique([bookId, chapterIndex])
+  @@index([bookId])
   @@map("chapters")
 }
 
 model CharacterProfile {
-  id                String                  @id @default(uuid())
+  id                String                    @id @default(uuid())
   bookId            String
   canonicalName     String
-  characteristics   Json                    @default("{}")
-  voicePreferences  Json                    @default("{}")
-  emotionProfile    Json                    @default("{}")
-  genderHint        String                  @default("unknown")
+  characteristics   Json                      @default("{}")
+  voicePreferences  Json                      @default("{}")
+  emotionProfile    Json                      @default("{}")
+  genderHint        String                    @default("unknown")
   ageHint           Int?
-  emotionBaseline   String                  @default("neutral")
-  isActive          Boolean                 @default(true)
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
-  mentions          Int?                    @default(0)
-  quotes            Int?                    @default(0)
+  emotionBaseline   String                    @default("neutral")
+  isActive          Boolean                   @default(true)
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+  mentions          Int?                      @default(0)
+  quotes            Int?                      @default(0)
   aliases           CharacterAlias[]
-  mergeAuditsSource CharacterMergeAudit[]   @relation("SourceCharacter")
-  mergeAuditsTarget CharacterMergeAudit[]   @relation("TargetCharacter")
-  book              Book                    @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  mergeAuditsSource CharacterMergeAudit[]     @relation("SourceCharacter")
+  mergeAuditsTarget CharacterMergeAudit[]     @relation("TargetCharacter")
+  book              Book                      @relation(fields: [bookId], references: [id], onDelete: Cascade)
   voiceBindings     CharacterVoiceBinding[]
   speakerBindings   CharacterSpeakerBinding[]
   scriptSentences   ScriptSentence[]
@@ -147,24 +155,27 @@ model CharacterVoiceBinding {
 }
 
 model TextSegment {
-  id              String           @id @default(uuid())
-  bookId          String
-  chapterId       String?
-  segmentIndex    Int
-  startPosition   Int
-  endPosition     Int
-  content         String
-  wordCount       Int?
-  segmentType     String?
-  orderIndex      Int
-  chapterOrderIndex Int?
-  metadata        Json?
-  status          String           @default("pending")
-  createdAt       DateTime         @default(now())
-  audioFiles      AudioFile[]
-  scriptSentences ScriptSentence[]
-  book            Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  chapter         Chapter?         @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  id                  String               @id @default(uuid())
+  bookId              String
+  chapterId           String?
+  segmentIndex        Int
+  startPosition       Int
+  endPosition         Int
+  content             String
+  wordCount           Int?
+  segmentType         String?
+  orderIndex          Int
+  chapterOrderIndex   Int?
+  metadata            Json?
+  status              String               @default("pending")
+  createdAt           DateTime             @default(now())
+  audioFiles          AudioFile[]
+  scriptSentences     ScriptSentence[]
+  synthesisAttempts   SynthesisAttempt[]
+  qualityCheckResults QualityCheckResult[]
+  manualReviewItems   ManualReviewItem[]
+  book                Book                 @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter             Chapter?             @relation(fields: [chapterId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
   @@index([chapterId])
@@ -175,56 +186,75 @@ model TextSegment {
 }
 
 model ScriptSentence {
-  id             String            @id @default(uuid())
-  bookId         String
-  segmentId      String
-  chapterId      String?
-  characterId    String?
-  rawSpeaker     String?
-  text           String
-  orderInSegment Int
-  tone           String?
-  strength       Int?              @default(75)
-  pauseAfter     Decimal?          @default(1.5) @db.Decimal(3, 1)
-  ttsParameters  Json?
-  createdAt      DateTime          @default(now())
-  audioFiles     AudioFile[]
-  book           Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  character      CharacterProfile? @relation(fields: [characterId], references: [id])
-  segment        TextSegment       @relation(fields: [segmentId], references: [id], onDelete: Cascade)
-  chapter        Chapter?          @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  id                  String               @id @default(uuid())
+  bookId              String
+  segmentId           String
+  chapterId           String?
+  characterId         String?
+  rawSpeaker          String?
+  text                String
+  orderInSegment      Int
+  tone                String?
+  roleType            String?
+  emotionLabel        String?
+  emotionIntensity    Decimal?             @db.Decimal(3, 2)
+  engineHint          String?
+  priority            String?
+  prosody             Json?
+  strength            Int?                 @default(75)
+  pauseAfter          Decimal?             @default(1.5) @db.Decimal(3, 1)
+  ttsParameters       Json?
+  createdAt           DateTime             @default(now())
+  audioFiles          AudioFile[]
+  synthesisAttempts   SynthesisAttempt[]
+  qualityCheckResults QualityCheckResult[]
+  manualReviewItems   ManualReviewItem[]
+  book                Book                 @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  character           CharacterProfile?    @relation(fields: [characterId], references: [id])
+  segment             TextSegment          @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  chapter             Chapter?             @relation(fields: [chapterId], references: [id], onDelete: SetNull)
 
   @@index([segmentId])
   @@index([characterId])
   @@index([chapterId])
   @@index([bookId, segmentId, orderInSegment])
   @@index([bookId, orderInSegment])
+  @@index([bookId, roleType])
+  @@index([bookId, emotionLabel])
   @@map("script_sentences")
 }
 
 model AudioFile {
-  id             String           @id @default(uuid())
-  bookId         String
-  sentenceId     String?
-  segmentId      String?
-  chapterId      String?
-  filePath       String
-  fileName       String?
-  duration       Decimal?         @db.Decimal(5, 2)
-  fileSize       BigInt?
-  format         String?
-  status         String           @default("pending")
-  errorMessage   String?
-  retryCount     Int              @default(0)
-  provider       String?
-  voiceProfileId String?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  book           Book             @relation(fields: [bookId], references: [id], onDelete: Cascade)
-  segment        TextSegment?     @relation(fields: [segmentId], references: [id])
-  scriptSentence ScriptSentence?  @relation(fields: [sentenceId], references: [id])
-  voiceProfile   TTSVoiceProfile? @relation(fields: [voiceProfileId], references: [id])
-  chapter        Chapter?         @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  id                  String               @id @default(uuid())
+  bookId              String
+  sentenceId          String?
+  segmentId           String?
+  chapterId           String?
+  filePath            String
+  fileName            String?
+  duration            Decimal?             @db.Decimal(5, 2)
+  fileSize            BigInt?
+  format              String?
+  status              String               @default("pending")
+  errorMessage        String?
+  retryCount          Int                  @default(0)
+  provider            String?
+  attemptNo           Int                  @default(1)
+  engineUsed          String?
+  qualityScore        Decimal?             @db.Decimal(5, 2)
+  qualityVerdict      String?
+  qualityStatus       String?
+  voiceProfileId      String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  book                Book                 @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  segment             TextSegment?         @relation(fields: [segmentId], references: [id])
+  scriptSentence      ScriptSentence?      @relation(fields: [sentenceId], references: [id])
+  voiceProfile        TTSVoiceProfile?     @relation(fields: [voiceProfileId], references: [id])
+  chapter             Chapter?             @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  synthesisAttempts   SynthesisAttempt[]
+  qualityCheckResults QualityCheckResult[]
+  manualReviewItems   ManualReviewItem[]
 
   @@index([bookId])
   @@index([status])
@@ -232,6 +262,8 @@ model AudioFile {
   @@index([sentenceId, status])
   @@index([segmentId])
   @@index([chapterId])
+  @@index([bookId, qualityStatus, createdAt])
+  @@index([sentenceId, attemptNo])
   @@map("audio_files")
 }
 
@@ -276,23 +308,25 @@ model ProcessingTask {
 }
 
 model SpeakerProfile {
-  name            String?
-  gender          String    @default("unknown")
-  ageGroup        String    @default("adult") @map("age_group")
-  toneStyle       String    @default("neutral") @map("tone_style")
-  description     String?
-  referenceAudio  String?   @map("reference_audio")
-  confidence      Decimal?  @db.Decimal(5, 4)
-  embeddingVector Bytes?    @map("embedding_vector")
-  metadata        Json      @default("{}")
-  isActive        Boolean   @default(true) @map("is_active")
-  usageCount      Int       @default(0) @map("usage_count")
-  lastUsedAt      DateTime? @map("last_used_at")
-  syncedAt        DateTime? @map("synced_at")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  id              Int       @id @default(autoincrement()) @map("speaker_id")
+  name              String?
+  gender            String                    @default("unknown")
+  ageGroup          String                    @default("adult") @map("age_group")
+  toneStyle         String                    @default("neutral") @map("tone_style")
+  description       String?
+  referenceAudio    String?                   @map("reference_audio")
+  confidence        Decimal?                  @db.Decimal(5, 4)
+  embeddingVector   Bytes?                    @map("embedding_vector")
+  metadata          Json                      @default("{}")
+  isActive          Boolean                   @default(true) @map("is_active")
+  usageCount        Int                       @default(0) @map("usage_count")
+  lastUsedAt        DateTime?                 @map("last_used_at")
+  syncedAt          DateTime?                 @map("synced_at")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+  id                Int                       @id @default(autoincrement()) @map("speaker_id")
   characterBindings CharacterSpeakerBinding[]
+  engineVariants    SpeakerEngineVariant[]
+  synthesisAttempts SynthesisAttempt[]
 
   @@index([isActive])
   @@index([gender])
@@ -301,17 +335,188 @@ model SpeakerProfile {
 }
 
 model CharacterSpeakerBinding {
-  id                String           @id @default(uuid())
-  characterId       String
-  speakerProfileId  Int
-  metadata          Json             @default("{}")
-  isDefault         Boolean          @default(true)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  character         CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
-  speakerProfile    SpeakerProfile   @relation(fields: [speakerProfileId], references: [id], onDelete: Cascade)
+  id               String           @id @default(uuid())
+  characterId      String
+  speakerProfileId Int
+  metadata         Json             @default("{}")
+  isDefault        Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  character        CharacterProfile @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  speakerProfile   SpeakerProfile   @relation(fields: [speakerProfileId], references: [id], onDelete: Cascade)
 
   @@unique([characterId, speakerProfileId])
   @@index([characterId])
   @@map("character_speaker_bindings")
+}
+
+model SpeakerEngineVariant {
+  id                String                 @id @default(uuid())
+  speakerProfileId  Int
+  engine            String
+  providerVoiceId   String?
+  referenceAudio    String?
+  capability        Json                   @default("{}")
+  routingWeight     Decimal                @default(1.0) @db.Decimal(4, 3)
+  isDefault         Boolean                @default(false)
+  isActive          Boolean                @default(true)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  speakerProfile    SpeakerProfile         @relation(fields: [speakerProfileId], references: [id], onDelete: Cascade)
+  emotionPresets    SpeakerEmotionPreset[]
+  synthesisAttempts SynthesisAttempt[]
+
+  @@unique([speakerProfileId, engine, providerVoiceId])
+  @@index([engine, isActive])
+  @@index([speakerProfileId, isDefault, isActive])
+  @@map("speaker_engine_variants")
+}
+
+model SpeakerEmotionPreset {
+  id                     String               @id @default(uuid())
+  speakerEngineVariantId String
+  emotionLabel           String
+  rawAliases             Json                 @default("[]")
+  intensityDefault       Decimal              @default(0.5) @db.Decimal(3, 2)
+  prosodyPreset          Json                 @default("{}")
+  engineParams           Json                 @default("{}")
+  isActive               Boolean              @default(true)
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  speakerEngineVariant   SpeakerEngineVariant @relation(fields: [speakerEngineVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([speakerEngineVariantId, emotionLabel])
+  @@index([emotionLabel, isActive])
+  @@map("speaker_emotion_presets")
+}
+
+model SynthesisAttempt {
+  id                     String                @id @default(uuid())
+  bookId                 String
+  chapterId              String?
+  segmentId              String?
+  sentenceId             String
+  audioFileId            String?
+  speakerProfileId       Int?
+  speakerEngineVariantId String?
+  engine                 String
+  status                 String                @default("pending")
+  attemptNo              Int                   @default(1)
+  triggerType            String                @default("auto")
+  requestPayload         Json                  @default("{}")
+  appliedParams          Json                  @default("{}")
+  metrics                Json                  @default("{}")
+  startedAt              DateTime              @default(now())
+  finishedAt             DateTime?
+  durationMs             Int?
+  errorCode              String?
+  errorMessage           String?
+  isFinal                Boolean               @default(false)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
+  book                   Book                  @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter                Chapter?              @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  segment                TextSegment?          @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  scriptSentence         ScriptSentence        @relation(fields: [sentenceId], references: [id], onDelete: Cascade)
+  audioFile              AudioFile?            @relation(fields: [audioFileId], references: [id], onDelete: SetNull)
+  speakerProfile         SpeakerProfile?       @relation(fields: [speakerProfileId], references: [id], onDelete: SetNull)
+  speakerEngineVariant   SpeakerEngineVariant? @relation(fields: [speakerEngineVariantId], references: [id], onDelete: SetNull)
+  qualityCheckResults    QualityCheckResult[]
+  manualReviewItems      ManualReviewItem[]
+
+  @@index([bookId, sentenceId, attemptNo])
+  @@index([status, createdAt])
+  @@index([engine, createdAt])
+  @@index([speakerEngineVariantId, createdAt])
+  @@map("synthesis_attempts")
+}
+
+model QualityCheckResult {
+  id                String             @id @default(uuid())
+  bookId            String
+  chapterId         String?
+  segmentId         String?
+  sentenceId        String?
+  audioFileId       String?
+  attemptId         String?
+  gate              String
+  stage             String
+  verdict           String
+  score             Decimal?           @db.Decimal(5, 2)
+  hardFail          Boolean            @default(false)
+  thresholdKey      String?
+  metrics           Json               @default("{}")
+  reasons           Json               @default("[]")
+  detail            Json               @default("{}")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  book              Book               @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter           Chapter?           @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  segment           TextSegment?       @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  scriptSentence    ScriptSentence?    @relation(fields: [sentenceId], references: [id], onDelete: SetNull)
+  audioFile         AudioFile?         @relation(fields: [audioFileId], references: [id], onDelete: SetNull)
+  attempt           SynthesisAttempt?  @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  manualReviewItems ManualReviewItem[]
+
+  @@index([bookId, gate, stage, createdAt])
+  @@index([verdict, createdAt])
+  @@index([sentenceId, createdAt])
+  @@map("quality_check_results")
+}
+
+model ManualReviewItem {
+  id                 String              @id @default(uuid())
+  bookId             String
+  chapterId          String?
+  segmentId          String?
+  sentenceId         String?
+  audioFileId        String?
+  attemptId          String?
+  qcResultId         String?
+  issueType          String
+  priority           String              @default("normal")
+  status             String              @default("pending")
+  issueDetail        Json                @default("{}")
+  assignedTo         String?
+  resolutionType     String?
+  resolutionNote     String?
+  resolvedAt         DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  book               Book                @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter            Chapter?            @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  segment            TextSegment?        @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  scriptSentence     ScriptSentence?     @relation(fields: [sentenceId], references: [id], onDelete: SetNull)
+  audioFile          AudioFile?          @relation(fields: [audioFileId], references: [id], onDelete: SetNull)
+  attempt            SynthesisAttempt?   @relation(fields: [attemptId], references: [id], onDelete: SetNull)
+  qualityCheckResult QualityCheckResult? @relation(fields: [qcResultId], references: [id], onDelete: SetNull)
+
+  @@index([bookId, status, priority, createdAt])
+  @@index([assignedTo, status])
+  @@index([issueType, status])
+  @@map("manual_review_items")
+}
+
+model ChapterQualityAudit {
+  id               String   @id @default(uuid())
+  bookId           String
+  chapterId        String
+  auditBatchId     String
+  verdict          String
+  overallScore     Decimal? @db.Decimal(5, 2)
+  targetLufs       Decimal? @db.Decimal(5, 2)
+  actualLufs       Decimal? @db.Decimal(5, 2)
+  peakDbtp         Decimal? @db.Decimal(5, 2)
+  continuityMetric Json     @default("{}")
+  speakerDrift     Json     @default("{}")
+  actions          Json     @default("[]")
+  auditedAt        DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  book             Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  chapter          Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+
+  @@index([bookId, chapterId, auditedAt])
+  @@index([auditBatchId])
+  @@map("chapter_quality_audits")
 }
