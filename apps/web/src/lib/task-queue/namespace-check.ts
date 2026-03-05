@@ -48,13 +48,15 @@ export async function warnIfLegacyNamespaceHasPendingJobs(
 
     const legacyScriptQueue = `${legacyNamespace}:script-generation`;
     const legacyAudioQueue = `${legacyNamespace}:audio-generation`;
+    const legacyQualityQueue = `${legacyNamespace}:quality-check`;
 
-    const [legacyScriptPending, legacyAudioPending] = await Promise.all([
+    const [legacyScriptPending, legacyAudioPending, legacyQualityPending] = await Promise.all([
       getQueuePendingJobCount(client, legacyScriptQueue),
       getQueuePendingJobCount(client, legacyAudioQueue),
+      getQueuePendingJobCount(client, legacyQualityQueue),
     ]);
 
-    if (legacyScriptPending + legacyAudioPending === 0) {
+    if (legacyScriptPending + legacyAudioPending + legacyQualityPending === 0) {
       return;
     }
 
@@ -63,6 +65,7 @@ export async function warnIfLegacyNamespaceHasPendingJobs(
       legacyNamespace,
       legacyScriptPending,
       legacyAudioPending,
+      legacyQualityPending,
       suggestion:
         "如果本机同时运行多个实例，请为每个实例配置唯一的 TASK_QUEUE_NAMESPACE",
     });

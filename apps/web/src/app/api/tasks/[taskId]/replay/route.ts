@@ -34,8 +34,12 @@ export const POST = withErrorHandler(
       throw new ValidationError("任务不存在");
     }
 
-    if (task.taskType !== "SCRIPT_GENERATION" && task.taskType !== "AUDIO_GENERATION") {
-      throw new ValidationError("仅支持重放台本或音频生成任务");
+    if (
+      task.taskType !== "SCRIPT_GENERATION" &&
+      task.taskType !== "AUDIO_GENERATION" &&
+      task.taskType !== "QUALITY_CHECK"
+    ) {
+      throw new ValidationError("仅支持重放台本、音频或质检任务");
     }
 
     const replayResult = await replayProcessingTask(taskId, {

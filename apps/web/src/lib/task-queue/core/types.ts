@@ -1,6 +1,7 @@
 import type Bull from "bull";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
+import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 import type { QueueTaskType } from "@/lib/task-queue/replay-payload";
@@ -25,6 +26,14 @@ export interface AudioGenerationQueueInput {
   options?: AudioGenerationOptions;
 }
 
+export interface QualityCheckQueueInput {
+  taskId: string;
+  bookId: string;
+  type: QualityCheckTaskType;
+  chapterId?: string;
+  audioFileIds?: string[];
+}
+
 export interface ScriptGenerationJobData extends ScriptGenerationQueueInput {
   options: Partial<ScriptGenerationOptions>;
   extraParams: ScriptGenerationExtraParams;
@@ -34,6 +43,11 @@ export interface ScriptGenerationJobData extends ScriptGenerationQueueInput {
 export interface AudioGenerationJobData extends AudioGenerationQueueInput {
   autoMerge: boolean;
   options: AudioGenerationOptions;
+  dedupeKey: string;
+}
+
+export interface QualityCheckJobData extends QualityCheckQueueInput {
+  audioFileIds: string[];
   dedupeKey: string;
 }
 
@@ -52,6 +66,7 @@ export interface DeadLetterJobData {
 export interface TaskQueueState {
   scriptQueue: Bull.Queue<ScriptGenerationJobData> | null;
   audioQueue: Bull.Queue<AudioGenerationJobData> | null;
+  qualityQueue: Bull.Queue<QualityCheckJobData> | null;
   deadLetterQueue: Bull.Queue<DeadLetterJobData> | null;
   workerStarted: boolean;
   recovering: boolean;

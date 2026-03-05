@@ -6,12 +6,12 @@
 
 ## 1. 本轮目标（可提交增量）
 
-在不破坏现有主链路的前提下，完成 V2 第一批可落地改造：
+S0-S4（第一批改造）已完成，本次继续推进第二批可落地增量：
 
-1. Prisma V2 数据底座（新增 6 表 + 扩展核心字段）。
-2. 台本标注写入 Annotation v2 关键字段（roleType/emotion/engineHint/priority/prosody）。
-3. 音频生成最小双写（`audio_files` + `synthesis_attempts`）。
-4. 补齐回归测试并记录 handoff。
+1. 音频生成失败路径补齐 `synthesis_attempts(status=failed)` 写入。
+2. 增加 `QUALITY_CHECK` 任务类型与 Fast Gate（Q1-Q3）Worker 骨架。
+3. 打通质检任务入队与 API 触发（按整书/章节/批量音频）。
+4. 补齐回归测试、更新 task/handoff，并提交本轮增量。
 
 ## 2. 执行步骤
 
@@ -22,6 +22,9 @@
 | S2 | 服务层最小双写与注解落库 | ✅ 完成 | ScriptSentence/AudioFile 写入新增字段并写 `synthesis_attempts` |
 | S3 | 补充测试并执行验证 | ✅ 完成 | 新增测试通过，回归测试通过 |
 | S4 | 更新 task/handoff 并提交 | ✅ 完成 | 提交包含代码、文档、验证结果 |
+| S5 | 失败路径补齐 attempt 双写 | ✅ 完成 | `generateSingleAudio` 失败场景写入 `synthesis_attempts(status=failed)` |
+| S6 | Fast Gate worker + 任务队列接入 | ✅ 完成 | 支持 `QUALITY_CHECK` 入队、执行、重放、恢复与健康检查 |
+| S7 | 质检 API + 测试验证 + 文档回写 | ✅ 完成 | `/api/books/[id]/qc/run` 可触发任务，测试与类型校验通过 |
 
 ## 3. 执行日志
 
@@ -86,8 +89,49 @@
   1. 增加 `QUALITY_CHECK` 任务类型与 worker 骨架。
   2. 用 `quality_check_results` 输出句级 verdict 与 repairPlan。
 
+### [S5] 失败路径 attempt 双写（2026-03-05 12:34 CST）
+
+- 完成内容：
+  1. `AudioGenerator.generateSingleAudio` 新增失败链路追踪上下文（scriptSentence/voiceProfile/ttsRequest/startedAt）。
+  2. 新增 `recordFailedSynthesisAttempt`，在异常分支和声音配置缺失分支写 `synthesis_attempts(status=failed)`。
+  3. `attemptNo` 统一改为基于 `synthesis_attempts` 计数，成功/失败路径保持同一递增语义。
+- 关键文件：
+  - `apps/web/src/lib/audio-generator.ts`
+- 下一步建议：执行 S6，接入 `QUALITY_CHECK` 任务类型与 Fast Gate worker。
+
+### [S6] QUALITY_CHECK 队列与 Fast Gate Worker 骨架（2026-03-05 12:36 CST）
+
+- 完成内容：
+  1. 新增 `quality-check-runner`，实现 Q1-Q3 最小判定、repairPlan 生成与 `quality_check_results` 写入。
+  2. 同步更新 `audio_files` 质量字段（`qualityScore/qualityVerdict/qualityStatus`）。
+  3. 低分/硬失败场景写入 `manual_review_items`（去重 pending 项）。
+  4. 队列层新增 `QUALITY_CHECK` 任务全链路：dedupe、enqueue、worker、replay、recovery、health、dead-letter。
+- 关键文件：
+  - `apps/web/src/lib/quality-check-runner.ts`
+  - `apps/web/src/lib/task-queue/ops/worker.ts`
+  - `apps/web/src/lib/task-queue/ops/enqueue.ts`
+  - `apps/web/src/lib/task-queue/replay-payload.ts`
+  - `apps/web/src/lib/task-queue/ops/recovery.ts`
+- 下一步建议：执行 S7，补齐 API 触发与测试验证并更新交接文档。
+
+### [S7] 质检 API、测试与交接回写（2026-03-05 12:38 CST）
+
+- 完成内容：
+  1. 新增 `POST/GET /api/books/[id]/qc/run`，支持整书/章节/批量质检任务触发与状态查询。
+  2. 更新任务重放/重试接口，支持 `QUALITY_CHECK`。
+  3. 新增测试：
+     - `apps/web/src/lib/__tests__/quality-check-runner.test.ts`
+     - `apps/web/src/lib/__tests__/task-replay-payload-quality.test.ts`
+  4. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts src/lib/__tests__/task-replay-route.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+- 下一步建议：
+  1. 增加 `manual_review_items` 列表与 resolve API（闭环处理）。
+  2. 补 Q4/Q5（情绪与章节一致性）并沉淀阈值配置。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
-2. 未实现 QC worker 与 `manual_review_items` 业务写入，仅完成数据底座。
-3. `synthesis_attempts` 当前仅覆盖成功路径，失败路径双写会在下一轮补齐。
+2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
+3. 已有 `manual_review_items` 自动写入，但尚未提供复核处理 API（resolve/驳回/重生）。

@@ -9,6 +9,7 @@ import type {
 } from "@/lib/task-queue/core/types";
 import {
   enqueueAudioGenerationJob,
+  enqueueQualityCheckJob,
   enqueueScriptGenerationJob,
 } from "@/lib/task-queue/ops/enqueue";
 
@@ -51,14 +52,29 @@ export async function replayProcessingTask(
     };
   }
 
-  const result = await enqueueAudioGenerationJob(payload.input, {
+  if (payload.kind === "audio") {
+    const result = await enqueueAudioGenerationJob(payload.input, {
+      allowReuse: !force,
+      reason,
+    });
+
+    return {
+      taskId: payload.input.taskId,
+      taskType: "AUDIO_GENERATION",
+      jobId: result.jobId,
+      reused: result.reused,
+      reason,
+    };
+  }
+
+  const result = await enqueueQualityCheckJob(payload.input, {
     allowReuse: !force,
     reason,
   });
 
   return {
     taskId: payload.input.taskId,
-    taskType: "AUDIO_GENERATION",
+    taskType: "QUALITY_CHECK",
     jobId: result.jobId,
     reused: result.reused,
     reason,

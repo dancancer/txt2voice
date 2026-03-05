@@ -65,10 +65,14 @@ export class AudioGenerator {
     options: AudioGenerationOptions = {}
   ): Promise<AudioGenerationResult> {
     const finalOptions = { ...this.defaultOptions, ...options }
+    let scriptSentence: any | null = null
+    let voiceProfile: any | null = null
+    let ttsRequest: TTSRequest | null = null
+    let attemptStartedAt: Date | null = null
 
     try {
       // 获取台词信息
-      const scriptSentence = await prisma.scriptSentence.findUnique({
+      scriptSentence = await prisma.scriptSentence.findUnique({
         where: { id: request.scriptSentenceId },
         include: {
           character: {
@@ -121,13 +125,25 @@ export class AudioGenerator {
       }
 
       // 确定使用的声音配置
-      const voiceProfile = await this.resolveVoiceProfileForSentence(
+      attemptStartedAt = new Date()
+      voiceProfile = await this.resolveVoiceProfileForSentence(
         scriptSentence,
         request,
         finalOptions
       )
 
       if (!voiceProfile) {
+        try {
+          await this.recordFailedSynthesisAttempt({
+            scriptSentence,
+            request,
+            startedAt: attemptStartedAt,
+            fallbackEngine: finalOptions.provider || scriptSentence.engineHint || undefined,
+            error: new Error('未找到可用的声音配置（包含旁白兜底）')
+          })
+        } catch (persistError) {
+          console.warn('写入失败合成尝试记录失败:', persistError)
+        }
         return {
           success: false,
           error: '未找到可用的声音配置（包含旁白兜底）'
@@ -135,14 +151,13 @@ export class AudioGenerator {
       }
 
       // 构建TTS请求
-      const ttsRequest = await this.buildTTSRequest(
+      ttsRequest = await this.buildTTSRequest(
         scriptSentence,
         voiceProfile,
         request
       )
 
       // 调用TTS服务
-      const startedAt = new Date()
       const ttsResponse = await ttsServiceManager.synthesize(
         ttsRequest,
         voiceProfile.provider
@@ -155,7 +170,7 @@ export class AudioGenerator {
         ttsResponse,
         request,
         ttsRequest,
-        startedAt
+        attemptStartedAt
       )
 
       return {
@@ -167,6 +182,21 @@ export class AudioGenerator {
 
     } catch (error) {
       console.error('音频生成失败:', error)
+      if (scriptSentence && attemptStartedAt) {
+        try {
+          await this.recordFailedSynthesisAttempt({
+            scriptSentence,
+            voiceProfile,
+            request,
+            ttsRequest,
+            startedAt: attemptStartedAt,
+            fallbackEngine: finalOptions.provider || scriptSentence.engineHint || undefined,
+            error
+          })
+        } catch (persistError) {
+          console.warn('写入失败合成尝试记录失败:', persistError)
+        }
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -588,7 +618,7 @@ export class AudioGenerator {
     ttsResponse: any,
     request: AudioGenerationRequest,
     ttsRequest: TTSRequest,
-    startedAt: Date
+    startedAt: Date | null
   ) {
     // 创建音频文件目录
     const audioDir = getBookAudioDir(scriptSentence.bookId)
@@ -616,7 +646,7 @@ export class AudioGenerator {
     )
 
     const attemptNo =
-      (await prisma.audioFile.count({
+      (await prisma.synthesisAttempt.count({
         where: {
           sentenceId: scriptSentence.id
         }
@@ -670,14 +700,76 @@ export class AudioGenerator {
             durationSeconds,
             fileSize
           } as Prisma.InputJsonValue,
-          startedAt,
+          startedAt: startedAt ?? now,
           finishedAt: now,
-          durationMs: Math.max(0, now.getTime() - startedAt.getTime()),
+          durationMs: startedAt ? Math.max(0, now.getTime() - startedAt.getTime()) : null,
           isFinal: true
         }
       })
 
       return audioFile
+    })
+  }
+
+  private async recordFailedSynthesisAttempt(params: {
+    scriptSentence: any
+    request: AudioGenerationRequest
+    startedAt: Date
+    error: unknown
+    voiceProfile?: any | null
+    ttsRequest?: TTSRequest | null
+    fallbackEngine?: string
+  }): Promise<void> {
+    const {
+      scriptSentence,
+      request,
+      startedAt,
+      error,
+      voiceProfile,
+      ttsRequest,
+      fallbackEngine
+    } = params
+
+    const now = new Date()
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorCode = error instanceof TTSError ? error.code : 'AUDIO_GENERATION_FAILED'
+    const attemptNo =
+      (await prisma.synthesisAttempt.count({
+        where: {
+          sentenceId: scriptSentence.id
+        }
+      })) + 1
+
+    await prisma.synthesisAttempt.create({
+      data: {
+        bookId: scriptSentence.bookId,
+        chapterId: scriptSentence.chapterId ?? scriptSentence.segment?.chapterId,
+        segmentId: scriptSentence.segmentId,
+        sentenceId: scriptSentence.id,
+        engine: voiceProfile?.provider || fallbackEngine || 'unknown',
+        status: 'failed',
+        attemptNo,
+        triggerType: 'auto',
+        requestPayload: {
+          outputFormat: request.outputFormat || 'mp3',
+          overrides: request.overrides || {},
+          voiceProfileId: request.voiceProfileId || voiceProfile?.id || null
+        } as Prisma.InputJsonValue,
+        appliedParams: {
+          speed: ttsRequest?.speed ?? null,
+          pitch: ttsRequest?.pitch ?? null,
+          volume: ttsRequest?.volume ?? null,
+          emotion: ttsRequest?.emotion ?? null,
+          style: ttsRequest?.style ?? null
+        } as Prisma.InputJsonValue,
+        metrics: {} as Prisma.InputJsonValue,
+        startedAt,
+        finishedAt: now,
+        durationMs: Math.max(0, now.getTime() - startedAt.getTime()),
+        errorCode,
+        errorMessage,
+        isFinal: false
+      }
     })
   }
 

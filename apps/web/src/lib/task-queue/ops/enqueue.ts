@@ -2,21 +2,26 @@ import prisma from "@/lib/prisma";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import {
   buildAudioDedupeKey,
+  buildQualityDedupeKey,
   buildScriptDedupeKey,
 } from "@/lib/task-queue/dedupe";
 import {
   AUDIO_JOB_OPTIONS,
   AUDIO_QUEUE_NAME,
+  QUALITY_JOB_OPTIONS,
+  QUALITY_QUEUE_NAME,
   SCRIPT_JOB_OPTIONS,
   SCRIPT_QUEUE_NAME,
 } from "@/lib/task-queue/core/constants";
 import {
   addOrReuseJob,
   getAudioQueue,
+  getQualityQueue,
   getScriptQueue,
 } from "@/lib/task-queue/core/runtime";
 import type {
   AudioGenerationQueueInput,
+  QualityCheckQueueInput,
   QueueControlOptions,
   ScriptGenerationQueueInput,
 } from "@/lib/task-queue/core/types";
@@ -42,6 +47,16 @@ const normalizeAudioInput = (
   voiceProfileId: input.voiceProfileId,
   autoMerge: Boolean(input.autoMerge),
   options: input.options || {},
+});
+
+const normalizeQualityInput = (
+  input: QualityCheckQueueInput
+): QualityCheckQueueInput => ({
+  taskId: input.taskId,
+  bookId: input.bookId,
+  type: input.type,
+  chapterId: input.chapterId,
+  audioFileIds: input.audioFileIds || [],
 });
 
 export async function enqueueScriptGenerationJob(
@@ -141,6 +156,62 @@ export async function enqueueAudioGenerationJob(
         voiceProfileId: normalizedInput.voiceProfileId || null,
         autoMerge: Boolean(normalizedInput.autoMerge),
         options: normalizedInput.options || {},
+      },
+      enqueuedAt: new Date().toISOString(),
+    },
+  });
+
+  await prisma.processingTask.update({
+    where: { id: normalizedInput.taskId },
+    data: {
+      status: "processing",
+      completedAt: null,
+      errorMessage: null,
+      externalTaskId: jobId,
+      taskData,
+    },
+  });
+
+  return { jobId, dedupeKey, reused: addResult.reused, state: addResult.state };
+}
+
+export async function enqueueQualityCheckJob(
+  input: QualityCheckQueueInput,
+  control: QueueControlOptions = {}
+): Promise<{ jobId: string; dedupeKey: string; reused: boolean; state: string }> {
+  await ensureTaskWorkerStarted();
+
+  const normalizedInput = normalizeQualityInput(input);
+  const queue = getQualityQueue();
+  const dedupeKey = buildQualityDedupeKey(normalizedInput);
+  const addResult = await addOrReuseJob(
+    queue,
+    {
+      ...normalizedInput,
+      audioFileIds: normalizedInput.audioFileIds || [],
+      dedupeKey,
+    },
+    {
+      ...QUALITY_JOB_OPTIONS,
+      jobId: normalizedInput.taskId,
+    },
+    control.allowReuse ?? true
+  );
+
+  const jobId = String(addResult.job.id);
+  const taskData = await mergeTaskData(normalizedInput.taskId, {
+    message: addResult.reused ? "任务已在队列中执行" : "任务已入队，等待执行",
+    metadata: {
+      queueName: QUALITY_QUEUE_NAME,
+      queueJobId: jobId,
+      dedupeKey,
+      queueMode: "redis_worker",
+      queueState: addResult.state,
+      enqueueReason: control.reason || "api_request",
+      queuePayload: {
+        type: normalizedInput.type,
+        chapterId: normalizedInput.chapterId || null,
+        audioFileIds: normalizedInput.audioFileIds || [],
       },
       enqueuedAt: new Date().toISOString(),
     },

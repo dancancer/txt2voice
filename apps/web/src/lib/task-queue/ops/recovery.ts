@@ -14,8 +14,16 @@ import { replayProcessingTask } from "@/lib/task-queue/ops/replay";
 import type { QueueTaskType } from "@/lib/task-queue/replay-payload";
 import { markTaskFailed } from "@/lib/task-queue/worker-state";
 
-const getFallbackStatus = (taskType: string): "processed" | "script_generated" => {
-  return taskType === "SCRIPT_GENERATION" ? "processed" : "script_generated";
+const getFallbackStatus = (
+  taskType: string
+): "processed" | "script_generated" | "completed_with_errors" => {
+  if (taskType === "SCRIPT_GENERATION") {
+    return "processed";
+  }
+  if (taskType === "AUDIO_GENERATION") {
+    return "script_generated";
+  }
+  return "completed_with_errors";
 };
 
 export async function recoverStalledProcessingTasks(): Promise<RecoveryResult> {
@@ -56,7 +64,7 @@ export async function recoverStalledProcessingTasks(): Promise<RecoveryResult> {
       where: {
         status: "processing",
         taskType: {
-          in: ["SCRIPT_GENERATION", "AUDIO_GENERATION"],
+          in: ["SCRIPT_GENERATION", "AUDIO_GENERATION", "QUALITY_CHECK"],
         },
         updatedAt: {
           lt: staleBefore,

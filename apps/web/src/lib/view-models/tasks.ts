@@ -13,6 +13,7 @@ const TASK_TYPE_LABEL: Record<string, string> = {
   TEXT_PROCESSING: "文本处理",
   SCRIPT_GENERATION: "台本生成",
   AUDIO_GENERATION: "音频生成",
+  QUALITY_CHECK: "质量检查",
 };
 
 const TASK_STATUS_META: Record<ProcessingTaskStatus, TaskStatusMeta> = {

@@ -5,6 +5,7 @@ import {
 import {
   getAudioQueue,
   getDeadLetterQueue,
+  getQualityQueue,
   getScriptQueue,
 } from "@/lib/task-queue/core/runtime";
 import { recoverStalledProcessingTasks } from "@/lib/task-queue/ops/recovery";
@@ -21,9 +22,10 @@ export async function getTaskQueueHealth(): Promise<Record<string, unknown>> {
   try {
     await ensureTaskWorkerStarted();
 
-    const [scriptCounts, audioCounts, deadLetterCounts, recovery] = await Promise.all([
+    const [scriptCounts, audioCounts, qualityCounts, deadLetterCounts, recovery] = await Promise.all([
       getScriptQueue().getJobCounts(),
       getAudioQueue().getJobCounts(),
+      getQualityQueue().getJobCounts(),
       getDeadLetterQueue().getJobCounts(),
       recoverStalledProcessingTasks(),
     ]);
@@ -33,6 +35,7 @@ export async function getTaskQueueHealth(): Promise<Record<string, unknown>> {
       message: "Task queue online",
       script: scriptCounts,
       audio: audioCounts,
+      quality: qualityCounts,
       deadLetter: deadLetterCounts,
       recovery,
       heartbeat: {

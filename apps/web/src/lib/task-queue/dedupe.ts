@@ -1,6 +1,7 @@
 import { createHash } from "crypto";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
+import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 
 interface ScriptDedupeInput {
@@ -15,6 +16,13 @@ interface AudioDedupeInput {
   scriptSentenceIds?: string[];
   voiceProfileId?: string;
   options?: AudioGenerationOptions;
+}
+
+interface QualityDedupeInput {
+  bookId: string;
+  type: QualityCheckTaskType;
+  chapterId?: string;
+  audioFileIds?: string[];
 }
 
 const hashScope = (payload: unknown): string => {
@@ -46,4 +54,14 @@ export const buildAudioDedupeKey = (input: AudioDedupeInput): string => {
   };
 
   return `audio:${input.bookId}:${hashScope(normalized)}`;
+};
+
+export const buildQualityDedupeKey = (input: QualityDedupeInput): string => {
+  const normalized = {
+    type: input.type,
+    chapterId: input.chapterId || null,
+    audioFileIds: (input.audioFileIds || []).slice().sort(),
+  };
+
+  return `quality:${input.bookId}:${hashScope(normalized)}`;
 };

@@ -5,6 +5,7 @@ import {
   AUDIO_QUEUE_NAME,
   DEAD_LETTER_JOB_OPTIONS,
   DEAD_LETTER_QUEUE_NAME,
+  QUALITY_QUEUE_NAME,
   RUNNING_STATES,
   SCRIPT_QUEUE_NAME,
 } from "./constants";
@@ -12,6 +13,7 @@ import type {
   AudioGenerationJobData,
   DeadLetterJobData,
   JobRuntimeState,
+  QualityCheckJobData,
   QueueAddResult,
   ScriptGenerationJobData,
   TaskQueueState,
@@ -24,6 +26,7 @@ declare global {
 export const queueState: TaskQueueState = globalThis.__txt2voiceTaskQueueState ?? {
   scriptQueue: null,
   audioQueue: null,
+  qualityQueue: null,
   deadLetterQueue: null,
   workerStarted: false,
   recovering: false,
@@ -95,6 +98,13 @@ export function getAudioQueue(): Bull.Queue<AudioGenerationJobData> {
     queueState.audioQueue = createQueue<AudioGenerationJobData>(AUDIO_QUEUE_NAME);
   }
   return queueState.audioQueue;
+}
+
+export function getQualityQueue(): Bull.Queue<QualityCheckJobData> {
+  if (!queueState.qualityQueue) {
+    queueState.qualityQueue = createQueue<QualityCheckJobData>(QUALITY_QUEUE_NAME);
+  }
+  return queueState.qualityQueue;
 }
 
 export function getDeadLetterQueue(): Bull.Queue<DeadLetterJobData> {
@@ -173,7 +183,12 @@ export async function getQueueJobState(
   taskType: QueueTaskType,
   taskId: string
 ): Promise<{ state: string | null; exists: boolean }> {
-  const queue = taskType === "SCRIPT_GENERATION" ? getScriptQueue() : getAudioQueue();
+  const queue =
+    taskType === "SCRIPT_GENERATION"
+      ? getScriptQueue()
+      : taskType === "AUDIO_GENERATION"
+        ? getAudioQueue()
+        : getQualityQueue();
   const job = await queue.getJob(taskId);
   if (!job) {
     return { state: null, exists: false };

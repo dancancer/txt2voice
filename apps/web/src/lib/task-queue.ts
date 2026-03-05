@@ -4,6 +4,7 @@
 // pos: 任务基础设施
 export type {
   AudioGenerationQueueInput,
+  QualityCheckQueueInput,
   QueueControlOptions,
   RecoveryResult,
   ReplayControlOptions,
@@ -11,7 +12,11 @@ export type {
   ScriptGenerationQueueInput,
 } from "@/lib/task-queue/core/types";
 
-export { enqueueAudioGenerationJob, enqueueScriptGenerationJob } from "@/lib/task-queue/ops/enqueue";
+export {
+  enqueueAudioGenerationJob,
+  enqueueQualityCheckJob,
+  enqueueScriptGenerationJob,
+} from "@/lib/task-queue/ops/enqueue";
 export { getTaskQueueHealth } from "@/lib/task-queue/ops/health";
 export { recoverStalledProcessingTasks } from "@/lib/task-queue/ops/recovery";
 export { replayProcessingTask } from "@/lib/task-queue/ops/replay";

@@ -6,10 +6,11 @@ import type { ProcessingTask } from "@/lib/prisma";
 import { jsonObject } from "@/lib/processing-task-utils";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
+import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 
-export type QueueTaskType = "SCRIPT_GENERATION" | "AUDIO_GENERATION";
+export type QueueTaskType = "SCRIPT_GENERATION" | "AUDIO_GENERATION" | "QUALITY_CHECK";
 
 export interface ScriptReplayInput {
   taskId: string;
@@ -29,6 +30,14 @@ export interface AudioReplayInput {
   options?: AudioGenerationOptions;
 }
 
+export interface QualityReplayInput {
+  taskId: string;
+  bookId: string;
+  type: QualityCheckTaskType;
+  chapterId?: string;
+  audioFileIds?: string[];
+}
+
 interface ScriptPayloadContainer {
   kind: "script";
   input: ScriptReplayInput;
@@ -39,7 +48,15 @@ interface AudioPayloadContainer {
   input: AudioReplayInput;
 }
 
-export type PayloadContainer = ScriptPayloadContainer | AudioPayloadContainer;
+interface QualityPayloadContainer {
+  kind: "quality";
+  input: QualityReplayInput;
+}
+
+export type PayloadContainer =
+  | ScriptPayloadContainer
+  | AudioPayloadContainer
+  | QualityPayloadContainer;
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -123,6 +140,32 @@ const buildAudioReplayPayloadFromTask = (task: ProcessingTask): AudioReplayInput
   };
 };
 
+const buildQualityReplayPayloadFromTask = (task: ProcessingTask): QualityReplayInput => {
+  const rawTaskData = jsonObject(task.taskData);
+  const metadata = asRecord(rawTaskData.metadata);
+
+  const type =
+    metadata && typeof metadata.type === "string"
+      ? (metadata.type as QualityCheckTaskType)
+      : "book";
+
+  const audioFileIds =
+    metadata && Array.isArray(metadata.audioFileIds)
+      ? metadata.audioFileIds.filter((value): value is string => typeof value === "string")
+      : undefined;
+
+  return {
+    taskId: task.id,
+    bookId: task.bookId,
+    type,
+    chapterId:
+      metadata && typeof metadata.chapterId === "string"
+        ? metadata.chapterId
+        : undefined,
+    audioFileIds,
+  };
+};
+
 export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer | null => {
   const rawTaskData = jsonObject(task.taskData);
   const metadata = asRecord(rawTaskData.metadata);
@@ -187,9 +230,42 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
     };
   }
 
+  if (task.taskType === "QUALITY_CHECK") {
+    if (queuePayload) {
+      const audioFileIds = Array.isArray(queuePayload.audioFileIds)
+        ? queuePayload.audioFileIds.filter(
+            (value): value is string => typeof value === "string"
+          )
+        : undefined;
+
+      return {
+        kind: "quality",
+        input: {
+          taskId: task.id,
+          bookId: task.bookId,
+          type: String(queuePayload.type || "book") as QualityCheckTaskType,
+          chapterId:
+            typeof queuePayload.chapterId === "string"
+              ? queuePayload.chapterId
+              : undefined,
+          audioFileIds,
+        },
+      };
+    }
+
+    return {
+      kind: "quality",
+      input: buildQualityReplayPayloadFromTask(task),
+    };
+  }
+
   return null;
 };
 
 export const isRecoverableTask = (taskType: string): taskType is QueueTaskType => {
-  return taskType === "SCRIPT_GENERATION" || taskType === "AUDIO_GENERATION";
+  return (
+    taskType === "SCRIPT_GENERATION" ||
+    taskType === "AUDIO_GENERATION" ||
+    taskType === "QUALITY_CHECK"
+  );
 };
