@@ -6,12 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S17（前七批改造）已完成，本次继续推进第八批可观测性增量：
+S0-S18（前八批改造）已完成，本次继续推进第九批“观测 -> 告警”联动增量：
 
-1. 增加 `autoRejectedCount` 看板指标查询能力，支持按 `issueType/source` 聚合。
-2. 新增质检二次派单指标 API，输出阈值拦截量与 `secondaryDispatch` 规模。
-3. 在 `auto_rejected/secondary_pending` 回写链路透传 `source`，减少指标统计丢上下文。
-4. 补齐测试、更新 task/handoff，并提交本轮增量。
+1. 新增 `dispatch-alerts` 服务，对 `threshold_blocked` 日增突变、`secondary_pending` 堆积、`autoRejected` 累计压力给出告警。
+2. 新增 `GET /api/books/[id]/qc/dispatch-alerts`，支持按 `days/source/issueType` 与阈值参数查询告警。
+3. 补齐服务层测试、更新 task/handoff，并提交本轮增量。
 
 ## 2. 执行步骤
 
@@ -36,6 +35,7 @@ S0-S17（前七批改造）已完成，本次继续推进第八批可观测性�
 | S16 | `auto_rejected` 二次派单策略 + 测试回归 | ✅ 完成 | `rejected(auto_rejected)` 可按策略自动转新 `pending`，新增测试通过并完成文档回写 |
 | S17 | `qc_retry` 派单策略配置化 + 失败阈值落地 | ✅ 完成 | 支持 `dispatchPolicy`（书籍 + 请求 + issueType）并实现 `maxAutoRejectedCount` 阈值拦截，测试/回归/类型校验通过 |
 | S18 | 二次派单看板指标 API + `source` 透传 | ✅ 完成 | 提供 `GET /api/books/[id]/qc/dispatch-metrics`，并在质检回写中落库 `source` 字段，测试/回归/类型校验通过 |
+| S19 | 派单告警服务 + API（观测联动） | ✅ 完成 | 提供 `GET /api/books/[id]/qc/dispatch-alerts`，支持阈值参数和日增突变告警，测试/回归/类型校验通过 |
 
 ## 3. 执行日志
 
@@ -329,8 +329,34 @@ S0-S17（前七批改造）已完成，本次继续推进第八批可观测性�
   2. 补充租户/项目级 `dispatchPolicy` 配置中心，替代 `book.metadata` 作为主配置入口。
   3. 继续推进 Deep Gate（Q4/Q5）与章节一致性审计落地。
 
+### [S19] 派单告警服务 + API（2026-03-05 16:31 CST）
+
+- 完成内容：
+  1. 新增 `qc-dispatch-alert-service`，基于现有 `qc-dispatch-metrics-service` 落地三类告警：
+     - `threshold_blocked_spike`（最近 24h 相对上一窗口突增）
+     - `secondary_pending_backlog`
+     - `auto_rejected_accumulated_pressure`
+  2. 告警查询支持阈值参数化（含默认值）：
+     - `thresholdBlockedSpikeDelta`
+     - `thresholdBlockedGrowthRate`
+     - `thresholdBlockedCurrentFloor`
+     - `secondaryPendingLimit`
+     - `autoRejectedAccumulatedLimit`
+  3. 新增 `GET /api/books/[id]/qc/dispatch-alerts`，支持 `days/source/issueType` 与阈值参数，返回 `alerts + snapshot + thresholds`。
+  4. 新增测试：
+     - `apps/web/src/lib/__tests__/qc-dispatch-alert-service.test.ts`
+  5. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-alert-service.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  6. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 将当前“按请求实时计算告警”升级为定时扫描任务 + 告警事件落库（便于历史追踪与通知集成）。
+  2. 补充租户/项目级 `dispatchPolicy` 配置中心，替代 `book.metadata` 作为主配置入口。
+  3. 继续推进 Deep Gate（Q4/Q5）与章节一致性审计落地。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已落地 `qc_retry` 自动后置 QC + 策略配置化 + 失败次数阈值 + 二次派单聚合指标 API；当前仍缺少租户级统一配置入口与告警联动。
+3. 已落地 `qc_retry` 自动后置 QC + 策略配置化 + 失败次数阈值 + 二次派单聚合指标/告警 API；当前仍缺少“定时扫描告警任务 + 告警事件沉淀 + 通知联动”。
