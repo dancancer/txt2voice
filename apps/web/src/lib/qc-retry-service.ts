@@ -6,25 +6,20 @@ import prisma, { Prisma } from "@/lib/prisma";
 import { ValidationError } from "@/lib/error-handler";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import { enqueueAudioGenerationJob } from "@/lib/task-queue";
+import {
+  QcDispatchPolicy,
+  QcIssueTypeDispatchPolicy,
+  ResolvedQcDispatchPolicy,
+  parseDispatchPolicy,
+  toJsonDispatchPolicy,
+} from "@/lib/qc-dispatch-policy";
+import { resolveDispatchPolicyForBook } from "@/lib/qc-dispatch-policy-config-service";
 
 type ManualReviewRetryStatus = "pending" | "rejected";
 
-interface RetryIssueTypeDispatchPolicy {
-  autoCreatePendingOnReject?: boolean;
-  maxAutoRejectedCount?: number;
-}
-
-export interface RetryDispatchPolicy {
-  autoCreatePendingOnReject?: boolean;
-  maxAutoRejectedCount?: number;
-  issueTypePolicies?: Record<string, RetryIssueTypeDispatchPolicy>;
-}
-
-export interface ResolvedRetryDispatchPolicy {
-  autoCreatePendingOnReject: boolean;
-  maxAutoRejectedCount: number;
-  issueTypePolicies: Record<string, RetryIssueTypeDispatchPolicy>;
-}
+type RetryIssueTypeDispatchPolicy = QcIssueTypeDispatchPolicy;
+export type RetryDispatchPolicy = QcDispatchPolicy;
+export type ResolvedRetryDispatchPolicy = ResolvedQcDispatchPolicy;
 
 export interface QualityRetryPayload {
   issueTypes?: string[];
@@ -85,13 +80,6 @@ const asString = (value: unknown): string | undefined => {
   }
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
-};
-
-const asBoolean = (value: unknown): boolean | undefined => {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  return undefined;
 };
 
 const asNumber = (value: unknown): number | undefined => {
@@ -169,293 +157,26 @@ const priorityRank = (priority: string): number => {
   return 2;
 };
 
-const DEFAULT_MAX_AUTO_REJECTED_COUNT = 2;
-const MAX_ALLOWED_AUTO_REJECTED_COUNT = 20;
-
 const normalizeIssueType = (value: string): string => {
   return value.trim().toUpperCase();
 };
 
-const parseMaxAutoRejectedCount = ({
-  value,
-  strict,
-  path,
-}: {
-  value: unknown;
-  strict: boolean;
-  path: string;
-}): number | undefined => {
-  if (value === undefined || value === null) {
+const normalizeIssueTypeList = (values: string[] | undefined): string[] | undefined => {
+  if (!values) {
     return undefined;
   }
-
-  const numeric = asNumber(value);
-  const normalized =
-    numeric !== undefined && Number.isInteger(numeric) ? Number(numeric) : undefined;
-
-  if (
-    normalized === undefined ||
-    normalized < 0 ||
-    normalized > MAX_ALLOWED_AUTO_REJECTED_COUNT
-  ) {
-    if (strict) {
-      throw new ValidationError(
-        `${path} 必须是 0-${MAX_ALLOWED_AUTO_REJECTED_COUNT} 的整数`
-      );
-    }
-    return undefined;
-  }
-
-  return normalized;
-};
-
-const parseIssueTypeDispatchPolicy = ({
-  value,
-  strict,
-  path,
-}: {
-  value: unknown;
-  strict: boolean;
-  path: string;
-}): RetryIssueTypeDispatchPolicy | undefined => {
-  const record = asRecord(value);
-  if (!record) {
-    if (strict) {
-      throw new ValidationError(`${path} 必须是对象`);
-    }
-    return undefined;
-  }
-
-  const autoCreatePendingOnReject = asBoolean(record.autoCreatePendingOnReject);
-  if (
-    strict &&
-    record.autoCreatePendingOnReject !== undefined &&
-    autoCreatePendingOnReject === undefined
-  ) {
-    throw new ValidationError(`${path}.autoCreatePendingOnReject 必须是布尔值`);
-  }
-
-  const maxAutoRejectedCount = parseMaxAutoRejectedCount({
-    value: record.maxAutoRejectedCount,
-    strict,
-    path: `${path}.maxAutoRejectedCount`,
-  });
-
-  if (
-    autoCreatePendingOnReject === undefined &&
-    maxAutoRejectedCount === undefined
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...(autoCreatePendingOnReject !== undefined
-      ? {
-          autoCreatePendingOnReject,
-        }
-      : {}),
-    ...(maxAutoRejectedCount !== undefined
-      ? {
-          maxAutoRejectedCount,
-        }
-      : {}),
-  };
-};
-
-const parseDispatchPolicy = ({
-  value,
-  strict,
-  path,
-}: {
-  value: unknown;
-  strict: boolean;
-  path: string;
-}): RetryDispatchPolicy | undefined => {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-
-  const record = asRecord(value);
-  if (!record) {
-    if (strict) {
-      throw new ValidationError(`${path} 必须是对象`);
-    }
-    return undefined;
-  }
-
-  const autoCreatePendingOnReject = asBoolean(record.autoCreatePendingOnReject);
-  if (
-    strict &&
-    record.autoCreatePendingOnReject !== undefined &&
-    autoCreatePendingOnReject === undefined
-  ) {
-    throw new ValidationError(`${path}.autoCreatePendingOnReject 必须是布尔值`);
-  }
-
-  const maxAutoRejectedCount = parseMaxAutoRejectedCount({
-    value: record.maxAutoRejectedCount,
-    strict,
-    path: `${path}.maxAutoRejectedCount`,
-  });
-
-  const issueTypePoliciesRecord = asRecord(record.issueTypePolicies);
-  if (strict && record.issueTypePolicies !== undefined && !issueTypePoliciesRecord) {
-    throw new ValidationError(`${path}.issueTypePolicies 必须是对象`);
-  }
-
-  const issueTypePolicies: Record<string, RetryIssueTypeDispatchPolicy> = {};
-  if (issueTypePoliciesRecord) {
-    for (const [rawIssueType, itemPolicy] of Object.entries(issueTypePoliciesRecord)) {
-      const issueType = normalizeIssueType(rawIssueType);
-      if (!issueType) {
-        if (strict) {
-          throw new ValidationError(`${path}.issueTypePolicies 包含空 issueType`);
-        }
-        continue;
-      }
-
-      const parsedItemPolicy = parseIssueTypeDispatchPolicy({
-        value: itemPolicy,
-        strict,
-        path: `${path}.issueTypePolicies.${issueType}`,
-      });
-
-      if (parsedItemPolicy) {
-        issueTypePolicies[issueType] = parsedItemPolicy;
-      }
-    }
-  }
-
-  if (
-    autoCreatePendingOnReject === undefined &&
-    maxAutoRejectedCount === undefined &&
-    Object.keys(issueTypePolicies).length === 0
-  ) {
-    return undefined;
-  }
-
-  return {
-    ...(autoCreatePendingOnReject !== undefined
-      ? {
-          autoCreatePendingOnReject,
-        }
-      : {}),
-    ...(maxAutoRejectedCount !== undefined
-      ? {
-          maxAutoRejectedCount,
-        }
-      : {}),
-    ...(Object.keys(issueTypePolicies).length > 0
-      ? {
-          issueTypePolicies,
-        }
-      : {}),
-  };
-};
-
-const resolveDispatchPolicy = ({
-  fromBook,
-  fromPayload,
-}: {
-  fromBook?: RetryDispatchPolicy;
-  fromPayload?: RetryDispatchPolicy;
-}): ResolvedRetryDispatchPolicy => {
-  const mergedIssueTypePolicies: Record<string, RetryIssueTypeDispatchPolicy> = {};
-  const sources = [fromBook, fromPayload];
-
-  for (const source of sources) {
-    if (!source?.issueTypePolicies) {
-      continue;
-    }
-
-    for (const [rawIssueType, issuePolicy] of Object.entries(source.issueTypePolicies)) {
-      const issueType = normalizeIssueType(rawIssueType);
-      if (!issueType) {
-        continue;
-      }
-
-      const current = mergedIssueTypePolicies[issueType] || {};
-      mergedIssueTypePolicies[issueType] = {
-        ...current,
-        ...issuePolicy,
-      };
-    }
-  }
-
-  const autoCreatePendingOnReject =
-    fromPayload?.autoCreatePendingOnReject ??
-    fromBook?.autoCreatePendingOnReject ??
-    true;
-  const maxAutoRejectedCount =
-    fromPayload?.maxAutoRejectedCount ??
-    fromBook?.maxAutoRejectedCount ??
-    DEFAULT_MAX_AUTO_REJECTED_COUNT;
-
-  return {
-    autoCreatePendingOnReject,
-    maxAutoRejectedCount,
-    issueTypePolicies: mergedIssueTypePolicies,
-  };
-};
-
-const extractBookDispatchPolicy = (
-  metadata: Prisma.JsonValue | null | undefined
-): RetryDispatchPolicy | undefined => {
-  const metadataRecord = asRecord(metadata);
-  if (!metadataRecord) {
-    return undefined;
-  }
-
-  const direct = parseDispatchPolicy({
-    value: metadataRecord.qcRetryPolicy,
-    strict: false,
-    path: "book.metadata.qcRetryPolicy",
-  });
-  if (direct) {
-    return direct;
-  }
-
-  const qualityCheck = asRecord(metadataRecord.qualityCheck);
-  if (!qualityCheck) {
-    return undefined;
-  }
-
-  return parseDispatchPolicy({
-    value: qualityCheck.qcRetryPolicy,
-    strict: false,
-    path: "book.metadata.qualityCheck.qcRetryPolicy",
-  });
-};
-
-const toJsonDispatchPolicy = (
-  policy: ResolvedRetryDispatchPolicy
-): Prisma.InputJsonValue => {
-  const issueTypePolicies: Record<string, Prisma.InputJsonValue> = {};
-  for (const [issueType, issuePolicy] of Object.entries(policy.issueTypePolicies)) {
-    const issuePolicyPayload: Record<string, Prisma.InputJsonValue> = {};
-    if (issuePolicy.autoCreatePendingOnReject !== undefined) {
-      issuePolicyPayload.autoCreatePendingOnReject =
-        issuePolicy.autoCreatePendingOnReject;
-    }
-    if (issuePolicy.maxAutoRejectedCount !== undefined) {
-      issuePolicyPayload.maxAutoRejectedCount = issuePolicy.maxAutoRejectedCount;
-    }
-    if (Object.keys(issuePolicyPayload).length > 0) {
-      issueTypePolicies[issueType] = issuePolicyPayload;
-    }
-  }
-
-  return {
-    autoCreatePendingOnReject: policy.autoCreatePendingOnReject,
-    maxAutoRejectedCount: policy.maxAutoRejectedCount,
-    issueTypePolicies,
-  };
+  const normalized = values
+    .map((value) => normalizeIssueType(value))
+    .filter((value) => value.length > 0);
+  return normalized.length > 0 ? Array.from(new Set(normalized)) : undefined;
 };
 
 export const parseQualityRetryPayload = (body: unknown): QualityRetryPayload => {
   const payload = asRecord(body);
 
-  const issueTypes = asStringArray(payload?.issueTypes ?? payload?.issueType);
+  const issueTypes = normalizeIssueTypeList(
+    asStringArray(payload?.issueTypes ?? payload?.issueType)
+  );
   const chapterId = asString(payload?.chapterId);
   const sentenceIds = asStringArray(payload?.sentenceIds);
 
@@ -586,17 +307,29 @@ export const retryQualityIssues = async ({
     throw new ValidationError("当前存在执行中的音频任务，请稍后重试");
   }
 
-  const book = await prisma.book.findUnique({
-    where: { id: bookId },
-    select: {
-      metadata: true,
-    },
+  const policyResolution = await resolveDispatchPolicyForBook({
+    bookId,
+    overridePolicy: payload.dispatchPolicy,
   });
-  const dispatchPolicy = resolveDispatchPolicy({
-    fromBook: extractBookDispatchPolicy(book?.metadata),
-    fromPayload: payload.dispatchPolicy,
-  });
+  const dispatchPolicy = policyResolution.resolvedPolicy;
   const dispatchPolicyMetadata = toJsonDispatchPolicy(dispatchPolicy);
+  const dispatchPolicyScopesMetadata = policyResolution.runtimeScopes.map((scope) => ({
+    scopeType: scope.scopeType,
+    scopeKey: scope.scopeKey,
+    configId: scope.configId,
+    version: scope.version,
+    isActive: scope.isActive,
+    rolloutPercentage: scope.rolloutPercentage,
+    policy: scope.policy || null,
+    applied: scope.applied,
+    appliedReason: scope.appliedReason,
+    rolloutBucket: scope.rolloutBucket,
+  })) as Prisma.InputJsonValue;
+  const dispatchPolicyContextMetadata = {
+    bookId: policyResolution.context.bookId,
+    tenantId: policyResolution.context.tenantId,
+    projectId: policyResolution.context.projectId,
+  } as Prisma.InputJsonValue;
 
   const where = buildRetryWhere(bookId, payload);
   const fetchSize = Math.min(Math.max(payload.limit * 3, payload.limit), 2000);
@@ -681,6 +414,8 @@ export const retryQualityIssues = async ({
             (dispatchPolicyMetadata as Record<string, Prisma.InputJsonValue>)
               .issueTypePolicies || {},
           dispatchPolicy: dispatchPolicyMetadata,
+          dispatchPolicyScopes: dispatchPolicyScopesMetadata,
+          dispatchPolicyContext: dispatchPolicyContextMetadata,
         },
       },
     },

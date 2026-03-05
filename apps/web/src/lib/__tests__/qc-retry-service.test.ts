@@ -14,9 +14,6 @@ jest.mock("@/lib/prisma", () => ({
       create: jest.fn(),
       update: jest.fn(),
     },
-    book: {
-      findUnique: jest.fn(),
-    },
   },
 }));
 
@@ -28,10 +25,15 @@ jest.mock("@/lib/processing-task-utils", () => ({
   mergeTaskData: jest.fn(),
 }));
 
+jest.mock("@/lib/qc-dispatch-policy-config-service", () => ({
+  resolveDispatchPolicyForBook: jest.fn(),
+}));
+
 import prisma from "@/lib/prisma";
 import { ValidationError } from "@/lib/error-handler";
 import { enqueueAudioGenerationJob } from "@/lib/task-queue";
 import { mergeTaskData } from "@/lib/processing-task-utils";
+import { resolveDispatchPolicyForBook } from "@/lib/qc-dispatch-policy-config-service";
 import {
   parseQualityRetryPayload,
   retryQualityIssues,
@@ -42,11 +44,14 @@ const mockUpdateManualItem = (prisma as any).manualReviewItem.update as jest.Moc
 const mockFindActiveAudioTask = (prisma as any).processingTask.findFirst as jest.Mock;
 const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
-const mockFindBook = (prisma as any).book.findUnique as jest.Mock;
 const mockEnqueueAudio = enqueueAudioGenerationJob as jest.MockedFunction<
   typeof enqueueAudioGenerationJob
 >;
 const mockMergeTaskData = mergeTaskData as jest.MockedFunction<typeof mergeTaskData>;
+const mockResolveDispatchPolicyForBook =
+  resolveDispatchPolicyForBook as jest.MockedFunction<
+    typeof resolveDispatchPolicyForBook
+  >;
 
 const buildCandidate = (overrides: Record<string, unknown> = {}) => ({
   id: "review-1",
@@ -68,14 +73,43 @@ const buildCandidate = (overrides: Record<string, unknown> = {}) => ({
 describe("qc-retry-service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockFindBook.mockResolvedValue({
-      metadata: {},
+    mockResolveDispatchPolicyForBook.mockResolvedValue({
+      context: {
+        bookId: "book-1",
+        tenantId: "tenant-1",
+        projectId: "project-1",
+      },
+      runtimeScopes: [
+        {
+          scopeType: "tenant",
+          scopeKey: "tenant-1",
+          configId: "cfg-tenant",
+          version: 2,
+          isActive: true,
+          rolloutPercentage: 100,
+          policy: {
+            maxAutoRejectedCount: 1,
+          },
+          applied: true,
+          appliedReason: "full_rollout",
+          rolloutBucket: null,
+        },
+      ],
+      resolvedPolicy: {
+        autoCreatePendingOnReject: true,
+        maxAutoRejectedCount: 1,
+        issueTypePolicies: {
+          FAST_GATE: {
+            maxAutoRejectedCount: 3,
+          },
+        },
+      },
     });
   });
 
   it("should parse payload with defaults", () => {
     const payload = parseQualityRetryPayload({
-      issueType: "FAST_GATE",
+      issueType: "fast_gate",
       minScore: "50",
       maxScore: 80,
       provider: "voxcpm",
@@ -158,6 +192,10 @@ describe("qc-retry-service", () => {
       },
     });
 
+    expect(mockResolveDispatchPolicyForBook).toHaveBeenCalledWith({
+      bookId: "book-1",
+      overridePolicy: undefined,
+    });
     expect(mockCreateTask).toHaveBeenCalledWith({
       data: expect.objectContaining({
         bookId: "book-1",
@@ -166,7 +204,12 @@ describe("qc-retry-service", () => {
         taskData: expect.objectContaining({
           metadata: expect.objectContaining({
             autoCreatePendingOnReject: true,
-            maxAutoRejectedCount: 2,
+            maxAutoRejectedCount: 1,
+            dispatchPolicyContext: {
+              bookId: "book-1",
+              tenantId: "tenant-1",
+              projectId: "project-1",
+            },
           }),
         }),
       }),
@@ -197,31 +240,14 @@ describe("qc-retry-service", () => {
       selectedSentenceIds: ["sentence-2", "sentence-1"],
       dispatchPolicy: {
         autoCreatePendingOnReject: true,
-        maxAutoRejectedCount: 2,
+        maxAutoRejectedCount: 1,
       },
     });
   });
 
-  it("should merge book policy and payload dispatch policy", async () => {
-    mockFindBook.mockResolvedValueOnce({
-      metadata: {
-        qcRetryPolicy: {
-          autoCreatePendingOnReject: false,
-          maxAutoRejectedCount: 1,
-          issueTypePolicies: {
-            FAST_GATE: {
-              maxAutoRejectedCount: 1,
-            },
-          },
-        },
-      },
-    });
+  it("should pass payload dispatch policy override to resolver", async () => {
     mockFindActiveAudioTask.mockResolvedValueOnce(null);
-    mockFindManualItems.mockResolvedValueOnce([
-      buildCandidate({
-        issueType: "FAST_GATE",
-      }),
-    ]);
+    mockFindManualItems.mockResolvedValueOnce([buildCandidate()]);
     mockCreateTask.mockResolvedValueOnce({
       id: "task-qc-retry-merge-policy",
       status: "processing",
@@ -234,44 +260,31 @@ describe("qc-retry-service", () => {
     });
     mockUpdateManualItem.mockResolvedValue({});
 
-    const result = await retryQualityIssues({
+    await retryQualityIssues({
       bookId: "book-1",
       payload: {
         includeRejected: false,
         limit: 5,
         autoMerge: false,
         dispatchPolicy: {
-          autoCreatePendingOnReject: true,
+          autoCreatePendingOnReject: false,
           issueTypePolicies: {
             FAST_GATE: {
-              maxAutoRejectedCount: 3,
+              maxAutoRejectedCount: 2,
             },
           },
         },
       },
     });
 
-    expect(mockCreateTask).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        taskData: expect.objectContaining({
-          metadata: expect.objectContaining({
-            autoCreatePendingOnReject: true,
-            maxAutoRejectedCount: 1,
-            issueTypePolicies: {
-              FAST_GATE: {
-                maxAutoRejectedCount: 3,
-              },
-            },
-          }),
-        }),
-      }),
-    });
-    expect(result.dispatchPolicy).toMatchObject({
-      autoCreatePendingOnReject: true,
-      maxAutoRejectedCount: 1,
-      issueTypePolicies: {
-        FAST_GATE: {
-          maxAutoRejectedCount: 3,
+    expect(mockResolveDispatchPolicyForBook).toHaveBeenCalledWith({
+      bookId: "book-1",
+      overridePolicy: {
+        autoCreatePendingOnReject: false,
+        issueTypePolicies: {
+          FAST_GATE: {
+            maxAutoRejectedCount: 2,
+          },
         },
       },
     });

@@ -125,6 +125,8 @@ exports.Prisma.BookScalarFieldEnum = {
   id: 'id',
   title: 'title',
   author: 'author',
+  tenantId: 'tenantId',
+  projectId: 'projectId',
   originalFilename: 'originalFilename',
   uploadedFilePath: 'uploadedFilePath',
   fileSize: 'fileSize',
@@ -450,6 +452,32 @@ exports.Prisma.QcDispatchAlertEventScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.QcDispatchPolicyConfigScalarFieldEnum = {
+  id: 'id',
+  scopeType: 'scopeType',
+  scopeKey: 'scopeKey',
+  bookId: 'bookId',
+  policy: 'policy',
+  isActive: 'isActive',
+  rolloutPercentage: 'rolloutPercentage',
+  version: 'version',
+  lastChangeNote: 'lastChangeNote',
+  updatedBy: 'updatedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.QcDispatchPolicyRevisionScalarFieldEnum = {
+  id: 'id',
+  configId: 'configId',
+  version: 'version',
+  changeType: 'changeType',
+  snapshot: 'snapshot',
+  changedBy: 'changedBy',
+  changeNote: 'changeNote',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ChapterQualityAuditScalarFieldEnum = {
   id: 'id',
   bookId: 'bookId',
@@ -519,6 +547,8 @@ exports.Prisma.ModelName = {
   QualityCheckResult: 'QualityCheckResult',
   ManualReviewItem: 'ManualReviewItem',
   QcDispatchAlertEvent: 'QcDispatchAlertEvent',
+  QcDispatchPolicyConfig: 'QcDispatchPolicyConfig',
+  QcDispatchPolicyRevision: 'QcDispatchPolicyRevision',
   ChapterQualityAudit: 'ChapterQualityAudit'
 };
 

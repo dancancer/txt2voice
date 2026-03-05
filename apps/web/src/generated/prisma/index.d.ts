@@ -109,6 +109,16 @@ export type ManualReviewItem = $Result.DefaultSelection<Prisma.$ManualReviewItem
  */
 export type QcDispatchAlertEvent = $Result.DefaultSelection<Prisma.$QcDispatchAlertEventPayload>
 /**
+ * Model QcDispatchPolicyConfig
+ * 
+ */
+export type QcDispatchPolicyConfig = $Result.DefaultSelection<Prisma.$QcDispatchPolicyConfigPayload>
+/**
+ * Model QcDispatchPolicyRevision
+ * 
+ */
+export type QcDispatchPolicyRevision = $Result.DefaultSelection<Prisma.$QcDispatchPolicyRevisionPayload>
+/**
  * Model ChapterQualityAudit
  * 
  */
@@ -421,6 +431,26 @@ export class PrismaClient<
     * ```
     */
   get qcDispatchAlertEvent(): Prisma.QcDispatchAlertEventDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.qcDispatchPolicyConfig`: Exposes CRUD operations for the **QcDispatchPolicyConfig** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more QcDispatchPolicyConfigs
+    * const qcDispatchPolicyConfigs = await prisma.qcDispatchPolicyConfig.findMany()
+    * ```
+    */
+  get qcDispatchPolicyConfig(): Prisma.QcDispatchPolicyConfigDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.qcDispatchPolicyRevision`: Exposes CRUD operations for the **QcDispatchPolicyRevision** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more QcDispatchPolicyRevisions
+    * const qcDispatchPolicyRevisions = await prisma.qcDispatchPolicyRevision.findMany()
+    * ```
+    */
+  get qcDispatchPolicyRevision(): Prisma.QcDispatchPolicyRevisionDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.chapterQualityAudit`: Exposes CRUD operations for the **ChapterQualityAudit** model.
@@ -891,6 +921,8 @@ export namespace Prisma {
     QualityCheckResult: 'QualityCheckResult',
     ManualReviewItem: 'ManualReviewItem',
     QcDispatchAlertEvent: 'QcDispatchAlertEvent',
+    QcDispatchPolicyConfig: 'QcDispatchPolicyConfig',
+    QcDispatchPolicyRevision: 'QcDispatchPolicyRevision',
     ChapterQualityAudit: 'ChapterQualityAudit'
   };
 
@@ -910,7 +942,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "qcDispatchAlertEvent" | "chapterQualityAudit"
+      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "qcDispatchAlertEvent" | "qcDispatchPolicyConfig" | "qcDispatchPolicyRevision" | "chapterQualityAudit"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2320,6 +2352,154 @@ export namespace Prisma {
           }
         }
       }
+      QcDispatchPolicyConfig: {
+        payload: Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>
+        fields: Prisma.QcDispatchPolicyConfigFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.QcDispatchPolicyConfigFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.QcDispatchPolicyConfigFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>
+          }
+          findFirst: {
+            args: Prisma.QcDispatchPolicyConfigFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.QcDispatchPolicyConfigFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>
+          }
+          findMany: {
+            args: Prisma.QcDispatchPolicyConfigFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>[]
+          }
+          create: {
+            args: Prisma.QcDispatchPolicyConfigCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>
+          }
+          createMany: {
+            args: Prisma.QcDispatchPolicyConfigCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.QcDispatchPolicyConfigCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>[]
+          }
+          delete: {
+            args: Prisma.QcDispatchPolicyConfigDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>
+          }
+          update: {
+            args: Prisma.QcDispatchPolicyConfigUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>
+          }
+          deleteMany: {
+            args: Prisma.QcDispatchPolicyConfigDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.QcDispatchPolicyConfigUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.QcDispatchPolicyConfigUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>[]
+          }
+          upsert: {
+            args: Prisma.QcDispatchPolicyConfigUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyConfigPayload>
+          }
+          aggregate: {
+            args: Prisma.QcDispatchPolicyConfigAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateQcDispatchPolicyConfig>
+          }
+          groupBy: {
+            args: Prisma.QcDispatchPolicyConfigGroupByArgs<ExtArgs>
+            result: $Utils.Optional<QcDispatchPolicyConfigGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.QcDispatchPolicyConfigCountArgs<ExtArgs>
+            result: $Utils.Optional<QcDispatchPolicyConfigCountAggregateOutputType> | number
+          }
+        }
+      }
+      QcDispatchPolicyRevision: {
+        payload: Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>
+        fields: Prisma.QcDispatchPolicyRevisionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.QcDispatchPolicyRevisionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.QcDispatchPolicyRevisionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>
+          }
+          findFirst: {
+            args: Prisma.QcDispatchPolicyRevisionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.QcDispatchPolicyRevisionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>
+          }
+          findMany: {
+            args: Prisma.QcDispatchPolicyRevisionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>[]
+          }
+          create: {
+            args: Prisma.QcDispatchPolicyRevisionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>
+          }
+          createMany: {
+            args: Prisma.QcDispatchPolicyRevisionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.QcDispatchPolicyRevisionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>[]
+          }
+          delete: {
+            args: Prisma.QcDispatchPolicyRevisionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>
+          }
+          update: {
+            args: Prisma.QcDispatchPolicyRevisionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>
+          }
+          deleteMany: {
+            args: Prisma.QcDispatchPolicyRevisionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.QcDispatchPolicyRevisionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.QcDispatchPolicyRevisionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>[]
+          }
+          upsert: {
+            args: Prisma.QcDispatchPolicyRevisionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$QcDispatchPolicyRevisionPayload>
+          }
+          aggregate: {
+            args: Prisma.QcDispatchPolicyRevisionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateQcDispatchPolicyRevision>
+          }
+          groupBy: {
+            args: Prisma.QcDispatchPolicyRevisionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<QcDispatchPolicyRevisionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.QcDispatchPolicyRevisionCountArgs<ExtArgs>
+            result: $Utils.Optional<QcDispatchPolicyRevisionCountAggregateOutputType> | number
+          }
+        }
+      }
       ChapterQualityAudit: {
         payload: Prisma.$ChapterQualityAuditPayload<ExtArgs>
         fields: Prisma.ChapterQualityAuditFieldRefs
@@ -2509,6 +2689,8 @@ export namespace Prisma {
     qualityCheckResult?: QualityCheckResultOmit
     manualReviewItem?: ManualReviewItemOmit
     qcDispatchAlertEvent?: QcDispatchAlertEventOmit
+    qcDispatchPolicyConfig?: QcDispatchPolicyConfigOmit
+    qcDispatchPolicyRevision?: QcDispatchPolicyRevisionOmit
     chapterQualityAudit?: ChapterQualityAuditOmit
   }
 
@@ -2602,6 +2784,7 @@ export namespace Prisma {
     manualReviewItems: number
     chapterQualityAudits: number
     qcDispatchAlerts: number
+    dispatchPolicyConfigs: number
   }
 
   export type BookCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2617,6 +2800,7 @@ export namespace Prisma {
     manualReviewItems?: boolean | BookCountOutputTypeCountManualReviewItemsArgs
     chapterQualityAudits?: boolean | BookCountOutputTypeCountChapterQualityAuditsArgs
     qcDispatchAlerts?: boolean | BookCountOutputTypeCountQcDispatchAlertsArgs
+    dispatchPolicyConfigs?: boolean | BookCountOutputTypeCountDispatchPolicyConfigsArgs
   }
 
   // Custom InputTypes
@@ -2712,6 +2896,13 @@ export namespace Prisma {
    */
   export type BookCountOutputTypeCountQcDispatchAlertsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: QcDispatchAlertEventWhereInput
+  }
+
+  /**
+   * BookCountOutputType without action
+   */
+  export type BookCountOutputTypeCountDispatchPolicyConfigsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QcDispatchPolicyConfigWhereInput
   }
 
 
@@ -3251,6 +3442,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type QcDispatchPolicyConfigCountOutputType
+   */
+
+  export type QcDispatchPolicyConfigCountOutputType = {
+    revisions: number
+  }
+
+  export type QcDispatchPolicyConfigCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    revisions?: boolean | QcDispatchPolicyConfigCountOutputTypeCountRevisionsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * QcDispatchPolicyConfigCountOutputType without action
+   */
+  export type QcDispatchPolicyConfigCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfigCountOutputType
+     */
+    select?: QcDispatchPolicyConfigCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * QcDispatchPolicyConfigCountOutputType without action
+   */
+  export type QcDispatchPolicyConfigCountOutputTypeCountRevisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QcDispatchPolicyRevisionWhereInput
+  }
+
+
+  /**
    * Models
    */
 
@@ -3286,6 +3508,8 @@ export namespace Prisma {
     id: string | null
     title: string | null
     author: string | null
+    tenantId: string | null
+    projectId: string | null
     originalFilename: string | null
     uploadedFilePath: string | null
     fileSize: bigint | null
@@ -3304,6 +3528,8 @@ export namespace Prisma {
     id: string | null
     title: string | null
     author: string | null
+    tenantId: string | null
+    projectId: string | null
     originalFilename: string | null
     uploadedFilePath: string | null
     fileSize: bigint | null
@@ -3322,6 +3548,8 @@ export namespace Prisma {
     id: number
     title: number
     author: number
+    tenantId: number
+    projectId: number
     originalFilename: number
     uploadedFilePath: number
     fileSize: number
@@ -3359,6 +3587,8 @@ export namespace Prisma {
     id?: true
     title?: true
     author?: true
+    tenantId?: true
+    projectId?: true
     originalFilename?: true
     uploadedFilePath?: true
     fileSize?: true
@@ -3377,6 +3607,8 @@ export namespace Prisma {
     id?: true
     title?: true
     author?: true
+    tenantId?: true
+    projectId?: true
     originalFilename?: true
     uploadedFilePath?: true
     fileSize?: true
@@ -3395,6 +3627,8 @@ export namespace Prisma {
     id?: true
     title?: true
     author?: true
+    tenantId?: true
+    projectId?: true
     originalFilename?: true
     uploadedFilePath?: true
     fileSize?: true
@@ -3501,6 +3735,8 @@ export namespace Prisma {
     id: string
     title: string
     author: string | null
+    tenantId: string | null
+    projectId: string | null
     originalFilename: string | null
     uploadedFilePath: string | null
     fileSize: bigint | null
@@ -3539,6 +3775,8 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     author?: boolean
+    tenantId?: boolean
+    projectId?: boolean
     originalFilename?: boolean
     uploadedFilePath?: boolean
     fileSize?: boolean
@@ -3564,6 +3802,7 @@ export namespace Prisma {
     manualReviewItems?: boolean | Book$manualReviewItemsArgs<ExtArgs>
     chapterQualityAudits?: boolean | Book$chapterQualityAuditsArgs<ExtArgs>
     qcDispatchAlerts?: boolean | Book$qcDispatchAlertsArgs<ExtArgs>
+    dispatchPolicyConfigs?: boolean | Book$dispatchPolicyConfigsArgs<ExtArgs>
     _count?: boolean | BookCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["book"]>
 
@@ -3571,6 +3810,8 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     author?: boolean
+    tenantId?: boolean
+    projectId?: boolean
     originalFilename?: boolean
     uploadedFilePath?: boolean
     fileSize?: boolean
@@ -3590,6 +3831,8 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     author?: boolean
+    tenantId?: boolean
+    projectId?: boolean
     originalFilename?: boolean
     uploadedFilePath?: boolean
     fileSize?: boolean
@@ -3609,6 +3852,8 @@ export namespace Prisma {
     id?: boolean
     title?: boolean
     author?: boolean
+    tenantId?: boolean
+    projectId?: boolean
     originalFilename?: boolean
     uploadedFilePath?: boolean
     fileSize?: boolean
@@ -3624,7 +3869,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type BookOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "author" | "originalFilename" | "uploadedFilePath" | "fileSize" | "totalWords" | "totalCharacters" | "totalSegments" | "totalChapters" | "encoding" | "fileFormat" | "status" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["book"]>
+  export type BookOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "title" | "author" | "tenantId" | "projectId" | "originalFilename" | "uploadedFilePath" | "fileSize" | "totalWords" | "totalCharacters" | "totalSegments" | "totalChapters" | "encoding" | "fileFormat" | "status" | "metadata" | "createdAt" | "updatedAt", ExtArgs["result"]["book"]>
   export type BookInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     audioFiles?: boolean | Book$audioFilesArgs<ExtArgs>
     mergeAudits?: boolean | Book$mergeAuditsArgs<ExtArgs>
@@ -3638,6 +3883,7 @@ export namespace Prisma {
     manualReviewItems?: boolean | Book$manualReviewItemsArgs<ExtArgs>
     chapterQualityAudits?: boolean | Book$chapterQualityAuditsArgs<ExtArgs>
     qcDispatchAlerts?: boolean | Book$qcDispatchAlertsArgs<ExtArgs>
+    dispatchPolicyConfigs?: boolean | Book$dispatchPolicyConfigsArgs<ExtArgs>
     _count?: boolean | BookCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type BookIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3658,11 +3904,14 @@ export namespace Prisma {
       manualReviewItems: Prisma.$ManualReviewItemPayload<ExtArgs>[]
       chapterQualityAudits: Prisma.$ChapterQualityAuditPayload<ExtArgs>[]
       qcDispatchAlerts: Prisma.$QcDispatchAlertEventPayload<ExtArgs>[]
+      dispatchPolicyConfigs: Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       title: string
       author: string | null
+      tenantId: string | null
+      projectId: string | null
       originalFilename: string | null
       uploadedFilePath: string | null
       fileSize: bigint | null
@@ -4082,6 +4331,7 @@ export namespace Prisma {
     manualReviewItems<T extends Book$manualReviewItemsArgs<ExtArgs> = {}>(args?: Subset<T, Book$manualReviewItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ManualReviewItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     chapterQualityAudits<T extends Book$chapterQualityAuditsArgs<ExtArgs> = {}>(args?: Subset<T, Book$chapterQualityAuditsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ChapterQualityAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     qcDispatchAlerts<T extends Book$qcDispatchAlertsArgs<ExtArgs> = {}>(args?: Subset<T, Book$qcDispatchAlertsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchAlertEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    dispatchPolicyConfigs<T extends Book$dispatchPolicyConfigsArgs<ExtArgs> = {}>(args?: Subset<T, Book$dispatchPolicyConfigsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4114,6 +4364,8 @@ export namespace Prisma {
     readonly id: FieldRef<"Book", 'String'>
     readonly title: FieldRef<"Book", 'String'>
     readonly author: FieldRef<"Book", 'String'>
+    readonly tenantId: FieldRef<"Book", 'String'>
+    readonly projectId: FieldRef<"Book", 'String'>
     readonly originalFilename: FieldRef<"Book", 'String'>
     readonly uploadedFilePath: FieldRef<"Book", 'String'>
     readonly fileSize: FieldRef<"Book", 'BigInt'>
@@ -4800,6 +5052,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: QcDispatchAlertEventScalarFieldEnum | QcDispatchAlertEventScalarFieldEnum[]
+  }
+
+  /**
+   * Book.dispatchPolicyConfigs
+   */
+  export type Book$dispatchPolicyConfigsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    where?: QcDispatchPolicyConfigWhereInput
+    orderBy?: QcDispatchPolicyConfigOrderByWithRelationInput | QcDispatchPolicyConfigOrderByWithRelationInput[]
+    cursor?: QcDispatchPolicyConfigWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: QcDispatchPolicyConfigScalarFieldEnum | QcDispatchPolicyConfigScalarFieldEnum[]
   }
 
   /**
@@ -28163,6 +28439,2365 @@ export namespace Prisma {
 
 
   /**
+   * Model QcDispatchPolicyConfig
+   */
+
+  export type AggregateQcDispatchPolicyConfig = {
+    _count: QcDispatchPolicyConfigCountAggregateOutputType | null
+    _avg: QcDispatchPolicyConfigAvgAggregateOutputType | null
+    _sum: QcDispatchPolicyConfigSumAggregateOutputType | null
+    _min: QcDispatchPolicyConfigMinAggregateOutputType | null
+    _max: QcDispatchPolicyConfigMaxAggregateOutputType | null
+  }
+
+  export type QcDispatchPolicyConfigAvgAggregateOutputType = {
+    rolloutPercentage: number | null
+    version: number | null
+  }
+
+  export type QcDispatchPolicyConfigSumAggregateOutputType = {
+    rolloutPercentage: number | null
+    version: number | null
+  }
+
+  export type QcDispatchPolicyConfigMinAggregateOutputType = {
+    id: string | null
+    scopeType: string | null
+    scopeKey: string | null
+    bookId: string | null
+    isActive: boolean | null
+    rolloutPercentage: number | null
+    version: number | null
+    lastChangeNote: string | null
+    updatedBy: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type QcDispatchPolicyConfigMaxAggregateOutputType = {
+    id: string | null
+    scopeType: string | null
+    scopeKey: string | null
+    bookId: string | null
+    isActive: boolean | null
+    rolloutPercentage: number | null
+    version: number | null
+    lastChangeNote: string | null
+    updatedBy: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type QcDispatchPolicyConfigCountAggregateOutputType = {
+    id: number
+    scopeType: number
+    scopeKey: number
+    bookId: number
+    policy: number
+    isActive: number
+    rolloutPercentage: number
+    version: number
+    lastChangeNote: number
+    updatedBy: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type QcDispatchPolicyConfigAvgAggregateInputType = {
+    rolloutPercentage?: true
+    version?: true
+  }
+
+  export type QcDispatchPolicyConfigSumAggregateInputType = {
+    rolloutPercentage?: true
+    version?: true
+  }
+
+  export type QcDispatchPolicyConfigMinAggregateInputType = {
+    id?: true
+    scopeType?: true
+    scopeKey?: true
+    bookId?: true
+    isActive?: true
+    rolloutPercentage?: true
+    version?: true
+    lastChangeNote?: true
+    updatedBy?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type QcDispatchPolicyConfigMaxAggregateInputType = {
+    id?: true
+    scopeType?: true
+    scopeKey?: true
+    bookId?: true
+    isActive?: true
+    rolloutPercentage?: true
+    version?: true
+    lastChangeNote?: true
+    updatedBy?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type QcDispatchPolicyConfigCountAggregateInputType = {
+    id?: true
+    scopeType?: true
+    scopeKey?: true
+    bookId?: true
+    policy?: true
+    isActive?: true
+    rolloutPercentage?: true
+    version?: true
+    lastChangeNote?: true
+    updatedBy?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type QcDispatchPolicyConfigAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QcDispatchPolicyConfig to aggregate.
+     */
+    where?: QcDispatchPolicyConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyConfigs to fetch.
+     */
+    orderBy?: QcDispatchPolicyConfigOrderByWithRelationInput | QcDispatchPolicyConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: QcDispatchPolicyConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned QcDispatchPolicyConfigs
+    **/
+    _count?: true | QcDispatchPolicyConfigCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: QcDispatchPolicyConfigAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: QcDispatchPolicyConfigSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: QcDispatchPolicyConfigMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: QcDispatchPolicyConfigMaxAggregateInputType
+  }
+
+  export type GetQcDispatchPolicyConfigAggregateType<T extends QcDispatchPolicyConfigAggregateArgs> = {
+        [P in keyof T & keyof AggregateQcDispatchPolicyConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateQcDispatchPolicyConfig[P]>
+      : GetScalarType<T[P], AggregateQcDispatchPolicyConfig[P]>
+  }
+
+
+
+
+  export type QcDispatchPolicyConfigGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QcDispatchPolicyConfigWhereInput
+    orderBy?: QcDispatchPolicyConfigOrderByWithAggregationInput | QcDispatchPolicyConfigOrderByWithAggregationInput[]
+    by: QcDispatchPolicyConfigScalarFieldEnum[] | QcDispatchPolicyConfigScalarFieldEnum
+    having?: QcDispatchPolicyConfigScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: QcDispatchPolicyConfigCountAggregateInputType | true
+    _avg?: QcDispatchPolicyConfigAvgAggregateInputType
+    _sum?: QcDispatchPolicyConfigSumAggregateInputType
+    _min?: QcDispatchPolicyConfigMinAggregateInputType
+    _max?: QcDispatchPolicyConfigMaxAggregateInputType
+  }
+
+  export type QcDispatchPolicyConfigGroupByOutputType = {
+    id: string
+    scopeType: string
+    scopeKey: string
+    bookId: string | null
+    policy: JsonValue
+    isActive: boolean
+    rolloutPercentage: number
+    version: number
+    lastChangeNote: string | null
+    updatedBy: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: QcDispatchPolicyConfigCountAggregateOutputType | null
+    _avg: QcDispatchPolicyConfigAvgAggregateOutputType | null
+    _sum: QcDispatchPolicyConfigSumAggregateOutputType | null
+    _min: QcDispatchPolicyConfigMinAggregateOutputType | null
+    _max: QcDispatchPolicyConfigMaxAggregateOutputType | null
+  }
+
+  type GetQcDispatchPolicyConfigGroupByPayload<T extends QcDispatchPolicyConfigGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<QcDispatchPolicyConfigGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof QcDispatchPolicyConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], QcDispatchPolicyConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], QcDispatchPolicyConfigGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type QcDispatchPolicyConfigSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scopeType?: boolean
+    scopeKey?: boolean
+    bookId?: boolean
+    policy?: boolean
+    isActive?: boolean
+    rolloutPercentage?: boolean
+    version?: boolean
+    lastChangeNote?: boolean
+    updatedBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | QcDispatchPolicyConfig$bookArgs<ExtArgs>
+    revisions?: boolean | QcDispatchPolicyConfig$revisionsArgs<ExtArgs>
+    _count?: boolean | QcDispatchPolicyConfigCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchPolicyConfig"]>
+
+  export type QcDispatchPolicyConfigSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scopeType?: boolean
+    scopeKey?: boolean
+    bookId?: boolean
+    policy?: boolean
+    isActive?: boolean
+    rolloutPercentage?: boolean
+    version?: boolean
+    lastChangeNote?: boolean
+    updatedBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | QcDispatchPolicyConfig$bookArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchPolicyConfig"]>
+
+  export type QcDispatchPolicyConfigSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    scopeType?: boolean
+    scopeKey?: boolean
+    bookId?: boolean
+    policy?: boolean
+    isActive?: boolean
+    rolloutPercentage?: boolean
+    version?: boolean
+    lastChangeNote?: boolean
+    updatedBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    book?: boolean | QcDispatchPolicyConfig$bookArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchPolicyConfig"]>
+
+  export type QcDispatchPolicyConfigSelectScalar = {
+    id?: boolean
+    scopeType?: boolean
+    scopeKey?: boolean
+    bookId?: boolean
+    policy?: boolean
+    isActive?: boolean
+    rolloutPercentage?: boolean
+    version?: boolean
+    lastChangeNote?: boolean
+    updatedBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type QcDispatchPolicyConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "scopeType" | "scopeKey" | "bookId" | "policy" | "isActive" | "rolloutPercentage" | "version" | "lastChangeNote" | "updatedBy" | "createdAt" | "updatedAt", ExtArgs["result"]["qcDispatchPolicyConfig"]>
+  export type QcDispatchPolicyConfigInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | QcDispatchPolicyConfig$bookArgs<ExtArgs>
+    revisions?: boolean | QcDispatchPolicyConfig$revisionsArgs<ExtArgs>
+    _count?: boolean | QcDispatchPolicyConfigCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type QcDispatchPolicyConfigIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | QcDispatchPolicyConfig$bookArgs<ExtArgs>
+  }
+  export type QcDispatchPolicyConfigIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | QcDispatchPolicyConfig$bookArgs<ExtArgs>
+  }
+
+  export type $QcDispatchPolicyConfigPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "QcDispatchPolicyConfig"
+    objects: {
+      book: Prisma.$BookPayload<ExtArgs> | null
+      revisions: Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      scopeType: string
+      scopeKey: string
+      bookId: string | null
+      policy: Prisma.JsonValue
+      isActive: boolean
+      rolloutPercentage: number
+      version: number
+      lastChangeNote: string | null
+      updatedBy: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["qcDispatchPolicyConfig"]>
+    composites: {}
+  }
+
+  type QcDispatchPolicyConfigGetPayload<S extends boolean | null | undefined | QcDispatchPolicyConfigDefaultArgs> = $Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload, S>
+
+  type QcDispatchPolicyConfigCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<QcDispatchPolicyConfigFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: QcDispatchPolicyConfigCountAggregateInputType | true
+    }
+
+  export interface QcDispatchPolicyConfigDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['QcDispatchPolicyConfig'], meta: { name: 'QcDispatchPolicyConfig' } }
+    /**
+     * Find zero or one QcDispatchPolicyConfig that matches the filter.
+     * @param {QcDispatchPolicyConfigFindUniqueArgs} args - Arguments to find a QcDispatchPolicyConfig
+     * @example
+     * // Get one QcDispatchPolicyConfig
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends QcDispatchPolicyConfigFindUniqueArgs>(args: SelectSubset<T, QcDispatchPolicyConfigFindUniqueArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one QcDispatchPolicyConfig that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {QcDispatchPolicyConfigFindUniqueOrThrowArgs} args - Arguments to find a QcDispatchPolicyConfig
+     * @example
+     * // Get one QcDispatchPolicyConfig
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends QcDispatchPolicyConfigFindUniqueOrThrowArgs>(args: SelectSubset<T, QcDispatchPolicyConfigFindUniqueOrThrowArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QcDispatchPolicyConfig that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyConfigFindFirstArgs} args - Arguments to find a QcDispatchPolicyConfig
+     * @example
+     * // Get one QcDispatchPolicyConfig
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends QcDispatchPolicyConfigFindFirstArgs>(args?: SelectSubset<T, QcDispatchPolicyConfigFindFirstArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QcDispatchPolicyConfig that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyConfigFindFirstOrThrowArgs} args - Arguments to find a QcDispatchPolicyConfig
+     * @example
+     * // Get one QcDispatchPolicyConfig
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends QcDispatchPolicyConfigFindFirstOrThrowArgs>(args?: SelectSubset<T, QcDispatchPolicyConfigFindFirstOrThrowArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more QcDispatchPolicyConfigs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyConfigFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all QcDispatchPolicyConfigs
+     * const qcDispatchPolicyConfigs = await prisma.qcDispatchPolicyConfig.findMany()
+     * 
+     * // Get first 10 QcDispatchPolicyConfigs
+     * const qcDispatchPolicyConfigs = await prisma.qcDispatchPolicyConfig.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const qcDispatchPolicyConfigWithIdOnly = await prisma.qcDispatchPolicyConfig.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends QcDispatchPolicyConfigFindManyArgs>(args?: SelectSubset<T, QcDispatchPolicyConfigFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a QcDispatchPolicyConfig.
+     * @param {QcDispatchPolicyConfigCreateArgs} args - Arguments to create a QcDispatchPolicyConfig.
+     * @example
+     * // Create one QcDispatchPolicyConfig
+     * const QcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.create({
+     *   data: {
+     *     // ... data to create a QcDispatchPolicyConfig
+     *   }
+     * })
+     * 
+     */
+    create<T extends QcDispatchPolicyConfigCreateArgs>(args: SelectSubset<T, QcDispatchPolicyConfigCreateArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many QcDispatchPolicyConfigs.
+     * @param {QcDispatchPolicyConfigCreateManyArgs} args - Arguments to create many QcDispatchPolicyConfigs.
+     * @example
+     * // Create many QcDispatchPolicyConfigs
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends QcDispatchPolicyConfigCreateManyArgs>(args?: SelectSubset<T, QcDispatchPolicyConfigCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many QcDispatchPolicyConfigs and returns the data saved in the database.
+     * @param {QcDispatchPolicyConfigCreateManyAndReturnArgs} args - Arguments to create many QcDispatchPolicyConfigs.
+     * @example
+     * // Create many QcDispatchPolicyConfigs
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many QcDispatchPolicyConfigs and only return the `id`
+     * const qcDispatchPolicyConfigWithIdOnly = await prisma.qcDispatchPolicyConfig.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends QcDispatchPolicyConfigCreateManyAndReturnArgs>(args?: SelectSubset<T, QcDispatchPolicyConfigCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a QcDispatchPolicyConfig.
+     * @param {QcDispatchPolicyConfigDeleteArgs} args - Arguments to delete one QcDispatchPolicyConfig.
+     * @example
+     * // Delete one QcDispatchPolicyConfig
+     * const QcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.delete({
+     *   where: {
+     *     // ... filter to delete one QcDispatchPolicyConfig
+     *   }
+     * })
+     * 
+     */
+    delete<T extends QcDispatchPolicyConfigDeleteArgs>(args: SelectSubset<T, QcDispatchPolicyConfigDeleteArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one QcDispatchPolicyConfig.
+     * @param {QcDispatchPolicyConfigUpdateArgs} args - Arguments to update one QcDispatchPolicyConfig.
+     * @example
+     * // Update one QcDispatchPolicyConfig
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends QcDispatchPolicyConfigUpdateArgs>(args: SelectSubset<T, QcDispatchPolicyConfigUpdateArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more QcDispatchPolicyConfigs.
+     * @param {QcDispatchPolicyConfigDeleteManyArgs} args - Arguments to filter QcDispatchPolicyConfigs to delete.
+     * @example
+     * // Delete a few QcDispatchPolicyConfigs
+     * const { count } = await prisma.qcDispatchPolicyConfig.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends QcDispatchPolicyConfigDeleteManyArgs>(args?: SelectSubset<T, QcDispatchPolicyConfigDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QcDispatchPolicyConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyConfigUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many QcDispatchPolicyConfigs
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends QcDispatchPolicyConfigUpdateManyArgs>(args: SelectSubset<T, QcDispatchPolicyConfigUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QcDispatchPolicyConfigs and returns the data updated in the database.
+     * @param {QcDispatchPolicyConfigUpdateManyAndReturnArgs} args - Arguments to update many QcDispatchPolicyConfigs.
+     * @example
+     * // Update many QcDispatchPolicyConfigs
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more QcDispatchPolicyConfigs and only return the `id`
+     * const qcDispatchPolicyConfigWithIdOnly = await prisma.qcDispatchPolicyConfig.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends QcDispatchPolicyConfigUpdateManyAndReturnArgs>(args: SelectSubset<T, QcDispatchPolicyConfigUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one QcDispatchPolicyConfig.
+     * @param {QcDispatchPolicyConfigUpsertArgs} args - Arguments to update or create a QcDispatchPolicyConfig.
+     * @example
+     * // Update or create a QcDispatchPolicyConfig
+     * const qcDispatchPolicyConfig = await prisma.qcDispatchPolicyConfig.upsert({
+     *   create: {
+     *     // ... data to create a QcDispatchPolicyConfig
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the QcDispatchPolicyConfig we want to update
+     *   }
+     * })
+     */
+    upsert<T extends QcDispatchPolicyConfigUpsertArgs>(args: SelectSubset<T, QcDispatchPolicyConfigUpsertArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of QcDispatchPolicyConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyConfigCountArgs} args - Arguments to filter QcDispatchPolicyConfigs to count.
+     * @example
+     * // Count the number of QcDispatchPolicyConfigs
+     * const count = await prisma.qcDispatchPolicyConfig.count({
+     *   where: {
+     *     // ... the filter for the QcDispatchPolicyConfigs we want to count
+     *   }
+     * })
+    **/
+    count<T extends QcDispatchPolicyConfigCountArgs>(
+      args?: Subset<T, QcDispatchPolicyConfigCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], QcDispatchPolicyConfigCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a QcDispatchPolicyConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyConfigAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends QcDispatchPolicyConfigAggregateArgs>(args: Subset<T, QcDispatchPolicyConfigAggregateArgs>): Prisma.PrismaPromise<GetQcDispatchPolicyConfigAggregateType<T>>
+
+    /**
+     * Group by QcDispatchPolicyConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyConfigGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends QcDispatchPolicyConfigGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: QcDispatchPolicyConfigGroupByArgs['orderBy'] }
+        : { orderBy?: QcDispatchPolicyConfigGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, QcDispatchPolicyConfigGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetQcDispatchPolicyConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the QcDispatchPolicyConfig model
+   */
+  readonly fields: QcDispatchPolicyConfigFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for QcDispatchPolicyConfig.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__QcDispatchPolicyConfigClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    book<T extends QcDispatchPolicyConfig$bookArgs<ExtArgs> = {}>(args?: Subset<T, QcDispatchPolicyConfig$bookArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    revisions<T extends QcDispatchPolicyConfig$revisionsArgs<ExtArgs> = {}>(args?: Subset<T, QcDispatchPolicyConfig$revisionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the QcDispatchPolicyConfig model
+   */
+  interface QcDispatchPolicyConfigFieldRefs {
+    readonly id: FieldRef<"QcDispatchPolicyConfig", 'String'>
+    readonly scopeType: FieldRef<"QcDispatchPolicyConfig", 'String'>
+    readonly scopeKey: FieldRef<"QcDispatchPolicyConfig", 'String'>
+    readonly bookId: FieldRef<"QcDispatchPolicyConfig", 'String'>
+    readonly policy: FieldRef<"QcDispatchPolicyConfig", 'Json'>
+    readonly isActive: FieldRef<"QcDispatchPolicyConfig", 'Boolean'>
+    readonly rolloutPercentage: FieldRef<"QcDispatchPolicyConfig", 'Int'>
+    readonly version: FieldRef<"QcDispatchPolicyConfig", 'Int'>
+    readonly lastChangeNote: FieldRef<"QcDispatchPolicyConfig", 'String'>
+    readonly updatedBy: FieldRef<"QcDispatchPolicyConfig", 'String'>
+    readonly createdAt: FieldRef<"QcDispatchPolicyConfig", 'DateTime'>
+    readonly updatedAt: FieldRef<"QcDispatchPolicyConfig", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * QcDispatchPolicyConfig findUnique
+   */
+  export type QcDispatchPolicyConfigFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyConfig to fetch.
+     */
+    where: QcDispatchPolicyConfigWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyConfig findUniqueOrThrow
+   */
+  export type QcDispatchPolicyConfigFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyConfig to fetch.
+     */
+    where: QcDispatchPolicyConfigWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyConfig findFirst
+   */
+  export type QcDispatchPolicyConfigFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyConfig to fetch.
+     */
+    where?: QcDispatchPolicyConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyConfigs to fetch.
+     */
+    orderBy?: QcDispatchPolicyConfigOrderByWithRelationInput | QcDispatchPolicyConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QcDispatchPolicyConfigs.
+     */
+    cursor?: QcDispatchPolicyConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QcDispatchPolicyConfigs.
+     */
+    distinct?: QcDispatchPolicyConfigScalarFieldEnum | QcDispatchPolicyConfigScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchPolicyConfig findFirstOrThrow
+   */
+  export type QcDispatchPolicyConfigFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyConfig to fetch.
+     */
+    where?: QcDispatchPolicyConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyConfigs to fetch.
+     */
+    orderBy?: QcDispatchPolicyConfigOrderByWithRelationInput | QcDispatchPolicyConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QcDispatchPolicyConfigs.
+     */
+    cursor?: QcDispatchPolicyConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QcDispatchPolicyConfigs.
+     */
+    distinct?: QcDispatchPolicyConfigScalarFieldEnum | QcDispatchPolicyConfigScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchPolicyConfig findMany
+   */
+  export type QcDispatchPolicyConfigFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyConfigs to fetch.
+     */
+    where?: QcDispatchPolicyConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyConfigs to fetch.
+     */
+    orderBy?: QcDispatchPolicyConfigOrderByWithRelationInput | QcDispatchPolicyConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing QcDispatchPolicyConfigs.
+     */
+    cursor?: QcDispatchPolicyConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyConfigs.
+     */
+    skip?: number
+    distinct?: QcDispatchPolicyConfigScalarFieldEnum | QcDispatchPolicyConfigScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchPolicyConfig create
+   */
+  export type QcDispatchPolicyConfigCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * The data needed to create a QcDispatchPolicyConfig.
+     */
+    data: XOR<QcDispatchPolicyConfigCreateInput, QcDispatchPolicyConfigUncheckedCreateInput>
+  }
+
+  /**
+   * QcDispatchPolicyConfig createMany
+   */
+  export type QcDispatchPolicyConfigCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many QcDispatchPolicyConfigs.
+     */
+    data: QcDispatchPolicyConfigCreateManyInput | QcDispatchPolicyConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * QcDispatchPolicyConfig createManyAndReturn
+   */
+  export type QcDispatchPolicyConfigCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * The data used to create many QcDispatchPolicyConfigs.
+     */
+    data: QcDispatchPolicyConfigCreateManyInput | QcDispatchPolicyConfigCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QcDispatchPolicyConfig update
+   */
+  export type QcDispatchPolicyConfigUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * The data needed to update a QcDispatchPolicyConfig.
+     */
+    data: XOR<QcDispatchPolicyConfigUpdateInput, QcDispatchPolicyConfigUncheckedUpdateInput>
+    /**
+     * Choose, which QcDispatchPolicyConfig to update.
+     */
+    where: QcDispatchPolicyConfigWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyConfig updateMany
+   */
+  export type QcDispatchPolicyConfigUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update QcDispatchPolicyConfigs.
+     */
+    data: XOR<QcDispatchPolicyConfigUpdateManyMutationInput, QcDispatchPolicyConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which QcDispatchPolicyConfigs to update
+     */
+    where?: QcDispatchPolicyConfigWhereInput
+    /**
+     * Limit how many QcDispatchPolicyConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * QcDispatchPolicyConfig updateManyAndReturn
+   */
+  export type QcDispatchPolicyConfigUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * The data used to update QcDispatchPolicyConfigs.
+     */
+    data: XOR<QcDispatchPolicyConfigUpdateManyMutationInput, QcDispatchPolicyConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which QcDispatchPolicyConfigs to update
+     */
+    where?: QcDispatchPolicyConfigWhereInput
+    /**
+     * Limit how many QcDispatchPolicyConfigs to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QcDispatchPolicyConfig upsert
+   */
+  export type QcDispatchPolicyConfigUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * The filter to search for the QcDispatchPolicyConfig to update in case it exists.
+     */
+    where: QcDispatchPolicyConfigWhereUniqueInput
+    /**
+     * In case the QcDispatchPolicyConfig found by the `where` argument doesn't exist, create a new QcDispatchPolicyConfig with this data.
+     */
+    create: XOR<QcDispatchPolicyConfigCreateInput, QcDispatchPolicyConfigUncheckedCreateInput>
+    /**
+     * In case the QcDispatchPolicyConfig was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<QcDispatchPolicyConfigUpdateInput, QcDispatchPolicyConfigUncheckedUpdateInput>
+  }
+
+  /**
+   * QcDispatchPolicyConfig delete
+   */
+  export type QcDispatchPolicyConfigDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+    /**
+     * Filter which QcDispatchPolicyConfig to delete.
+     */
+    where: QcDispatchPolicyConfigWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyConfig deleteMany
+   */
+  export type QcDispatchPolicyConfigDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QcDispatchPolicyConfigs to delete
+     */
+    where?: QcDispatchPolicyConfigWhereInput
+    /**
+     * Limit how many QcDispatchPolicyConfigs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * QcDispatchPolicyConfig.book
+   */
+  export type QcDispatchPolicyConfig$bookArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Book
+     */
+    select?: BookSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Book
+     */
+    omit?: BookOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BookInclude<ExtArgs> | null
+    where?: BookWhereInput
+  }
+
+  /**
+   * QcDispatchPolicyConfig.revisions
+   */
+  export type QcDispatchPolicyConfig$revisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    where?: QcDispatchPolicyRevisionWhereInput
+    orderBy?: QcDispatchPolicyRevisionOrderByWithRelationInput | QcDispatchPolicyRevisionOrderByWithRelationInput[]
+    cursor?: QcDispatchPolicyRevisionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: QcDispatchPolicyRevisionScalarFieldEnum | QcDispatchPolicyRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchPolicyConfig without action
+   */
+  export type QcDispatchPolicyConfigDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyConfig
+     */
+    select?: QcDispatchPolicyConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyConfig
+     */
+    omit?: QcDispatchPolicyConfigOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyConfigInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model QcDispatchPolicyRevision
+   */
+
+  export type AggregateQcDispatchPolicyRevision = {
+    _count: QcDispatchPolicyRevisionCountAggregateOutputType | null
+    _avg: QcDispatchPolicyRevisionAvgAggregateOutputType | null
+    _sum: QcDispatchPolicyRevisionSumAggregateOutputType | null
+    _min: QcDispatchPolicyRevisionMinAggregateOutputType | null
+    _max: QcDispatchPolicyRevisionMaxAggregateOutputType | null
+  }
+
+  export type QcDispatchPolicyRevisionAvgAggregateOutputType = {
+    version: number | null
+  }
+
+  export type QcDispatchPolicyRevisionSumAggregateOutputType = {
+    version: number | null
+  }
+
+  export type QcDispatchPolicyRevisionMinAggregateOutputType = {
+    id: string | null
+    configId: string | null
+    version: number | null
+    changeType: string | null
+    changedBy: string | null
+    changeNote: string | null
+    createdAt: Date | null
+  }
+
+  export type QcDispatchPolicyRevisionMaxAggregateOutputType = {
+    id: string | null
+    configId: string | null
+    version: number | null
+    changeType: string | null
+    changedBy: string | null
+    changeNote: string | null
+    createdAt: Date | null
+  }
+
+  export type QcDispatchPolicyRevisionCountAggregateOutputType = {
+    id: number
+    configId: number
+    version: number
+    changeType: number
+    snapshot: number
+    changedBy: number
+    changeNote: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type QcDispatchPolicyRevisionAvgAggregateInputType = {
+    version?: true
+  }
+
+  export type QcDispatchPolicyRevisionSumAggregateInputType = {
+    version?: true
+  }
+
+  export type QcDispatchPolicyRevisionMinAggregateInputType = {
+    id?: true
+    configId?: true
+    version?: true
+    changeType?: true
+    changedBy?: true
+    changeNote?: true
+    createdAt?: true
+  }
+
+  export type QcDispatchPolicyRevisionMaxAggregateInputType = {
+    id?: true
+    configId?: true
+    version?: true
+    changeType?: true
+    changedBy?: true
+    changeNote?: true
+    createdAt?: true
+  }
+
+  export type QcDispatchPolicyRevisionCountAggregateInputType = {
+    id?: true
+    configId?: true
+    version?: true
+    changeType?: true
+    snapshot?: true
+    changedBy?: true
+    changeNote?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type QcDispatchPolicyRevisionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QcDispatchPolicyRevision to aggregate.
+     */
+    where?: QcDispatchPolicyRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyRevisions to fetch.
+     */
+    orderBy?: QcDispatchPolicyRevisionOrderByWithRelationInput | QcDispatchPolicyRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: QcDispatchPolicyRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned QcDispatchPolicyRevisions
+    **/
+    _count?: true | QcDispatchPolicyRevisionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: QcDispatchPolicyRevisionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: QcDispatchPolicyRevisionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: QcDispatchPolicyRevisionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: QcDispatchPolicyRevisionMaxAggregateInputType
+  }
+
+  export type GetQcDispatchPolicyRevisionAggregateType<T extends QcDispatchPolicyRevisionAggregateArgs> = {
+        [P in keyof T & keyof AggregateQcDispatchPolicyRevision]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateQcDispatchPolicyRevision[P]>
+      : GetScalarType<T[P], AggregateQcDispatchPolicyRevision[P]>
+  }
+
+
+
+
+  export type QcDispatchPolicyRevisionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: QcDispatchPolicyRevisionWhereInput
+    orderBy?: QcDispatchPolicyRevisionOrderByWithAggregationInput | QcDispatchPolicyRevisionOrderByWithAggregationInput[]
+    by: QcDispatchPolicyRevisionScalarFieldEnum[] | QcDispatchPolicyRevisionScalarFieldEnum
+    having?: QcDispatchPolicyRevisionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: QcDispatchPolicyRevisionCountAggregateInputType | true
+    _avg?: QcDispatchPolicyRevisionAvgAggregateInputType
+    _sum?: QcDispatchPolicyRevisionSumAggregateInputType
+    _min?: QcDispatchPolicyRevisionMinAggregateInputType
+    _max?: QcDispatchPolicyRevisionMaxAggregateInputType
+  }
+
+  export type QcDispatchPolicyRevisionGroupByOutputType = {
+    id: string
+    configId: string
+    version: number
+    changeType: string
+    snapshot: JsonValue
+    changedBy: string | null
+    changeNote: string | null
+    createdAt: Date
+    _count: QcDispatchPolicyRevisionCountAggregateOutputType | null
+    _avg: QcDispatchPolicyRevisionAvgAggregateOutputType | null
+    _sum: QcDispatchPolicyRevisionSumAggregateOutputType | null
+    _min: QcDispatchPolicyRevisionMinAggregateOutputType | null
+    _max: QcDispatchPolicyRevisionMaxAggregateOutputType | null
+  }
+
+  type GetQcDispatchPolicyRevisionGroupByPayload<T extends QcDispatchPolicyRevisionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<QcDispatchPolicyRevisionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof QcDispatchPolicyRevisionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], QcDispatchPolicyRevisionGroupByOutputType[P]>
+            : GetScalarType<T[P], QcDispatchPolicyRevisionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type QcDispatchPolicyRevisionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    configId?: boolean
+    version?: boolean
+    changeType?: boolean
+    snapshot?: boolean
+    changedBy?: boolean
+    changeNote?: boolean
+    createdAt?: boolean
+    config?: boolean | QcDispatchPolicyConfigDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchPolicyRevision"]>
+
+  export type QcDispatchPolicyRevisionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    configId?: boolean
+    version?: boolean
+    changeType?: boolean
+    snapshot?: boolean
+    changedBy?: boolean
+    changeNote?: boolean
+    createdAt?: boolean
+    config?: boolean | QcDispatchPolicyConfigDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchPolicyRevision"]>
+
+  export type QcDispatchPolicyRevisionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    configId?: boolean
+    version?: boolean
+    changeType?: boolean
+    snapshot?: boolean
+    changedBy?: boolean
+    changeNote?: boolean
+    createdAt?: boolean
+    config?: boolean | QcDispatchPolicyConfigDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["qcDispatchPolicyRevision"]>
+
+  export type QcDispatchPolicyRevisionSelectScalar = {
+    id?: boolean
+    configId?: boolean
+    version?: boolean
+    changeType?: boolean
+    snapshot?: boolean
+    changedBy?: boolean
+    changeNote?: boolean
+    createdAt?: boolean
+  }
+
+  export type QcDispatchPolicyRevisionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "configId" | "version" | "changeType" | "snapshot" | "changedBy" | "changeNote" | "createdAt", ExtArgs["result"]["qcDispatchPolicyRevision"]>
+  export type QcDispatchPolicyRevisionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    config?: boolean | QcDispatchPolicyConfigDefaultArgs<ExtArgs>
+  }
+  export type QcDispatchPolicyRevisionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    config?: boolean | QcDispatchPolicyConfigDefaultArgs<ExtArgs>
+  }
+  export type QcDispatchPolicyRevisionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    config?: boolean | QcDispatchPolicyConfigDefaultArgs<ExtArgs>
+  }
+
+  export type $QcDispatchPolicyRevisionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "QcDispatchPolicyRevision"
+    objects: {
+      config: Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      configId: string
+      version: number
+      changeType: string
+      snapshot: Prisma.JsonValue
+      changedBy: string | null
+      changeNote: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["qcDispatchPolicyRevision"]>
+    composites: {}
+  }
+
+  type QcDispatchPolicyRevisionGetPayload<S extends boolean | null | undefined | QcDispatchPolicyRevisionDefaultArgs> = $Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload, S>
+
+  type QcDispatchPolicyRevisionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<QcDispatchPolicyRevisionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: QcDispatchPolicyRevisionCountAggregateInputType | true
+    }
+
+  export interface QcDispatchPolicyRevisionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['QcDispatchPolicyRevision'], meta: { name: 'QcDispatchPolicyRevision' } }
+    /**
+     * Find zero or one QcDispatchPolicyRevision that matches the filter.
+     * @param {QcDispatchPolicyRevisionFindUniqueArgs} args - Arguments to find a QcDispatchPolicyRevision
+     * @example
+     * // Get one QcDispatchPolicyRevision
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends QcDispatchPolicyRevisionFindUniqueArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionFindUniqueArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one QcDispatchPolicyRevision that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {QcDispatchPolicyRevisionFindUniqueOrThrowArgs} args - Arguments to find a QcDispatchPolicyRevision
+     * @example
+     * // Get one QcDispatchPolicyRevision
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends QcDispatchPolicyRevisionFindUniqueOrThrowArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QcDispatchPolicyRevision that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyRevisionFindFirstArgs} args - Arguments to find a QcDispatchPolicyRevision
+     * @example
+     * // Get one QcDispatchPolicyRevision
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends QcDispatchPolicyRevisionFindFirstArgs>(args?: SelectSubset<T, QcDispatchPolicyRevisionFindFirstArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first QcDispatchPolicyRevision that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyRevisionFindFirstOrThrowArgs} args - Arguments to find a QcDispatchPolicyRevision
+     * @example
+     * // Get one QcDispatchPolicyRevision
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends QcDispatchPolicyRevisionFindFirstOrThrowArgs>(args?: SelectSubset<T, QcDispatchPolicyRevisionFindFirstOrThrowArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more QcDispatchPolicyRevisions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyRevisionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all QcDispatchPolicyRevisions
+     * const qcDispatchPolicyRevisions = await prisma.qcDispatchPolicyRevision.findMany()
+     * 
+     * // Get first 10 QcDispatchPolicyRevisions
+     * const qcDispatchPolicyRevisions = await prisma.qcDispatchPolicyRevision.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const qcDispatchPolicyRevisionWithIdOnly = await prisma.qcDispatchPolicyRevision.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends QcDispatchPolicyRevisionFindManyArgs>(args?: SelectSubset<T, QcDispatchPolicyRevisionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a QcDispatchPolicyRevision.
+     * @param {QcDispatchPolicyRevisionCreateArgs} args - Arguments to create a QcDispatchPolicyRevision.
+     * @example
+     * // Create one QcDispatchPolicyRevision
+     * const QcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.create({
+     *   data: {
+     *     // ... data to create a QcDispatchPolicyRevision
+     *   }
+     * })
+     * 
+     */
+    create<T extends QcDispatchPolicyRevisionCreateArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionCreateArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many QcDispatchPolicyRevisions.
+     * @param {QcDispatchPolicyRevisionCreateManyArgs} args - Arguments to create many QcDispatchPolicyRevisions.
+     * @example
+     * // Create many QcDispatchPolicyRevisions
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends QcDispatchPolicyRevisionCreateManyArgs>(args?: SelectSubset<T, QcDispatchPolicyRevisionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many QcDispatchPolicyRevisions and returns the data saved in the database.
+     * @param {QcDispatchPolicyRevisionCreateManyAndReturnArgs} args - Arguments to create many QcDispatchPolicyRevisions.
+     * @example
+     * // Create many QcDispatchPolicyRevisions
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many QcDispatchPolicyRevisions and only return the `id`
+     * const qcDispatchPolicyRevisionWithIdOnly = await prisma.qcDispatchPolicyRevision.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends QcDispatchPolicyRevisionCreateManyAndReturnArgs>(args?: SelectSubset<T, QcDispatchPolicyRevisionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a QcDispatchPolicyRevision.
+     * @param {QcDispatchPolicyRevisionDeleteArgs} args - Arguments to delete one QcDispatchPolicyRevision.
+     * @example
+     * // Delete one QcDispatchPolicyRevision
+     * const QcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.delete({
+     *   where: {
+     *     // ... filter to delete one QcDispatchPolicyRevision
+     *   }
+     * })
+     * 
+     */
+    delete<T extends QcDispatchPolicyRevisionDeleteArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionDeleteArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one QcDispatchPolicyRevision.
+     * @param {QcDispatchPolicyRevisionUpdateArgs} args - Arguments to update one QcDispatchPolicyRevision.
+     * @example
+     * // Update one QcDispatchPolicyRevision
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends QcDispatchPolicyRevisionUpdateArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionUpdateArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more QcDispatchPolicyRevisions.
+     * @param {QcDispatchPolicyRevisionDeleteManyArgs} args - Arguments to filter QcDispatchPolicyRevisions to delete.
+     * @example
+     * // Delete a few QcDispatchPolicyRevisions
+     * const { count } = await prisma.qcDispatchPolicyRevision.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends QcDispatchPolicyRevisionDeleteManyArgs>(args?: SelectSubset<T, QcDispatchPolicyRevisionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QcDispatchPolicyRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyRevisionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many QcDispatchPolicyRevisions
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends QcDispatchPolicyRevisionUpdateManyArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more QcDispatchPolicyRevisions and returns the data updated in the database.
+     * @param {QcDispatchPolicyRevisionUpdateManyAndReturnArgs} args - Arguments to update many QcDispatchPolicyRevisions.
+     * @example
+     * // Update many QcDispatchPolicyRevisions
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more QcDispatchPolicyRevisions and only return the `id`
+     * const qcDispatchPolicyRevisionWithIdOnly = await prisma.qcDispatchPolicyRevision.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends QcDispatchPolicyRevisionUpdateManyAndReturnArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one QcDispatchPolicyRevision.
+     * @param {QcDispatchPolicyRevisionUpsertArgs} args - Arguments to update or create a QcDispatchPolicyRevision.
+     * @example
+     * // Update or create a QcDispatchPolicyRevision
+     * const qcDispatchPolicyRevision = await prisma.qcDispatchPolicyRevision.upsert({
+     *   create: {
+     *     // ... data to create a QcDispatchPolicyRevision
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the QcDispatchPolicyRevision we want to update
+     *   }
+     * })
+     */
+    upsert<T extends QcDispatchPolicyRevisionUpsertArgs>(args: SelectSubset<T, QcDispatchPolicyRevisionUpsertArgs<ExtArgs>>): Prisma__QcDispatchPolicyRevisionClient<$Result.GetResult<Prisma.$QcDispatchPolicyRevisionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of QcDispatchPolicyRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyRevisionCountArgs} args - Arguments to filter QcDispatchPolicyRevisions to count.
+     * @example
+     * // Count the number of QcDispatchPolicyRevisions
+     * const count = await prisma.qcDispatchPolicyRevision.count({
+     *   where: {
+     *     // ... the filter for the QcDispatchPolicyRevisions we want to count
+     *   }
+     * })
+    **/
+    count<T extends QcDispatchPolicyRevisionCountArgs>(
+      args?: Subset<T, QcDispatchPolicyRevisionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], QcDispatchPolicyRevisionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a QcDispatchPolicyRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyRevisionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends QcDispatchPolicyRevisionAggregateArgs>(args: Subset<T, QcDispatchPolicyRevisionAggregateArgs>): Prisma.PrismaPromise<GetQcDispatchPolicyRevisionAggregateType<T>>
+
+    /**
+     * Group by QcDispatchPolicyRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {QcDispatchPolicyRevisionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends QcDispatchPolicyRevisionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: QcDispatchPolicyRevisionGroupByArgs['orderBy'] }
+        : { orderBy?: QcDispatchPolicyRevisionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, QcDispatchPolicyRevisionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetQcDispatchPolicyRevisionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the QcDispatchPolicyRevision model
+   */
+  readonly fields: QcDispatchPolicyRevisionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for QcDispatchPolicyRevision.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__QcDispatchPolicyRevisionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    config<T extends QcDispatchPolicyConfigDefaultArgs<ExtArgs> = {}>(args?: Subset<T, QcDispatchPolicyConfigDefaultArgs<ExtArgs>>): Prisma__QcDispatchPolicyConfigClient<$Result.GetResult<Prisma.$QcDispatchPolicyConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the QcDispatchPolicyRevision model
+   */
+  interface QcDispatchPolicyRevisionFieldRefs {
+    readonly id: FieldRef<"QcDispatchPolicyRevision", 'String'>
+    readonly configId: FieldRef<"QcDispatchPolicyRevision", 'String'>
+    readonly version: FieldRef<"QcDispatchPolicyRevision", 'Int'>
+    readonly changeType: FieldRef<"QcDispatchPolicyRevision", 'String'>
+    readonly snapshot: FieldRef<"QcDispatchPolicyRevision", 'Json'>
+    readonly changedBy: FieldRef<"QcDispatchPolicyRevision", 'String'>
+    readonly changeNote: FieldRef<"QcDispatchPolicyRevision", 'String'>
+    readonly createdAt: FieldRef<"QcDispatchPolicyRevision", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * QcDispatchPolicyRevision findUnique
+   */
+  export type QcDispatchPolicyRevisionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyRevision to fetch.
+     */
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyRevision findUniqueOrThrow
+   */
+  export type QcDispatchPolicyRevisionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyRevision to fetch.
+     */
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyRevision findFirst
+   */
+  export type QcDispatchPolicyRevisionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyRevision to fetch.
+     */
+    where?: QcDispatchPolicyRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyRevisions to fetch.
+     */
+    orderBy?: QcDispatchPolicyRevisionOrderByWithRelationInput | QcDispatchPolicyRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QcDispatchPolicyRevisions.
+     */
+    cursor?: QcDispatchPolicyRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QcDispatchPolicyRevisions.
+     */
+    distinct?: QcDispatchPolicyRevisionScalarFieldEnum | QcDispatchPolicyRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchPolicyRevision findFirstOrThrow
+   */
+  export type QcDispatchPolicyRevisionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyRevision to fetch.
+     */
+    where?: QcDispatchPolicyRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyRevisions to fetch.
+     */
+    orderBy?: QcDispatchPolicyRevisionOrderByWithRelationInput | QcDispatchPolicyRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for QcDispatchPolicyRevisions.
+     */
+    cursor?: QcDispatchPolicyRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of QcDispatchPolicyRevisions.
+     */
+    distinct?: QcDispatchPolicyRevisionScalarFieldEnum | QcDispatchPolicyRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchPolicyRevision findMany
+   */
+  export type QcDispatchPolicyRevisionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which QcDispatchPolicyRevisions to fetch.
+     */
+    where?: QcDispatchPolicyRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of QcDispatchPolicyRevisions to fetch.
+     */
+    orderBy?: QcDispatchPolicyRevisionOrderByWithRelationInput | QcDispatchPolicyRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing QcDispatchPolicyRevisions.
+     */
+    cursor?: QcDispatchPolicyRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` QcDispatchPolicyRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` QcDispatchPolicyRevisions.
+     */
+    skip?: number
+    distinct?: QcDispatchPolicyRevisionScalarFieldEnum | QcDispatchPolicyRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * QcDispatchPolicyRevision create
+   */
+  export type QcDispatchPolicyRevisionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a QcDispatchPolicyRevision.
+     */
+    data: XOR<QcDispatchPolicyRevisionCreateInput, QcDispatchPolicyRevisionUncheckedCreateInput>
+  }
+
+  /**
+   * QcDispatchPolicyRevision createMany
+   */
+  export type QcDispatchPolicyRevisionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many QcDispatchPolicyRevisions.
+     */
+    data: QcDispatchPolicyRevisionCreateManyInput | QcDispatchPolicyRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * QcDispatchPolicyRevision createManyAndReturn
+   */
+  export type QcDispatchPolicyRevisionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * The data used to create many QcDispatchPolicyRevisions.
+     */
+    data: QcDispatchPolicyRevisionCreateManyInput | QcDispatchPolicyRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QcDispatchPolicyRevision update
+   */
+  export type QcDispatchPolicyRevisionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a QcDispatchPolicyRevision.
+     */
+    data: XOR<QcDispatchPolicyRevisionUpdateInput, QcDispatchPolicyRevisionUncheckedUpdateInput>
+    /**
+     * Choose, which QcDispatchPolicyRevision to update.
+     */
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyRevision updateMany
+   */
+  export type QcDispatchPolicyRevisionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update QcDispatchPolicyRevisions.
+     */
+    data: XOR<QcDispatchPolicyRevisionUpdateManyMutationInput, QcDispatchPolicyRevisionUncheckedUpdateManyInput>
+    /**
+     * Filter which QcDispatchPolicyRevisions to update
+     */
+    where?: QcDispatchPolicyRevisionWhereInput
+    /**
+     * Limit how many QcDispatchPolicyRevisions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * QcDispatchPolicyRevision updateManyAndReturn
+   */
+  export type QcDispatchPolicyRevisionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * The data used to update QcDispatchPolicyRevisions.
+     */
+    data: XOR<QcDispatchPolicyRevisionUpdateManyMutationInput, QcDispatchPolicyRevisionUncheckedUpdateManyInput>
+    /**
+     * Filter which QcDispatchPolicyRevisions to update
+     */
+    where?: QcDispatchPolicyRevisionWhereInput
+    /**
+     * Limit how many QcDispatchPolicyRevisions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * QcDispatchPolicyRevision upsert
+   */
+  export type QcDispatchPolicyRevisionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the QcDispatchPolicyRevision to update in case it exists.
+     */
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+    /**
+     * In case the QcDispatchPolicyRevision found by the `where` argument doesn't exist, create a new QcDispatchPolicyRevision with this data.
+     */
+    create: XOR<QcDispatchPolicyRevisionCreateInput, QcDispatchPolicyRevisionUncheckedCreateInput>
+    /**
+     * In case the QcDispatchPolicyRevision was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<QcDispatchPolicyRevisionUpdateInput, QcDispatchPolicyRevisionUncheckedUpdateInput>
+  }
+
+  /**
+   * QcDispatchPolicyRevision delete
+   */
+  export type QcDispatchPolicyRevisionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+    /**
+     * Filter which QcDispatchPolicyRevision to delete.
+     */
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+  }
+
+  /**
+   * QcDispatchPolicyRevision deleteMany
+   */
+  export type QcDispatchPolicyRevisionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which QcDispatchPolicyRevisions to delete
+     */
+    where?: QcDispatchPolicyRevisionWhereInput
+    /**
+     * Limit how many QcDispatchPolicyRevisions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * QcDispatchPolicyRevision without action
+   */
+  export type QcDispatchPolicyRevisionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the QcDispatchPolicyRevision
+     */
+    select?: QcDispatchPolicyRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the QcDispatchPolicyRevision
+     */
+    omit?: QcDispatchPolicyRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: QcDispatchPolicyRevisionInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model ChapterQualityAudit
    */
 
@@ -29410,6 +32045,8 @@ export namespace Prisma {
     id: 'id',
     title: 'title',
     author: 'author',
+    tenantId: 'tenantId',
+    projectId: 'projectId',
     originalFilename: 'originalFilename',
     uploadedFilePath: 'uploadedFilePath',
     fileSize: 'fileSize',
@@ -29792,6 +32429,38 @@ export namespace Prisma {
   export type QcDispatchAlertEventScalarFieldEnum = (typeof QcDispatchAlertEventScalarFieldEnum)[keyof typeof QcDispatchAlertEventScalarFieldEnum]
 
 
+  export const QcDispatchPolicyConfigScalarFieldEnum: {
+    id: 'id',
+    scopeType: 'scopeType',
+    scopeKey: 'scopeKey',
+    bookId: 'bookId',
+    policy: 'policy',
+    isActive: 'isActive',
+    rolloutPercentage: 'rolloutPercentage',
+    version: 'version',
+    lastChangeNote: 'lastChangeNote',
+    updatedBy: 'updatedBy',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type QcDispatchPolicyConfigScalarFieldEnum = (typeof QcDispatchPolicyConfigScalarFieldEnum)[keyof typeof QcDispatchPolicyConfigScalarFieldEnum]
+
+
+  export const QcDispatchPolicyRevisionScalarFieldEnum: {
+    id: 'id',
+    configId: 'configId',
+    version: 'version',
+    changeType: 'changeType',
+    snapshot: 'snapshot',
+    changedBy: 'changedBy',
+    changeNote: 'changeNote',
+    createdAt: 'createdAt'
+  };
+
+  export type QcDispatchPolicyRevisionScalarFieldEnum = (typeof QcDispatchPolicyRevisionScalarFieldEnum)[keyof typeof QcDispatchPolicyRevisionScalarFieldEnum]
+
+
   export const ChapterQualityAuditScalarFieldEnum: {
     id: 'id',
     bookId: 'bookId',
@@ -29995,6 +32664,8 @@ export namespace Prisma {
     id?: StringFilter<"Book"> | string
     title?: StringFilter<"Book"> | string
     author?: StringNullableFilter<"Book"> | string | null
+    tenantId?: StringNullableFilter<"Book"> | string | null
+    projectId?: StringNullableFilter<"Book"> | string | null
     originalFilename?: StringNullableFilter<"Book"> | string | null
     uploadedFilePath?: StringNullableFilter<"Book"> | string | null
     fileSize?: BigIntNullableFilter<"Book"> | bigint | number | null
@@ -30020,12 +32691,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemListRelationFilter
     chapterQualityAudits?: ChapterQualityAuditListRelationFilter
     qcDispatchAlerts?: QcDispatchAlertEventListRelationFilter
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigListRelationFilter
   }
 
   export type BookOrderByWithRelationInput = {
     id?: SortOrder
     title?: SortOrder
     author?: SortOrderInput | SortOrder
+    tenantId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
     originalFilename?: SortOrderInput | SortOrder
     uploadedFilePath?: SortOrderInput | SortOrder
     fileSize?: SortOrderInput | SortOrder
@@ -30051,6 +32725,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemOrderByRelationAggregateInput
     chapterQualityAudits?: ChapterQualityAuditOrderByRelationAggregateInput
     qcDispatchAlerts?: QcDispatchAlertEventOrderByRelationAggregateInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigOrderByRelationAggregateInput
   }
 
   export type BookWhereUniqueInput = Prisma.AtLeast<{
@@ -30060,6 +32735,8 @@ export namespace Prisma {
     NOT?: BookWhereInput | BookWhereInput[]
     title?: StringFilter<"Book"> | string
     author?: StringNullableFilter<"Book"> | string | null
+    tenantId?: StringNullableFilter<"Book"> | string | null
+    projectId?: StringNullableFilter<"Book"> | string | null
     originalFilename?: StringNullableFilter<"Book"> | string | null
     uploadedFilePath?: StringNullableFilter<"Book"> | string | null
     fileSize?: BigIntNullableFilter<"Book"> | bigint | number | null
@@ -30085,12 +32762,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemListRelationFilter
     chapterQualityAudits?: ChapterQualityAuditListRelationFilter
     qcDispatchAlerts?: QcDispatchAlertEventListRelationFilter
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigListRelationFilter
   }, "id">
 
   export type BookOrderByWithAggregationInput = {
     id?: SortOrder
     title?: SortOrder
     author?: SortOrderInput | SortOrder
+    tenantId?: SortOrderInput | SortOrder
+    projectId?: SortOrderInput | SortOrder
     originalFilename?: SortOrderInput | SortOrder
     uploadedFilePath?: SortOrderInput | SortOrder
     fileSize?: SortOrderInput | SortOrder
@@ -30118,6 +32798,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Book"> | string
     title?: StringWithAggregatesFilter<"Book"> | string
     author?: StringNullableWithAggregatesFilter<"Book"> | string | null
+    tenantId?: StringNullableWithAggregatesFilter<"Book"> | string | null
+    projectId?: StringNullableWithAggregatesFilter<"Book"> | string | null
     originalFilename?: StringNullableWithAggregatesFilter<"Book"> | string | null
     uploadedFilePath?: StringNullableWithAggregatesFilter<"Book"> | string | null
     fileSize?: BigIntNullableWithAggregatesFilter<"Book"> | bigint | number | null
@@ -32174,6 +34856,175 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"QcDispatchAlertEvent"> | Date | string
   }
 
+  export type QcDispatchPolicyConfigWhereInput = {
+    AND?: QcDispatchPolicyConfigWhereInput | QcDispatchPolicyConfigWhereInput[]
+    OR?: QcDispatchPolicyConfigWhereInput[]
+    NOT?: QcDispatchPolicyConfigWhereInput | QcDispatchPolicyConfigWhereInput[]
+    id?: StringFilter<"QcDispatchPolicyConfig"> | string
+    scopeType?: StringFilter<"QcDispatchPolicyConfig"> | string
+    scopeKey?: StringFilter<"QcDispatchPolicyConfig"> | string
+    bookId?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    policy?: JsonFilter<"QcDispatchPolicyConfig">
+    isActive?: BoolFilter<"QcDispatchPolicyConfig"> | boolean
+    rolloutPercentage?: IntFilter<"QcDispatchPolicyConfig"> | number
+    version?: IntFilter<"QcDispatchPolicyConfig"> | number
+    lastChangeNote?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    updatedBy?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchPolicyConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"QcDispatchPolicyConfig"> | Date | string
+    book?: XOR<BookNullableScalarRelationFilter, BookWhereInput> | null
+    revisions?: QcDispatchPolicyRevisionListRelationFilter
+  }
+
+  export type QcDispatchPolicyConfigOrderByWithRelationInput = {
+    id?: SortOrder
+    scopeType?: SortOrder
+    scopeKey?: SortOrder
+    bookId?: SortOrderInput | SortOrder
+    policy?: SortOrder
+    isActive?: SortOrder
+    rolloutPercentage?: SortOrder
+    version?: SortOrder
+    lastChangeNote?: SortOrderInput | SortOrder
+    updatedBy?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    book?: BookOrderByWithRelationInput
+    revisions?: QcDispatchPolicyRevisionOrderByRelationAggregateInput
+  }
+
+  export type QcDispatchPolicyConfigWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    scopeType_scopeKey?: QcDispatchPolicyConfigScopeTypeScopeKeyCompoundUniqueInput
+    AND?: QcDispatchPolicyConfigWhereInput | QcDispatchPolicyConfigWhereInput[]
+    OR?: QcDispatchPolicyConfigWhereInput[]
+    NOT?: QcDispatchPolicyConfigWhereInput | QcDispatchPolicyConfigWhereInput[]
+    scopeType?: StringFilter<"QcDispatchPolicyConfig"> | string
+    scopeKey?: StringFilter<"QcDispatchPolicyConfig"> | string
+    bookId?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    policy?: JsonFilter<"QcDispatchPolicyConfig">
+    isActive?: BoolFilter<"QcDispatchPolicyConfig"> | boolean
+    rolloutPercentage?: IntFilter<"QcDispatchPolicyConfig"> | number
+    version?: IntFilter<"QcDispatchPolicyConfig"> | number
+    lastChangeNote?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    updatedBy?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchPolicyConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"QcDispatchPolicyConfig"> | Date | string
+    book?: XOR<BookNullableScalarRelationFilter, BookWhereInput> | null
+    revisions?: QcDispatchPolicyRevisionListRelationFilter
+  }, "id" | "scopeType_scopeKey">
+
+  export type QcDispatchPolicyConfigOrderByWithAggregationInput = {
+    id?: SortOrder
+    scopeType?: SortOrder
+    scopeKey?: SortOrder
+    bookId?: SortOrderInput | SortOrder
+    policy?: SortOrder
+    isActive?: SortOrder
+    rolloutPercentage?: SortOrder
+    version?: SortOrder
+    lastChangeNote?: SortOrderInput | SortOrder
+    updatedBy?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: QcDispatchPolicyConfigCountOrderByAggregateInput
+    _avg?: QcDispatchPolicyConfigAvgOrderByAggregateInput
+    _max?: QcDispatchPolicyConfigMaxOrderByAggregateInput
+    _min?: QcDispatchPolicyConfigMinOrderByAggregateInput
+    _sum?: QcDispatchPolicyConfigSumOrderByAggregateInput
+  }
+
+  export type QcDispatchPolicyConfigScalarWhereWithAggregatesInput = {
+    AND?: QcDispatchPolicyConfigScalarWhereWithAggregatesInput | QcDispatchPolicyConfigScalarWhereWithAggregatesInput[]
+    OR?: QcDispatchPolicyConfigScalarWhereWithAggregatesInput[]
+    NOT?: QcDispatchPolicyConfigScalarWhereWithAggregatesInput | QcDispatchPolicyConfigScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"QcDispatchPolicyConfig"> | string
+    scopeType?: StringWithAggregatesFilter<"QcDispatchPolicyConfig"> | string
+    scopeKey?: StringWithAggregatesFilter<"QcDispatchPolicyConfig"> | string
+    bookId?: StringNullableWithAggregatesFilter<"QcDispatchPolicyConfig"> | string | null
+    policy?: JsonWithAggregatesFilter<"QcDispatchPolicyConfig">
+    isActive?: BoolWithAggregatesFilter<"QcDispatchPolicyConfig"> | boolean
+    rolloutPercentage?: IntWithAggregatesFilter<"QcDispatchPolicyConfig"> | number
+    version?: IntWithAggregatesFilter<"QcDispatchPolicyConfig"> | number
+    lastChangeNote?: StringNullableWithAggregatesFilter<"QcDispatchPolicyConfig"> | string | null
+    updatedBy?: StringNullableWithAggregatesFilter<"QcDispatchPolicyConfig"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"QcDispatchPolicyConfig"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"QcDispatchPolicyConfig"> | Date | string
+  }
+
+  export type QcDispatchPolicyRevisionWhereInput = {
+    AND?: QcDispatchPolicyRevisionWhereInput | QcDispatchPolicyRevisionWhereInput[]
+    OR?: QcDispatchPolicyRevisionWhereInput[]
+    NOT?: QcDispatchPolicyRevisionWhereInput | QcDispatchPolicyRevisionWhereInput[]
+    id?: StringFilter<"QcDispatchPolicyRevision"> | string
+    configId?: StringFilter<"QcDispatchPolicyRevision"> | string
+    version?: IntFilter<"QcDispatchPolicyRevision"> | number
+    changeType?: StringFilter<"QcDispatchPolicyRevision"> | string
+    snapshot?: JsonFilter<"QcDispatchPolicyRevision">
+    changedBy?: StringNullableFilter<"QcDispatchPolicyRevision"> | string | null
+    changeNote?: StringNullableFilter<"QcDispatchPolicyRevision"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchPolicyRevision"> | Date | string
+    config?: XOR<QcDispatchPolicyConfigScalarRelationFilter, QcDispatchPolicyConfigWhereInput>
+  }
+
+  export type QcDispatchPolicyRevisionOrderByWithRelationInput = {
+    id?: SortOrder
+    configId?: SortOrder
+    version?: SortOrder
+    changeType?: SortOrder
+    snapshot?: SortOrder
+    changedBy?: SortOrderInput | SortOrder
+    changeNote?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    config?: QcDispatchPolicyConfigOrderByWithRelationInput
+  }
+
+  export type QcDispatchPolicyRevisionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    configId_version?: QcDispatchPolicyRevisionConfigIdVersionCompoundUniqueInput
+    AND?: QcDispatchPolicyRevisionWhereInput | QcDispatchPolicyRevisionWhereInput[]
+    OR?: QcDispatchPolicyRevisionWhereInput[]
+    NOT?: QcDispatchPolicyRevisionWhereInput | QcDispatchPolicyRevisionWhereInput[]
+    configId?: StringFilter<"QcDispatchPolicyRevision"> | string
+    version?: IntFilter<"QcDispatchPolicyRevision"> | number
+    changeType?: StringFilter<"QcDispatchPolicyRevision"> | string
+    snapshot?: JsonFilter<"QcDispatchPolicyRevision">
+    changedBy?: StringNullableFilter<"QcDispatchPolicyRevision"> | string | null
+    changeNote?: StringNullableFilter<"QcDispatchPolicyRevision"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchPolicyRevision"> | Date | string
+    config?: XOR<QcDispatchPolicyConfigScalarRelationFilter, QcDispatchPolicyConfigWhereInput>
+  }, "id" | "configId_version">
+
+  export type QcDispatchPolicyRevisionOrderByWithAggregationInput = {
+    id?: SortOrder
+    configId?: SortOrder
+    version?: SortOrder
+    changeType?: SortOrder
+    snapshot?: SortOrder
+    changedBy?: SortOrderInput | SortOrder
+    changeNote?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: QcDispatchPolicyRevisionCountOrderByAggregateInput
+    _avg?: QcDispatchPolicyRevisionAvgOrderByAggregateInput
+    _max?: QcDispatchPolicyRevisionMaxOrderByAggregateInput
+    _min?: QcDispatchPolicyRevisionMinOrderByAggregateInput
+    _sum?: QcDispatchPolicyRevisionSumOrderByAggregateInput
+  }
+
+  export type QcDispatchPolicyRevisionScalarWhereWithAggregatesInput = {
+    AND?: QcDispatchPolicyRevisionScalarWhereWithAggregatesInput | QcDispatchPolicyRevisionScalarWhereWithAggregatesInput[]
+    OR?: QcDispatchPolicyRevisionScalarWhereWithAggregatesInput[]
+    NOT?: QcDispatchPolicyRevisionScalarWhereWithAggregatesInput | QcDispatchPolicyRevisionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"QcDispatchPolicyRevision"> | string
+    configId?: StringWithAggregatesFilter<"QcDispatchPolicyRevision"> | string
+    version?: IntWithAggregatesFilter<"QcDispatchPolicyRevision"> | number
+    changeType?: StringWithAggregatesFilter<"QcDispatchPolicyRevision"> | string
+    snapshot?: JsonWithAggregatesFilter<"QcDispatchPolicyRevision">
+    changedBy?: StringNullableWithAggregatesFilter<"QcDispatchPolicyRevision"> | string | null
+    changeNote?: StringNullableWithAggregatesFilter<"QcDispatchPolicyRevision"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"QcDispatchPolicyRevision"> | Date | string
+  }
+
   export type ChapterQualityAuditWhereInput = {
     AND?: ChapterQualityAuditWhereInput | ChapterQualityAuditWhereInput[]
     OR?: ChapterQualityAuditWhereInput[]
@@ -32288,6 +35139,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -32313,12 +35166,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -32344,12 +35200,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -32375,12 +35234,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -32406,12 +35268,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type BookCreateManyInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -32431,6 +35296,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -32450,6 +35317,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -34727,6 +37596,190 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type QcDispatchPolicyConfigCreateInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book?: BookCreateNestedOneWithoutDispatchPolicyConfigsInput
+    revisions?: QcDispatchPolicyRevisionCreateNestedManyWithoutConfigInput
+  }
+
+  export type QcDispatchPolicyConfigUncheckedCreateInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    bookId?: string | null
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisions?: QcDispatchPolicyRevisionUncheckedCreateNestedManyWithoutConfigInput
+  }
+
+  export type QcDispatchPolicyConfigUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneWithoutDispatchPolicyConfigsNestedInput
+    revisions?: QcDispatchPolicyRevisionUpdateManyWithoutConfigNestedInput
+  }
+
+  export type QcDispatchPolicyConfigUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    bookId?: NullableStringFieldUpdateOperationsInput | string | null
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisions?: QcDispatchPolicyRevisionUncheckedUpdateManyWithoutConfigNestedInput
+  }
+
+  export type QcDispatchPolicyConfigCreateManyInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    bookId?: string | null
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchPolicyConfigUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyConfigUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    bookId?: NullableStringFieldUpdateOperationsInput | string | null
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyRevisionCreateInput = {
+    id?: string
+    version: number
+    changeType: string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: string | null
+    changeNote?: string | null
+    createdAt?: Date | string
+    config: QcDispatchPolicyConfigCreateNestedOneWithoutRevisionsInput
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedCreateInput = {
+    id?: string
+    configId: string
+    version: number
+    changeType: string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: string | null
+    changeNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type QcDispatchPolicyRevisionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    changeType?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    changeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    config?: QcDispatchPolicyConfigUpdateOneRequiredWithoutRevisionsNestedInput
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    configId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    changeType?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    changeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyRevisionCreateManyInput = {
+    id?: string
+    configId: string
+    version: number
+    changeType: string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: string | null
+    changeNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type QcDispatchPolicyRevisionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    changeType?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    changeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    configId?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    changeType?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    changeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ChapterQualityAuditCreateInput = {
     id?: string
     auditBatchId: string
@@ -35020,6 +38073,12 @@ export namespace Prisma {
     none?: QcDispatchAlertEventWhereInput
   }
 
+  export type QcDispatchPolicyConfigListRelationFilter = {
+    every?: QcDispatchPolicyConfigWhereInput
+    some?: QcDispatchPolicyConfigWhereInput
+    none?: QcDispatchPolicyConfigWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -35073,10 +38132,16 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type QcDispatchPolicyConfigOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type BookCountOrderByAggregateInput = {
     id?: SortOrder
     title?: SortOrder
     author?: SortOrder
+    tenantId?: SortOrder
+    projectId?: SortOrder
     originalFilename?: SortOrder
     uploadedFilePath?: SortOrder
     fileSize?: SortOrder
@@ -35104,6 +38169,8 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     author?: SortOrder
+    tenantId?: SortOrder
+    projectId?: SortOrder
     originalFilename?: SortOrder
     uploadedFilePath?: SortOrder
     fileSize?: SortOrder
@@ -35122,6 +38189,8 @@ export namespace Prisma {
     id?: SortOrder
     title?: SortOrder
     author?: SortOrder
+    tenantId?: SortOrder
+    projectId?: SortOrder
     originalFilename?: SortOrder
     uploadedFilePath?: SortOrder
     fileSize?: SortOrder
@@ -36635,6 +39704,128 @@ export namespace Prisma {
     triggerCount?: SortOrder
   }
 
+  export type BookNullableScalarRelationFilter = {
+    is?: BookWhereInput | null
+    isNot?: BookWhereInput | null
+  }
+
+  export type QcDispatchPolicyRevisionListRelationFilter = {
+    every?: QcDispatchPolicyRevisionWhereInput
+    some?: QcDispatchPolicyRevisionWhereInput
+    none?: QcDispatchPolicyRevisionWhereInput
+  }
+
+  export type QcDispatchPolicyRevisionOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type QcDispatchPolicyConfigScopeTypeScopeKeyCompoundUniqueInput = {
+    scopeType: string
+    scopeKey: string
+  }
+
+  export type QcDispatchPolicyConfigCountOrderByAggregateInput = {
+    id?: SortOrder
+    scopeType?: SortOrder
+    scopeKey?: SortOrder
+    bookId?: SortOrder
+    policy?: SortOrder
+    isActive?: SortOrder
+    rolloutPercentage?: SortOrder
+    version?: SortOrder
+    lastChangeNote?: SortOrder
+    updatedBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QcDispatchPolicyConfigAvgOrderByAggregateInput = {
+    rolloutPercentage?: SortOrder
+    version?: SortOrder
+  }
+
+  export type QcDispatchPolicyConfigMaxOrderByAggregateInput = {
+    id?: SortOrder
+    scopeType?: SortOrder
+    scopeKey?: SortOrder
+    bookId?: SortOrder
+    isActive?: SortOrder
+    rolloutPercentage?: SortOrder
+    version?: SortOrder
+    lastChangeNote?: SortOrder
+    updatedBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QcDispatchPolicyConfigMinOrderByAggregateInput = {
+    id?: SortOrder
+    scopeType?: SortOrder
+    scopeKey?: SortOrder
+    bookId?: SortOrder
+    isActive?: SortOrder
+    rolloutPercentage?: SortOrder
+    version?: SortOrder
+    lastChangeNote?: SortOrder
+    updatedBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type QcDispatchPolicyConfigSumOrderByAggregateInput = {
+    rolloutPercentage?: SortOrder
+    version?: SortOrder
+  }
+
+  export type QcDispatchPolicyConfigScalarRelationFilter = {
+    is?: QcDispatchPolicyConfigWhereInput
+    isNot?: QcDispatchPolicyConfigWhereInput
+  }
+
+  export type QcDispatchPolicyRevisionConfigIdVersionCompoundUniqueInput = {
+    configId: string
+    version: number
+  }
+
+  export type QcDispatchPolicyRevisionCountOrderByAggregateInput = {
+    id?: SortOrder
+    configId?: SortOrder
+    version?: SortOrder
+    changeType?: SortOrder
+    snapshot?: SortOrder
+    changedBy?: SortOrder
+    changeNote?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type QcDispatchPolicyRevisionAvgOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type QcDispatchPolicyRevisionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    configId?: SortOrder
+    version?: SortOrder
+    changeType?: SortOrder
+    changedBy?: SortOrder
+    changeNote?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type QcDispatchPolicyRevisionMinOrderByAggregateInput = {
+    id?: SortOrder
+    configId?: SortOrder
+    version?: SortOrder
+    changeType?: SortOrder
+    changedBy?: SortOrder
+    changeNote?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type QcDispatchPolicyRevisionSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
   export type ChapterScalarRelationFilter = {
     is?: ChapterWhereInput
     isNot?: ChapterWhereInput
@@ -36786,6 +39977,13 @@ export namespace Prisma {
     connect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
   }
 
+  export type QcDispatchPolicyConfigCreateNestedManyWithoutBookInput = {
+    create?: XOR<QcDispatchPolicyConfigCreateWithoutBookInput, QcDispatchPolicyConfigUncheckedCreateWithoutBookInput> | QcDispatchPolicyConfigCreateWithoutBookInput[] | QcDispatchPolicyConfigUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchPolicyConfigCreateOrConnectWithoutBookInput | QcDispatchPolicyConfigCreateOrConnectWithoutBookInput[]
+    createMany?: QcDispatchPolicyConfigCreateManyBookInputEnvelope
+    connect?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+  }
+
   export type AudioFileUncheckedCreateNestedManyWithoutBookInput = {
     create?: XOR<AudioFileCreateWithoutBookInput, AudioFileUncheckedCreateWithoutBookInput> | AudioFileCreateWithoutBookInput[] | AudioFileUncheckedCreateWithoutBookInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutBookInput | AudioFileCreateOrConnectWithoutBookInput[]
@@ -36868,6 +40066,13 @@ export namespace Prisma {
     connectOrCreate?: QcDispatchAlertEventCreateOrConnectWithoutBookInput | QcDispatchAlertEventCreateOrConnectWithoutBookInput[]
     createMany?: QcDispatchAlertEventCreateManyBookInputEnvelope
     connect?: QcDispatchAlertEventWhereUniqueInput | QcDispatchAlertEventWhereUniqueInput[]
+  }
+
+  export type QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput = {
+    create?: XOR<QcDispatchPolicyConfigCreateWithoutBookInput, QcDispatchPolicyConfigUncheckedCreateWithoutBookInput> | QcDispatchPolicyConfigCreateWithoutBookInput[] | QcDispatchPolicyConfigUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchPolicyConfigCreateOrConnectWithoutBookInput | QcDispatchPolicyConfigCreateOrConnectWithoutBookInput[]
+    createMany?: QcDispatchPolicyConfigCreateManyBookInputEnvelope
+    connect?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -37074,6 +40279,20 @@ export namespace Prisma {
     deleteMany?: QcDispatchAlertEventScalarWhereInput | QcDispatchAlertEventScalarWhereInput[]
   }
 
+  export type QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput = {
+    create?: XOR<QcDispatchPolicyConfigCreateWithoutBookInput, QcDispatchPolicyConfigUncheckedCreateWithoutBookInput> | QcDispatchPolicyConfigCreateWithoutBookInput[] | QcDispatchPolicyConfigUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchPolicyConfigCreateOrConnectWithoutBookInput | QcDispatchPolicyConfigCreateOrConnectWithoutBookInput[]
+    upsert?: QcDispatchPolicyConfigUpsertWithWhereUniqueWithoutBookInput | QcDispatchPolicyConfigUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: QcDispatchPolicyConfigCreateManyBookInputEnvelope
+    set?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    disconnect?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    delete?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    connect?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    update?: QcDispatchPolicyConfigUpdateWithWhereUniqueWithoutBookInput | QcDispatchPolicyConfigUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: QcDispatchPolicyConfigUpdateManyWithWhereWithoutBookInput | QcDispatchPolicyConfigUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: QcDispatchPolicyConfigScalarWhereInput | QcDispatchPolicyConfigScalarWhereInput[]
+  }
+
   export type AudioFileUncheckedUpdateManyWithoutBookNestedInput = {
     create?: XOR<AudioFileCreateWithoutBookInput, AudioFileUncheckedCreateWithoutBookInput> | AudioFileCreateWithoutBookInput[] | AudioFileUncheckedCreateWithoutBookInput[]
     connectOrCreate?: AudioFileCreateOrConnectWithoutBookInput | AudioFileCreateOrConnectWithoutBookInput[]
@@ -37240,6 +40459,20 @@ export namespace Prisma {
     update?: QcDispatchAlertEventUpdateWithWhereUniqueWithoutBookInput | QcDispatchAlertEventUpdateWithWhereUniqueWithoutBookInput[]
     updateMany?: QcDispatchAlertEventUpdateManyWithWhereWithoutBookInput | QcDispatchAlertEventUpdateManyWithWhereWithoutBookInput[]
     deleteMany?: QcDispatchAlertEventScalarWhereInput | QcDispatchAlertEventScalarWhereInput[]
+  }
+
+  export type QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput = {
+    create?: XOR<QcDispatchPolicyConfigCreateWithoutBookInput, QcDispatchPolicyConfigUncheckedCreateWithoutBookInput> | QcDispatchPolicyConfigCreateWithoutBookInput[] | QcDispatchPolicyConfigUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: QcDispatchPolicyConfigCreateOrConnectWithoutBookInput | QcDispatchPolicyConfigCreateOrConnectWithoutBookInput[]
+    upsert?: QcDispatchPolicyConfigUpsertWithWhereUniqueWithoutBookInput | QcDispatchPolicyConfigUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: QcDispatchPolicyConfigCreateManyBookInputEnvelope
+    set?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    disconnect?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    delete?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    connect?: QcDispatchPolicyConfigWhereUniqueInput | QcDispatchPolicyConfigWhereUniqueInput[]
+    update?: QcDispatchPolicyConfigUpdateWithWhereUniqueWithoutBookInput | QcDispatchPolicyConfigUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: QcDispatchPolicyConfigUpdateManyWithWhereWithoutBookInput | QcDispatchPolicyConfigUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: QcDispatchPolicyConfigScalarWhereInput | QcDispatchPolicyConfigScalarWhereInput[]
   }
 
   export type BookCreateNestedOneWithoutChaptersInput = {
@@ -39416,6 +42649,78 @@ export namespace Prisma {
     update?: XOR<XOR<BookUpdateToOneWithWhereWithoutQcDispatchAlertsInput, BookUpdateWithoutQcDispatchAlertsInput>, BookUncheckedUpdateWithoutQcDispatchAlertsInput>
   }
 
+  export type BookCreateNestedOneWithoutDispatchPolicyConfigsInput = {
+    create?: XOR<BookCreateWithoutDispatchPolicyConfigsInput, BookUncheckedCreateWithoutDispatchPolicyConfigsInput>
+    connectOrCreate?: BookCreateOrConnectWithoutDispatchPolicyConfigsInput
+    connect?: BookWhereUniqueInput
+  }
+
+  export type QcDispatchPolicyRevisionCreateNestedManyWithoutConfigInput = {
+    create?: XOR<QcDispatchPolicyRevisionCreateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput> | QcDispatchPolicyRevisionCreateWithoutConfigInput[] | QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput[]
+    connectOrCreate?: QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput | QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput[]
+    createMany?: QcDispatchPolicyRevisionCreateManyConfigInputEnvelope
+    connect?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedCreateNestedManyWithoutConfigInput = {
+    create?: XOR<QcDispatchPolicyRevisionCreateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput> | QcDispatchPolicyRevisionCreateWithoutConfigInput[] | QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput[]
+    connectOrCreate?: QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput | QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput[]
+    createMany?: QcDispatchPolicyRevisionCreateManyConfigInputEnvelope
+    connect?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+  }
+
+  export type BookUpdateOneWithoutDispatchPolicyConfigsNestedInput = {
+    create?: XOR<BookCreateWithoutDispatchPolicyConfigsInput, BookUncheckedCreateWithoutDispatchPolicyConfigsInput>
+    connectOrCreate?: BookCreateOrConnectWithoutDispatchPolicyConfigsInput
+    upsert?: BookUpsertWithoutDispatchPolicyConfigsInput
+    disconnect?: BookWhereInput | boolean
+    delete?: BookWhereInput | boolean
+    connect?: BookWhereUniqueInput
+    update?: XOR<XOR<BookUpdateToOneWithWhereWithoutDispatchPolicyConfigsInput, BookUpdateWithoutDispatchPolicyConfigsInput>, BookUncheckedUpdateWithoutDispatchPolicyConfigsInput>
+  }
+
+  export type QcDispatchPolicyRevisionUpdateManyWithoutConfigNestedInput = {
+    create?: XOR<QcDispatchPolicyRevisionCreateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput> | QcDispatchPolicyRevisionCreateWithoutConfigInput[] | QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput[]
+    connectOrCreate?: QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput | QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput[]
+    upsert?: QcDispatchPolicyRevisionUpsertWithWhereUniqueWithoutConfigInput | QcDispatchPolicyRevisionUpsertWithWhereUniqueWithoutConfigInput[]
+    createMany?: QcDispatchPolicyRevisionCreateManyConfigInputEnvelope
+    set?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    disconnect?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    delete?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    connect?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    update?: QcDispatchPolicyRevisionUpdateWithWhereUniqueWithoutConfigInput | QcDispatchPolicyRevisionUpdateWithWhereUniqueWithoutConfigInput[]
+    updateMany?: QcDispatchPolicyRevisionUpdateManyWithWhereWithoutConfigInput | QcDispatchPolicyRevisionUpdateManyWithWhereWithoutConfigInput[]
+    deleteMany?: QcDispatchPolicyRevisionScalarWhereInput | QcDispatchPolicyRevisionScalarWhereInput[]
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedUpdateManyWithoutConfigNestedInput = {
+    create?: XOR<QcDispatchPolicyRevisionCreateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput> | QcDispatchPolicyRevisionCreateWithoutConfigInput[] | QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput[]
+    connectOrCreate?: QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput | QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput[]
+    upsert?: QcDispatchPolicyRevisionUpsertWithWhereUniqueWithoutConfigInput | QcDispatchPolicyRevisionUpsertWithWhereUniqueWithoutConfigInput[]
+    createMany?: QcDispatchPolicyRevisionCreateManyConfigInputEnvelope
+    set?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    disconnect?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    delete?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    connect?: QcDispatchPolicyRevisionWhereUniqueInput | QcDispatchPolicyRevisionWhereUniqueInput[]
+    update?: QcDispatchPolicyRevisionUpdateWithWhereUniqueWithoutConfigInput | QcDispatchPolicyRevisionUpdateWithWhereUniqueWithoutConfigInput[]
+    updateMany?: QcDispatchPolicyRevisionUpdateManyWithWhereWithoutConfigInput | QcDispatchPolicyRevisionUpdateManyWithWhereWithoutConfigInput[]
+    deleteMany?: QcDispatchPolicyRevisionScalarWhereInput | QcDispatchPolicyRevisionScalarWhereInput[]
+  }
+
+  export type QcDispatchPolicyConfigCreateNestedOneWithoutRevisionsInput = {
+    create?: XOR<QcDispatchPolicyConfigCreateWithoutRevisionsInput, QcDispatchPolicyConfigUncheckedCreateWithoutRevisionsInput>
+    connectOrCreate?: QcDispatchPolicyConfigCreateOrConnectWithoutRevisionsInput
+    connect?: QcDispatchPolicyConfigWhereUniqueInput
+  }
+
+  export type QcDispatchPolicyConfigUpdateOneRequiredWithoutRevisionsNestedInput = {
+    create?: XOR<QcDispatchPolicyConfigCreateWithoutRevisionsInput, QcDispatchPolicyConfigUncheckedCreateWithoutRevisionsInput>
+    connectOrCreate?: QcDispatchPolicyConfigCreateOrConnectWithoutRevisionsInput
+    upsert?: QcDispatchPolicyConfigUpsertWithoutRevisionsInput
+    connect?: QcDispatchPolicyConfigWhereUniqueInput
+    update?: XOR<XOR<QcDispatchPolicyConfigUpdateToOneWithWhereWithoutRevisionsInput, QcDispatchPolicyConfigUpdateWithoutRevisionsInput>, QcDispatchPolicyConfigUncheckedUpdateWithoutRevisionsInput>
+  }
+
   export type BookCreateNestedOneWithoutChapterQualityAuditsInput = {
     create?: XOR<BookCreateWithoutChapterQualityAuditsInput, BookUncheckedCreateWithoutChapterQualityAuditsInput>
     connectOrCreate?: BookCreateOrConnectWithoutChapterQualityAuditsInput
@@ -40411,6 +43716,46 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type QcDispatchPolicyConfigCreateWithoutBookInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisions?: QcDispatchPolicyRevisionCreateNestedManyWithoutConfigInput
+  }
+
+  export type QcDispatchPolicyConfigUncheckedCreateWithoutBookInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    revisions?: QcDispatchPolicyRevisionUncheckedCreateNestedManyWithoutConfigInput
+  }
+
+  export type QcDispatchPolicyConfigCreateOrConnectWithoutBookInput = {
+    where: QcDispatchPolicyConfigWhereUniqueInput
+    create: XOR<QcDispatchPolicyConfigCreateWithoutBookInput, QcDispatchPolicyConfigUncheckedCreateWithoutBookInput>
+  }
+
+  export type QcDispatchPolicyConfigCreateManyBookInputEnvelope = {
+    data: QcDispatchPolicyConfigCreateManyBookInput | QcDispatchPolicyConfigCreateManyBookInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AudioFileUpsertWithWhereUniqueWithoutBookInput = {
     where: AudioFileWhereUniqueInput
     update: XOR<AudioFileUpdateWithoutBookInput, AudioFileUncheckedUpdateWithoutBookInput>
@@ -40874,10 +44219,46 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"QcDispatchAlertEvent"> | Date | string
   }
 
+  export type QcDispatchPolicyConfigUpsertWithWhereUniqueWithoutBookInput = {
+    where: QcDispatchPolicyConfigWhereUniqueInput
+    update: XOR<QcDispatchPolicyConfigUpdateWithoutBookInput, QcDispatchPolicyConfigUncheckedUpdateWithoutBookInput>
+    create: XOR<QcDispatchPolicyConfigCreateWithoutBookInput, QcDispatchPolicyConfigUncheckedCreateWithoutBookInput>
+  }
+
+  export type QcDispatchPolicyConfigUpdateWithWhereUniqueWithoutBookInput = {
+    where: QcDispatchPolicyConfigWhereUniqueInput
+    data: XOR<QcDispatchPolicyConfigUpdateWithoutBookInput, QcDispatchPolicyConfigUncheckedUpdateWithoutBookInput>
+  }
+
+  export type QcDispatchPolicyConfigUpdateManyWithWhereWithoutBookInput = {
+    where: QcDispatchPolicyConfigScalarWhereInput
+    data: XOR<QcDispatchPolicyConfigUpdateManyMutationInput, QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookInput>
+  }
+
+  export type QcDispatchPolicyConfigScalarWhereInput = {
+    AND?: QcDispatchPolicyConfigScalarWhereInput | QcDispatchPolicyConfigScalarWhereInput[]
+    OR?: QcDispatchPolicyConfigScalarWhereInput[]
+    NOT?: QcDispatchPolicyConfigScalarWhereInput | QcDispatchPolicyConfigScalarWhereInput[]
+    id?: StringFilter<"QcDispatchPolicyConfig"> | string
+    scopeType?: StringFilter<"QcDispatchPolicyConfig"> | string
+    scopeKey?: StringFilter<"QcDispatchPolicyConfig"> | string
+    bookId?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    policy?: JsonFilter<"QcDispatchPolicyConfig">
+    isActive?: BoolFilter<"QcDispatchPolicyConfig"> | boolean
+    rolloutPercentage?: IntFilter<"QcDispatchPolicyConfig"> | number
+    version?: IntFilter<"QcDispatchPolicyConfig"> | number
+    lastChangeNote?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    updatedBy?: StringNullableFilter<"QcDispatchPolicyConfig"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchPolicyConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"QcDispatchPolicyConfig"> | Date | string
+  }
+
   export type BookCreateWithoutChaptersInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -40902,12 +44283,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutChaptersInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -40932,6 +44316,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutChaptersInput = {
@@ -41340,6 +44725,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -41364,12 +44751,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutChaptersInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -41394,6 +44784,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type TextSegmentUpsertWithWhereUniqueWithoutChapterInput = {
@@ -41594,6 +44985,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -41618,12 +45011,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutCharacterProfilesInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -41648,6 +45044,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutCharacterProfilesInput = {
@@ -41848,6 +45245,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -41872,12 +45271,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutCharacterProfilesInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -41902,6 +45304,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterVoiceBindingUpsertWithWhereUniqueWithoutCharacterInput = {
@@ -42695,6 +46098,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -42719,12 +46124,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutTextSegmentsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -42749,6 +46157,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutTextSegmentsInput = {
@@ -42902,6 +46311,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -42926,12 +46337,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutTextSegmentsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -42956,6 +46370,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutSegmentsInput = {
@@ -43249,6 +46664,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -43273,12 +46690,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutScriptSentencesInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -43303,6 +46723,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutScriptSentencesInput = {
@@ -43536,6 +46957,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -43560,12 +46983,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutScriptSentencesInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -43590,6 +47016,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterProfileUpsertWithoutScriptSentencesInput = {
@@ -43761,6 +47188,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -43785,12 +47214,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutAudioFilesInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -43815,6 +47247,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutAudioFilesInput = {
@@ -44197,6 +47630,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -44221,12 +47656,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutAudioFilesInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -44251,6 +47689,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type TextSegmentUpsertWithoutAudioFilesInput = {
@@ -44523,6 +47962,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -44547,12 +47988,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutMergeAuditsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -44577,6 +48021,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutMergeAuditsInput = {
@@ -44697,6 +48142,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -44721,12 +48168,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutMergeAuditsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -44751,6 +48201,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterProfileUpsertWithoutMergeAuditsSourceInput = {
@@ -44867,6 +48318,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -44891,12 +48344,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutProcessingTasksInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -44921,6 +48377,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutProcessingTasksInput = {
@@ -44943,6 +48400,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -44967,12 +48426,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutProcessingTasksInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -44997,6 +48459,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type CharacterSpeakerBindingCreateWithoutSpeakerProfileInput = {
@@ -45722,6 +49185,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -45746,12 +49211,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutSynthesisAttemptsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -45776,6 +49244,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutSynthesisAttemptsInput = {
@@ -46193,6 +49662,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -46217,12 +49688,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutSynthesisAttemptsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -46247,6 +49721,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutSynthesisAttemptsInput = {
@@ -46614,6 +50089,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -46638,12 +50115,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutQualityCheckResultsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -46668,6 +50148,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutQualityCheckResultsInput = {
@@ -47011,6 +50492,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -47035,12 +50518,15 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutQualityCheckResultsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -47065,6 +50551,7 @@ export namespace Prisma {
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutQualityCheckResultsInput = {
@@ -47388,6 +50875,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -47412,12 +50901,15 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutManualReviewItemsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -47442,6 +50934,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutManualReviewItemsInput = {
@@ -47782,6 +51275,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -47806,12 +51301,15 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutManualReviewItemsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -47836,6 +51334,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutManualReviewItemsInput = {
@@ -48196,6 +51695,8 @@ export namespace Prisma {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -48220,12 +51721,15 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutQcDispatchAlertsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -48250,6 +51754,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutQcDispatchAlertsInput = {
@@ -48272,6 +51777,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -48296,12 +51803,15 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutQcDispatchAlertsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -48326,12 +51836,299 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
+  }
+
+  export type BookCreateWithoutDispatchPolicyConfigsInput = {
+    id?: string
+    title: string
+    author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
+    synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
+    qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
+    manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
+    chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+  }
+
+  export type BookUncheckedCreateWithoutDispatchPolicyConfigsInput = {
+    id?: string
+    title: string
+    author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
+    synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
+    qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
+    manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
+    chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+  }
+
+  export type BookCreateOrConnectWithoutDispatchPolicyConfigsInput = {
+    where: BookWhereUniqueInput
+    create: XOR<BookCreateWithoutDispatchPolicyConfigsInput, BookUncheckedCreateWithoutDispatchPolicyConfigsInput>
+  }
+
+  export type QcDispatchPolicyRevisionCreateWithoutConfigInput = {
+    id?: string
+    version: number
+    changeType: string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: string | null
+    changeNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput = {
+    id?: string
+    version: number
+    changeType: string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: string | null
+    changeNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type QcDispatchPolicyRevisionCreateOrConnectWithoutConfigInput = {
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+    create: XOR<QcDispatchPolicyRevisionCreateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput>
+  }
+
+  export type QcDispatchPolicyRevisionCreateManyConfigInputEnvelope = {
+    data: QcDispatchPolicyRevisionCreateManyConfigInput | QcDispatchPolicyRevisionCreateManyConfigInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type BookUpsertWithoutDispatchPolicyConfigsInput = {
+    update: XOR<BookUpdateWithoutDispatchPolicyConfigsInput, BookUncheckedUpdateWithoutDispatchPolicyConfigsInput>
+    create: XOR<BookCreateWithoutDispatchPolicyConfigsInput, BookUncheckedCreateWithoutDispatchPolicyConfigsInput>
+    where?: BookWhereInput
+  }
+
+  export type BookUpdateToOneWithWhereWithoutDispatchPolicyConfigsInput = {
+    where?: BookWhereInput
+    data: XOR<BookUpdateWithoutDispatchPolicyConfigsInput, BookUncheckedUpdateWithoutDispatchPolicyConfigsInput>
+  }
+
+  export type BookUpdateWithoutDispatchPolicyConfigsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
+    synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
+    qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
+    manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
+    chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+  }
+
+  export type BookUncheckedUpdateWithoutDispatchPolicyConfigsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
+    synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
+    qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
+    manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
+    chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+  }
+
+  export type QcDispatchPolicyRevisionUpsertWithWhereUniqueWithoutConfigInput = {
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+    update: XOR<QcDispatchPolicyRevisionUpdateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedUpdateWithoutConfigInput>
+    create: XOR<QcDispatchPolicyRevisionCreateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedCreateWithoutConfigInput>
+  }
+
+  export type QcDispatchPolicyRevisionUpdateWithWhereUniqueWithoutConfigInput = {
+    where: QcDispatchPolicyRevisionWhereUniqueInput
+    data: XOR<QcDispatchPolicyRevisionUpdateWithoutConfigInput, QcDispatchPolicyRevisionUncheckedUpdateWithoutConfigInput>
+  }
+
+  export type QcDispatchPolicyRevisionUpdateManyWithWhereWithoutConfigInput = {
+    where: QcDispatchPolicyRevisionScalarWhereInput
+    data: XOR<QcDispatchPolicyRevisionUpdateManyMutationInput, QcDispatchPolicyRevisionUncheckedUpdateManyWithoutConfigInput>
+  }
+
+  export type QcDispatchPolicyRevisionScalarWhereInput = {
+    AND?: QcDispatchPolicyRevisionScalarWhereInput | QcDispatchPolicyRevisionScalarWhereInput[]
+    OR?: QcDispatchPolicyRevisionScalarWhereInput[]
+    NOT?: QcDispatchPolicyRevisionScalarWhereInput | QcDispatchPolicyRevisionScalarWhereInput[]
+    id?: StringFilter<"QcDispatchPolicyRevision"> | string
+    configId?: StringFilter<"QcDispatchPolicyRevision"> | string
+    version?: IntFilter<"QcDispatchPolicyRevision"> | number
+    changeType?: StringFilter<"QcDispatchPolicyRevision"> | string
+    snapshot?: JsonFilter<"QcDispatchPolicyRevision">
+    changedBy?: StringNullableFilter<"QcDispatchPolicyRevision"> | string | null
+    changeNote?: StringNullableFilter<"QcDispatchPolicyRevision"> | string | null
+    createdAt?: DateTimeFilter<"QcDispatchPolicyRevision"> | Date | string
+  }
+
+  export type QcDispatchPolicyConfigCreateWithoutRevisionsInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    book?: BookCreateNestedOneWithoutDispatchPolicyConfigsInput
+  }
+
+  export type QcDispatchPolicyConfigUncheckedCreateWithoutRevisionsInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    bookId?: string | null
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchPolicyConfigCreateOrConnectWithoutRevisionsInput = {
+    where: QcDispatchPolicyConfigWhereUniqueInput
+    create: XOR<QcDispatchPolicyConfigCreateWithoutRevisionsInput, QcDispatchPolicyConfigUncheckedCreateWithoutRevisionsInput>
+  }
+
+  export type QcDispatchPolicyConfigUpsertWithoutRevisionsInput = {
+    update: XOR<QcDispatchPolicyConfigUpdateWithoutRevisionsInput, QcDispatchPolicyConfigUncheckedUpdateWithoutRevisionsInput>
+    create: XOR<QcDispatchPolicyConfigCreateWithoutRevisionsInput, QcDispatchPolicyConfigUncheckedCreateWithoutRevisionsInput>
+    where?: QcDispatchPolicyConfigWhereInput
+  }
+
+  export type QcDispatchPolicyConfigUpdateToOneWithWhereWithoutRevisionsInput = {
+    where?: QcDispatchPolicyConfigWhereInput
+    data: XOR<QcDispatchPolicyConfigUpdateWithoutRevisionsInput, QcDispatchPolicyConfigUncheckedUpdateWithoutRevisionsInput>
+  }
+
+  export type QcDispatchPolicyConfigUpdateWithoutRevisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    book?: BookUpdateOneWithoutDispatchPolicyConfigsNestedInput
+  }
+
+  export type QcDispatchPolicyConfigUncheckedUpdateWithoutRevisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    bookId?: NullableStringFieldUpdateOperationsInput | string | null
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type BookCreateWithoutChapterQualityAuditsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -48356,12 +52153,15 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
   }
 
   export type BookUncheckedCreateWithoutChapterQualityAuditsInput = {
     id?: string
     title: string
     author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
     originalFilename?: string | null
     uploadedFilePath?: string | null
     fileSize?: bigint | number | null
@@ -48386,6 +52186,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
     manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
   }
 
   export type BookCreateOrConnectWithoutChapterQualityAuditsInput = {
@@ -48459,6 +52260,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -48483,12 +52286,15 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
   }
 
   export type BookUncheckedUpdateWithoutChapterQualityAuditsInput = {
     id?: StringFieldUpdateOperationsInput | string
     title?: StringFieldUpdateOperationsInput | string
     author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
     originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
     uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
     fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
@@ -48513,6 +52319,7 @@ export namespace Prisma {
     qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
     manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
   }
 
   export type ChapterUpsertWithoutQualityAuditsInput = {
@@ -48791,6 +52598,20 @@ export namespace Prisma {
     resolvedAt?: Date | string | null
     resolvedBy?: string | null
     resolutionNote?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type QcDispatchPolicyConfigCreateManyBookInput = {
+    id?: string
+    scopeType: string
+    scopeKey: string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: boolean
+    rolloutPercentage?: number
+    version?: number
+    lastChangeNote?: string | null
+    updatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -49516,6 +53337,50 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     resolvedBy?: NullableStringFieldUpdateOperationsInput | string | null
     resolutionNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyConfigUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisions?: QcDispatchPolicyRevisionUpdateManyWithoutConfigNestedInput
+  }
+
+  export type QcDispatchPolicyConfigUncheckedUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    revisions?: QcDispatchPolicyRevisionUncheckedUpdateManyWithoutConfigNestedInput
+  }
+
+  export type QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    scopeType?: StringFieldUpdateOperationsInput | string
+    scopeKey?: StringFieldUpdateOperationsInput | string
+    policy?: JsonNullValueInput | InputJsonValue
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    rolloutPercentage?: IntFieldUpdateOperationsInput | number
+    version?: IntFieldUpdateOperationsInput | number
+    lastChangeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -52218,6 +56083,46 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyRevisionCreateManyConfigInput = {
+    id?: string
+    version: number
+    changeType: string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: string | null
+    changeNote?: string | null
+    createdAt?: Date | string
+  }
+
+  export type QcDispatchPolicyRevisionUpdateWithoutConfigInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    changeType?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    changeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedUpdateWithoutConfigInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    changeType?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    changeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type QcDispatchPolicyRevisionUncheckedUpdateManyWithoutConfigInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    changeType?: StringFieldUpdateOperationsInput | string
+    snapshot?: JsonNullValueInput | InputJsonValue
+    changedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    changeNote?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 

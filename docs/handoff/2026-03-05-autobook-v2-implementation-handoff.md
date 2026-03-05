@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S21 全部完成，已完成第十一轮（告警运营闭环首版）；待推进 S22-S24。
+- 当前进度：S0-S22 全部完成，已完成第十二轮（策略配置中心化）；待推进 S23-S24。
 
-## 总体目标回顾与现状判断（2026-03-05 19:35 CST）
+## 总体目标回顾与现状判断（2026-03-05 20:18 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -21,7 +21,7 @@
 | M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
 | M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
 | M3（Deep Gate + 人工复核工作台） | 🔄 部分完成 | 复核 API 已完成；Q4/Q5、`chapter_quality_audit` 执行链路、复核工作台 UI 仍未落地。 |
-| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、生命周期与 Webhook 通知已就绪；缺配置中心化与策略治理 UI。 |
+| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook 通知与 `dispatchPolicy` 配置中心已就绪；缺 SLO 看板与策略治理 UI。 |
 
 ## 已完成内容
 
@@ -205,19 +205,37 @@
 - 闭环能力：
   - 告警从“查询即算”升级为“扫描沉淀 + 生命周期管理 + 通知触达”。
 
+### 13) 第十二轮增量（S22：`dispatchPolicy` 配置中心化）
+
+- Prisma 扩展：
+  - 新增 `qc_dispatch_policy_configs`（三级 scope 配置主表，含 `isActive/rolloutPercentage/version`）。
+  - 新增 `qc_dispatch_policy_revisions`（create/update/rollback 审计快照）。
+  - `Book` 新增 `tenantId/projectId` 与 `dispatchPolicyConfigs` 反向关系。
+- 服务层落地：
+  - 新增 `qc-dispatch-policy.ts`，统一策略契约解析/合并/序列化。
+  - 新增 `qc-dispatch-policy-config-service`（拆分 parser/runtime/mutation）：
+    - `tenant -> project -> book -> request override` 运行时合并；
+    - `rolloutPercentage` 灰度命中；
+    - `expectedVersion` 乐观版本校验；
+    - 版本审计与指定版本回滚。
+  - `qc-retry-service` 切换策略来源到配置中心，移除 `book.metadata.qcRetryPolicy` 主入口依赖。
+  - 返工任务 metadata 增补 `dispatchPolicyScopes + dispatchPolicyContext`，便于回放与排障。
+- API 新增：
+  - `GET/PUT /api/books/[id]/qc/dispatch-policy`
+  - `POST /api/books/[id]/qc/dispatch-policy/rollback`
+
 ## 待完成内容
 
-1. `dispatchPolicy` 仍以 `book.metadata` 为主入口，缺租户/项目/书籍三级配置中心与管理 API。
-2. Deep Gate（Q4/Q5）与 `chapter_quality_audit` 未接入，Fast Gate 仍是启发式规则。
-3. 人工复核工作台暂无最小可用 UI（当前仅有 API 能力）。
+1. Deep Gate（Q4/Q5）与 `chapter_quality_audit` 未接入，Fast Gate 仍是启发式规则。
+2. 人工复核工作台暂无最小可用 UI（当前仅有 API 能力）。
+3. SLO/运营看板仍缺前端入口与策略治理交互面板。
 
-## 剩余任务优先级（建议，S22-S24）
+## 剩余任务优先级（建议，S23-S24）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S22 | 配置中心化 | `dispatchPolicy` 租户/项目/书籍三级配置模型 + 查询/更新 API + 运行时合并规则 | 不依赖 `book.metadata` 作为主入口；策略变更可审计、可灰度、可回滚 | 无 |
-| P1 | S23 | Deep Gate 与章节审计 | Q4（情绪匹配）/Q5（章节一致性）+ `chapter_quality_audit` 执行链路 + 阈值模板 | 质检结果包含 Q4/Q5 指标；支持章节级验收与返工决策；误报率可观测 | S22（策略模板复用） |
-| P2 | S24 | 人工复核与运营体验补齐 | 人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 | 复核操作可视化；关键指标（backlog/pass/retry）可日常运营使用 | S22/S23 输出可直接复用 |
+| P0 | S23 | Deep Gate 与章节审计 | Q4（情绪匹配）/Q5（章节一致性）+ `chapter_quality_audit` 执行链路 + 阈值模板 | 质检结果包含 Q4/Q5 指标；支持章节级验收与返工决策；误报率可观测 | S22（策略模板复用） |
+| P1 | S24 | 人工复核与运营体验补齐 | 人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 | 复核操作可视化；关键指标（backlog/pass/retry）可日常运营使用 | S22/S23 输出可直接复用 |
 
 ## 测试与验证结果
 
@@ -229,6 +247,7 @@
   - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-retry-service.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/qc-dispatch-policy-config-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-metrics-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-alert-service.test.ts`（新增）
@@ -238,6 +257,8 @@
 - 已执行：
   - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
   - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-policy-config-service.test.ts src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-policy-config-service.test.ts src/lib/__tests__/qc-retry-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-alert-event-service.test.ts src/lib/__tests__/qc-dispatch-alert-service.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-runner.test.ts src/lib/__tests__/task-replay-payload-auto.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-alert-service.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
@@ -252,6 +273,6 @@
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S22（P0）**：`dispatchPolicy` 配置中心化（租户/项目/书籍三级）+ 变更审计/灰度/回滚。
-2. 随后做 **S23（P1）**：Deep Gate（Q4/Q5 + 章节审计）能力上线。
-3. 最后做 **S24（P2）**：人工复核工作台与运营看板整合。
+1. 先做 **S23（P0）**：Deep Gate（Q4/Q5 + 章节审计）能力上线，并复用 S22 的策略模板。
+2. 随后做 **S24（P1）**：人工复核工作台与运营看板整合。
+3. 同步补充 SLO 与策略治理前端入口，形成运营侧闭环。

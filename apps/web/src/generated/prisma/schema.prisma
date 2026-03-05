@@ -10,37 +10,42 @@ datasource db {
 }
 
 model Book {
-  id                   String                 @id @default(uuid())
-  title                String
-  author               String?
-  originalFilename     String?
-  uploadedFilePath     String?
-  fileSize             BigInt?
-  totalWords           Int?
-  totalCharacters      Int                    @default(0)
-  totalSegments        Int                    @default(0)
-  totalChapters        Int                    @default(0)
-  encoding             String?
-  fileFormat           String?
-  status               String                 @default("uploaded")
-  metadata             Json                   @default("{}")
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime               @updatedAt
-  audioFiles           AudioFile[]
-  mergeAudits          CharacterMergeAudit[]
-  characterProfiles    CharacterProfile[]
-  processingTasks      ProcessingTask[]
-  scriptSentences      ScriptSentence[]
-  synthesisAttempts    SynthesisAttempt[]
-  textSegments         TextSegment[]
-  chapters             Chapter[]
-  qualityCheckResults  QualityCheckResult[]
-  manualReviewItems    ManualReviewItem[]
-  chapterQualityAudits ChapterQualityAudit[]
-  qcDispatchAlerts     QcDispatchAlertEvent[]
+  id                    String                   @id @default(uuid())
+  title                 String
+  author                String?
+  tenantId              String?
+  projectId             String?
+  originalFilename      String?
+  uploadedFilePath      String?
+  fileSize              BigInt?
+  totalWords            Int?
+  totalCharacters       Int                      @default(0)
+  totalSegments         Int                      @default(0)
+  totalChapters         Int                      @default(0)
+  encoding              String?
+  fileFormat            String?
+  status                String                   @default("uploaded")
+  metadata              Json                     @default("{}")
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  audioFiles            AudioFile[]
+  mergeAudits           CharacterMergeAudit[]
+  characterProfiles     CharacterProfile[]
+  processingTasks       ProcessingTask[]
+  scriptSentences       ScriptSentence[]
+  synthesisAttempts     SynthesisAttempt[]
+  textSegments          TextSegment[]
+  chapters              Chapter[]
+  qualityCheckResults   QualityCheckResult[]
+  manualReviewItems     ManualReviewItem[]
+  chapterQualityAudits  ChapterQualityAudit[]
+  qcDispatchAlerts      QcDispatchAlertEvent[]
+  dispatchPolicyConfigs QcDispatchPolicyConfig[]
 
   @@index([status, createdAt])
   @@index([author, createdAt])
+  @@index([tenantId, createdAt])
+  @@index([projectId, createdAt])
   @@map("books")
 }
 
@@ -527,6 +532,45 @@ model QcDispatchAlertEvent {
   @@index([bookId, alertCode, lastTriggeredAt])
   @@index([fingerprint, status])
   @@map("qc_dispatch_alert_events")
+}
+
+model QcDispatchPolicyConfig {
+  id                String                     @id @default(uuid())
+  scopeType         String
+  scopeKey          String
+  bookId            String?
+  policy            Json                       @default("{}")
+  isActive          Boolean                    @default(true)
+  rolloutPercentage Int                        @default(100)
+  version           Int                        @default(1)
+  lastChangeNote    String?
+  updatedBy         String?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+  book              Book?                      @relation(fields: [bookId], references: [id], onDelete: SetNull)
+  revisions         QcDispatchPolicyRevision[]
+
+  @@unique([scopeType, scopeKey])
+  @@index([scopeType, isActive])
+  @@index([bookId, scopeType])
+  @@map("qc_dispatch_policy_configs")
+}
+
+model QcDispatchPolicyRevision {
+  id         String                 @id @default(uuid())
+  configId   String
+  version    Int
+  changeType String
+  snapshot   Json                   @default("{}")
+  changedBy  String?
+  changeNote String?
+  createdAt  DateTime               @default(now())
+  config     QcDispatchPolicyConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, version])
+  @@index([configId, createdAt])
+  @@index([changeType, createdAt])
+  @@map("qc_dispatch_policy_revisions")
 }
 
 model ChapterQualityAudit {
