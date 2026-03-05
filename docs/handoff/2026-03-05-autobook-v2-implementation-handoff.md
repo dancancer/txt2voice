@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S17 全部完成，已进入第七轮（`qc_retry` 策略配置化 + 自动派单阈值收敛）。
+- 当前进度：S0-S18 全部完成，已进入第八轮（自动派单观测与 `source` 透传）。
 
 ## 已完成内容
 
@@ -116,10 +116,26 @@
   - 当累计次数超过 `maxAutoRejectedCount` 时，不再创建二次 `pending` 项，并回写 `secondaryDispatch=threshold_blocked`。
   - 质检汇总新增 `secondaryDispatchSkippedByThresholdCount`，用于监控阈值拦截量。
 
+### 9) 第八轮增量（自动派单观测指标）
+
+- 新增指标服务与 API：
+  - 新增 `qc-dispatch-metrics-service`，支持窗口聚合（默认 7 天，最大 90 天）。
+  - 新增 `GET /api/books/[id]/qc/dispatch-metrics`，支持 `days/source/issueType` 过滤。
+- 指标覆盖：
+  - `autoRejectedEventCount`
+  - `autoRejectedAccumulatedCount`
+  - `thresholdBlockedCount`
+  - `secondaryPendingCount`
+  - `qualityTaskSummary.secondaryDispatchCount`
+  - `qualityTaskSummary.secondaryDispatchSkippedByThresholdCount`
+- 数据透传补齐：
+  - `runQualityCheckTask` 在 `auto_rejected` 回写时补写 `issueDetail.source`。
+  - 二次 `secondary_pending` 复核项创建时同步写入 `issueDetail.source`，并在首次落入人工复核时补齐来源。
+
 ## 待完成内容
 
 1. 当前策略配置已支持“书籍元数据 + 请求级 + issueType”，但尚未下沉到租户级统一配置中心与管理 API。
-2. 已有 `maxAutoRejectedCount` 阈值，但还缺少全局熔断（例如按时间窗口/书籍维度停派）与告警策略。
+2. 已有聚合指标 API，但还缺少告警联动（例如 `thresholdBlockedCount` 突变告警）与全局熔断策略。
 3. 当前 Fast Gate 仍为轻量规则，需要后续接入真实 ASR/CER 与声纹模型。
 
 ## 测试与验证结果
@@ -133,7 +149,9 @@
   - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-retry-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/qc-dispatch-metrics-service.test.ts`（新增）
 - 已执行：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-metrics-service.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/qc-retry-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-retry-service.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
@@ -145,5 +163,5 @@
 ## 下一步建议（接手即做）
 
 1. 将策略配置从 `book.metadata` 产品化为“租户/项目/书籍”三级配置，并提供查询/更新 API。
-2. 在阈值基础上补全熔断机制（例如 `secondaryDispatch` 按时间窗口上限）并加监控告警。
+2. 基于 `GET /qc/dispatch-metrics` 增加告警任务（例如按天扫描 `thresholdBlockedCount` 与 `autoRejectedAccumulatedCount`）。
 3. 扩展 Deep Gate（Q4/Q5）与章节审计，并沉淀阈值模板（按引擎/角色类型）。

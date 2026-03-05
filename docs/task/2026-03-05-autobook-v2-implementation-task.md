@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S16（前六批改造）已完成，本次继续推进第七批策略化增量：
+S0-S17（前七批改造）已完成，本次继续推进第八批可观测性增量：
 
-1. 将 `autoCreatePendingOnReject` 从固定行为升级为可配置策略（支持书籍元数据 + 请求级覆盖 + issueType 粒度）。
-2. 在 `auto_rejected` 二次派单链路增加“累计失败次数阈值”控制，超过阈值后停止自动再派单。
-3. 确保 `qc_retry` 返工任务到后置 `QUALITY_CHECK` 任务的策略参数全链路透传。
+1. 增加 `autoRejectedCount` 看板指标查询能力，支持按 `issueType/source` 聚合。
+2. 新增质检二次派单指标 API，输出阈值拦截量与 `secondaryDispatch` 规模。
+3. 在 `auto_rejected/secondary_pending` 回写链路透传 `source`，减少指标统计丢上下文。
 4. 补齐测试、更新 task/handoff，并提交本轮增量。
 
 ## 2. 执行步骤
@@ -35,6 +35,7 @@ S0-S16（前六批改造）已完成，本次继续推进第七批策略化增�
 | S15 | `source=qc_retry` 自动后置 QC 联动 | ✅ 完成 | 返工音频任务成功后自动创建并入队 `QUALITY_CHECK(batch)`，失败场景自动回写复核项状态 |
 | S16 | `auto_rejected` 二次派单策略 + 测试回归 | ✅ 完成 | `rejected(auto_rejected)` 可按策略自动转新 `pending`，新增测试通过并完成文档回写 |
 | S17 | `qc_retry` 派单策略配置化 + 失败阈值落地 | ✅ 完成 | 支持 `dispatchPolicy`（书籍 + 请求 + issueType）并实现 `maxAutoRejectedCount` 阈值拦截，测试/回归/类型校验通过 |
+| S18 | 二次派单看板指标 API + `source` 透传 | ✅ 完成 | 提供 `GET /api/books/[id]/qc/dispatch-metrics`，并在质检回写中落库 `source` 字段，测试/回归/类型校验通过 |
 
 ## 3. 执行日志
 
@@ -304,8 +305,32 @@ S0-S16（前六批改造）已完成，本次继续推进第七批策略化增�
   2. 为 `autoRejectedCount` 增加看板指标（按 `issueType/source` 聚合）并做告警阈值。
   3. 继续推进 Deep Gate（Q4/Q5）与章节审计阈值模板化。
 
+### [S18] 二次派单看板指标 API + `source` 透传（2026-03-05 16:22 CST）
+
+- 完成内容：
+  1. 新增 `qc-dispatch-metrics-service`，支持窗口期聚合（默认 7 天，最大 90 天）：
+     - `autoRejectedEventCount`
+     - `autoRejectedAccumulatedCount`（累计重拒次数）
+     - `thresholdBlockedCount`
+     - `secondaryPendingCount`
+     - `qualityTaskSummary.secondaryDispatch*`
+  2. 新增 `GET /api/books/[id]/qc/dispatch-metrics`，支持 `days/source/issueType` 过滤并返回按 `issueType/source` 聚合结果。
+  3. `quality-check-runner` 在 `auto_rejected` 与二次 `secondary_pending` 回写链路补写 `issueDetail.source`，并在首次入复核时回写 `source`，保证指标聚合可追踪来源。
+  4. 新增/更新测试：
+     - 新增 `apps/web/src/lib/__tests__/qc-dispatch-metrics-service.test.ts`
+     - 更新 `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  5. 执行命令：
+     - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-dispatch-metrics-service.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/qc-retry-service.test.ts`
+     - `pnpm --filter web test:regression`
+     - `pnpm --filter web typecheck`
+  6. 结果：新增测试、回归测试与类型校验全部通过。
+- 下一步建议：
+  1. 把当前指标服务接入告警策略（例如 `thresholdBlockedCount` 日增突变告警）。
+  2. 补充租户/项目级 `dispatchPolicy` 配置中心，替代 `book.metadata` 作为主配置入口。
+  3. 继续推进 Deep Gate（Q4/Q5）与章节一致性审计落地。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate 当前使用轻量启发式规则，未接入真实 ASR/CER 与声纹模型。
-3. 已落地 `qc_retry` 自动后置 QC + 策略配置化 + 失败次数阈值；当前仍缺少租户级统一配置入口与管理 API。
+3. 已落地 `qc_retry` 自动后置 QC + 策略配置化 + 失败次数阈值 + 二次派单聚合指标 API；当前仍缺少租户级统一配置入口与告警联动。

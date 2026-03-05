@@ -135,6 +135,9 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       data: expect.objectContaining({
         status: "rejected",
         resolutionType: "auto_rejected",
+        issueDetail: expect.objectContaining({
+          source: "qc_retry",
+        }),
       }),
     });
     expect(tx.manualReviewItem.create).toHaveBeenCalledWith({
@@ -142,6 +145,9 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
         status: "pending",
         issueType: "FAST_GATE",
         sentenceId: "sentence-1",
+        issueDetail: expect.objectContaining({
+          source: "qc_retry",
+        }),
       }),
     });
     expect(mockMergeTaskData).toHaveBeenCalledWith(
@@ -214,6 +220,10 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       data: expect.objectContaining({
         status: "rejected",
         resolutionType: "auto_rejected",
+        issueDetail: expect.objectContaining({
+          source: "qc_retry",
+          secondaryDispatch: "threshold_blocked",
+        }),
       }),
     });
     expect(mockMergeTaskData).toHaveBeenCalledWith(

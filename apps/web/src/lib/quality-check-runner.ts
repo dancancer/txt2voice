@@ -237,6 +237,7 @@ const syncReprocessingManualReviewItems = async ({
   autoCreatePendingOnReject,
   maxAutoRejectedCount,
   issueTypePolicies,
+  source,
 }: {
   tx: Prisma.TransactionClient;
   bookId: string;
@@ -250,6 +251,7 @@ const syncReprocessingManualReviewItems = async ({
   autoCreatePendingOnReject: boolean;
   maxAutoRejectedCount: number | null;
   issueTypePolicies: Record<string, IssueTypeDispatchPolicy>;
+  source?: string | null;
 }): Promise<ReprocessingSyncResult> => {
   const where: Prisma.ManualReviewItemWhereInput = {
     bookId,
@@ -295,6 +297,7 @@ const syncReprocessingManualReviewItems = async ({
 
   const resolution = resolveReprocessingStatusFromVerdict(decision.verdict);
   const marker = `auto_qc:${decision.verdict};score=${decision.score};task=${taskId};qc=${qualityResultId}`;
+  const dispatchSource = source || "unknown";
   let secondarySkippedByThresholdCount = 0;
   const secondaryDispatchCandidates: Array<{
     item: (typeof reprocessingItems)[number];
@@ -331,6 +334,7 @@ const syncReprocessingManualReviewItems = async ({
       score: decision.score,
       verdict: decision.verdict,
       syncedByTaskId: taskId,
+      source: dispatchSource,
       autoRejectedCount: nextAutoRejectedCount,
     };
 
@@ -418,6 +422,7 @@ const syncReprocessingManualReviewItems = async ({
             repairPlan: decision.repairPlan,
             score: decision.score,
             verdict: decision.verdict,
+            source: dispatchSource,
             sourceReviewItemId: item.id,
             dispatch: "secondary_pending",
             dispatchedByTaskId: taskId,
@@ -710,6 +715,7 @@ export async function runQualityCheckTask({
         autoCreatePendingOnReject: taskContext.autoCreatePendingOnReject,
         maxAutoRejectedCount: taskContext.maxAutoRejectedCount,
         issueTypePolicies: taskContext.issueTypePolicies,
+        source: taskContext.source,
       });
       secondaryDispatchCount += reprocessingSync.secondaryPendingCount;
       secondaryDispatchSkippedByThresholdCount +=
@@ -745,6 +751,7 @@ export async function runQualityCheckTask({
                 reasons: decision.reasons,
                 repairPlan: decision.repairPlan,
                 score: decision.score,
+                source: taskContext.source || "unknown",
               } as Prisma.InputJsonValue,
             },
           });
