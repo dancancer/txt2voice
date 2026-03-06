@@ -27,6 +27,11 @@ export interface CalibrationSample {
   fallbackUsed: boolean;
 }
 
+export interface CalibrationSampleWithReference extends CalibrationSample {
+  audioFileId: string;
+  qualityResultId: string | null;
+}
+
 export interface RateSummaryBucket {
   total: number;
   falsePositiveCount: number;
@@ -71,6 +76,22 @@ export interface DeepGateCalibrationReportRecord {
   candidateSummary: EvaluationSummary | null;
   comparison: EvaluationComparison | null;
   publishedVersion: number | null;
+  sampleSetId: string | null;
+  replayTaskId: string | null;
+  replayTaskStatus: "queued" | "completed" | "failed" | null;
+}
+
+export interface DeepGateCalibrationSampleSetRecord {
+  id: string;
+  createdAt: string;
+  createdBy: string | null;
+  sampleLimit: number;
+  sampleSize: number;
+  source: string;
+  audioFileIds: string[];
+  qualityResultIds: string[];
+  samples: CalibrationSampleWithReference[];
+  latestReplayTaskId: string | null;
 }
 
 export interface DeepGateThresholdReleaseRecord {
@@ -91,15 +112,20 @@ export interface DeepGateThresholdReleaseRecord {
 export interface DeepGateThresholdGovernanceState {
   reports: DeepGateCalibrationReportRecord[];
   releases: DeepGateThresholdReleaseRecord[];
+  sampleSets: DeepGateCalibrationSampleSetRecord[];
   activeVersion: number;
   activeReleaseId: string | null;
+  lastEvaluatedReportId: string | null;
 }
 
 export interface EvaluateDeepGateCalibrationPayload {
   sampleLimit: number;
   samples: CalibrationSample[] | null;
+  sampleSetId: string | null;
   baselineTemplate: DeepGateThresholdTemplate | null;
   candidateTemplate: DeepGateThresholdTemplate | null;
+  createReplayTask: boolean;
+  replayDryRun: boolean;
   createdBy: string | null;
   reviewedBy: string | null;
   changeNote: string | null;
@@ -120,4 +146,3 @@ export interface RollbackDeepGateCalibrationPayload {
   changeNote: string | null;
   expectedVersion: number | null;
 }
-

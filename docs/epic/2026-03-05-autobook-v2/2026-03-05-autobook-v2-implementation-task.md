@@ -768,7 +768,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 
 1. S29 已完成运行时接入，但当前 engine health 仍基于近 24h 合成尝试统计，尚未接入独立健康探针与外部可用性信号。
 2. S30 已打通 Q0-Q3 指标化判定，但 CER/声纹原始信号仍依赖上游 `attempt.metrics` 或任务 payload 注入，尚未接入独立 ASR/embedding 生产任务。
-3. S27 已落地治理闭环 V1（metadata 审计链路），但“评估样本集标准化 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”仍待补齐（S27.1）。
+3. S27.1 已补齐“评估样本集标准化 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”，当前阈值治理链路已具备固定样本回放能力。
 4. 上传自动触发虽已落地，但失败补偿尚未任务化（S28.1），仍存在漏触发窗口。
 5. 告警扫描虽已支持 API 入口，但默认仍依赖外部调度触发，需要补运营侧定时任务编排。
 
@@ -786,14 +786,14 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，手工触发/上传触发已统一；剩余补偿重试与灰度控制待完善。 |
 | M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | `qc/retry`、二次派单、Engine Router v1 与 Q0-Q3 指标化已具备；但 CER/声纹原始信号生产仍待任务化接入。 |
-| M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Q4/Q5、复核 UI、批量处置与阈值治理 API 已上线；但评估样本集标准化与任务化回放仍需补齐。 |
+| M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Q4/Q5、复核 UI、批量处置与阈值治理 API 已上线；评估样本集与任务化回放已补齐，剩余交付任务语义与 SLO 产品化收口。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 侧看板与事件处置已上线；核心 SLO 指标体系与告警尚未完整产品化。 |
 
 ### 5.3 目标 gap 列表（聚焦）
 
 1. `G1`：上传触发虽然已自动化，但“触发失败后的补偿重试”尚未任务化，仍可能出现漏触发窗口。
 2. `G2`：Q0-Q3 虽已指标化，但 CER/声纹信号仍未形成独立生产任务（ASR/embedding）与 SLA 保障。
-3. `G3`：S27 目前使用 metadata 审计链路，尚未完成“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
+3. `G3`：已关闭，固定评估样本集与 `QUALITY_CHECK(source=calibration_eval)` 任务化回放已落地。
 4. `G4`：计划中 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
 5. `G5`：核心 SLO（`pipeline_success_rate` 等）尚未形成统一指标 API + 告警闭环。
 
@@ -801,7 +801,6 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S27.1 | 阈值治理链路任务化补齐 | 把评估样本集标准化并接入 `QUALITY_CHECK(source=calibration_eval)` 回放 | 阈值评估可重放、可审计、可复盘 | S27 |
 | P0 | S28.1 | 上传触发补偿任务化 | 上传触发失败后自动创建补偿任务并重试 | 上传触发失败可自动收敛，漏触发率可观测 | S28 |
 | P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务化产线并回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可监控、可追溯 | S30 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要的复核同步任务） | 合并交付阶段可独立重放与审计 | S28-S30 |
@@ -809,7 +808,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 
 ### 5.5 推荐执行顺序（下一轮）
 
-1. **S27.1 + S28.1（P0）**：并行补阈值治理任务化回放和上传触发补偿任务，先补“可回放 + 可收敛”底线能力。
+1. **S28.1（P0）**：补上传触发补偿任务，继续夯实“可回放 + 可收敛”底线能力。
 2. **S30.1（P1）**：补 ASR/CER + 声纹 embedding 的稳定信号产线，把 Q0-Q3 指标从“可消费”推进到“稳定供给”。
 3. **S31 + S32（P2）**：收口交付任务语义与 SLO 运营验收。
 
@@ -824,7 +823,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 ### 5.7 本次文档同步说明
 
 1. 已同步追加 S30 实施日志、验收结果与关键文件索引。
-2. 已将优先级从 “S30 主线” 切换为 “S27.1/S28.1 收敛主线 + S30.1 信号生产补齐”。
+2. 已将优先级从 “S30 主线” 切换为 “S28.1 收敛主线 + S30.1 信号生产补齐”。
 3. 已同步更新 handoff 文档，确保接手人可直接按新优先级执行。
 
 ### 5.8 S27-S32 实施卡（可执行拆分）
@@ -840,5 +839,34 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 
 1. 进度确认：S26（复核运营自动化）-> S27（阈值治理）-> S28（上传自动触发）-> S29（Engine Router）-> S30（Q0-Q3 指标化）五轮已按计划闭环完成。
 2. 方向一致性：与 `full-automation-plan` 原始目标保持一致（自动链路、质量闭环、可运营），没有出现偏离主需求的旁支开发。
-3. 差距定位：当前主要差距已收敛到“任务化补偿（S27.1/S28.1）+ 信号稳定供给（S30.1）+ 交付/SLO 收口（S31/S32）”。
+3. 差距定位：当前主要差距已收敛到“任务化补偿（S28.1）+ 信号稳定供给（S30.1）+ 交付/SLO 收口（S31/S32）”。
 4. 下一轮策略：先补“可回放 + 可收敛”基础设施，再推进 `FINAL_ASSEMBLY` 与核心 SLO 产品化，避免先做展示层而底层不稳。
+
+
+### [S27.1] 固化评估样本集 + `calibration_eval` 任务化回放（2026-03-06 17:08 CST）
+
+- 完成内容：
+  1. 扩展 `deep-gate-calibration-governance`：新增 `sampleSets`、`report.sampleSetId/replayTaskId/replayTaskStatus`，让阈值评估、样本集和回放任务形成可追溯闭环。
+  2. `evaluateDeepGateCalibrationForBook` 默认会从历史 `quality_check_results` 固化评估样本集，并自动创建 `QUALITY_CHECK(batch)` 回放任务，元数据标记 `source=calibration_eval`。
+  3. `quality-check-runner` 新增 `calibration_eval` 干跑模式：回放结果写入 `quality_check_results.detail.calibrationLabel` 与任务摘要，但不会回写 `audio_files`、不会创建/更新 `manual_review_items`、不会写 `chapter_quality_audits`、不会覆盖书籍主质检摘要。
+  4. `task-queue/worker-state` 失败路径识别 `calibration_eval`，失败时不再降级书籍状态，并把治理报告回写为 `replayTaskStatus=failed`。
+- 关键文件：
+  - `apps/web/src/lib/deep-gate-calibration-governance/types.ts`
+  - `apps/web/src/lib/deep-gate-calibration-governance/parsers.ts`
+  - `apps/web/src/lib/deep-gate-calibration-governance/service.ts`
+  - `apps/web/src/lib/deep-gate-calibration-governance-service.ts`
+  - `apps/web/src/lib/quality-check-runner.ts`
+  - `apps/web/src/lib/task-queue/worker-state.ts`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/deep-gate-calibration-governance-service.test.ts`
+  - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/deep-gate-calibration-governance-service.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增单测、类型校验、lint 与回归测试全部通过；S27.1 已收敛，`G3` 关闭。
+- 下一步建议：
+  1. 执行 `S28.1`：上传自动触发失败补偿任务化，继续补“可收敛”底线能力。
+  2. 执行 `S30.1`：把 ASR/CER + speaker embedding 改成稳定供给任务，解决 Q0-Q3 信号 SLA 问题。
+  3. 执行 `S31`：落地 `FINAL_ASSEMBLY/MANUAL_REVIEW_SYNC`，收口交付阶段可重放闭环。

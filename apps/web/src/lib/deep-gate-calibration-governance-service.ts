@@ -125,16 +125,24 @@ export const parseEvaluateDeepGateCalibrationPayload = (
       `sampleLimit 必须在 ${MIN_SAMPLE_LIMIT}-${MAX_SAMPLE_LIMIT} 之间`
     );
   }
+  const sampleSetId = asString(payload.sampleSetId) || null;
+  const samples = normalizeSamples(payload.samples);
+  if (sampleSetId && samples) {
+    throw new ValidationError("sampleSetId 与 samples 不能同时传入");
+  }
 
   return {
     sampleLimit,
-    samples: normalizeSamples(payload.samples),
+    samples,
+    sampleSetId,
     baselineTemplate: payload.baselineTemplate
       ? normalizeTemplate(payload.baselineTemplate, DEFAULT_DEEP_GATE_TEMPLATE)
       : null,
     candidateTemplate: payload.candidateTemplate
       ? normalizeTemplate(payload.candidateTemplate, DEFAULT_DEEP_GATE_TEMPLATE)
       : null,
+    createReplayTask: asBoolean(payload.createReplayTask) ?? true,
+    replayDryRun: asBoolean(payload.replayDryRun) ?? true,
     createdBy: normalizeOperator({
       value: payload.createdBy || payload.operator,
       path: "createdBy",

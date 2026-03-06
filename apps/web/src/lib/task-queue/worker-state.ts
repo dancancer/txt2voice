@@ -1,6 +1,7 @@
 import type Bull from "bull";
 import prisma from "@/lib/prisma";
-import { mergeTaskData } from "@/lib/processing-task-utils";
+import { jsonObject, mergeTaskData } from "@/lib/processing-task-utils";
+import { readGovernanceState } from "@/lib/deep-gate-calibration-governance/parsers";
 import type { QueueTaskType } from "./replay-payload";
 
 export type BookFallbackStatus =
@@ -119,6 +120,27 @@ export async function markTaskFailed(
   message: string,
   metadata: Record<string, unknown>
 ): Promise<void> {
+  const taskSnapshot = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: { taskData: true },
+  });
+  const taskRoot = jsonObject(taskSnapshot?.taskData);
+  const taskMetadata =
+    taskRoot.metadata && typeof taskRoot.metadata === "object" && !Array.isArray(taskRoot.metadata)
+      ? (taskRoot.metadata as Record<string, unknown>)
+      : {};
+  const isCalibrationEval = taskMetadata.source === "calibration_eval";
+  const calibrationEval =
+    taskMetadata.calibrationEval &&
+    typeof taskMetadata.calibrationEval === "object" &&
+    !Array.isArray(taskMetadata.calibrationEval)
+      ? (taskMetadata.calibrationEval as Record<string, unknown>)
+      : null;
+  const reportId =
+    calibrationEval && typeof calibrationEval.reportId === "string"
+      ? calibrationEval.reportId
+      : null;
+
   const taskData = await mergeTaskData(taskId, {
     message: "任务执行失败",
     metadata,
@@ -133,6 +155,60 @@ export async function markTaskFailed(
       taskData,
     },
   });
+
+  if (isCalibrationEval) {
+    if (reportId) {
+      const book = await prisma.book.findUnique({
+        where: { id: bookId },
+        select: { metadata: true },
+      });
+      const { rootMetadata, qualityCheckMetadata, governance } = readGovernanceState(
+        book?.metadata
+      );
+      const nextReports = governance.reports.map((report) =>
+        report.id === reportId
+          ? {
+              ...report,
+              replayTaskId: taskId,
+              replayTaskStatus: "failed",
+            }
+          : report
+      );
+      const targetSampleSetId = nextReports.find((report) => report.id === reportId)?.sampleSetId;
+      const nextSampleSets = governance.sampleSets.map((sampleSet) =>
+        sampleSet.id === targetSampleSetId
+          ? {
+              ...sampleSet,
+              latestReplayTaskId: taskId,
+            }
+          : sampleSet
+      );
+
+      await prisma.book.update({
+        where: { id: bookId },
+        data: {
+          metadata: JSON.parse(
+            JSON.stringify({
+              ...rootMetadata,
+              qualityCheck: {
+                ...qualityCheckMetadata,
+                deepGateThresholdGovernance: {
+                  reports: nextReports,
+                  releases: governance.releases,
+                  sampleSets: nextSampleSets,
+                  activeVersion: governance.activeVersion,
+                  activeReleaseId: governance.activeReleaseId,
+                  updatedAt: new Date().toISOString(),
+                  lastEvaluatedReportId: governance.lastEvaluatedReportId,
+                },
+              },
+            })
+          ),
+        },
+      });
+    }
+    return;
+  }
 
   await prisma.book.update({
     where: { id: bookId },

@@ -12,10 +12,23 @@ jest.mock("@/lib/prisma", () => ({
     qualityCheckResult: {
       findMany: jest.fn(),
     },
+    processingTask: {
+      create: jest.fn(),
+      update: jest.fn(),
+    },
   },
 }));
 
+jest.mock("@/lib/task-queue", () => ({
+  enqueueQualityCheckJob: jest.fn(),
+}));
+
+jest.mock("@/lib/processing-task-utils", () => ({
+  mergeTaskData: jest.fn(async (_taskId: string, updates: unknown) => updates),
+}));
+
 import prisma from "@/lib/prisma";
+import { enqueueQualityCheckJob } from "@/lib/task-queue";
 import { ValidationError } from "@/lib/error-handler";
 import {
   evaluateDeepGateCalibrationForBook,
@@ -29,6 +42,11 @@ import {
 const mockFindBook = (prisma as any).book.findUnique as jest.Mock;
 const mockUpdateBook = (prisma as any).book.update as jest.Mock;
 const mockFindQualityResults = (prisma as any).qualityCheckResult.findMany as jest.Mock;
+const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
+const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
+const mockEnqueueQualityCheckJob = enqueueQualityCheckJob as jest.MockedFunction<
+  typeof enqueueQualityCheckJob
+>;
 
 const baseBookRecord = {
   id: "book-1",
@@ -55,8 +73,10 @@ const baseBookRecord = {
       deepGateThresholdGovernance: {
         reports: [],
         releases: [],
+        sampleSets: [],
         activeVersion: 0,
         activeReleaseId: null,
+        lastEvaluatedReportId: null,
       },
     },
   },
@@ -67,6 +87,14 @@ describe("deep-gate-calibration-governance-service", () => {
     jest.clearAllMocks();
     mockUpdateBook.mockResolvedValue({});
     mockFindQualityResults.mockResolvedValue([]);
+    mockCreateTask.mockResolvedValue({ id: "qc-calibration-task-1" });
+    mockUpdateTask.mockResolvedValue({});
+    mockEnqueueQualityCheckJob.mockResolvedValue({
+      jobId: "qc-calibration-task-1",
+      dedupeKey: "quality:book-1:calibration",
+      reused: false,
+      state: "waiting",
+    });
   });
 
   it("should parse evaluate payload and reject invalid sampleLimit", () => {
@@ -75,6 +103,21 @@ describe("deep-gate-calibration-governance-service", () => {
         sampleLimit: 1,
       })
     ).toThrow(ValidationError);
+  });
+
+  it("should reject sampleSetId and samples together", () => {
+    expect(() =>
+      parseEvaluateDeepGateCalibrationPayload({
+        sampleSetId: "sample-set-1",
+        samples: [
+          {
+            q4Score: 88,
+            q5Score: 86,
+            expectedVerdict: "pass",
+          },
+        ],
+      })
+    ).toThrow("sampleSetId 与 samples 不能同时传入");
   });
 
   it("should evaluate calibration report with inline samples", async () => {
@@ -141,6 +184,93 @@ describe("deep-gate-calibration-governance-service", () => {
       },
     });
     expect(mockFindQualityResults).not.toHaveBeenCalled();
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(result.replayTaskId).toBeNull();
+  });
+
+  it("should create sample set and enqueue calibration replay task", async () => {
+    mockFindBook.mockResolvedValueOnce(baseBookRecord);
+    mockFindQualityResults.mockResolvedValueOnce([
+      {
+        id: "qc-history-1",
+        audioFileId: "audio-1",
+        verdict: "manual_review",
+        metrics: {
+          q4Score: 48,
+          q5Score: 52,
+        },
+        detail: {
+          issueType: "EMOTION",
+          source: "manual_review",
+        },
+      },
+      {
+        id: "qc-history-2",
+        audioFileId: "audio-2",
+        verdict: "pass",
+        metrics: {
+          q4Score: 91,
+          q5Score: 90,
+        },
+        detail: {
+          issueType: "CONTINUITY",
+          source: "upload_auto_pipeline",
+        },
+      },
+    ]);
+
+    const payload = parseEvaluateDeepGateCalibrationPayload({
+      createdBy: "ops",
+      reviewedBy: "qa",
+      sampleLimit: 20,
+      createReplayTask: true,
+      replayDryRun: true,
+    });
+
+    const result = await evaluateDeepGateCalibrationForBook({
+      bookId: "book-1",
+      payload,
+    });
+
+    expect(result.report.sampleSetId).toBeTruthy();
+    expect(result.report.replayTaskId).toBe("qc-calibration-task-1");
+    expect(result.report.replayTaskStatus).toBe("queued");
+    expect(result.replayTaskId).toBe("qc-calibration-task-1");
+    expect(mockCreateTask).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookId: "book-1",
+        taskType: "QUALITY_CHECK",
+      }),
+    });
+    expect(mockEnqueueQualityCheckJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        taskId: "qc-calibration-task-1",
+        bookId: "book-1",
+        type: "batch",
+        audioFileIds: ["audio-1", "audio-2"],
+      }),
+      expect.objectContaining({
+        allowReuse: false,
+        reason: "calibration_evaluate",
+      })
+    );
+    expect(mockUpdateBook).toHaveBeenCalledWith({
+      where: { id: "book-1" },
+      data: {
+        metadata: expect.objectContaining({
+          qualityCheck: expect.objectContaining({
+            deepGateThresholdGovernance: expect.objectContaining({
+              sampleSets: expect.arrayContaining([
+                expect.objectContaining({
+                  id: result.report.sampleSetId,
+                  latestReplayTaskId: "qc-calibration-task-1",
+                }),
+              ]),
+            }),
+          }),
+        }),
+      },
+    });
   });
 
   it("should publish report as new active threshold version", async () => {

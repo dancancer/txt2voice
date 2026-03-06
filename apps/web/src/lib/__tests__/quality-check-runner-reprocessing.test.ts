@@ -322,4 +322,134 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       })
     );
   });
+
+  it("should keep calibration_eval in dry-run mode without touching production state", async () => {
+    mockTaskFindUnique.mockResolvedValueOnce({
+      taskData: {
+        metadata: {
+          source: "calibration_eval",
+          calibrationEval: {
+            enabled: true,
+            dryRun: true,
+            reportId: "report-1",
+            sampleSetId: "sample-set-1",
+            sampleLabels: [
+              {
+                audioFileId: "audio-1",
+                expectedVerdict: "manual_review",
+                issueType: "EMOTION",
+                source: "manual_review",
+              },
+            ],
+          },
+        },
+      },
+    });
+    mockBookFindUnique.mockResolvedValueOnce({
+      metadata: {
+        qualityCheck: {
+          deepGateThresholdGovernance: {
+            reports: [
+              {
+                id: "report-1",
+                status: "evaluated",
+                createdAt: "2026-03-06T12:00:00.000Z",
+                sampleSize: 1,
+                baselineTemplate: {},
+                candidateTemplate: {},
+                baselineSummary: {},
+                candidateSummary: {},
+                comparison: {},
+                publishedVersion: null,
+                sampleSetId: "sample-set-1",
+                replayTaskId: "qc-old",
+                replayTaskStatus: "queued",
+              },
+            ],
+            releases: [],
+            sampleSets: [
+              {
+                id: "sample-set-1",
+                createdAt: "2026-03-06T12:00:00.000Z",
+                createdBy: "ops",
+                sampleLimit: 20,
+                sampleSize: 1,
+                source: "quality_results_snapshot",
+                audioFileIds: ["audio-1"],
+                qualityResultIds: ["qc-history-1"],
+                samples: [],
+                latestReplayTaskId: "qc-old",
+              },
+            ],
+            activeVersion: 0,
+            activeReleaseId: null,
+            lastEvaluatedReportId: "report-1",
+          },
+        },
+      },
+    });
+
+    const tx = {
+      qualityCheckResult: {
+        create: jest.fn().mockResolvedValue({ id: "qc-calibration-1" }),
+      },
+      audioFile: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      manualReviewItem: {
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn().mockResolvedValue({}),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({}),
+      },
+    };
+
+    mockTransaction.mockImplementation(async (callback: (innerTx: any) => Promise<unknown>) => {
+      return callback(tx as any);
+    });
+
+    await runQualityCheckTask({
+      taskId: "quality-task-calibration-1",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-1"],
+    });
+
+    expect(tx.audioFile.update).not.toHaveBeenCalled();
+    expect(tx.manualReviewItem.findMany).not.toHaveBeenCalled();
+    expect(mockChapterAuditCreate).not.toHaveBeenCalled();
+    expect(mockMergeTaskData).toHaveBeenCalledWith(
+      "quality-task-calibration-1",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          source: "calibration_eval",
+          calibrationEval: expect.objectContaining({
+            enabled: true,
+            reportId: "report-1",
+            sampleSetId: "sample-set-1",
+            labeledCount: 1,
+            exactMatchCount: 1,
+          }),
+        }),
+      })
+    );
+    expect(mockBookUpdate).toHaveBeenCalledWith({
+      where: { id: "book-1" },
+      data: {
+        metadata: expect.objectContaining({
+          qualityCheck: expect.objectContaining({
+            deepGateThresholdGovernance: expect.objectContaining({
+              reports: expect.arrayContaining([
+                expect.objectContaining({
+                  id: "report-1",
+                  replayTaskId: "quality-task-calibration-1",
+                  replayTaskStatus: "completed",
+                }),
+              ]),
+            }),
+          }),
+        }),
+      },
+    });
+  });
 });

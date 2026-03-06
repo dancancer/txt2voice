@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S30 功能实施已完成；S30（Q0-Q3 指标化升级）已落地，待推进 S27.1/S28.1/S30.1/S31/S32。
+- 当前进度：S0-S30 + S27.1 功能实施已完成；已补齐阈值治理任务化回放，待推进 S28.1/S30.1/S31/S32。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑。 |
 | M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环、Engine Router v1、Q0-Q3 指标化已具备；CER/声纹原始信号生产仍待任务化接入。 |
-| M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放仍需补齐。 |
+| M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放已补齐，剩余交付任务语义与 SLO 产品化收口。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测可用；核心 SLO 指标体系与告警仍需补齐。 |
 
 ## 已完成内容
@@ -367,16 +367,14 @@
 ## 待完成内容
 
 1. 上传自动触发已落地，但仍需补“触发失败补偿任务化”（S28.1），避免漏触发窗口。
-2. S27 当前为 metadata 审计闭环 V1，仍需补“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
 3. S30 已完成 Q0-Q3 指标化判定，但 CER/声纹原始信号生产仍依赖上游注入，需补 ASR/embedding 任务化供给（S30.1）。
 4. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务（S31）。
 5. 核心 SLO 指标（`pipeline_success_rate` 等）尚未形成统一 API + 告警闭环（S32）。
 
-## 剩余任务优先级（建议，S27.1-S32）
+## 剩余任务优先级（建议，S28.1-S32）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S27.1 | 阈值治理任务化补齐 | 固化评估样本集并接入 `QUALITY_CHECK(source=calibration_eval)` 回放链路 | 阈值评估可重放、可对比、可追溯 | S27 |
 | P0 | S28.1 | 上传触发补偿任务化 | 上传触发失败后创建补偿任务并自动重试 | 漏触发率可观测且可自动收敛 | S28 |
 | P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务并稳定回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可观测、可追溯 | S30 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
@@ -385,7 +383,7 @@
 ## 执行卡片索引（S27-S32）
 
 1. 详细执行卡：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。
-2. 接手执行顺序：S27.1/S28.1 -> S30.1 -> S31/S32。
+2. 接手执行顺序：S28.1 -> S30.1 -> S31/S32。
 3. 交接要求：每完成一项任务，必须同步更新实施卡中的“API 变更”和“验收结果”。
 
 ## 测试与验证结果
@@ -464,6 +462,29 @@
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S27.1 + S28.1（P0）**：补齐阈值治理任务化回放与上传触发补偿任务，先收敛“可回放 + 可收敛”底线能力。
+1. 先做 **S28.1（P0）**：补齐上传触发补偿任务，继续收敛“可回放 + 可收敛”底线能力。
 2. 再做 **S30.1（P1）**：接入 ASR/CER + 声纹 embedding 稳定供给链路，解决 Q0-Q3 信号来源 SLA 问题。
 3. 收尾执行 **S31 + S32（P2）**：补 `FINAL_ASSEMBLY` 任务化与核心 SLO 指标产品化，完成运营验收。
+
+
+### 22) 第二十一轮增量（S27.1：评估样本集 + 任务化回放）
+
+- 阈值治理样本集固化：
+  - `deep-gate-calibration-governance` 新增 `sampleSets` 元数据结构，保存 `audioFileIds/qualityResultIds/samples/latestReplayTaskId`；
+  - 评估报告新增 `sampleSetId/replayTaskId/replayTaskStatus`，后续回放与发布都可追溯到固定样本集。
+- 评估入口升级：
+  - `POST /api/books/[id]/qc/deep-gate/calibration/evaluate` 现支持 `sampleSetId/createReplayTask/replayDryRun`；
+  - 默认会从历史 `quality_check_results` 固化样本集，并自动创建 `QUALITY_CHECK(batch, source=calibration_eval)` 回放任务。
+- `QUALITY_CHECK(calibration_eval)` 干跑隔离：
+  - `quality-check-runner` 会为回放结果写入 `calibrationLabel`，但不会回写 `audio_files`、不会创建/更新 `manual_review_items`、不会写 `chapter_quality_audits`、不会覆盖书籍主 `qualityCheck` 摘要；
+  - 仅保留任务摘要与 `quality_check_results` 审计痕迹，避免离线评估污染生产状态。
+- 失败路径补齐：
+  - `task-queue/worker-state` 识别 `source=calibration_eval`，失败时不再把书籍状态降级到 `completed_with_errors`；
+  - 同时会回写治理元数据中的 `replayTaskStatus=failed`，避免报告长期停留在 `queued`。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/deep-gate-calibration-governance-service.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 执行 `S28.1`：上传触发失败补偿任务化，补齐 Auto Pipeline 漏触发收敛链路；
+  2. 执行 `S30.1`：把 ASR/CER 与 speaker embedding 变成稳定信号生产任务，而不是依赖上游注入；
+  3. 执行 `S31`：落地 `FINAL_ASSEMBLY`/必要的复核同步任务，收口交付阶段的可重放语义。

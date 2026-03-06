@@ -9,7 +9,9 @@ import {
   QualityGateVerdict,
 } from "@/lib/quality-gate/types";
 import {
+  CalibrationSampleWithReference,
   DeepGateCalibrationReportRecord,
+  DeepGateCalibrationSampleSetRecord,
   DeepGateThresholdGovernanceState,
   DeepGateThresholdReleaseRecord,
   EvaluationComparison,
@@ -196,10 +198,106 @@ const parseReportRecords = (value: unknown): DeepGateCalibrationReportRecord[] =
         candidateSummary: toSummary(record.candidateSummary),
         comparison: toComparison(record.comparison),
         publishedVersion: asInteger(record.publishedVersion) || null,
+        sampleSetId: asString(record.sampleSetId) || null,
+        replayTaskId: asString(record.replayTaskId) || null,
+        replayTaskStatus:
+          asString(record.replayTaskStatus) === "queued" ||
+          asString(record.replayTaskStatus) === "completed" ||
+          asString(record.replayTaskStatus) === "failed"
+            ? (asString(record.replayTaskStatus) as "queued" | "completed" | "failed")
+            : null,
       };
       return normalized;
     })
     .filter((record): record is DeepGateCalibrationReportRecord => Boolean(record));
+};
+
+const parseSampleWithReference = (
+  value: unknown
+): CalibrationSampleWithReference | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const audioFileId = asString(record.audioFileId);
+  const expectedVerdict = parseVerdict(record.expectedVerdict);
+  const q4Score = asNumber(record.q4Score);
+  const q5Score = asNumber(record.q5Score);
+
+  if (!audioFileId || !expectedVerdict || q4Score === undefined || q5Score === undefined) {
+    return null;
+  }
+
+  return {
+    audioFileId,
+    qualityResultId: asString(record.qualityResultId) || null,
+    q4Score: clampScore(q4Score),
+    q5Score: clampScore(q5Score),
+    expectedVerdict,
+    issueType: (asString(record.issueType) || "UNKNOWN").toUpperCase(),
+    source: (asString(record.source) || "unknown").toLowerCase(),
+    fallbackUsed: asBoolean(record.fallbackUsed) || false,
+  };
+};
+
+const parseSampleSetRecords = (value: unknown): DeepGateCalibrationSampleSetRecord[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => asRecord(item))
+    .filter((record): record is Record<string, unknown> => Boolean(record))
+    .map((record) => {
+      const id = asString(record.id);
+      const createdAt = asString(record.createdAt);
+      if (!id || !createdAt) {
+        return null;
+      }
+
+      const samples = Array.isArray(record.samples)
+        ? record.samples
+            .map((sample) => parseSampleWithReference(sample))
+            .filter((sample): sample is CalibrationSampleWithReference => Boolean(sample))
+        : [];
+      const audioFileIds =
+        Array.isArray(record.audioFileIds) && record.audioFileIds.length > 0
+          ? record.audioFileIds.filter((audioFileId): audioFileId is string =>
+              typeof audioFileId === "string" ? audioFileId.trim().length > 0 : false
+            )
+          : Array.from(new Set(samples.map((sample) => sample.audioFileId)));
+      const qualityResultIds =
+        Array.isArray(record.qualityResultIds) && record.qualityResultIds.length > 0
+          ? record.qualityResultIds.filter((qualityResultId): qualityResultId is string =>
+              typeof qualityResultId === "string"
+                ? qualityResultId.trim().length > 0
+                : false
+            )
+          : Array.from(
+              new Set(
+                samples
+                  .map((sample) => sample.qualityResultId)
+                  .filter((qualityResultId): qualityResultId is string =>
+                    typeof qualityResultId === "string"
+                  )
+              )
+            );
+
+      return {
+        id,
+        createdAt,
+        createdBy: asString(record.createdBy) || null,
+        sampleLimit: asInteger(record.sampleLimit) || samples.length,
+        sampleSize: asInteger(record.sampleSize) || samples.length,
+        source: (asString(record.source) || "quality_results_snapshot").toLowerCase(),
+        audioFileIds,
+        qualityResultIds,
+        samples,
+        latestReplayTaskId: asString(record.latestReplayTaskId) || null,
+      } satisfies DeepGateCalibrationSampleSetRecord;
+    })
+    .filter((record): record is DeepGateCalibrationSampleSetRecord => Boolean(record));
 };
 
 const parseReleaseRecords = (value: unknown): DeepGateThresholdReleaseRecord[] => {
@@ -254,6 +352,7 @@ export const readGovernanceState = (
   const governanceRecord = asRecord(qualityCheckMetadata.deepGateThresholdGovernance) || {};
   const reports = parseReportRecords(governanceRecord.reports);
   const releases = parseReleaseRecords(governanceRecord.releases);
+  const sampleSets = parseSampleSetRecords(governanceRecord.sampleSets);
   const computedActiveVersion = releases
     .filter((release) => release.status === "active")
     .reduce((maxVersion, release) => Math.max(maxVersion, release.version), 0);
@@ -264,8 +363,10 @@ export const readGovernanceState = (
     governance: {
       reports,
       releases,
+      sampleSets,
       activeVersion: asInteger(governanceRecord.activeVersion) || computedActiveVersion,
       activeReleaseId: asString(governanceRecord.activeReleaseId) || null,
+      lastEvaluatedReportId: asString(governanceRecord.lastEvaluatedReportId) || null,
     },
   };
 };
