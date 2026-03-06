@@ -32,10 +32,13 @@ import { ValidationError } from "@/lib/error-handler";
 import { enqueueAudioGenerationJob } from "@/lib/task-queue";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import {
+  parseManualReviewBatchResolvePayload,
   listManualReviewItems,
   parseManualReviewQuery,
   parseManualReviewResolvePayload,
+  resolveManualReviewItemsInBatch,
   resolveManualReviewItem,
+  toManualReviewCsv,
 } from "@/lib/manual-review-service";
 
 const mockCount = (prisma as any).manualReviewItem.count as jest.Mock;
@@ -135,6 +138,18 @@ describe("manual-review-service", () => {
       note: "重跑并复听",
       provider: "voxcpm",
       autoMerge: false,
+    });
+  });
+
+  it("should parse batch resolve payload", () => {
+    const payload = parseManualReviewBatchResolvePayload({
+      itemIds: ["review-1", "review-2", "review-1"],
+      action: "通过",
+    });
+
+    expect(payload).toMatchObject({
+      action: "approve",
+      itemIds: ["review-1", "review-2"],
     });
   });
 
@@ -256,6 +271,134 @@ describe("manual-review-service", () => {
       status: "processing",
     });
     expect(result.item.status).toBe("reprocessing");
+  });
+
+  it("should batch approve manual review items", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({ id: "review-11" }),
+      baseItem({ id: "review-12" }),
+    ]);
+    mockUpdate
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-11",
+          status: "resolved",
+          resolutionType: "approved",
+        })
+      )
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-12",
+          status: "resolved",
+          resolutionType: "approved",
+        })
+      );
+
+    const result = await resolveManualReviewItemsInBatch({
+      bookId: "book-1",
+      payload: {
+        itemIds: ["review-11", "review-12"],
+        action: "approve",
+        autoMerge: false,
+      },
+    });
+
+    expect(result.action).toBe("approve");
+    expect(result.processedCount).toBe(2);
+    expect(result.retryTask).toBeNull();
+    expect(mockCreateTask).not.toHaveBeenCalled();
+  });
+
+  it("should enqueue batch regenerate task for manual review items", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({ id: "review-21", sentenceId: "sentence-21" }),
+      baseItem({ id: "review-22", sentenceId: "sentence-22" }),
+    ]);
+    mockFindFirstTask.mockResolvedValueOnce(null);
+    mockCreateTask.mockResolvedValueOnce({
+      id: "task-manual-batch-1",
+      status: "processing",
+    });
+    mockEnqueueAudio.mockResolvedValueOnce({
+      jobId: "task-manual-batch-1",
+      dedupeKey: "audio:batch:sentence-21,sentence-22",
+      reused: false,
+      state: "waiting",
+    });
+    mockUpdate
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-21",
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+        })
+      )
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-22",
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+        })
+      );
+
+    const result = await resolveManualReviewItemsInBatch({
+      bookId: "book-1",
+      payload: {
+        itemIds: ["review-21", "review-22"],
+        action: "regenerate",
+        autoMerge: false,
+      },
+    });
+
+    expect(mockCreateTask).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookId: "book-1",
+        taskType: "AUDIO_GENERATION",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            source: "manual_review_batch",
+            selectedReviewItemIds: ["review-21", "review-22"],
+          }),
+        }),
+      }),
+    });
+    expect(mockEnqueueAudio).toHaveBeenCalledWith({
+      taskId: "task-manual-batch-1",
+      bookId: "book-1",
+      type: "batch",
+      scriptSentenceIds: ["sentence-21", "sentence-22"],
+      voiceProfileId: undefined,
+      autoMerge: false,
+      options: {
+        provider: undefined,
+        skipExisting: false,
+        overwriteExisting: true,
+      },
+    });
+    expect(result.retryTask).toMatchObject({
+      taskId: "task-manual-batch-1",
+      taskType: "AUDIO_GENERATION",
+      status: "processing",
+    });
+  });
+
+  it("should build manual review csv payload", () => {
+    const csv = toManualReviewCsv([
+      {
+        ...baseItem(),
+        sentence: {
+          id: "sentence-1",
+          text: "第一句台词",
+          roleType: "dialogue",
+          emotionLabel: "calm",
+          priority: "normal",
+        },
+      } as any,
+    ]);
+
+    expect(csv).toContain("itemId,status,issueType");
+    expect(csv).toContain("review-1");
+    expect(csv).toContain("第一句台词");
   });
 
   it("should fail regenerate when item has no sentenceId", async () => {

@@ -249,4 +249,77 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       })
     );
   });
+
+  it("should sync manual_review_batch reprocessing without secondary dispatch", async () => {
+    mockTaskFindUnique.mockResolvedValueOnce({
+      taskData: {
+        metadata: {
+          source: "manual_review_batch",
+          retryReviewItemIds: ["review-batch-1"],
+        },
+      },
+    });
+
+    const tx = {
+      qualityCheckResult: {
+        create: jest.fn().mockResolvedValue({ id: "qc-batch-1" }),
+      },
+      audioFile: {
+        update: jest.fn().mockResolvedValue({}),
+      },
+      chapterQualityAudit: {
+        create: jest.fn().mockResolvedValue({ id: "chapter-audit-batch-1" }),
+      },
+      manualReviewItem: {
+        findMany: jest.fn().mockResolvedValue([
+          {
+            id: "review-batch-1",
+            chapterId: "chapter-1",
+            segmentId: "segment-1",
+            sentenceId: "sentence-1",
+            issueType: "FAST_GATE",
+            priority: "normal",
+            assignedTo: "operator-b",
+            issueDetail: {
+              score: 63,
+            },
+            resolutionNote: "manual_review_batch_task:audio-task-11",
+          },
+        ]),
+        update: jest.fn().mockResolvedValue({}),
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: "review-batch-pending" }),
+      },
+    };
+
+    mockTransaction.mockImplementation(async (callback: (innerTx: any) => Promise<unknown>) => {
+      return callback(tx as any);
+    });
+
+    await runQualityCheckTask({
+      taskId: "quality-task-batch-1",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-1"],
+    });
+
+    expect(tx.manualReviewItem.update).toHaveBeenCalledWith({
+      where: { id: "review-batch-1" },
+      data: expect.objectContaining({
+        issueDetail: expect.objectContaining({
+          source: "manual_review_batch",
+        }),
+      }),
+    });
+    expect(tx.manualReviewItem.create).not.toHaveBeenCalled();
+    expect(mockMergeTaskData).toHaveBeenCalledWith(
+      "quality-task-batch-1",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          source: "manual_review_batch",
+          secondaryDispatchCount: 0,
+        }),
+      })
+    );
+  });
 });

@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S25 全部完成，已完成第十五轮（Deep Gate 模型运行时 + 阈值重标定）；待推进 S26。
+- 当前进度：S0-S26 全部完成，已完成第十六轮（复核运营自动化）；待推进 S27。
 
-## 总体目标回顾与现状判断（2026-03-06 10:48 CST）
+## 总体目标回顾与现状判断（2026-03-06 11:21 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -21,7 +21,7 @@
 | M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
 | M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
 | M3（Deep Gate + 人工复核工作台） | ✅ 已完成（增强） | Q4/Q5、`chapter_quality_audit`、复核工作台最小 UI 已落地，并补充模型运行时接入与阈值重标定快照。 |
-| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook 通知、配置中心与 SLO 看板已具备；仍缺运营处置自动化。 |
+| M4（SLO + 告警运营 + 配置中心） | ✅ 已完成（运营处置增强） | 告警扫描、事件沉淀、Webhook 通知、配置中心、SLO 看板、批量复核与告警事件处置已打通。 |
 
 ## 已完成内容
 
@@ -275,18 +275,35 @@
 - API 扩展：
   - `POST /api/books/[id]/qc/run` 支持 `deepGateModelRuntime`（兼容 `modelRuntime`）任务级传参，支持灰度任务切换模型配置。
 
+### 17) 第十六轮增量（S26：复核运营自动化）
+
+- 批量复核后端能力：
+  - 新增 `POST /api/books/[id]/review/items/batch-resolve`，支持批量 `approve/reject/regenerate`。
+  - `manual-review-service` 新增批量解析、批量状态回写与批量重生任务派发。
+  - 批量重生统一写入 `source=manual_review_batch`，并保留 `selectedReviewItemIds` 追踪上下文。
+- 批量重生链路闭环：
+  - `audio-generation-runner` 新增 `manual_review_batch` 上下文识别，支持成功后自动触发后置 `QUALITY_CHECK(batch)`。
+  - 重生失败、无音频引用、后置质检入队失败场景，自动回写复核项到 `rejected`，避免 `reprocessing` 悬挂。
+  - `quality-check-runner` 新增 `source=manual_review_batch` 解析与精准回写，默认关闭二次派单。
+- 复核工作台增强：
+  - 列表新增“全选当前页 + 批量通过 + 批量重生”。
+  - SLO 看板新增告警事件生命周期卡片，支持单页 `ack/resolve` 处置。
+  - 新增 `GET /api/books/[id]/review/items/export`，按当前筛选条件导出处置日志 CSV。
+- 代码组织：
+  - 新增 `useReviewWorkbenchActions`，拆分复核动作和告警事件操作逻辑；
+  - 队列组件拆分为 `ReviewQueuePanel + ReviewQueueList`，保持模块职责清晰与文件规模可控。
+
 ## 待完成内容
 
-1. 复核工作台尚缺批量处置（批量通过/批量重生）与审计导出能力。
-2. 告警事件生命周期（open/acked/resolved）尚未在工作台提供一体化处置入口。
-3. `deepGateCalibration.recommendation` 还未接入策略配置中心发布流程，阈值发布仍需人工搬运。
+1. `deepGateCalibration.recommendation` 还未接入策略配置中心发布流程，阈值发布仍需人工搬运。
+2. 尚缺离线评估基线（按 `issueType/source` 分桶）来验证阈值变更前后的误报收益。
+3. 模型可用性与回退率尚未形成统一告警门槛，需要补运营巡检规则。
 
-## 剩余任务优先级（建议，S26）
+## 剩余任务优先级（建议，S27）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S26 | 复核与告警处置自动化 | 支持批量复核动作、告警事件 ack/resolve UI、处置日志导出 | 运营单页可完成“发现-处置-追踪”闭环 | S25 |
-| P1 | S27 | 阈值发布治理闭环 | 接入离线回放评估集、阈值审批与配置中心发布链路 | 阈值调整有审计记录，模型回退率与误报率可持续下降 | S25 |
+| P0 | S27 | 阈值发布治理闭环 | 接入离线回放评估集、阈值审批与配置中心发布链路 | 阈值调整有审计记录，模型回退率与误报率可持续下降 | S25/S26 |
 
 ## 测试与验证结果
 
@@ -295,11 +312,11 @@
   - `apps/web/src/lib/__tests__/script-sentence-contract.test.ts`（更新）
   - `apps/web/src/lib/__tests__/quality-check-runner.test.ts`（新增）
   - `apps/web/src/lib/__tests__/task-replay-payload-quality.test.ts`（新增）
-  - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（新增）
-  - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/manual-review-service.test.ts`（新增，S26 补批量复核覆盖）
+  - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`（新增，S26 补 `manual_review_batch` 覆盖）
   - `apps/web/src/lib/__tests__/qc-retry-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-policy-config-service.test.ts`（新增）
-  - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（新增，S26 补 `manual_review_batch` 回写覆盖）
   - `apps/web/src/lib/__tests__/qc-dispatch-metrics-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-alert-service.test.ts`（新增）
   - `apps/web/src/lib/__tests__/qc-dispatch-alert-event-service.test.ts`（新增）
@@ -323,18 +340,20 @@
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-gate.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/qc-retry-service.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/deep-gate-model-runtime.test.ts src/lib/__tests__/deep-gate-calibration.test.ts src/lib/__tests__/quality-gate.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（S26）
   - `pnpm --filter web lint`（S24 UI）
   - `pnpm --filter web typecheck`（S24 UI）
   - `pnpm --filter web test:regression`（S24 UI）
   - `pnpm --filter web lint`（S25）
   - `pnpm --filter web typecheck`（S25）
   - `pnpm --filter web test:regression`（S25）
-  - `pnpm --filter web test:regression`
-  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`（S26）
+  - `pnpm --filter web typecheck`（S26）
+  - `pnpm --filter web test:regression`（S26）
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S26（P0）**：在复核工作台补批量动作 + 告警事件 `ack/resolve` 处置入口，降低人工切页成本。
-2. 随后做 **S27（P1）**：将 `deepGateCalibration.recommendation` 接入离线评估与配置中心发布闭环，形成阈值治理流程。
+1. 先做 **S27（P0）**：将 `deepGateCalibration.recommendation` 接入离线评估与配置中心发布闭环，形成阈值治理流程。
+2. 在 S27 同步补模型可用性/回退率门槛告警，并打通阈值变更后的自动回放比对。
 3. 在 S27 收尾阶段补“运营手册 + 日常巡检清单”，固化模型回退率、误报率与应急动作。

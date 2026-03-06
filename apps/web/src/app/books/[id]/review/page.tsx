@@ -44,6 +44,8 @@ export default function ReviewWorkbenchPage() {
     qualitySummary,
     metrics,
     alerts,
+    dispatchEvents,
+    dispatchEventSummary,
     filters,
     page,
     windowDays,
@@ -52,6 +54,8 @@ export default function ReviewWorkbenchPage() {
     sloLoading,
     refreshing,
     actionLoadingItemId,
+    batchActionLoading,
+    dispatchEventActionId,
     error,
     issueTypeOptions,
     setPage,
@@ -64,6 +68,9 @@ export default function ReviewWorkbenchPage() {
     updateIssueTypeFilter,
     updatePriorityFilter,
     resolveItem,
+    resolveItemsInBatch,
+    resolveDispatchEvent,
+    exportReviewLogs,
   } = useReviewWorkbenchData(bookId);
 
   const backlog = summary.pendingCount + summary.reprocessingCount;
@@ -147,13 +154,16 @@ export default function ReviewWorkbenchPage() {
               onIssueTypeChange={updateIssueTypeFilter}
               onPriorityChange={updatePriorityFilter}
               onRefresh={() => loadReviewData(true)}
+              onExport={exportReviewLogs}
               refreshing={reviewLoading}
             />
             <ReviewQueueList
               items={items}
               loading={reviewLoading}
               actionLoadingItemId={actionLoadingItemId}
+              batchActionLoading={batchActionLoading}
               onResolve={resolveItem}
+              onBatchResolve={resolveItemsInBatch}
             />
             <ReviewPaginationBar
               pagination={pagination}
@@ -215,7 +225,15 @@ export default function ReviewWorkbenchPage() {
                 </div>
               </CardContent>
             </Card>
-            <SloPanel metrics={metrics} alerts={alerts} loading={sloLoading} />
+            <SloPanel
+              metrics={metrics}
+              alerts={alerts}
+              dispatchEvents={dispatchEvents}
+              dispatchEventSummary={dispatchEventSummary}
+              dispatchEventActionId={dispatchEventActionId}
+              onResolveDispatchEvent={resolveDispatchEvent}
+              loading={sloLoading}
+            />
           </TabsContent>
         </Tabs>
       </section>

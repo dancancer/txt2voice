@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S24（前十四批改造）已完成，本次推进第十五批“Deep Gate 模型化 + 阈值重标定”增量：
+S0-S25（前十五批改造）已完成，本次推进第十六批“复核运营自动化（批量处置 + 告警事件联动 + 审计导出）”增量：
 
-1. 接入 Deep Gate 模型运行时能力，支持情绪分类与章节一致性 embedding 双模型可配置调用。
-2. 在 `QUALITY_CHECK` 链路落地模型/启发式双轨融合与回退观测，沉淀来源与诊断信息。
-3. 增加阈值重标定快照输出，完成测试回归、task/handoff 回写与提交。
+1. 在复核工作台补齐批量处置能力，支持“批量通过 / 批量重生”并串联后置质检闭环。
+2. 在 SLO 看板接入告警事件生命周期处置入口，支持 `ack/resolve` 单页操作与状态追踪。
+3. 增加复核处置日志导出能力，沉淀运营审计证据并完成测试回归、task/handoff 回写与提交。
 
 ## 2. 执行步骤
 
@@ -42,6 +42,7 @@ S0-S24（前十四批改造）已完成，本次推进第十五批“Deep Gate �
 | S23 | Deep Gate（Q4/Q5）+ `chapter_quality_audits` + 阈值模板 | ✅ 完成 | `QUALITY_CHECK` 写入 Q1-Q5 指标，产出章节审计记录、误报观测指标，并支持任务级阈值覆盖 |
 | S24 | 人工复核最小工作台 + SLO 看板整合 | ✅ 完成 | 提供列表/试听/重生最小 UI 与 backlog/pass/retry 日常运营指标 |
 | S25 | Deep Gate 模型运行时接入 + 阈值重标定快照 | ✅ 完成 | 支持情绪/一致性模型可配置调用、自动回退观测、阈值校准建议输出与测试回归 |
+| S26 | 复核运营自动化（批量处置 + 告警处置 + 审计导出） | ✅ 完成 | 复核页支持批量通过/重生、告警事件 ack/resolve、处置日志 CSV 导出并通过测试回归 |
 
 ## 3. 执行日志
 
@@ -560,13 +561,54 @@ S0-S24（前十四批改造）已完成，本次推进第十五批“Deep Gate �
   2. 为 S25 模型运行时补离线回放评估集（按 `issueType/source` 分桶），把 `deepGateCalibration.recommendation` 纳入阈值发布流程。
   3. 增加模型可用性监控（成功率/延迟/回退率），避免模型波动导致复核队列突增。
 
+### [S26] 复核运营自动化（批量处置 + 告警处置 + 审计导出）（2026-03-06 11:21 CST）
+
+- 完成内容：
+  1. 人工复核批量处置后端落地：
+     - 新增 `POST /api/books/[id]/review/items/batch-resolve`，支持 `itemIds + action(approve/reject/regenerate)`；
+     - `manual-review-service` 新增批量解析与执行，`regenerate` 会创建 `AUDIO_GENERATION(batch)`，并统一写 `source=manual_review_batch` 元数据；
+     - 新增失败兜底，批量重生入队失败时自动回写任务 `failed + queueError`。
+  2. 批量重生链路自动回流：
+     - `audio-generation-runner` 识别 `manual_review_batch` 上下文并在重生成功后自动创建后置 `QUALITY_CHECK(batch)`；
+     - 失败或缺少音频引用场景自动回写 `manual_review_items(rejected)`，避免 `reprocessing` 悬挂；
+     - `quality-check-runner` 新增 `source=manual_review_batch` 解析，支持按 `retryReviewItemIds` 精准回写且默认关闭二次派单。
+  3. 复核工作台与运营看板增强：
+     - 新增批量选择、批量通过、批量重生交互；
+     - SLO 看板接入 `dispatch-events` 生命周期卡片，支持单页 `ack/resolve`；
+     - 新增 `GET /api/books/[id]/review/items/export`，按筛选条件导出处置日志 CSV（含状态、分数、处置备注等）。
+  4. 代码组织优化：
+     - 复核动作逻辑拆分为 `useReviewWorkbenchActions`；
+     - 队列列表拆分为 `ReviewQueueList`，保持页面模块可维护性并控制单文件复杂度。
+- 关键文件：
+  - `apps/web/src/lib/manual-review-service.ts`
+  - `apps/web/src/app/api/books/[id]/review/items/batch-resolve/route.ts`
+  - `apps/web/src/app/api/books/[id]/review/items/export/route.ts`
+  - `apps/web/src/lib/audio-generation-runner.ts`
+  - `apps/web/src/lib/quality-check-runner.ts`
+  - `apps/web/src/app/books/[id]/review/hooks/useReviewWorkbenchActions.ts`
+  - `apps/web/src/app/books/[id]/review/components/ReviewQueueList.tsx`
+  - `apps/web/src/app/books/[id]/review/components/ReviewSloPanel.tsx`
+  - `apps/web/src/lib/__tests__/manual-review-service.test.ts`
+  - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`
+  - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：批量复核、告警事件处置与日志导出均已联通；新增测试、类型校验、lint 与回归测试全部通过。
+- 下一步建议：
+  1. 执行 S27：把 `deepGateCalibration.recommendation` 接入离线回放评估 + 配置中心发布闭环。
+  2. 为 `manual_review_batch` 增补来源维度运营指标（成功率/回流时延/回退率），避免新链路成为观测盲区。
+  3. 在复核页增加批量处置审计筛选（按 operator/time/action）与导出模板版本号，提升审计可追溯性。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. S25 已接入模型运行时，但当前仍依赖外部模型服务配置（`QC_DEEP_GATE_*`）；若模型不可用将自动回退启发式，需持续监控回退率。
-3. `deepGateCalibration` 目前输出“建议阈值”而非自动写回策略中心，仍需在 S26/S27 补“评估 -> 审核 -> 发布”闭环。
+3. `deepGateCalibration` 目前输出“建议阈值”而非自动写回策略中心，仍需在 S27 补“评估 -> 审核 -> 发布”闭环。
 
-## 5. 总体回顾与剩余任务优先级（2026-03-06 10:48 CST）
+## 5. 总体回顾与剩余任务优先级（2026-03-06 11:21 CST）
 
 ### 5.1 总体目标回顾（对齐 `full-automation-plan`）
 
@@ -574,28 +616,26 @@ S0-S24（前十四批改造）已完成，本次推进第十五批“Deep Gate �
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S25 完成后）
+### 5.2 当前现状（S0-S26 完成后）
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
 | M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
 | M3（Deep Gate + 人工复核工作台） | ✅ 已完成（增强） | Q4/Q5、`chapter_quality_audit`、复核工作台最小 UI 已打通，并新增模型运行时接入、回退观测与阈值重标定快照。 |
-| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook、配置中心与 SLO 看板已就绪；仍缺运营处置自动化与治理 UI。 |
+| M4（SLO + 告警运营 + 配置中心） | ✅ 已完成（运营处置增强） | 告警扫描、事件沉淀、Webhook、配置中心、SLO 看板、批量复核处置与事件 ack/resolve 单页闭环已就绪。 |
 
 ### 5.3 剩余任务目标与优先级（重排）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S26 | 复核运营自动化 | 批量复核操作、告警事件处置入口（ack/resolve）与处置审计导出 | 运营可以在单页完成“发现-处置-追踪”闭环 | S25 |
-| P1 | S27 | Deep Gate 阈值发布闭环 | 引入离线回放评估集、阈值审批与发布流程，监控模型回退率 | 阈值调整有审计记录，`EMOTION/CONTINUITY` 误报率持续下降 | S25 |
+| P0 | S27 | Deep Gate 阈值发布闭环 | 引入离线回放评估集、阈值审批与发布流程，监控模型回退率 | 阈值调整有审计记录，`EMOTION/CONTINUITY` 误报率持续下降 | S25/S26 |
 
 ### 5.4 推荐执行顺序（下一轮）
 
-1. **S26（P0）**：补齐复核批量处置与告警事件生命周期操作，减少人工切页成本。
-2. **S27（P1）**：将 S25 输出的阈值校准建议接入评估与发布流程，固化模型治理机制。
+1. **S27（P0）**：将 S25 输出的阈值校准建议接入评估与发布流程，固化模型治理机制。
 
 ### 5.5 本次文档同步说明
 
-1. 已同步更新本任务文档 S25 实施结果（代码落点、测试命令、风险与后续优先级）。
-2. 已同步更新 handoff 文档，确保接手人可直接从 S26 开始推进。
+1. 已同步更新本任务文档 S26 实施结果（代码落点、测试命令、风险与后续优先级）。
+2. 已同步更新 handoff 文档，确保接手人可直接从 S27 开始推进。

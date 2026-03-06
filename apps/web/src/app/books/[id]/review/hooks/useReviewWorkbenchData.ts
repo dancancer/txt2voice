@@ -7,10 +7,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { booksApi } from "@/lib/api";
 import type {
+  DispatchAlertEvent,
+  DispatchAlertEventListResponse,
   DispatchAlertResponse,
   DispatchMetricsResponse,
   ManualReviewItem,
-  ManualReviewResolveAction,
   ManualReviewStatusFilter,
   PipelineStatusResponse,
   QualitySummary,
@@ -20,6 +21,7 @@ import type {
   ReviewWorkbenchFilters,
 } from "../models/types";
 import { REVIEW_PAGE_LIMIT } from "../models/types";
+import { useReviewWorkbenchActions } from "./useReviewWorkbenchActions";
 
 const DEFAULT_PAGINATION: ReviewPagination = {
   page: 1,
@@ -45,6 +47,13 @@ const DEFAULT_QUALITY_SUMMARY: QualitySummary = {
   manualReviewCount: 0,
   deepGateOverrideCount: 0,
   falsePositiveCandidateCount: 0,
+};
+
+const DEFAULT_DISPATCH_EVENT_SUMMARY = {
+  openCount: 0,
+  ackedCount: 0,
+  resolvedCount: 0,
+  totalCount: 0,
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -85,16 +94,6 @@ const parseQualitySummary = (value: unknown): QualitySummary => {
   };
 };
 
-const resolveActionLabel = (action: ManualReviewResolveAction): string => {
-  if (action === "approve") {
-    return "通过";
-  }
-  if (action === "reject") {
-    return "驳回";
-  }
-  return "重生";
-};
-
 export function useReviewWorkbenchData(bookId: string) {
   const [bookTitle, setBookTitle] = useState("质检复核工作台");
   const [items, setItems] = useState<ManualReviewItem[]>([]);
@@ -103,6 +102,10 @@ export function useReviewWorkbenchData(bookId: string) {
   const [qualitySummary, setQualitySummary] = useState<QualitySummary>(DEFAULT_QUALITY_SUMMARY);
   const [metrics, setMetrics] = useState<DispatchMetricsResponse["data"] | null>(null);
   const [alerts, setAlerts] = useState<DispatchAlertResponse["data"]["alerts"]>([]);
+  const [dispatchEvents, setDispatchEvents] = useState<DispatchAlertEvent[]>([]);
+  const [dispatchEventSummary, setDispatchEventSummary] = useState(
+    DEFAULT_DISPATCH_EVENT_SUMMARY
+  );
 
   const [filters, setFilters] = useState<ReviewWorkbenchFilters>({
     status: "pending",
@@ -116,7 +119,6 @@ export function useReviewWorkbenchData(bookId: string) {
   const [reviewLoading, setReviewLoading] = useState(true);
   const [sloLoading, setSloLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [actionLoadingItemId, setActionLoadingItemId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const issueTypeOptions = useMemo(() => {
@@ -141,16 +143,13 @@ export function useReviewWorkbenchData(bookId: string) {
     }
   }, [bookId]);
 
-  const loadReviewData = useCallback(
-    async (showLoading = true) => {
-      if (showLoading) {
-        setReviewLoading(true);
+  const buildReviewParams = useCallback(
+    (nextPage?: number, includePaging = true) => {
+      const params = new URLSearchParams();
+      if (includePaging) {
+        params.set("page", String(nextPage ?? page));
+        params.set("limit", String(REVIEW_PAGE_LIMIT));
       }
-
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(REVIEW_PAGE_LIMIT),
-      });
       if (filters.status !== "all") {
         params.set("status", filters.status);
       }
@@ -160,6 +159,18 @@ export function useReviewWorkbenchData(bookId: string) {
       if (filters.priority !== "all") {
         params.set("priority", filters.priority);
       }
+      return params;
+    },
+    [filters.issueType, filters.priority, filters.status, page]
+  );
+
+  const loadReviewData = useCallback(
+    async (showLoading = true) => {
+      if (showLoading) {
+        setReviewLoading(true);
+      }
+
+      const params = buildReviewParams();
 
       try {
         const response = await fetch(`/api/books/${bookId}/review/items?${params.toString()}`, {
@@ -183,7 +194,7 @@ export function useReviewWorkbenchData(bookId: string) {
         }
       }
     },
-    [bookId, filters.issueType, filters.priority, filters.status, page]
+    [bookId, buildReviewParams]
   );
 
   const loadSloData = useCallback(
@@ -203,21 +214,47 @@ export function useReviewWorkbenchData(bookId: string) {
       }
 
       try {
-        const [metricsResponse, alertsResponse, pipelineResponse] = await Promise.all([
-          fetch(`/api/books/${bookId}/qc/dispatch-metrics?${params.toString()}`, {
-            cache: "no-store",
-          }),
-          fetch(`/api/books/${bookId}/qc/dispatch-alerts?${params.toString()}`, {
-            cache: "no-store",
-          }),
-          fetch(`/api/books/${bookId}/pipeline/status`, { cache: "no-store" }),
-        ]);
+        const dispatchEventParams = new URLSearchParams({
+          status: "active",
+          page: "1",
+          limit: "12",
+        });
+        if (sourceFilter !== "all") {
+          dispatchEventParams.set("source", sourceFilter);
+        }
+        if (filters.issueType !== "all") {
+          dispatchEventParams.set("issueType", filters.issueType);
+        }
 
-        const [metricsPayload, alertsPayload, pipelinePayload] = (await Promise.all([
-          metricsResponse.json(),
-          alertsResponse.json(),
-          pipelineResponse.json(),
-        ])) as [DispatchMetricsResponse, DispatchAlertResponse, PipelineStatusResponse];
+        const [metricsResponse, alertsResponse, pipelineResponse, dispatchEventResponse] =
+          await Promise.all([
+            fetch(`/api/books/${bookId}/qc/dispatch-metrics?${params.toString()}`, {
+              cache: "no-store",
+            }),
+            fetch(`/api/books/${bookId}/qc/dispatch-alerts?${params.toString()}`, {
+              cache: "no-store",
+            }),
+            fetch(`/api/books/${bookId}/pipeline/status`, { cache: "no-store" }),
+            fetch(
+              `/api/books/${bookId}/qc/dispatch-events?${dispatchEventParams.toString()}`,
+              {
+                cache: "no-store",
+              }
+            ),
+          ]);
+
+        const [metricsPayload, alertsPayload, pipelinePayload, dispatchEventPayload] =
+          (await Promise.all([
+            metricsResponse.json(),
+            alertsResponse.json(),
+            pipelineResponse.json(),
+            dispatchEventResponse.json(),
+          ])) as [
+            DispatchMetricsResponse,
+            DispatchAlertResponse,
+            PipelineStatusResponse,
+            DispatchAlertEventListResponse,
+          ];
 
         if (!metricsResponse.ok || !metricsPayload.success) {
           throw new Error(metricsPayload.error?.message || "加载 dispatch 指标失败");
@@ -228,9 +265,16 @@ export function useReviewWorkbenchData(bookId: string) {
         if (!pipelineResponse.ok || !pipelinePayload.success) {
           throw new Error(pipelinePayload.error?.message || "加载 pipeline 状态失败");
         }
+        if (!dispatchEventResponse.ok || !dispatchEventPayload.success) {
+          throw new Error(dispatchEventPayload.error?.message || "加载告警事件失败");
+        }
 
         setMetrics(metricsPayload.data);
         setAlerts(alertsPayload.data.alerts || []);
+        setDispatchEvents(dispatchEventPayload.data || []);
+        setDispatchEventSummary(
+          dispatchEventPayload.summary || DEFAULT_DISPATCH_EVENT_SUMMARY
+        );
         setQualitySummary(parseQualitySummary(pipelinePayload.data.qualitySummary));
       } catch (loadError) {
         console.error("Failed to load SLO board data:", loadError);
@@ -262,6 +306,25 @@ export function useReviewWorkbenchData(bookId: string) {
     setRefreshing(false);
   }, [loadReviewData, loadSloData]);
 
+  const {
+    actionLoadingItemId,
+    batchActionLoading,
+    dispatchEventActionId,
+    resolveItem,
+    resolveItemsInBatch,
+    resolveDispatchEvent,
+    exportReviewLogs,
+  } = useReviewWorkbenchActions({
+    bookId,
+    buildReviewParams,
+    refreshAfterReviewMutation: async () => {
+      await Promise.all([loadReviewData(false), loadSloData(false)]);
+    },
+    refreshSloOnly: async () => {
+      await loadSloData(false);
+    },
+  });
+
   const updateStatusFilter = useCallback((status: ManualReviewStatusFilter) => {
     setPage(1);
     setFilters((prev) => ({ ...prev, status }));
@@ -277,51 +340,6 @@ export function useReviewWorkbenchData(bookId: string) {
     setFilters((prev) => ({ ...prev, priority }));
   }, []);
 
-  const resolveItem = useCallback(
-    async (item: ManualReviewItem, action: ManualReviewResolveAction) => {
-      const actionLabel = resolveActionLabel(action);
-      if (action !== "approve") {
-        const confirmed = window.confirm(`确认要执行“${actionLabel}”吗？`);
-        if (!confirmed) {
-          return;
-        }
-      }
-
-      setActionLoadingItemId(item.id);
-      try {
-        const response = await fetch(
-          `/api/books/${bookId}/review/items/${item.id}/resolve`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ action }),
-          }
-        );
-        const payload = (await response.json().catch(() => ({}))) as {
-          success?: boolean;
-          error?: { message?: string };
-        };
-
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.error?.message || `${actionLabel}失败`);
-        }
-
-        toast.success(`${actionLabel}成功`);
-        await Promise.all([loadReviewData(false), loadSloData(false)]);
-      } catch (resolveError) {
-        console.error("Failed to resolve manual review item:", resolveError);
-        toast.error(
-          resolveError instanceof Error ? resolveError.message : `${actionLabel}失败`
-        );
-      } finally {
-        setActionLoadingItemId(null);
-      }
-    },
-    [bookId, loadReviewData, loadSloData]
-  );
-
   return {
     bookTitle,
     items,
@@ -330,6 +348,8 @@ export function useReviewWorkbenchData(bookId: string) {
     qualitySummary,
     metrics,
     alerts,
+    dispatchEvents,
+    dispatchEventSummary,
     filters,
     page,
     windowDays,
@@ -338,6 +358,8 @@ export function useReviewWorkbenchData(bookId: string) {
     sloLoading,
     refreshing,
     actionLoadingItemId,
+    batchActionLoading,
+    dispatchEventActionId,
     error,
     issueTypeOptions,
     setPage,
@@ -350,5 +372,8 @@ export function useReviewWorkbenchData(bookId: string) {
     updateIssueTypeFilter,
     updatePriorityFilter,
     resolveItem,
+    resolveItemsInBatch,
+    resolveDispatchEvent,
+    exportReviewLogs,
   };
 }

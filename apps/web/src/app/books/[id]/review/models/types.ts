@@ -88,6 +88,24 @@ export interface ReviewListResponse {
   };
 }
 
+export interface ReviewBatchResolveResult {
+  action: ManualReviewResolveAction;
+  processedCount: number;
+  retryTask: {
+    taskId: string;
+    taskType: "AUDIO_GENERATION";
+    status: string;
+  } | null;
+}
+
+export interface ReviewBatchResolveResponse {
+  success: boolean;
+  data: ReviewBatchResolveResult;
+  error?: {
+    message?: string;
+  };
+}
+
 export interface DispatchMetricBase {
   autoRejectedEventCount: number;
   autoRejectedAccumulatedCount: number;
@@ -174,6 +192,41 @@ export interface DispatchAlertResponse {
   };
 }
 
+export type DispatchEventStatus = "open" | "acked" | "resolved";
+
+export interface DispatchAlertEvent {
+  id: string;
+  source: string | null;
+  issueType: string | null;
+  alertCode: string;
+  severity: "warning" | "critical";
+  status: DispatchEventStatus;
+  message: string;
+  recommendedAction: string | null;
+  triggerCount: number;
+  firstTriggeredAt: string;
+  lastTriggeredAt: string;
+  ackedAt: string | null;
+  resolvedAt: string | null;
+  resolvedBy: string | null;
+  resolutionNote: string | null;
+}
+
+export interface DispatchAlertEventListResponse {
+  success: boolean;
+  data: DispatchAlertEvent[];
+  pagination: ReviewPagination;
+  summary: {
+    openCount: number;
+    ackedCount: number;
+    resolvedCount: number;
+    totalCount: number;
+  };
+  error?: {
+    message?: string;
+  };
+}
+
 export interface PipelineStatusResponse {
   success: boolean;
   data: {
@@ -224,5 +277,6 @@ export const SOURCE_FILTER_OPTIONS = [
   { value: "all", label: "全部来源" },
   { value: "qc_retry", label: "qc_retry" },
   { value: "manual_review", label: "manual_review" },
+  { value: "manual_review_batch", label: "manual_review_batch" },
   { value: "unknown", label: "unknown" },
 ] as const;

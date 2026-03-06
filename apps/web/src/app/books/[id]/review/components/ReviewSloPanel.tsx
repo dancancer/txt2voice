@@ -4,6 +4,7 @@
 // pos: 质检复核页面子组件
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -13,9 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, Loader2, Waves } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Loader2, Waves } from "lucide-react";
 import type {
   DispatchAlertItem,
+  DispatchAlertEvent,
   DispatchMetricsResult,
   QualitySummary,
   ReviewSummary,
@@ -31,6 +33,21 @@ const ALERT_SEVERITY_META = {
     className: "border-amber-200 bg-amber-50 text-amber-700",
     icon: AlertTriangle,
     label: "预警",
+  },
+} as const;
+
+const EVENT_STATUS_META = {
+  open: {
+    label: "open",
+    className: "border-rose-200 bg-rose-50 text-rose-700",
+  },
+  acked: {
+    label: "acked",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
+  },
+  resolved: {
+    label: "resolved",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
   },
 } as const;
 
@@ -115,10 +132,27 @@ export function SloCardSection({
 interface SloPanelProps {
   metrics: DispatchMetricsResult | null;
   alerts: DispatchAlertItem[];
+  dispatchEvents: DispatchAlertEvent[];
+  dispatchEventSummary: {
+    openCount: number;
+    ackedCount: number;
+    resolvedCount: number;
+    totalCount: number;
+  };
+  dispatchEventActionId: string | null;
+  onResolveDispatchEvent: (eventId: string, action: "ack" | "resolve") => void;
   loading: boolean;
 }
 
-export function SloPanel({ metrics, alerts, loading }: SloPanelProps) {
+export function SloPanel({
+  metrics,
+  alerts,
+  dispatchEvents,
+  dispatchEventSummary,
+  dispatchEventActionId,
+  onResolveDispatchEvent,
+  loading,
+}: SloPanelProps) {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="border-slate-200 shadow-sm">
@@ -160,7 +194,7 @@ export function SloPanel({ metrics, alerts, loading }: SloPanelProps) {
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">当前告警</CardTitle>
+          <CardTitle className="text-base">当前告警与事件</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
@@ -194,6 +228,63 @@ export function SloPanel({ metrics, alerts, loading }: SloPanelProps) {
               );
             })
           )}
+          <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+              <span className="font-medium text-slate-700">事件生命周期</span>
+              <Badge variant="outline">open {dispatchEventSummary.openCount}</Badge>
+              <Badge variant="outline">acked {dispatchEventSummary.ackedCount}</Badge>
+              <Badge variant="outline">resolved {dispatchEventSummary.resolvedCount}</Badge>
+            </div>
+            {dispatchEvents.length === 0 ? (
+              <p className="text-xs text-slate-500">暂无告警事件。</p>
+            ) : (
+              dispatchEvents.map((event) => {
+                const statusMeta = EVENT_STATUS_META[event.status];
+                const actionPending = dispatchEventActionId === event.id;
+                return (
+                  <div key={event.id} className="rounded-md border border-slate-200 bg-white p-3 text-xs">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
+                      <Badge variant="outline">{event.alertCode}</Badge>
+                      <Badge variant="outline">{event.issueType || "ALL"}</Badge>
+                      <span className="text-slate-500">触发 {event.triggerCount} 次</span>
+                    </div>
+                    <p className="text-sm text-slate-700">{event.message}</p>
+                    <p className="mt-1 text-slate-500">
+                      最近触发: {new Date(event.lastTriggeredAt).toLocaleString("zh-CN")}
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="min-h-9"
+                        disabled={actionPending || event.status !== "open"}
+                        onClick={() => onResolveDispatchEvent(event.id, "ack")}
+                      >
+                        {actionPending ? (
+                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <AlertTriangle className="mr-1 h-3.5 w-3.5" />
+                        )}
+                        Ack
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="min-h-9"
+                        disabled={actionPending || event.status === "resolved"}
+                        onClick={() => onResolveDispatchEvent(event.id, "resolve")}
+                      >
+                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                        Resolve
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
           {metrics ? (
             <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
               <p className="font-medium text-slate-700">窗口统计</p>

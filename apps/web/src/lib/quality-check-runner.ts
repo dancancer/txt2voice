@@ -162,6 +162,8 @@ const extractQualityCheckTaskContext = (
   const metadata = asRecord(taskDataRecord?.metadata);
 
   const source = typeof metadata?.source === "string" ? metadata.source : null;
+  const isQcRetrySource = source === "qc_retry";
+  const isManualReviewBatchSource = source === "manual_review_batch";
   const manualReviewItemId =
     typeof metadata?.manualReviewItemId === "string"
       ? metadata.manualReviewItemId
@@ -170,16 +172,17 @@ const extractQualityCheckTaskContext = (
 
   const policySource = asRecord(metadata?.dispatchPolicy) || metadata;
   const autoCreatePendingOnReject =
-    asBoolean(policySource?.autoCreatePendingOnReject) ?? source === "qc_retry";
+    asBoolean(policySource?.autoCreatePendingOnReject) ?? isQcRetrySource;
   const maxAutoRejectedCount =
     asNonNegativeInteger(policySource?.maxAutoRejectedCount) ??
-    (source === "qc_retry" ? DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT : null);
+    (isQcRetrySource ? DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT : null);
   const issueTypePolicies = parseIssueTypePolicies(policySource?.issueTypePolicies);
 
   return {
     source,
     manualReviewItemId: source === "manual_review" ? manualReviewItemId : "",
-    retryReviewItemIds: source === "qc_retry" ? retryReviewItemIds : [],
+    retryReviewItemIds:
+      isQcRetrySource || isManualReviewBatchSource ? retryReviewItemIds : [],
     autoCreatePendingOnReject,
     maxAutoRejectedCount,
     issueTypePolicies,

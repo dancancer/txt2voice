@@ -303,6 +303,69 @@ describe("runAudioGenerationTask manual review followup", () => {
     });
   });
 
+  it("should enqueue followup quality check for manual_review_batch source", async () => {
+    mockProcessingTaskFindUnique.mockResolvedValue({
+      taskData: {
+        metadata: {
+          source: "manual_review_batch",
+          selectedReviewItemIds: ["review-41", "review-42"],
+        },
+      },
+    });
+
+    mockGetAudioGenerator.mockReturnValue({
+      generateBatchAudio: jest.fn().mockResolvedValue([
+        {
+          success: true,
+          audioFileId: "audio-41",
+          duration: 2.6,
+        },
+        {
+          success: true,
+          audioFileId: "audio-42",
+          duration: 2.9,
+        },
+      ]),
+    } as any);
+
+    mockEnqueueQualityCheck.mockResolvedValue({
+      jobId: "qc-task-manual-batch",
+      dedupeKey: "quality:batch:audio-41,audio-42",
+      reused: false,
+      state: "waiting",
+    });
+
+    mockProcessingTaskCreate.mockResolvedValueOnce({
+      id: "qc-task-manual-batch",
+    });
+
+    await runAudioGenerationTask({
+      bookId: "book-1",
+      taskId: "task-audio-manual-batch",
+      type: "batch",
+      scriptSentenceIds: ["sentence-41", "sentence-42"],
+    });
+
+    expect(mockProcessingTaskCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        taskType: "QUALITY_CHECK",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            source: "manual_review_batch",
+            retryReviewItemIds: ["review-41", "review-42"],
+            autoCreatePendingOnReject: false,
+          }),
+        }),
+      }),
+    });
+    expect(mockEnqueueQualityCheck).toHaveBeenCalledWith({
+      taskId: "qc-task-manual-batch",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-41", "audio-42"],
+    });
+  });
+
   it("should reject qc_retry items when generated audio is empty", async () => {
     mockProcessingTaskFindUnique.mockResolvedValue({
       taskData: {
