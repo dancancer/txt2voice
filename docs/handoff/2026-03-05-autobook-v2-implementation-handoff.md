@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S26 全部完成，已完成第十六轮（复核运营自动化）；待推进 S27。
+- 当前进度：S0-S26 功能实施已完成；按“目标完成度”复核后，待推进 S27-S32（S27 为 P0）。
 
-## 总体目标回顾与现状判断（2026-03-06 11:21 CST）
+## 总体目标回顾与现状判断（2026-03-06 11:40 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -18,10 +18,10 @@
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
-| M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
-| M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
-| M3（Deep Gate + 人工复核工作台） | ✅ 已完成（增强） | Q4/Q5、`chapter_quality_audit`、复核工作台最小 UI 已落地，并补充模型运行时接入与阈值重标定快照。 |
-| M4（SLO + 告警运营 + 配置中心） | ✅ 已完成（运营处置增强） | 告警扫描、事件沉淀、Webhook 通知、配置中心、SLO 看板、批量复核与告警事件处置已打通。 |
+| M1（Annotation v2 + Auto Pipeline） | 🟡 部分完成 | 编排能力已打通，但上传链路未自动触发 `AUTO_PIPELINE`，前端主入口仍偏手动。 |
+| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环已具备；Q1-Q3 仍以启发式为主，CER/声纹未主链路接入。 |
+| M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置已落地；阈值建议尚未形成发布治理闭环。 |
+| M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测可用；核心 SLO 指标体系与告警仍需补齐。 |
 
 ## 已完成内容
 
@@ -295,15 +295,29 @@
 
 ## 待完成内容
 
-1. `deepGateCalibration.recommendation` 还未接入策略配置中心发布流程，阈值发布仍需人工搬运。
-2. 尚缺离线评估基线（按 `issueType/source` 分桶）来验证阈值变更前后的误报收益。
-3. 模型可用性与回退率尚未形成统一告警门槛，需要补运营巡检规则。
+1. `deepGateCalibration.recommendation` 尚未接入“离线评估 -> 审核 -> 发布 -> 回滚”闭环。
+2. 上传成功后仍不会自动触发 `AUTO_PIPELINE`，与“上传即自动生成”目标存在直接差距。
+3. `speaker_engine_variants/speaker_emotion_presets` 尚未接入音频生成运行时主决策链路。
+4. Q1-Q3 仍以启发式判定为主，未完成 CER/声纹等关键质量信号主链路接入。
+5. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
+6. 核心 SLO 指标（`pipeline_success_rate` 等）尚未形成统一 API + 告警闭环。
 
-## 剩余任务优先级（建议，S27）
+## 剩余任务优先级（建议，S27-S32）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
 | P0 | S27 | 阈值发布治理闭环 | 接入离线回放评估集、阈值审批与配置中心发布链路 | 阈值调整有审计记录，模型回退率与误报率可持续下降 | S25/S26 |
+| P1 | S28 | 上传自动触发 Auto Pipeline | 上传后自动创建自动编排任务，补主入口一致性 | 用户无需手工串联阶段任务 | S27 可并行 |
+| P1 | S29 | Engine Router v1 运行时接入 | 按 `role_type/emotion/priority/engine_health` 路由并记录命中策略 | 引擎选择可解释、可回放、可降级 | S28 |
+| P1 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并联动返工策略 | 质量判定误报/漏报显著下降 | S29 |
+| P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
+| P2 | S32 | 核心 SLO 指标产品化 | 输出核心指标 API、看板和阈值告警 | 支持按计划执行运营验收 | S30/S31 |
+
+## 执行卡片索引（S27-S32）
+
+1. 详细执行卡：`docs/task/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。
+2. 接手执行顺序：S27 -> S28/S29 -> S30 -> S31/S32。
+3. 交接要求：每完成一项任务，必须同步更新实施卡中的“API 变更”和“验收结果”。
 
 ## 测试与验证结果
 
@@ -350,10 +364,15 @@
   - `pnpm --filter web lint`（S26）
   - `pnpm --filter web typecheck`（S26）
   - `pnpm --filter web test:regression`（S26）
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`（2026-03-06 复核）
+  - `pnpm --filter web typecheck`（2026-03-06 复核）
+  - `pnpm --filter web lint`（2026-03-06 复核）
+  - `pnpm --filter web test:regression`（2026-03-06 复核）
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S27（P0）**：将 `deepGateCalibration.recommendation` 接入离线评估与配置中心发布闭环，形成阈值治理流程。
-2. 在 S27 同步补模型可用性/回退率门槛告警，并打通阈值变更后的自动回放比对。
-3. 在 S27 收尾阶段补“运营手册 + 日常巡检清单”，固化模型回退率、误报率与应急动作。
+1. 先做 **S27（P0）**：完成阈值治理闭环（离线回放评估、审批发布、回滚与审计）。
+2. 然后执行 **S28 + S29（P1）**：补“上传自动触发”与 Engine Router 运行时接入，先闭环主链路再提升策略收益。
+3. 再执行 **S30（P1）**：补 Q0-Q3 指标化能力（CER/声纹优先），提升质量门控可信度。
+4. 收尾执行 **S31 + S32（P2）**：补 `FINAL_ASSEMBLY` 任务化与核心 SLO 指标产品化，完成运营验收。
