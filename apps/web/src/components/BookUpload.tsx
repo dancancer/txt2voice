@@ -22,8 +22,9 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
     author: ''
   })
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [uploadStep, setUploadStep] = useState<'form' | 'uploading' | 'processing' | 'success' | 'error'>('form')
+  const [uploadStep, setUploadStep] = useState<'form' | 'uploading' | 'success' | 'error'>('form')
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [autoPipelineWarning, setAutoPipelineWarning] = useState<string | null>(null)
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -65,6 +66,7 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
       setUploadStep('uploading')
       setUploading(true)
       setError(null)
+      setAutoPipelineWarning(null)
 
       // Step 1: Create book
       const bookResponse = await booksApi.createBook({
@@ -77,33 +79,27 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
 
       // Step 2: Upload file
       const uploadResponse = await booksApi.uploadFile(book.id, selectedFile)
-      setUploadProgress(50)
-
-      // Step 3: Process file
-      setUploadStep('processing')
-      const processResponse = await booksApi.processFile(book.id, {
-        maxSegmentLength: 2000,
-        minSegmentLength: 50,
-        preserveFormatting: true
-      })
+      setAutoPipelineWarning(uploadResponse?.data?.autoPipeline?.warning || null)
+      setUploadProgress(85)
+      const latestBookResponse = await booksApi.getBook(book.id)
       setUploadProgress(100)
 
       // Success
       setUploadStep('success')
 
       // Call success callback - let parent component handle the book addition
-      const processedBook = processResponse.data?.book
+      const uploadedBook = latestBookResponse.data
       const mergedBook = {
         ...book,
-        ...processedBook,
-        totalSegments: processedBook?.totalSegments ?? book.totalSegments ?? 0,
-        totalCharacters: processedBook?.totalCharacters ?? book.totalCharacters ?? 0,
-        status: processedBook?.status || book.status || 'uploaded',
+        ...uploadedBook,
+        totalSegments: uploadedBook?.totalSegments ?? book.totalSegments ?? 0,
+        totalCharacters: uploadedBook?.totalCharacters ?? book.totalCharacters ?? 0,
+        status: uploadedBook?.status || book.status || 'uploaded',
       }
       addBook(mergedBook as any)
 
       if (onSuccess) {
-        onSuccess(processResponse.data)
+        onSuccess(uploadResponse.data)
       }
 
       // Reset form after delay
@@ -117,6 +113,7 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
     } catch (err) {
       setUploadStep('error')
       setError(err instanceof Error ? err.message : '上传失败')
+      setAutoPipelineWarning(null)
     } finally {
       setUploading(false)
     }
@@ -133,6 +130,7 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
     setSelectedFile(null)
     setUploadProgress(0)
     setError(null)
+    setAutoPipelineWarning(null)
     setUploading(false)
   }
 
@@ -284,21 +282,18 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
         </div>
       )}
 
-      {/* Processing Step */}
-      {uploadStep === 'processing' && (
-        <div className="text-center py-8">
-          <Loader2 className="w-12 h-12 mx-auto text-purple-600 mb-4 animate-spin" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">正在处理文件内容...</h3>
-          <p className="text-gray-600">正在分析文本并分段，请稍候</p>
-        </div>
-      )}
-
       {/* Success Step */}
       {uploadStep === 'success' && (
         <div className="text-center py-8">
           <CheckCircle className="w-12 h-12 mx-auto text-green-600 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">上传成功！</h3>
-          <p className="text-gray-600">书籍已成功上传并处理完成</p>
+          {autoPipelineWarning ? (
+            <p className="text-amber-700">
+              文件已上传，但自动编排触发失败：{autoPipelineWarning}
+            </p>
+          ) : (
+            <p className="text-gray-600">书籍已上传，自动编排任务已进入队列</p>
+          )}
         </div>
       )}
 

@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S26（前十六批改造）已完成，本轮推进第十七批“S27 Deep Gate 阈值发布治理闭环（离线评估 + 发布 + 回滚）”增量：
+S0-S27（前十七批改造）已完成，本轮推进第十八批“S28 上传自动触发 Auto Pipeline + 主入口统一”增量：
 
-1. 新增 Deep Gate 阈值治理 API，支持离线评估报告生成、版本发布与指定版本回滚。
-2. 把评估报告、阈值版本、审批信息沉淀到 `book.metadata.qualityCheck.deepGateThresholdGovernance`，形成可审计链路。
-3. 完成测试回归、task/handoff 文档回写与提交，并明确下一轮（S28）落地建议。
+1. 改造 `POST /api/books/[id]/upload`，默认自动触发 `AUTO_PIPELINE`，并支持显式关闭和参数覆盖。
+2. 统一自动编排建链入口（上传链路与手工触发复用同一服务），补齐并发幂等与触发元数据沉淀。
+3. 扩展 `GET /api/books/[id]/pipeline/status`，返回最近一次 upload 触发来源与阶段耗时统计；完成测试回归、文档回写和提交。
 
 ## 2. 执行步骤
 
@@ -44,6 +44,7 @@ S0-S26（前十六批改造）已完成，本轮推进第十七批“S27 Deep Ga
 | S25 | Deep Gate 模型运行时接入 + 阈值重标定快照 | ✅ 完成 | 支持情绪/一致性模型可配置调用、自动回退观测、阈值校准建议输出与测试回归 |
 | S26 | 复核运营自动化（批量处置 + 告警处置 + 审计导出） | ✅ 完成 | 复核页支持批量通过/重生、告警事件 ack/resolve、处置日志 CSV 导出并通过测试回归 |
 | S27 | Deep Gate 阈值治理闭环 V1（evaluate/publish/rollback） | ✅ 完成 | 支持离线评估报告、阈值版本发布与回滚，链路可审计且测试/回归通过 |
+| S28 | 上传自动触发 Auto Pipeline + 主入口统一 | ✅ 完成 | 上传后默认触发自动编排，手工触发/上传触发复用同一建链服务，并回传 upload 来源与阶段耗时 |
 
 ## 3. 执行日志
 
@@ -636,15 +637,55 @@ S0-S26（前十六批改造）已完成，本轮推进第十七批“S27 Deep Ga
   2. 在 S28 并行补“评估样本集规范化”能力（按 `issueType/source` 固定抽样规则），降低样本漂移风险。
   3. 执行 S29：将 `speaker_engine_variants/speaker_emotion_presets` 接入运行时路由，并把路由摘要沉淀到任务 metadata。
 
-## 4. 风险与备注（2026-03-06 12:52 CST）
+### [S28] 上传自动触发 Auto Pipeline + 主入口统一（2026-03-06 13:05 CST）
 
-1. 当前“上传即自动生成”仍未闭环：上传接口仅更新 `uploaded` 状态，未自动触发 `AUTO_PIPELINE`。
+- 完成内容：
+  1. 新增自动编排触发服务 `auto-pipeline-trigger-service`，统一承载任务创建、并发幂等、入队失败回滚与触发元数据沉淀。
+  2. 重构 `POST /api/books/[id]/pipeline/auto`：
+     - 切换为复用触发服务；
+     - 重复触发场景返回运行中任务（`reused=true`）而非直接报错。
+  3. 改造 `POST /api/books/[id]/upload`：
+     - 默认自动触发 `AUTO_PIPELINE`；
+     - 支持 `autoPipelineEnabled` 显式关闭与 `autoPipelineOptions` JSON 参数覆盖；
+     - 自动触发失败不影响上传主流程，响应中回传 `autoPipeline.warning` 便于前端兜底提示。
+  4. 扩展 `GET /api/books/[id]/pipeline/status`：
+     - 新增 `latestUploadTriggerSource`；
+     - 新增 `stageDurations.totalMs/byStage`，用于阶段耗时观测。
+  5. 前端入口对齐：
+     - 上传组件移除“上传后再手动 process”链路，改为上传后自动编排；
+     - 书籍卡片“开始处理”按钮切换为触发 `/pipeline/auto`，并展示复用态提示。
+  6. `completeAutoPipeline` 回写时保留已有 `book.metadata.autoPipeline` 字段，避免覆盖掉 `lastTrigger` 等触发信息。
+- 关键文件：
+  - `apps/web/src/lib/auto-pipeline-trigger-service.ts`
+  - `apps/web/src/app/api/books/[id]/upload/route.ts`
+  - `apps/web/src/app/api/books/[id]/pipeline/auto/route.ts`
+  - `apps/web/src/app/api/books/[id]/pipeline/status/route.ts`
+  - `apps/web/src/lib/auto-pipeline/task-stage-utils.ts`
+  - `apps/web/src/lib/api.ts`
+  - `apps/web/src/components/BookCard.tsx`
+  - `apps/web/src/components/BookUpload.tsx`
+  - `apps/web/src/lib/__tests__/auto-pipeline-trigger-service.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-trigger-service.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：S28 主链路闭环完成；上传后默认自动建链，上传/手工触发共享同一建链逻辑，阶段耗时与 upload 来源可观测。
+- 五轮回顾节奏：当前累计到第 18 轮；下一次阶段性总结回顾节点为第 20 轮（计划在 S30 完成后执行）。
+- 下一步建议：
+  1. 执行 S29：接入 Engine Router v1，把 `speaker_engine_variants/speaker_emotion_presets` 拉入运行时决策并沉淀路由摘要。
+  2. 执行 S30：补 Q0-Q3 指标化（CER/声纹优先），把返工策略从启发式升级到指标优先。
+  3. 并行推进 S27.1：固化评估样本集并落地 `QUALITY_CHECK(source=calibration_eval)` 任务化回放。
+
+## 4. 风险与备注（2026-03-06 13:05 CST）
+
+1. 上传自动触发已落地，但上传接口当前以“触发失败不阻断上传”为策略；仍需补后台重试/补偿任务，避免漏触发。
 2. Engine Router 仍停留在数据层：`speaker_engine_variants/speaker_emotion_presets` 未进入音频生成主决策链路。
 3. Fast Gate 的 Q1-Q3 仍以启发式为主，CER/声纹等关键质量信号未形成稳定运行时依赖。
 4. S27 已落地治理闭环 V1（metadata 审计链路），但“评估样本集标准化 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”仍待补齐。
 5. 告警扫描虽已支持 API 入口，但默认仍依赖外部调度触发，需要补运营侧定时任务编排。
 
-## 5. 总体回顾与目标 gap（2026-03-06 11:40 CST）
+## 5. 总体回顾与目标 gap（2026-03-06 13:05 CST）
 
 ### 5.1 总体目标回顾（对齐 `full-automation-plan`）
 
@@ -652,18 +693,18 @@ S0-S26（前十六批改造）已完成，本轮推进第十七批“S27 Deep Ga
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S27 完成后，按目标重新评估）
+### 5.2 当前现状（S0-S28 完成后，按目标重新评估）
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
-| M1（Annotation v2 + Auto Pipeline） | 🟡 部分完成 | 编排 API/队列/状态已打通，但上传链路未自动触发，前端主入口仍偏手动触发。 |
+| M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，手工触发/上传触发已统一；剩余补偿重试与灰度控制待完善。 |
 | M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | `qc/retry`、二次派单与阈值拦截已具备，但 Q1-Q3 指标化不足（CER/声纹未主链路接入）。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Q4/Q5、复核 UI、批量处置与阈值治理 API 已上线；但评估样本集标准化与任务化回放仍需补齐。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 侧看板与事件处置已上线；核心 SLO 指标体系与告警尚未完整产品化。 |
 
 ### 5.3 目标 gap 列表（聚焦）
 
-1. `G1`：上传后未自动创建 `AUTO_PIPELINE` 任务，导致“上传即自动生成”目标未闭环。
+1. `G1`：上传触发虽然已自动化，但“触发失败后的补偿重试”尚未任务化，仍可能出现漏触发窗口。
 2. `G2`：多引擎路由未运行时接入，`engine_hint` 与 Speaker 变体模型价值未兑现。
 3. `G3`：Q0-Q3 与计划定义存在差距，质量门控依赖启发式导致误报/漏报风险偏高。
 4. `G4`：S27 目前使用 metadata 审计链路，尚未完成“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
@@ -674,31 +715,31 @@ S0-S26（前十六批改造）已完成，本轮推进第十七批“S27 Deep Ga
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S28 | 上传自动触发 Auto Pipeline + 主入口统一 | 上传后自动建链路任务，书籍页提供统一自动流程入口 | 上传后无需人工串联阶段任务，状态可追踪 | S27 |
-| P1 | S29 | Engine Router v1 运行时接入 | 基于 `role_type/emotion/priority/engine_health` 路由并落库策略命中 | 引擎选择可解释、可回放、可降级 | S28 |
+| P0 | S29 | Engine Router v1 运行时接入 | 基于 `role_type/emotion/priority/engine_health` 路由并落库策略命中 | 引擎选择可解释、可回放、可降级 | S28 |
 | P1 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并与返工策略联动 | 关键质量判定具备可观测与复盘能力 | S29 |
 | P1 | S27.1 | 阈值治理链路任务化补齐 | 把评估样本集标准化并接入 `QUALITY_CHECK(source=calibration_eval)` 回放 | 阈值评估可重放、可审计、可复盘 | S27 |
+| P1 | S28.1 | 上传触发补偿任务化 | 上传触发失败后自动创建补偿任务并重试 | 上传触发失败可自动收敛，漏触发率可观测 | S28 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要的复核同步任务） | 合并交付阶段可独立重放与审计 | S28-S30 |
 | P2 | S32 | 核心 SLO 指标产品化 | 输出 `pipeline_success_rate` 等核心指标 API 与阈值告警 | 支持按计划执行运营验收 | S30/S31 |
 
 ### 5.5 推荐执行顺序（下一轮）
 
-1. **S28（P0）**：优先补齐上传自动触发，先让主链路真正“自动可跑”。
-2. **S29 + S30（P1）**：先补引擎路由决策，再补 Q0-Q3 指标可信度。
-3. **S27.1（P1）**：把阈值治理升级为任务化回放，沉淀可复盘样本集。
+1. **S29（P0）**：优先补引擎路由运行时，兑现多引擎数据资产价值。
+2. **S30（P1）**：补 Q0-Q3 指标可信度，把返工决策从启发式升级到指标优先。
+3. **S27.1 + S28.1（P1）**：并行补阈值治理任务化回放和上传触发补偿任务，提升可回放与可收敛能力。
 4. **S31 + S32（P2）**：收口交付任务语义与 SLO 运营验收。
 
-### 5.6 本次仓库复核验证结果（2026-03-06 12:52 CST）
+### 5.6 本次仓库复核验证结果（2026-03-06 13:05 CST）
 
-1. `pnpm --filter web test -- --runInBand src/lib/__tests__/deep-gate-calibration-governance-service.test.ts`：通过。
+1. `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-trigger-service.test.ts`：通过。
 2. `pnpm --filter web typecheck`：通过。
 3. `pnpm --filter web lint`：通过。
 4. `pnpm --filter web test:regression`：通过。
 
 ### 5.7 本次文档同步说明
 
-1. 已按“文档目标 vs 当前仓库实现”重新评估里程碑状态（由“功能完成”调整为“目标完成度”视角）。
-2. 已补充 G1-G6 gap 与 S28-S32 重排优先级，并新增 S27.1（任务化回放补齐）作为治理后续项。
+1. 已同步追加 S28 实施日志、验收结果与关键文件索引。
+2. 已根据 S28 完成情况重排 S29-S32 优先级，并新增 S28.1（上传触发补偿任务化）后续项。
 3. 已同步更新 handoff 文档，确保接手人可直接按新优先级执行。
 
 ### 5.8 S27-S32 实施卡（可执行拆分）

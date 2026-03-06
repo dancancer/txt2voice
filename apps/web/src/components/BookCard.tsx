@@ -49,8 +49,17 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
       if (file) {
         try {
           setIsLoading(true)
-          await booksApi.uploadFile(book.id, file)
-          await booksApi.processFile(book.id)
+          const uploadResult = await booksApi.uploadFile(book.id, file)
+
+          if (uploadResult?.data?.autoPipeline?.warning) {
+            toast.warning(`上传成功，但自动编排未启动：${uploadResult.data.autoPipeline.warning}`)
+          } else if (uploadResult?.data?.autoPipeline?.reused) {
+            toast.success('上传成功，已复用正在执行的自动编排任务')
+          } else if (uploadResult?.data?.autoPipeline?.triggered) {
+            toast.success('上传成功，已自动触发编排任务')
+          } else {
+            toast.success('上传成功')
+          }
 
           // Update book status
           const updatedBook = await booksApi.getBook(book.id)
@@ -76,13 +85,19 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
 
     try {
       setIsLoading(true)
-      const response = await booksApi.processFile(book.id)
+      const response = await booksApi.startAutoPipeline(book.id)
+      if (response?.data?.reused) {
+        toast.info('自动编排任务已在执行中，已返回当前任务')
+      } else {
+        toast.success('自动编排任务已启动')
+      }
+      const updatedBook = await booksApi.getBook(book.id)
       if (onUpdate) {
-        onUpdate(response.data.book)
+        onUpdate(updatedBook.data)
       }
     } catch (error) {
       console.error('Processing failed:', error)
-      toast.error('文件处理失败，请重试')
+      toast.error('自动编排启动失败，请重试')
     } finally {
       setIsLoading(false)
     }

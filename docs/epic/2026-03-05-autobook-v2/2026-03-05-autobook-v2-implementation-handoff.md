@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S27 功能实施已完成；S27（阈值治理闭环 V1）已落地，待推进 S28-S32。
+- 当前进度：S0-S28 功能实施已完成；S28（上传自动触发 + 主入口统一）已落地，待推进 S29-S32。
 
-## 总体目标回顾与现状判断（2026-03-06 12:52 CST）
+## 总体目标回顾与现状判断（2026-03-06 13:05 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -18,7 +18,7 @@
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
-| M1（Annotation v2 + Auto Pipeline） | 🟡 部分完成 | 编排能力已打通，但上传链路未自动触发 `AUTO_PIPELINE`，前端主入口仍偏手动。 |
+| M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑。 |
 | M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环已具备；Q1-Q3 仍以启发式为主，CER/声纹未主链路接入。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放仍需补齐。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测可用；核心 SLO 指标体系与告警仍需补齐。 |
@@ -309,30 +309,50 @@
 - 测试覆盖：
   - 新增 `apps/web/src/lib/__tests__/deep-gate-calibration-governance-service.test.ts`（校验 evaluate/publish/rollback 关键路径与 payload 约束）。
 
+### 19) 第十八轮增量（S28：上传自动触发 + 主入口统一）
+
+- 自动编排触发服务统一：
+  - 新增 `auto-pipeline-trigger-service`，统一处理任务创建、并发幂等、入队失败回滚与触发元数据沉淀；
+  - `POST /api/books/[id]/pipeline/auto` 改为复用同一服务，重复触发返回 `reused=true` 而不是并发创建新任务。
+- 上传链路默认自动触发：
+  - `POST /api/books/[id]/upload` 默认自动触发 `AUTO_PIPELINE`；
+  - 支持 `autoPipelineEnabled` 显式关闭与 `autoPipelineOptions` JSON 参数覆盖；
+  - 自动触发失败不阻断上传主流程，响应新增 `autoPipeline.warning` 便于前端提示和补偿。
+- 状态观测增强：
+  - `GET /api/books/[id]/pipeline/status` 新增 `latestUploadTriggerSource`；
+  - 新增 `stageDurations.totalMs/byStage`，直接回传各阶段耗时统计。
+- 前端入口对齐：
+  - `BookUpload` 移除“上传后手动 process”逻辑，改为上传后自动编排；
+  - `BookCard` 的“开始处理”按钮改为触发 `/pipeline/auto`，并展示复用态提示。
+- 元数据保留：
+  - `completeAutoPipeline` 回写时保留 `book.metadata.autoPipeline` 既有字段，避免覆盖 `lastTrigger` 触发信息。
+- 里程碑节奏：
+  - 当前累计执行到第 18 轮；按“每 5 轮回顾”约定，下一次阶段总结应在第 20 轮（预计 S30）完成后执行。
+
 ## 待完成内容
 
-1. S27 当前为 metadata 审计闭环 V1，仍需补“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
-2. 上传成功后仍不会自动触发 `AUTO_PIPELINE`，与“上传即自动生成”目标存在直接差距。
+1. 上传自动触发已落地，但仍需补“触发失败补偿任务化”（S28.1），避免漏触发窗口。
+2. S27 当前为 metadata 审计闭环 V1，仍需补“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
 3. `speaker_engine_variants/speaker_emotion_presets` 尚未接入音频生成运行时主决策链路。
 4. Q1-Q3 仍以启发式判定为主，未完成 CER/声纹等关键质量信号主链路接入。
 5. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
 6. 核心 SLO 指标（`pipeline_success_rate` 等）尚未形成统一 API + 告警闭环。
 
-## 剩余任务优先级（建议，S28-S32）
+## 剩余任务优先级（建议，S29-S32）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S28 | 上传自动触发 Auto Pipeline | 上传后自动创建自动编排任务，补主入口一致性 | 用户无需手工串联阶段任务 | S27 |
-| P1 | S29 | Engine Router v1 运行时接入 | 按 `role_type/emotion/priority/engine_health` 路由并记录命中策略 | 引擎选择可解释、可回放、可降级 | S28 |
+| P0 | S29 | Engine Router v1 运行时接入 | 按 `role_type/emotion/priority/engine_health` 路由并记录命中策略 | 引擎选择可解释、可回放、可降级 | S28 |
 | P1 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并联动返工策略 | 质量判定误报/漏报显著下降 | S29 |
 | P1 | S27.1 | 阈值治理任务化补齐 | 固化评估样本集并接入 `QUALITY_CHECK(source=calibration_eval)` 回放链路 | 阈值评估可重放、可对比、可追溯 | S27 |
+| P1 | S28.1 | 上传触发补偿任务化 | 上传触发失败后创建补偿任务并自动重试 | 漏触发率可观测且可自动收敛 | S28 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
 | P2 | S32 | 核心 SLO 指标产品化 | 输出核心指标 API、看板和阈值告警 | 支持按计划执行运营验收 | S30/S31 |
 
 ## 执行卡片索引（S27-S32）
 
 1. 详细执行卡：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。
-2. 接手执行顺序：S28 -> S29/S30 -> S27.1 -> S31/S32。
+2. 接手执行顺序：S29 -> S30 -> S27.1/S28.1 -> S31/S32。
 3. 交接要求：每完成一项任务，必须同步更新实施卡中的“API 变更”和“验收结果”。
 
 ## 测试与验证结果
@@ -356,6 +376,7 @@
   - `apps/web/src/lib/__tests__/deep-gate-model-runtime.test.ts`（新增）
   - `apps/web/src/lib/__tests__/deep-gate-calibration.test.ts`（新增）
   - `apps/web/src/lib/__tests__/deep-gate-calibration-governance-service.test.ts`（新增，S27 阈值治理闭环）
+  - `apps/web/src/lib/__tests__/auto-pipeline-trigger-service.test.ts`（新增，S28 上传/手工触发统一服务）
 - 已执行：
   - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
   - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
@@ -389,11 +410,15 @@
   - `pnpm --filter web typecheck`（S27）
   - `pnpm --filter web lint`（S27）
   - `pnpm --filter web test:regression`（S27）
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-trigger-service.test.ts`（S28）
+  - `pnpm --filter web typecheck`（S28）
+  - `pnpm --filter web lint`（S28）
+  - `pnpm --filter web test:regression`（S28）
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S28（P0）**：补“上传自动触发 + 主入口一致性”，优先闭环端到端自动链路。
-2. 然后执行 **S29 + S30（P1）**：接入 Engine Router 与 Q0-Q3 指标化能力，提升路由收益和质量判定可信度。
-3. 并行补 **S27.1（P1）**：将阈值治理升级为任务化回放，固定样本集并支持可复盘评估。
+1. 先做 **S29（P0）**：接入 Engine Router 运行时，把路由命中、降级路径和策略版本沉淀到任务元数据。
+2. 然后执行 **S30（P1）**：补 Q0-Q3 指标化（CER/声纹优先），提升质量判定可信度与返工命中率。
+3. 并行补 **S27.1 + S28.1（P1）**：把阈值治理升级为任务化回放，并补上传触发失败补偿任务。
 4. 收尾执行 **S31 + S32（P2）**：补 `FINAL_ASSEMBLY` 任务化与核心 SLO 指标产品化，完成运营验收。

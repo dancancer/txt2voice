@@ -5,6 +5,7 @@
 import { readFile } from "fs/promises";
 import prisma from "@/lib/prisma";
 import {
+  jsonMetadata,
   jsonObject,
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
@@ -316,6 +317,7 @@ export const completeAutoPipeline = async ({
       metadata: {
         ...jsonObject(book?.metadata),
         autoPipeline: {
+          ...jsonMetadata(jsonObject(book?.metadata).autoPipeline),
           taskId,
           completedAt: new Date().toISOString(),
           pendingReviewCount,

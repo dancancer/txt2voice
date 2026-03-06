@@ -28,6 +28,11 @@ export interface BooksResponse {
   }
 }
 
+export interface UploadFileOptions {
+  autoPipelineEnabled?: boolean
+  autoPipelineOptions?: Record<string, unknown>
+}
+
 // 书籍相关API
 export const booksApi = {
   // 获取书籍列表
@@ -99,9 +104,15 @@ export const booksApi = {
   },
 
   // 上传文件
-  async uploadFile(id: string, file: File): Promise<any> {
+  async uploadFile(id: string, file: File, options?: UploadFileOptions): Promise<any> {
     const formData = new FormData()
     formData.append('file', file)
+    if (typeof options?.autoPipelineEnabled === 'boolean') {
+      formData.append('autoPipelineEnabled', String(options.autoPipelineEnabled))
+    }
+    if (options?.autoPipelineOptions) {
+      formData.append('autoPipelineOptions', JSON.stringify(options.autoPipelineOptions))
+    }
 
     const response = await fetch(`${API_BASE}/${id}/upload`, {
       method: 'POST',
@@ -109,6 +120,21 @@ export const booksApi = {
     })
     if (!response.ok) {
       throw new Error('Failed to upload file')
+    }
+    return response.json()
+  },
+
+  // 启动自动编排
+  async startAutoPipeline(id: string, options?: Record<string, unknown>): Promise<any> {
+    const response = await fetch(`${API_BASE}/${id}/pipeline/auto`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ options: options || {} }),
+    })
+    if (!response.ok) {
+      throw new Error('Failed to start auto pipeline')
     }
     return response.json()
   },

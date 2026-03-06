@@ -1,17 +1,75 @@
 // 一旦我被更新，请更新我的开头注释
-// input: HTTP 请求/路由参数/服务依赖
+// input: HTTP 请求/路由参数/上传与自动编排参数
 // output: HTTP 响应/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, FileProcessingError, ValidationError } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
 import { writeFile, mkdir } from 'fs/promises'
-import JSZip from 'jszip'
 import { CONFIG } from '@/lib/constants'
 import { sanitizeFilename, validateFilePath, validateBookExists } from '@/lib/api-utils'
 import { logger } from '@/lib/logger'
 import { getBookUploadDir } from '@/lib/storage-path'
 import { join } from 'path'
+import {
+  parseAutoPipelineOptions,
+  type AutoPipelineOptions
+} from '@/lib/auto-pipeline-runner'
+import { startAutoPipelineTask } from '@/lib/auto-pipeline-trigger-service'
+
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
+const FALSE_VALUES = new Set(['0', 'false', 'no', 'off'])
+
+const parseBooleanFormField = (
+  value: FormDataEntryValue | null,
+  fieldName: string,
+  defaultValue: boolean
+): boolean => {
+  if (value === null) {
+    return defaultValue
+  }
+  if (typeof value !== 'string') {
+    throw new ValidationError(`${fieldName} 参数格式错误`, fieldName)
+  }
+
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) {
+    return defaultValue
+  }
+  if (TRUE_VALUES.has(normalized)) {
+    return true
+  }
+  if (FALSE_VALUES.has(normalized)) {
+    return false
+  }
+
+  throw new ValidationError(`${fieldName} 参数格式错误`, fieldName)
+}
+
+const parseAutoPipelineOptionsField = (
+  value: FormDataEntryValue | null
+): AutoPipelineOptions => {
+  if (value === null) {
+    return {}
+  }
+  if (typeof value !== 'string') {
+    throw new ValidationError('autoPipelineOptions 参数格式错误', 'autoPipelineOptions')
+  }
+
+  const normalized = value.trim()
+  if (!normalized) {
+    return {}
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(normalized)
+  } catch {
+    throw new ValidationError('autoPipelineOptions 不是合法 JSON', 'autoPipelineOptions')
+  }
+
+  return parseAutoPipelineOptions(parsed)
+}
 
 // POST /api/books/[id]/upload - 上传文件
 export const POST = withErrorHandler(async (
@@ -21,10 +79,18 @@ export const POST = withErrorHandler(async (
   const { id: bookId } = await params
 
   // 验证书籍是否存在
-  const book = await validateBookExists(bookId)
+  await validateBookExists(bookId)
 
   const formData = await request.formData()
   const file = formData.get('file') as File
+  const autoPipelineEnabled = parseBooleanFormField(
+    formData.get('autoPipelineEnabled') ?? formData.get('autoStartPipeline'),
+    'autoPipelineEnabled',
+    true
+  )
+  const autoPipelineOptions = parseAutoPipelineOptionsField(
+    formData.get('autoPipelineOptions')
+  )
 
   if (!file) {
     throw new ValidationError('未选择文件', 'file')
@@ -138,6 +204,31 @@ export const POST = withErrorHandler(async (
     }
   })
 
+  let autoPipelineResult: Awaited<ReturnType<typeof startAutoPipelineTask>> | null = null
+  let autoPipelineWarning: string | null = null
+
+  if (autoPipelineEnabled) {
+    try {
+      autoPipelineResult = await startAutoPipelineTask({
+        bookId,
+        options: autoPipelineOptions,
+        triggerSource: 'upload_api',
+        triggerMetadata: {
+          filename: file.name,
+          size: file.size,
+          uploadedAt: updatedBook.updatedAt.toISOString()
+        },
+        allowReuseRunningTask: true
+      })
+    } catch (error) {
+      autoPipelineWarning = error instanceof Error ? error.message : '自动编排触发失败'
+      logger.warn('Upload succeeded but auto pipeline trigger failed', {
+        bookId,
+        warning: autoPipelineWarning
+      })
+    }
+  }
+
   return NextResponse.json({
     success: true,
     data: {
@@ -145,7 +236,16 @@ export const POST = withErrorHandler(async (
       originalFilename: file.name,
       size: file.size,
       uploadedAt: updatedBook.updatedAt,
-      contentPreview: content.slice(0, 200) + (content.length > 200 ? '...' : '')
+      contentPreview: content.slice(0, 200) + (content.length > 200 ? '...' : ''),
+      autoPipeline: {
+        enabled: autoPipelineEnabled,
+        triggered: Boolean(autoPipelineResult),
+        reused: autoPipelineResult?.reused || false,
+        taskId: autoPipelineResult?.taskId || null,
+        totalStages: autoPipelineResult?.totalStages || null,
+        qualityCheckEnabled: autoPipelineResult?.qualityCheckEnabled || null,
+        warning: autoPipelineWarning
+      }
     }
   })
 })

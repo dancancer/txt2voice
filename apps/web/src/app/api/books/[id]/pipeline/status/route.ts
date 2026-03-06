@@ -1,5 +1,5 @@
 // 一旦我被更新，请更新我的开头注释
-// input: HTTP 请求/路由参数/服务依赖
+// input: HTTP 请求/路由参数/自动编排状态数据
 // output: HTTP 响应/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
@@ -43,6 +43,25 @@ const extractStageTaskId = (
 ): string | null => {
   const stageTaskId = asString(stageValue?.taskId);
   return stageTaskId || null;
+};
+
+const toTimestamp = (value: string | null): number | null => {
+  if (!value) {
+    return null;
+  }
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+};
+
+const computeDurationMs = (startAt: string | null, endAt: string | null): number | null => {
+  const startMs = toTimestamp(startAt);
+  const endMs = toTimestamp(endAt);
+
+  if (startMs === null || endMs === null || endMs < startMs) {
+    return null;
+  }
+
+  return endMs - startMs;
 };
 
 export const GET = withErrorHandler(
@@ -134,12 +153,22 @@ export const GET = withErrorHandler(
             error: null,
             startedAt: null,
             completedAt: null,
+            durationMs: null,
           })),
           latestQualityTask: latestQualityTask
             ? formatProcessingTask(latestQualityTask)
             : null,
           qualitySummary: jsonMetadata(jsonObject(book.metadata).qualityCheck),
           autoPipelineSummary: jsonMetadata(jsonObject(book.metadata).autoPipeline),
+          latestUploadTriggerSource: null,
+          stageDurations: {
+            totalMs: null,
+            byStage: PIPELINE_STAGE_ORDER.map((stage) => ({
+              key: stage,
+              label: STAGE_LABEL[stage],
+              durationMs: null,
+            })),
+          },
           counts: book._count,
         },
       });
@@ -175,6 +204,13 @@ export const GET = withErrorHandler(
       const stageStatus = asString(stageValue?.status) || stageTask?.status || "pending";
       const stageProgress =
         stageTask?.progress || (stageStatus === "completed" ? 100 : 0);
+      const startedAt =
+        asString(stageValue?.startedAt) ||
+        (stageTask?.startedAt ? stageTask.startedAt.toISOString() : null);
+      const completedAt =
+        asString(stageValue?.completedAt) ||
+        (stageTask?.completedAt ? stageTask.completedAt.toISOString() : null);
+      const durationMs = computeDurationMs(startedAt, completedAt);
 
       return {
         key: stage,
@@ -184,14 +220,21 @@ export const GET = withErrorHandler(
         progress: stageProgress,
         message: stageTask?.message || asString(stageValue?.message),
         error: stageTask?.error || asString(stageValue?.error),
-        startedAt:
-          asString(stageValue?.startedAt) ||
-          (stageTask?.startedAt ? stageTask.startedAt.toISOString() : null),
-        completedAt:
-          asString(stageValue?.completedAt) ||
-          (stageTask?.completedAt ? stageTask.completedAt.toISOString() : null),
+        startedAt,
+        completedAt,
+        durationMs,
       };
     });
+
+    const completedDurationStages = stages.filter((stage) => stage.durationMs !== null);
+    const totalStageDurationMs =
+      completedDurationStages.length > 0
+        ? completedDurationStages.reduce((acc, stage) => acc + (stage.durationMs || 0), 0)
+        : null;
+
+    const triggerSource = asString(pipelineMetadata.triggerSource);
+    const latestUploadTriggerSource =
+      triggerSource && triggerSource.startsWith("upload") ? triggerSource : null;
 
     return NextResponse.json({
       success: true,
@@ -204,6 +247,15 @@ export const GET = withErrorHandler(
         latestQualityTask: latestQualityTask ? formatProcessingTask(latestQualityTask) : null,
         qualitySummary: jsonMetadata(jsonObject(book.metadata).qualityCheck),
         autoPipelineSummary: jsonMetadata(jsonObject(book.metadata).autoPipeline),
+        latestUploadTriggerSource,
+        stageDurations: {
+          totalMs: totalStageDurationMs,
+          byStage: stages.map((stage) => ({
+            key: stage.key,
+            label: stage.label,
+            durationMs: stage.durationMs,
+          })),
+        },
         counts: book._count,
       },
     });
