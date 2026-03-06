@@ -17,6 +17,8 @@ interface DispatchMetricBase {
 }
 type MutableDispatchMetricBase = DispatchMetricBase;
 
+type DispatchSignalType = "cer" | "speaker";
+
 interface MutableSourceSummary {
   source: string;
   taskCount: number;
@@ -48,6 +50,10 @@ export interface QcDispatchMetricsResult {
     secondaryDispatchCount: number;
     secondaryDispatchSkippedByThresholdCount: number;
     bySource: Array<MutableSourceSummary>;
+  };
+  signalBreakdown: {
+    cer: DispatchMetricBase;
+    speaker: DispatchMetricBase;
   };
 }
 
@@ -108,6 +114,50 @@ const resolveSource = ({
   }
 
   return "unknown";
+};
+
+const resolveSignal = ({
+  issueType,
+  issueDetail,
+}: {
+  issueType: string;
+  issueDetail: Prisma.JsonValue;
+}): DispatchSignalType | null => {
+  const normalizedIssueType = normalizeIssueType(issueType || "UNKNOWN");
+  if (normalizedIssueType === "CER") {
+    return "cer";
+  }
+  if (normalizedIssueType === "SPEAKER") {
+    return "speaker";
+  }
+
+  const detail = asRecord(issueDetail);
+  const primarySignal = asString(detail?.primarySignal)?.toLowerCase();
+  if (primarySignal?.includes("q2_cer") || primarySignal?.includes("cer")) {
+    return "cer";
+  }
+  if (
+    primarySignal?.includes("q3_speaker") ||
+    primarySignal?.includes("speaker") ||
+    primarySignal?.includes("voiceprint")
+  ) {
+    return "speaker";
+  }
+
+  const reasons = Array.isArray(detail?.reasons) ? detail?.reasons : [];
+  if (reasons.some((reason) => typeof reason === "string" && reason.startsWith("cer_"))) {
+    return "cer";
+  }
+  if (
+    reasons.some(
+      (reason) =>
+        typeof reason === "string" && reason.startsWith("speaker_similarity")
+    )
+  ) {
+    return "speaker";
+  }
+
+  return null;
 };
 
 const initMutableMetric = (): MutableDispatchMetricBase => ({
@@ -229,6 +279,10 @@ export const getQcDispatchMetrics = async ({
   const totals = initMutableMetric();
   const byIssueTypeMap = new Map<string, MutableDispatchMetricBase & { issueType: string }>();
   const bySourceMap = new Map<string, MutableDispatchMetricBase & { source: string }>();
+  const signalBreakdown = {
+    cer: initMutableMetric(),
+    speaker: initMutableMetric(),
+  };
 
   for (const row of autoRejectedRows) {
     const source = resolveSource({
@@ -244,6 +298,10 @@ export const getQcDispatchMetrics = async ({
     const detail = asRecord(row.issueDetail);
     const autoRejectedCount = asNonNegativeInteger(detail?.autoRejectedCount) ?? 1;
     const isThresholdBlocked = detail?.secondaryDispatch === "threshold_blocked";
+    const signal = resolveSignal({
+      issueType,
+      issueDetail: row.issueDetail,
+    });
 
     totals.autoRejectedEventCount += 1;
     totals.autoRejectedAccumulatedCount += autoRejectedCount;
@@ -270,6 +328,15 @@ export const getQcDispatchMetrics = async ({
     if (isThresholdBlocked) {
       sourceBucket.thresholdBlockedCount += 1;
     }
+
+    if (signal) {
+      const signalBucket = signalBreakdown[signal];
+      signalBucket.autoRejectedEventCount += 1;
+      signalBucket.autoRejectedAccumulatedCount += autoRejectedCount;
+      if (isThresholdBlocked) {
+        signalBucket.thresholdBlockedCount += 1;
+      }
+    }
   }
 
   for (const row of recentReviewRows) {
@@ -283,6 +350,10 @@ export const getQcDispatchMetrics = async ({
       resolutionNote: row.resolutionNote,
     });
     const issueType = normalizeIssueType(row.issueType || "UNKNOWN");
+    const signal = resolveSignal({
+      issueType,
+      issueDetail: row.issueDetail,
+    });
     if (!shouldInclude({ query, source, issueType })) {
       continue;
     }
@@ -300,6 +371,10 @@ export const getQcDispatchMetrics = async ({
       ...initMutableMetric(),
     }));
     sourceBucket.secondaryPendingCount += 1;
+
+    if (signal) {
+      signalBreakdown[signal].secondaryPendingCount += 1;
+    }
   }
 
   const qualityTaskSummary = {
@@ -379,5 +454,6 @@ export const getQcDispatchMetrics = async ({
     byIssueType,
     bySource,
     qualityTaskSummary,
+    signalBreakdown,
   };
 };

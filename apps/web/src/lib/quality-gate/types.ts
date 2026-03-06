@@ -5,18 +5,42 @@
 
 export type QualityGateVerdict = "pass" | "repair" | "manual_review" | "hard_fail";
 
-export type QualityIssueType = "FAST_GATE" | "EMOTION" | "CONTINUITY";
+export type QualityIssueType =
+  | "FAST_GATE"
+  | "AUDIO"
+  | "CER"
+  | "SPEAKER"
+  | "EMOTION"
+  | "CONTINUITY";
 
 export interface FastGateSnapshot {
   verdict: QualityGateVerdict;
   hardFail: boolean;
   score: number;
+  q0Score?: number;
   q1Score: number;
   q2Score: number;
   q3Score: number;
   charsPerSecond: number;
   reasons: string[];
   repairPlan: string[];
+  issueType?: QualityIssueType;
+  primarySignal?: "q0_precheck" | "q1_audio" | "q2_cer" | "q3_speaker";
+  signalSources?: {
+    q0: string;
+    q1: string;
+    q2: string;
+    q3: string;
+  };
+  signalValues?: {
+    q0PrecheckRisk: number;
+    q2Cer: number | null;
+    q3SpeakerSimilarity: number | null;
+    q1Clipping: boolean | null;
+    q1LeadingSilenceMs: number | null;
+    q1TrailingSilenceMs: number | null;
+    q1Lufs: number | null;
+  };
 }
 
 export interface DeepGateThresholdTemplate {
@@ -104,6 +128,7 @@ export interface CombinedQualityDecision {
   verdict: QualityGateVerdict;
   hardFail: boolean;
   score: number;
+  q0Score?: number;
   q1Score: number;
   q2Score: number;
   q3Score: number;
@@ -117,6 +142,22 @@ export interface CombinedQualityDecision {
   reasons: string[];
   repairPlan: string[];
   issueType: QualityIssueType;
+  primarySignal?: "q0_precheck" | "q1_audio" | "q2_cer" | "q3_speaker";
+  signalSources?: {
+    q0: string;
+    q1: string;
+    q2: string;
+    q3: string;
+  };
+  signalValues?: {
+    q0PrecheckRisk: number;
+    q2Cer: number | null;
+    q3SpeakerSimilarity: number | null;
+    q1Clipping: boolean | null;
+    q1LeadingSilenceMs: number | null;
+    q1TrailingSilenceMs: number | null;
+    q1Lufs: number | null;
+  };
 }
 
 export interface DeepGateCalibrationSample {

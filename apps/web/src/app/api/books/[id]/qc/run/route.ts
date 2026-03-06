@@ -60,6 +60,12 @@ export const POST = withErrorHandler(async (
   const deepGateModelRuntime = asRecord(
     body.deepGateModelRuntime || body.modelRuntime
   )
+  const signalSources = asRecord(
+    body.signalSources || body.q0q3SignalSources
+  )
+  const q0q3Thresholds = asRecord(
+    body.q0q3Thresholds || body.fastGateThresholds
+  )
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -104,6 +110,12 @@ export const POST = withErrorHandler(async (
   }
   if (deepGateModelRuntime) {
     taskMetadata.deepGateModelRuntime = toInputJsonValue(deepGateModelRuntime)
+  }
+  if (signalSources) {
+    taskMetadata.signalSources = toInputJsonValue(signalSources)
+  }
+  if (q0q3Thresholds) {
+    taskMetadata.q0q3Thresholds = toInputJsonValue(q0q3Thresholds)
   }
 
   const task = await prisma.processingTask.create({
@@ -202,13 +214,20 @@ export const GET = withErrorHandler(async (
     throw new ValidationError('书籍不存在')
   }
 
+  const formattedLatestTask = latestTask ? formatProcessingTask(latestTask) : null
+  const latestMetadata = asRecord(formattedLatestTask?.metadata)
+  const latestQ0Q3Summary = asRecord(latestMetadata?.q0q3Summary)
+  const latestSignalSourceSummary = asRecord(latestMetadata?.signalSourceSummary)
+
   return NextResponse.json({
     success: true,
     data: {
       bookStatus: book.status,
       qualityCheckCount: book._count.qualityCheckResults,
       pendingReviewCount,
-      latestTask: latestTask ? formatProcessingTask(latestTask) : null
+      latestTask: formattedLatestTask,
+      latestQ0Q3Summary: latestQ0Q3Summary || null,
+      latestSignalSourceSummary: latestSignalSourceSummary || null
     }
   })
 })

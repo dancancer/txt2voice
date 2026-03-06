@@ -37,7 +37,9 @@ const loadCalibrationSamplesFromQualityResults = async ({
     where: {
       bookId,
       gate: "FAST_DEEP_GATE",
-      stage: "Q1_Q5",
+      stage: {
+        in: ["Q1_Q5", "Q0_Q5"],
+      },
     },
     orderBy: [{ createdAt: "desc" }],
     take: sampleLimit,

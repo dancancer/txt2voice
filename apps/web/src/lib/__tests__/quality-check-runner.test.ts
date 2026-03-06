@@ -10,7 +10,7 @@ import {
 describe('evaluateFastGate', () => {
   it('should pass stable narration sample', () => {
     const result = evaluateFastGate({
-      text: '这是一个节奏平稳的旁白句子，用于验证 Fast Gate 通过路径。',
+      text: '这是一个节奏平稳的旁白句子，用于验证质检通过路径。',
       roleType: 'narration',
       durationSeconds: 5.2,
       hasVoiceProfile: true

@@ -8,6 +8,12 @@ import {
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import {
+  extractQ0Q3RawSignals,
+  evaluateQ0Q3Signals,
+  resolveQ0Q3SignalSources,
+  resolveQ0Q3ThresholdTemplate,
+} from "@/lib/quality-check/q0q3-runtime";
 import { buildDeepGateCalibrationSnapshot } from "@/lib/quality-check/deep-gate-calibration";
 import { inferDeepGateModelSignals } from "@/lib/quality-check/deep-gate-model-inference";
 import { resolveDeepGateModelRuntime } from "@/lib/quality-check/deep-gate-model-runtime";
@@ -39,8 +45,13 @@ export interface QualityCheckRunParams {
 interface FastGateInput {
   text: string;
   roleType?: string | null;
+  priority?: string | null;
+  emotionIntensity?: number | null;
   durationSeconds: number;
   hasVoiceProfile: boolean;
+  rawSignals?: ReturnType<typeof extractQ0Q3RawSignals>;
+  signalSources?: ReturnType<typeof resolveQ0Q3SignalSources>["config"];
+  thresholds?: ReturnType<typeof resolveQ0Q3ThresholdTemplate>["template"];
 }
 
 type FastGateDecision = FastGateSnapshot;
@@ -370,6 +381,9 @@ const syncReprocessingManualReviewItems = async ({
       score: decision.score,
       verdict: decision.verdict,
       issueType: decision.issueType,
+      primarySignal: decision.primarySignal || "q0_precheck",
+      signalSources: (decision.signalSources || {}) as Prisma.InputJsonValue,
+      signalValues: (decision.signalValues || {}) as Prisma.InputJsonValue,
       syncedByTaskId: taskId,
       source: dispatchSource,
       autoRejectedCount: nextAutoRejectedCount,
@@ -460,6 +474,9 @@ const syncReprocessingManualReviewItems = async ({
             score: decision.score,
             verdict: decision.verdict,
             issueType: decision.issueType,
+            primarySignal: decision.primarySignal || "q0_precheck",
+            signalSources: decision.signalSources || {},
+            signalValues: decision.signalValues || {},
             source: dispatchSource,
             sourceReviewItemId: item.id,
             dispatch: "secondary_pending",
@@ -525,6 +542,32 @@ const buildRepairPlan = (reasons: string[]): string[] => {
     plans.push("align_chapter_pace_profile");
   }
 
+  if (
+    reasons.includes("cer_too_high") ||
+    reasons.includes("cer_above_pass_threshold") ||
+    reasons.includes("cer_hard_fail")
+  ) {
+    plans.push("rerun_asr_alignment_then_retry");
+    plans.push("decrease_speed_0.05");
+  }
+
+  if (
+    reasons.includes("speaker_similarity_too_low") ||
+    reasons.includes("speaker_similarity_below_pass_threshold") ||
+    reasons.includes("speaker_similarity_hard_fail")
+  ) {
+    plans.push("lock_voice_profile_and_seed");
+    plans.push("increase_reference_audio_weight");
+  }
+
+  if (
+    reasons.includes("precheck_sentence_too_long") ||
+    reasons.includes("precheck_numeric_normalization_needed") ||
+    reasons.includes("precheck_foreign_token_detected")
+  ) {
+    plans.push("normalize_text_before_tts");
+  }
+
   if (plans.length === 0) {
     plans.push("retry_with_same_engine");
   }
@@ -535,78 +578,45 @@ const buildRepairPlan = (reasons: string[]): string[] => {
 export const evaluateFastGate = ({
   text,
   roleType,
+  priority,
+  emotionIntensity,
   durationSeconds,
   hasVoiceProfile,
+  rawSignals,
+  signalSources,
+  thresholds,
 }: FastGateInput): FastGateDecision => {
-  const normalizedDuration = Number.isFinite(durationSeconds) ? durationSeconds : 0;
-  const textLength = text.trim().length;
-  const charsPerSecond =
-    normalizedDuration > 0 ? Number((textLength / normalizedDuration).toFixed(4)) : 0;
-
-  const reasons: string[] = [];
-  let q1Score = 92;
-  let q2Score = 90;
-  let q3Score = 90;
-  let hardFail = false;
-
-  if (normalizedDuration <= 0) {
-    q1Score = 0;
-    q2Score = 0;
-    hardFail = true;
-    reasons.push("invalid_duration");
-  } else if (normalizedDuration < 0.25) {
-    q1Score = 35;
-    reasons.push("duration_too_short");
-  } else if (normalizedDuration > 45) {
-    q1Score = 65;
-    reasons.push("duration_too_long");
-  }
-
-  if (charsPerSecond > 12) {
-    q2Score = 30;
-    hardFail = true;
-    reasons.push("pace_too_fast_hard_fail");
-  } else if (charsPerSecond > 8.5) {
-    q2Score = 62;
-    reasons.push("pace_too_fast");
-  } else if (charsPerSecond < 1.1 && normalizedDuration > 0) {
-    q2Score = 55;
-    reasons.push("pace_too_slow");
-  } else if (charsPerSecond < 1.5 && normalizedDuration > 0) {
-    q2Score = 72;
-    reasons.push("pace_slightly_slow");
-  }
-
-  const isDialogue = roleType === "dialogue" || roleType === "monologue";
-  if (isDialogue && !hasVoiceProfile) {
-    q3Score = 45;
-    reasons.push("voice_profile_missing_for_dialogue");
-  } else if (!hasVoiceProfile) {
-    q3Score = 68;
-    reasons.push("voice_profile_missing");
-  }
-
-  const score = clampScore(0.4 * q1Score + 0.35 * q2Score + 0.25 * q3Score);
-  let verdict: FastGateVerdict = "pass";
-
-  if (hardFail) {
-    verdict = "hard_fail";
-  } else if (score < 70) {
-    verdict = "manual_review";
-  } else if (score < 85) {
-    verdict = "repair";
-  }
-
+  const decision = evaluateQ0Q3Signals({
+    text,
+    roleType,
+    priority,
+    emotionIntensity,
+    durationSeconds,
+    hasVoiceProfile,
+    rawSignals: rawSignals || {
+      cer: null,
+      speakerSimilarity: null,
+      clipping: null,
+      leadingSilenceMs: null,
+      trailingSilenceMs: null,
+      lufs: null,
+    },
+    signalSources:
+      signalSources ||
+      resolveQ0Q3SignalSources({
+        taskMetadata: null,
+        bookMetadata: null,
+      }).config,
+    thresholds:
+      thresholds ||
+      resolveQ0Q3ThresholdTemplate({
+        taskMetadata: null,
+        bookMetadata: null,
+      }).template,
+  });
   return {
-    verdict,
-    hardFail,
-    score,
-    q1Score,
-    q2Score,
-    q3Score,
-    charsPerSecond,
-    reasons,
-    repairPlan: buildRepairPlan(reasons),
+    ...decision,
+    repairPlan: buildRepairPlan(decision.reasons),
   };
 };
 
@@ -653,6 +663,18 @@ const updateIssueTypeCount = (
   issueType: string
 ): void => {
   bucket[issueType] = (bucket[issueType] || 0) + 1;
+};
+
+const updateSignalSourceCount = (
+  bucket: Record<string, number>,
+  stage: "q0" | "q1" | "q2" | "q3",
+  source: string | undefined
+): void => {
+  if (!source) {
+    return;
+  }
+  const key = `${stage}:${source}`;
+  bucket[key] = (bucket[key] || 0) + 1;
 };
 
 const pushVoiceProfileStats = (
@@ -773,6 +795,7 @@ export async function runQualityCheckTask({
             id: true,
             text: true,
             roleType: true,
+            priority: true,
             emotionLabel: true,
             emotionIntensity: true,
           },
@@ -780,6 +803,7 @@ export async function runQualityCheckTask({
         synthesisAttempts: {
           select: {
             id: true,
+            metrics: true,
           },
           orderBy: [{ attemptNo: "desc" }, { createdAt: "desc" }],
           take: 1,
@@ -794,6 +818,14 @@ export async function runQualityCheckTask({
   }
 
   const thresholdResolution = resolveDeepGateThresholdTemplate({
+    taskMetadata: taskContext.taskMetadata,
+    bookMetadata: book?.metadata,
+  });
+  const q0q3SignalSourceResolution = resolveQ0Q3SignalSources({
+    taskMetadata: taskContext.taskMetadata,
+    bookMetadata: book?.metadata,
+  });
+  const q0q3ThresholdResolution = resolveQ0Q3ThresholdTemplate({
     taskMetadata: taskContext.taskMetadata,
     bookMetadata: book?.metadata,
   });
@@ -843,6 +875,15 @@ export async function runQualityCheckTask({
   let emotionModelUsedCount = 0;
   let continuityModelUsedCount = 0;
   let deepGateModelFallbackCount = 0;
+  let q0ScoreSum = 0;
+  let q1ScoreSum = 0;
+  let q2ScoreSum = 0;
+  let q3ScoreSum = 0;
+  let q2CerValueSum = 0;
+  let q2CerValueCount = 0;
+  let q3SpeakerSimilaritySum = 0;
+  let q3SpeakerSimilarityCount = 0;
+  const q0q3SignalSourceUsage: Record<string, number> = {};
   const issueTypeCounts: Record<string, number> = {};
   const deepGateCalibrationSamples: DeepGateCalibrationSample[] = [];
   const chapterAuditMap = new Map<string, ChapterAuditAccumulator>();
@@ -858,11 +899,26 @@ export async function runQualityCheckTask({
     }
 
     const durationSeconds = Number(audioFile.duration || 0);
+    const rawSignals = extractQ0Q3RawSignals({
+      attemptMetrics: audioFile.synthesisAttempts[0]?.metrics,
+      taskMetadata: taskContext.taskMetadata,
+      audioFileId: audioFile.id,
+      sentenceId: audioFile.sentenceId || null,
+    });
     const fastDecision = evaluateFastGate({
       text: audioFile.scriptSentence.text,
       roleType: audioFile.scriptSentence.roleType,
+      priority: audioFile.scriptSentence.priority,
+      emotionIntensity:
+        audioFile.scriptSentence.emotionIntensity !== null &&
+        audioFile.scriptSentence.emotionIntensity !== undefined
+          ? Number(audioFile.scriptSentence.emotionIntensity)
+          : null,
       durationSeconds,
       hasVoiceProfile: Boolean(audioFile.voiceProfileId),
+      rawSignals,
+      signalSources: q0q3SignalSourceResolution.config,
+      thresholds: q0q3ThresholdResolution.template,
     });
     const deepInput = {
       text: audioFile.scriptSentence.text,
@@ -936,12 +992,13 @@ export async function runQualityCheckTask({
           audioFileId: audioFile.id,
           attemptId: audioFile.synthesisAttempts[0]?.id,
           gate: "FAST_DEEP_GATE",
-          stage: "Q1_Q5",
+          stage: "Q0_Q5",
           verdict: decision.verdict,
           score: new Prisma.Decimal(decision.score.toFixed(2)),
           hardFail: decision.hardFail,
-          thresholdKey: "fast_deep_gate_v2",
+          thresholdKey: "fast_deep_gate_v3",
           metrics: {
+            q0Score: decision.q0Score || fastDecision.q0Score || 0,
             q1Score: decision.q1Score,
             q2Score: decision.q2Score,
             q3Score: decision.q3Score,
@@ -951,6 +1008,9 @@ export async function runQualityCheckTask({
             deepGateScore: decision.deepGateScore,
             charsPerSecond: decision.charsPerSecond,
             durationSeconds,
+            q2Cer: decision.signalValues?.q2Cer || null,
+            q3SpeakerSimilarity: decision.signalValues?.q3SpeakerSimilarity || null,
+            signalSources: decision.signalSources || fastDecision.signalSources || null,
           } as Prisma.InputJsonValue,
           reasons: decision.reasons as Prisma.InputJsonValue,
           detail: toInputJsonValue({
@@ -962,6 +1022,12 @@ export async function runQualityCheckTask({
               verdict: fastDecision.verdict,
               score: fastDecision.score,
               hardFail: fastDecision.hardFail,
+              issueType: fastDecision.issueType || "FAST_GATE",
+              primarySignal: fastDecision.primarySignal || "q0_precheck",
+              signalSources: fastDecision.signalSources,
+              signalValues: fastDecision.signalValues,
+              thresholdTemplate: q0q3ThresholdResolution.template,
+              thresholdTemplateSource: q0q3ThresholdResolution.source,
             },
             deepGate: {
               verdict: deepDecision.verdict,
@@ -1036,6 +1102,9 @@ export async function runQualityCheckTask({
                 repairPlan: decision.repairPlan,
                 score: decision.score,
                 issueType: decision.issueType,
+                primarySignal: decision.primarySignal || "q0_precheck",
+                signalSources: decision.signalSources || {},
+                signalValues: decision.signalValues || {},
                 source: taskContext.source || "unknown",
               } as Prisma.InputJsonValue,
             },
@@ -1056,6 +1125,25 @@ export async function runQualityCheckTask({
       manualReviewCount += 1;
     }
     updateIssueTypeCount(issueTypeCounts, decision.issueType);
+    q0ScoreSum += decision.q0Score || fastDecision.q0Score || 0;
+    q1ScoreSum += decision.q1Score;
+    q2ScoreSum += decision.q2Score;
+    q3ScoreSum += decision.q3Score;
+    if (decision.signalValues?.q2Cer !== null && decision.signalValues?.q2Cer !== undefined) {
+      q2CerValueSum += decision.signalValues.q2Cer;
+      q2CerValueCount += 1;
+    }
+    if (
+      decision.signalValues?.q3SpeakerSimilarity !== null &&
+      decision.signalValues?.q3SpeakerSimilarity !== undefined
+    ) {
+      q3SpeakerSimilaritySum += decision.signalValues.q3SpeakerSimilarity;
+      q3SpeakerSimilarityCount += 1;
+    }
+    updateSignalSourceCount(q0q3SignalSourceUsage, "q0", decision.signalSources?.q0);
+    updateSignalSourceCount(q0q3SignalSourceUsage, "q1", decision.signalSources?.q1);
+    updateSignalSourceCount(q0q3SignalSourceUsage, "q2", decision.signalSources?.q2);
+    updateSignalSourceCount(q0q3SignalSourceUsage, "q3", decision.signalSources?.q3);
     deepGateCalibrationSamples.push({
       verdict: decision.verdict,
       q4Score: decision.q4Score,
@@ -1201,6 +1289,33 @@ export async function runQualityCheckTask({
     }
   }
 
+  const q0q3Summary = {
+    averageScores: {
+      q0: checked > 0 ? clampScore(q0ScoreSum / checked) : 0,
+      q1: checked > 0 ? clampScore(q1ScoreSum / checked) : 0,
+      q2: checked > 0 ? clampScore(q2ScoreSum / checked) : 0,
+      q3: checked > 0 ? clampScore(q3ScoreSum / checked) : 0,
+    },
+    q2Cer: {
+      availableCount: q2CerValueCount,
+      missingCount: Math.max(0, checked - q2CerValueCount),
+      average: q2CerValueCount > 0 ? Number((q2CerValueSum / q2CerValueCount).toFixed(4)) : null,
+    },
+    q3SpeakerSimilarity: {
+      availableCount: q3SpeakerSimilarityCount,
+      missingCount: Math.max(0, checked - q3SpeakerSimilarityCount),
+      average:
+        q3SpeakerSimilarityCount > 0
+          ? Number((q3SpeakerSimilaritySum / q3SpeakerSimilarityCount).toFixed(4))
+          : null,
+    },
+    signalSourceUsage: q0q3SignalSourceUsage,
+    signalSourceConfig: q0q3SignalSourceResolution.config,
+    signalSourceConfigSource: q0q3SignalSourceResolution.source,
+    thresholdTemplate: q0q3ThresholdResolution.template,
+    thresholdTemplateSource: q0q3ThresholdResolution.source,
+  };
+
   const summary = {
     type,
     chapterId: chapterId || null,
@@ -1225,6 +1340,8 @@ export async function runQualityCheckTask({
       continuityModelUsedCount,
       fallbackCount: deepGateModelFallbackCount,
     },
+    q0q3Summary,
+    signalSourceSummary: q0q3SignalSourceUsage,
     deepGateCalibration,
     chapterAuditCount,
     chapterAuditRepairCount,

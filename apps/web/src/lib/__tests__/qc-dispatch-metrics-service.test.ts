@@ -190,6 +190,20 @@ describe("qc-dispatch-metrics-service", () => {
         }),
       ])
     );
+    expect(result.signalBreakdown).toEqual({
+      cer: {
+        autoRejectedEventCount: 0,
+        autoRejectedAccumulatedCount: 0,
+        thresholdBlockedCount: 0,
+        secondaryPendingCount: 0,
+      },
+      speaker: {
+        autoRejectedEventCount: 0,
+        autoRejectedAccumulatedCount: 0,
+        thresholdBlockedCount: 0,
+        secondaryPendingCount: 0,
+      },
+    });
   });
 
   it("should filter metrics by source", async () => {
@@ -266,6 +280,60 @@ describe("qc-dispatch-metrics-service", () => {
       taskCount: 1,
       secondaryDispatchCount: 2,
       secondaryDispatchSkippedByThresholdCount: 1,
+    });
+    expect(result.signalBreakdown.cer.autoRejectedEventCount).toBe(0);
+    expect(result.signalBreakdown.speaker.autoRejectedEventCount).toBe(0);
+  });
+
+  it("should aggregate signal breakdown for CER and speaker issue", async () => {
+    mockFindManualReviewItems
+      .mockResolvedValueOnce([
+        {
+          issueType: "CER",
+          issueDetail: {
+            autoRejectedCount: 2,
+            source: "qc_retry",
+          },
+          resolutionNote: null,
+        },
+        {
+          issueType: "SPEAKER",
+          issueDetail: {
+            autoRejectedCount: 1,
+            source: "qc_retry",
+          },
+          resolutionNote: null,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          issueType: "FAST_GATE",
+          issueDetail: {
+            dispatch: "secondary_pending",
+            source: "qc_retry",
+            primarySignal: "q2_cer",
+          },
+          resolutionNote: null,
+        },
+      ]);
+    mockFindQualityTasks.mockResolvedValueOnce([]);
+
+    const result = await getQcDispatchMetrics({
+      bookId: "book-3",
+      query: {
+        windowDays: 7,
+      },
+    });
+
+    expect(result.signalBreakdown.cer).toMatchObject({
+      autoRejectedEventCount: 1,
+      autoRejectedAccumulatedCount: 2,
+      secondaryPendingCount: 1,
+    });
+    expect(result.signalBreakdown.speaker).toMatchObject({
+      autoRejectedEventCount: 1,
+      autoRejectedAccumulatedCount: 1,
+      secondaryPendingCount: 0,
     });
   });
 });

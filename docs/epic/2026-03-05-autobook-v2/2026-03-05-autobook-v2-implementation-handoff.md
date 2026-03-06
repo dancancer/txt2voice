@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S29 功能实施已完成；S29（Engine Router v1 运行时接入）已落地，待推进 S30/S27.1/S28.1/S31/S32。
+- 当前进度：S0-S30 功能实施已完成；S30（Q0-Q3 指标化升级）已落地，待推进 S27.1/S28.1/S30.1/S31/S32。
 
-## 总体目标回顾与现状判断（2026-03-06 14:08 CST）
+## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -19,7 +19,7 @@
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑。 |
-| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环已具备，Engine Router v1 已接入；Q1-Q3 仍以启发式为主，CER/声纹未主链路接入。 |
+| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环、Engine Router v1、Q0-Q3 指标化已具备；CER/声纹原始信号生产仍待任务化接入。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放仍需补齐。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测可用；核心 SLO 指标体系与告警仍需补齐。 |
 
@@ -347,28 +347,45 @@
 - 里程碑节奏：
   - 当前累计执行到第 19 轮；按“每 5 轮回顾”约定，下一次阶段总结应在第 20 轮（预计 S30）完成后执行。
 
+### 21) 第二十轮增量（S30：Q0-Q3 指标化升级）
+
+- Q0-Q3 运行时落地：
+  - 新增 `q0q3-runtime`，统一实现信号源解析（默认/书籍/任务级）、阈值模板解析、CER/声纹/音频信号提取与评分融合；
+  - Fast Gate 从纯启发式升级为“指标优先 + 启发式兜底”，新增 issueType 归因：`CER/SPEAKER/AUDIO/FAST_GATE`。
+- 质检链路升级：
+  - `quality-check-runner` 写入 `stage=Q0_Q5` 与 `thresholdKey=fast_deep_gate_v3`；
+  - `quality_check_results.metrics/detail` 与 `manual_review_items.issueDetail` 增补 `q0Score/q2Cer/q3SpeakerSimilarity/primarySignal/signalSources/signalValues`。
+- API 与观测扩展：
+  - `POST /api/books/[id]/qc/run` 支持 `signalSources/q0q3Thresholds`；
+  - `GET /api/books/[id]/qc/run` 返回 `latestQ0Q3Summary/latestSignalSourceSummary`；
+  - `GET /api/books/[id]/qc/dispatch-metrics` 新增 `signalBreakdown(cer/speaker)` 聚合。
+- 兼容性处理：
+  - `deep-gate-calibration-governance` 样本加载兼容 `stage in (Q1_Q5, Q0_Q5)`，保证历史数据可继续评估。
+- 里程碑节奏：
+  - 当前累计执行到第 20 轮，已按“每 5 轮回顾”约定完成一次阶段回顾（S26-S30），结论为“进度与原始需求保持一致，优先补任务化收敛能力”。
+
 ## 待完成内容
 
 1. 上传自动触发已落地，但仍需补“触发失败补偿任务化”（S28.1），避免漏触发窗口。
 2. S27 当前为 metadata 审计闭环 V1，仍需补“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
-3. Q1-Q3 仍以启发式判定为主，未完成 CER/声纹等关键质量信号主链路接入（S30）。
+3. S30 已完成 Q0-Q3 指标化判定，但 CER/声纹原始信号生产仍依赖上游注入，需补 ASR/embedding 任务化供给（S30.1）。
 4. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务（S31）。
 5. 核心 SLO 指标（`pipeline_success_rate` 等）尚未形成统一 API + 告警闭环（S32）。
 
-## 剩余任务优先级（建议，S30-S32）
+## 剩余任务优先级（建议，S27.1-S32）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并联动返工策略 | 质量判定误报/漏报显著下降 | S29 |
-| P1 | S27.1 | 阈值治理任务化补齐 | 固化评估样本集并接入 `QUALITY_CHECK(source=calibration_eval)` 回放链路 | 阈值评估可重放、可对比、可追溯 | S27 |
-| P1 | S28.1 | 上传触发补偿任务化 | 上传触发失败后创建补偿任务并自动重试 | 漏触发率可观测且可自动收敛 | S28 |
+| P0 | S27.1 | 阈值治理任务化补齐 | 固化评估样本集并接入 `QUALITY_CHECK(source=calibration_eval)` 回放链路 | 阈值评估可重放、可对比、可追溯 | S27 |
+| P0 | S28.1 | 上传触发补偿任务化 | 上传触发失败后创建补偿任务并自动重试 | 漏触发率可观测且可自动收敛 | S28 |
+| P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务并稳定回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可观测、可追溯 | S30 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
 | P2 | S32 | 核心 SLO 指标产品化 | 输出核心指标 API、看板和阈值告警 | 支持按计划执行运营验收 | S30/S31 |
 
 ## 执行卡片索引（S27-S32）
 
 1. 详细执行卡：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。
-2. 接手执行顺序：S30 -> S27.1/S28.1 -> S31/S32。
+2. 接手执行顺序：S27.1/S28.1 -> S30.1 -> S31/S32。
 3. 交接要求：每完成一项任务，必须同步更新实施卡中的“API 变更”和“验收结果”。
 
 ## 测试与验证结果
@@ -396,6 +413,7 @@
   - `apps/web/src/lib/__tests__/audio-engine-router.test.ts`（新增，S29 路由评分与降级）
   - `apps/web/src/lib/__tests__/audio-router-metrics-service.test.ts`（新增，S29 路由指标聚合）
   - `apps/web/src/lib/__tests__/task-replay-payload-audio.test.ts`（新增，S29 音频任务回放参数透传）
+  - `apps/web/src/lib/__tests__/q0q3-runtime.test.ts`（新增，S30 Q0-Q3 信号解析与评分）
 - 已执行：
   - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
   - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
@@ -437,10 +455,15 @@
   - `pnpm --filter web typecheck`（S29）
   - `pnpm --filter web lint`（S29）
   - `pnpm --filter web test:regression`（S29）
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/q0q3-runtime.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/qc-dispatch-metrics-service.test.ts src/lib/__tests__/qc-dispatch-alert-service.test.ts`（S30）
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/deep-gate-calibration-governance-service.test.ts`（S30 兼容回放校验）
+  - `pnpm --filter web typecheck`（S30）
+  - `pnpm --filter web lint`（S30）
+  - `pnpm --filter web test:regression`（S30）
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S30（P0）**：补 Q0-Q3 指标化（CER/声纹优先），提升质量判定可信度与返工命中率。
-2. 并行补 **S27.1 + S28.1（P1）**：把阈值治理升级为任务化回放，并补上传触发失败补偿任务。
+1. 先做 **S27.1 + S28.1（P0）**：补齐阈值治理任务化回放与上传触发补偿任务，先收敛“可回放 + 可收敛”底线能力。
+2. 再做 **S30.1（P1）**：接入 ASR/CER + 声纹 embedding 稳定供给链路，解决 Q0-Q3 信号来源 SLA 问题。
 3. 收尾执行 **S31 + S32（P2）**：补 `FINAL_ASSEMBLY` 任务化与核心 SLO 指标产品化，完成运营验收。

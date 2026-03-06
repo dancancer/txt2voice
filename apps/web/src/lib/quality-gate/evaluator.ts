@@ -242,19 +242,25 @@ export const combineQualityGateDecision = ({
   fast: FastGateSnapshot;
   deep: DeepGateDecision;
 }): CombinedQualityDecision => {
+  const q0Score = fast.q0Score ?? 100;
   const hardFail = fast.hardFail || deep.hardFail;
   const score = clampScore(
-    0.2 * fast.q1Score +
-      0.2 * fast.q2Score +
-      0.25 * fast.q3Score +
+    0.1 * q0Score +
+      0.1 * fast.q1Score +
+      0.35 * fast.q2Score +
+      0.2 * fast.q3Score +
       0.2 * deep.q4Score +
-      0.15 * deep.q5Score
+      0.05 * deep.q5Score
   );
 
   let verdict: QualityGateVerdict = "pass";
   if (hardFail) {
     verdict = "hard_fail";
-  } else if (fast.verdict === "manual_review" || deep.verdict === "manual_review") {
+  } else if (
+    q0Score < 60 ||
+    fast.verdict === "manual_review" ||
+    deep.verdict === "manual_review"
+  ) {
     verdict = "manual_review";
   } else if (score < 85 || fast.verdict === "repair" || deep.verdict === "repair") {
     verdict = "repair";
@@ -264,11 +270,19 @@ export const combineQualityGateDecision = ({
     verdict = "manual_review";
   }
 
+  const fastIssueType = fast.issueType || "FAST_GATE";
   let issueType: QualityIssueType = "FAST_GATE";
-  if (fast.verdict === "manual_review" || fast.verdict === "hard_fail" || fast.hardFail) {
-    issueType = "FAST_GATE";
+  if (
+    fast.verdict === "manual_review" ||
+    fast.verdict === "hard_fail" ||
+    fast.hardFail ||
+    q0Score < 60
+  ) {
+    issueType = fastIssueType;
   } else if (deep.verdict === "manual_review" || deep.verdict === "repair") {
     issueType = deep.issueType;
+  } else if (fast.verdict === "repair") {
+    issueType = fastIssueType;
   }
 
   const reasons = Array.from(new Set([...fast.reasons, ...deep.reasons]));
@@ -278,6 +292,7 @@ export const combineQualityGateDecision = ({
     verdict,
     hardFail,
     score,
+    q0Score,
     q1Score: fast.q1Score,
     q2Score: fast.q2Score,
     q3Score: fast.q3Score,
@@ -291,6 +306,9 @@ export const combineQualityGateDecision = ({
     reasons,
     repairPlan,
     issueType,
+    primarySignal: fast.primarySignal,
+    signalSources: fast.signalSources,
+    signalValues: fast.signalValues,
   };
 };
 

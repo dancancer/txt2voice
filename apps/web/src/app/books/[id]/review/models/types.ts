@@ -145,6 +145,10 @@ export interface DispatchMetricsResult {
       secondaryDispatchSkippedByThresholdCount: number;
     }>;
   };
+  signalBreakdown: {
+    cer: DispatchMetricBase;
+    speaker: DispatchMetricBase;
+  };
 }
 
 export interface DispatchMetricsResponse {

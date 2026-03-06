@@ -46,6 +46,20 @@ const buildMetrics = (
     secondaryDispatchSkippedByThresholdCount: 0,
     bySource: [],
   },
+  signalBreakdown: {
+    cer: {
+      autoRejectedEventCount: 0,
+      autoRejectedAccumulatedCount: 0,
+      thresholdBlockedCount: 0,
+      secondaryPendingCount: 0,
+    },
+    speaker: {
+      autoRejectedEventCount: 0,
+      autoRejectedAccumulatedCount: 0,
+      thresholdBlockedCount: 0,
+      secondaryPendingCount: 0,
+    },
+  },
 });
 
 describe("qc-dispatch-alert-service", () => {
