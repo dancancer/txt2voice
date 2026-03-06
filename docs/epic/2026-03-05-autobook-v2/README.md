@@ -7,7 +7,7 @@
 3. 实施任务单：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
 4. 交接文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-handoff.md`
 5. S27-S32 实施卡：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-s27-s32-execution-cards.md`
-6. 测试就绪与下一阶段规划：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
+6. 测试就绪与下一阶段规划：`docs/epic/2026-03-06-autobook-v2-next-phase/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
 
 ## 使用建议
 

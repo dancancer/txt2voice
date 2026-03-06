@@ -513,7 +513,7 @@
 ### 24) 第二十三轮增量（测试就绪与下一阶段规划）
 
 - 新增独立规划文档：
-  - `docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
+  - `docs/epic/2026-03-06-autobook-v2-next-phase/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
   - 覆盖“是否适合开始测试、测试顺序、测试素材、S30.1/S31/S32 建议节奏”。
 - 测试素材统一：
   - 规划文档指定 `uploads/sample.txt` 为第一批统一测试书；
@@ -523,3 +523,15 @@
   - 再推进 `S30.1 -> S31 -> S32`，避免继续叠功能而不做收敛验证。
 - 文档索引同步：
   - `README` 已追加新规划文档入口，接手人可直接进入执行。
+
+
+### 25) 第二十四轮增量（规划文档目录拆分）
+
+- 文档结构调整：
+  - 测试就绪与下一阶段规划已从原 epic 目录迁出，独立放入 `docs/epic/2026-03-06-autobook-v2-next-phase/`；
+  - 新增目录索引 `README.md`，避免新规划继续和原实施文档混放。
+- 引用修正：
+  - 原 epic 的 `README`、task、handoff 均已切换到新路径，接手人仍可从原主线文档跳转到新规划。
+- 下一步建议：
+  1. 直接按新目录中的规划文档执行 `Phase A/B/C`；
+  2. 待链路验收通过后推进 `S30.1`。

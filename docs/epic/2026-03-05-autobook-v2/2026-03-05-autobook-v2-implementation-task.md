@@ -909,14 +909,29 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 ### [P1] 测试就绪与下一阶段执行规划文档化（2026-03-06 20:25 CST）
 
 - 完成内容：
-  1. 新增独立规划文档 `docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`，把“当前是否适合测试、怎么测、先测什么、后做什么”落成可执行计划。
+  1. 新增独立规划文档 `docs/epic/2026-03-06-autobook-v2-next-phase/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`，把“当前是否适合测试、怎么测、先测什么、后做什么”落成可执行计划。
   2. 规划文档明确把 `uploads/sample.txt` 设为统一测试素材，覆盖上传主链路、补偿演练、`calibration_eval` 隔离验证与 S30.1 基线建立。
   3. 规划文档明确下一阶段顺序：先链路验收，再推进 `S30.1 -> S31 -> S32`，避免继续叠功能而不做收敛验证。
   4. 同步更新 epic 索引，确保接手人可以从 `README` 直接进入新规划文档。
 - 关键文件：
-  - `docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
+  - `docs/epic/2026-03-06-autobook-v2-next-phase/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
   - `docs/epic/2026-03-05-autobook-v2/README.md`
 - 下一步建议：
   1. 按规划文档的 `Phase A/B/C` 先做上传、补偿、回放隔离验收。
   2. 验收完成后再进入 `S30.1`，并用 `uploads/sample.txt` 固化前后基线对比。
   3. 若测试中暴露链路缺口，先回写本文档与 handoff，再决定是否继续推功能。
+
+
+### [P2] 规划文档目录拆分（2026-03-06 20:35 CST）
+
+- 完成内容：
+  1. 按要求将测试就绪与下一阶段规划从原 epic 目录中迁出，独立放入 `docs/epic/2026-03-06-autobook-v2-next-phase/`。
+  2. 新增独立目录索引 `docs/epic/2026-03-06-autobook-v2-next-phase/README.md`，避免新规划继续与原实施文档混放。
+  3. 同步修正原 epic `README`、task、handoff 中的全部引用路径，保持交接入口一致。
+- 关键文件：
+  - `docs/epic/2026-03-06-autobook-v2-next-phase/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
+  - `docs/epic/2026-03-06-autobook-v2-next-phase/README.md`
+  - `docs/epic/2026-03-05-autobook-v2/README.md`
+- 下一步建议：
+  1. 按独立规划文档开始执行 `Phase A/B/C` 测试验收。
+  2. 验收完成后再推进 `S30.1`。
