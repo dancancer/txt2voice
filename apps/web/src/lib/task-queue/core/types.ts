@@ -35,10 +35,16 @@ export interface QualityCheckQueueInput {
   audioFileIds?: string[];
 }
 
+export type AutoPipelineQueueMode = "pipeline" | "trigger_compensation";
+
 export interface AutoPipelineQueueInput {
   taskId: string;
   bookId: string;
   options?: AutoPipelineOptions;
+  mode?: AutoPipelineQueueMode;
+  triggerSource?: string;
+  triggerMetadata?: Record<string, unknown>;
+  allowReuseRunningTask?: boolean;
 }
 
 export interface ScriptGenerationJobData extends ScriptGenerationQueueInput {
@@ -60,6 +66,9 @@ export interface QualityCheckJobData extends QualityCheckQueueInput {
 
 export interface AutoPipelineJobData extends AutoPipelineQueueInput {
   options: AutoPipelineOptions;
+  mode: AutoPipelineQueueMode;
+  triggerMetadata: Record<string, unknown>;
+  allowReuseRunningTask: boolean;
   dedupeKey: string;
 }
 

@@ -38,9 +38,10 @@ export const POST = withErrorHandler(
       task.taskType !== "SCRIPT_GENERATION" &&
       task.taskType !== "AUDIO_GENERATION" &&
       task.taskType !== "QUALITY_CHECK" &&
-      task.taskType !== "AUTO_PIPELINE"
+      task.taskType !== "AUTO_PIPELINE" &&
+      task.taskType !== "AUTO_PIPELINE_COMPENSATION"
     ) {
-      throw new ValidationError("仅支持重放台本、音频、质检或自动编排任务");
+      throw new ValidationError("仅支持重放台本、音频、质检、自动编排或上传补偿任务");
     }
 
     const replayResult = await replayProcessingTask(taskId, {

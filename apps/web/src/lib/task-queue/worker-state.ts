@@ -1,10 +1,12 @@
 import type Bull from "bull";
+import { buildAutoPipelineBookMetadata, readAutoPipelineCompensationTaskId } from "@/lib/auto-pipeline-trigger-metadata";
 import prisma from "@/lib/prisma";
 import { jsonObject, mergeTaskData } from "@/lib/processing-task-utils";
 import { readGovernanceState } from "@/lib/deep-gate-calibration-governance/parsers";
 import type { QueueTaskType } from "./replay-payload";
 
 export type BookFallbackStatus =
+  | "uploaded"
   | "processed"
   | "script_generated"
   | "completed_with_errors"
@@ -130,6 +132,7 @@ export async function markTaskFailed(
       ? (taskRoot.metadata as Record<string, unknown>)
       : {};
   const isCalibrationEval = taskMetadata.source === "calibration_eval";
+  const isUploadCompensation = taskMetadata.source === "upload_compensation";
   const calibrationEval =
     taskMetadata.calibrationEval &&
     typeof taskMetadata.calibrationEval === "object" &&
@@ -207,6 +210,35 @@ export async function markTaskFailed(
         },
       });
     }
+    return;
+  }
+
+  if (isUploadCompensation) {
+    const book = await prisma.book.findUnique({
+      where: { id: bookId },
+      select: { metadata: true },
+    });
+    const activeCompensationTaskId = readAutoPipelineCompensationTaskId(book?.metadata);
+
+    await prisma.book.update({
+      where: { id: bookId },
+      data: {
+        status: fallbackStatus,
+        ...(activeCompensationTaskId === taskId
+          ? {
+              metadata: buildAutoPipelineBookMetadata({
+                metadata: book?.metadata,
+                compensation: {
+                  taskId,
+                  status: "failed",
+                  failedAt: new Date().toISOString(),
+                  lastError: message,
+                },
+              }),
+            }
+          : {}),
+      },
+    });
     return;
   }
 

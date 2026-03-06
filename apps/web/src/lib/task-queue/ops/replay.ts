@@ -76,7 +76,10 @@ export async function replayProcessingTask(
 
     return {
       taskId: payload.input.taskId,
-      taskType: "AUTO_PIPELINE",
+      taskType:
+        task.taskType === "AUTO_PIPELINE_COMPENSATION"
+          ? "AUTO_PIPELINE_COMPENSATION"
+          : "AUTO_PIPELINE",
       jobId: result.jobId,
       reused: result.reused,
       reason,

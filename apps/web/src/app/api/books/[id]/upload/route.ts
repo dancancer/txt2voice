@@ -15,7 +15,11 @@ import {
   parseAutoPipelineOptions,
   type AutoPipelineOptions
 } from '@/lib/auto-pipeline-runner'
-import { startAutoPipelineTask } from '@/lib/auto-pipeline-trigger-service'
+import {
+  scheduleAutoPipelineCompensationTask,
+  startAutoPipelineTask
+} from '@/lib/auto-pipeline-trigger-service'
+import { ensureTaskWorkerStarted } from '@/lib/task-queue'
 
 const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
 const FALSE_VALUES = new Set(['0', 'false', 'no', 'off'])
@@ -206,9 +210,12 @@ export const POST = withErrorHandler(async (
 
   let autoPipelineResult: Awaited<ReturnType<typeof startAutoPipelineTask>> | null = null
   let autoPipelineWarning: string | null = null
+  let autoPipelineCompensationTaskId: string | null = null
+  let autoPipelineCompensationScheduled = false
 
   if (autoPipelineEnabled) {
     try {
+      await ensureTaskWorkerStarted()
       autoPipelineResult = await startAutoPipelineTask({
         bookId,
         options: autoPipelineOptions,
@@ -226,6 +233,34 @@ export const POST = withErrorHandler(async (
         bookId,
         warning: autoPipelineWarning
       })
+
+      try {
+        const compensationResult = await scheduleAutoPipelineCompensationTask({
+          bookId,
+          options: autoPipelineOptions,
+          originalTriggerSource: 'upload_api',
+          triggerMetadata: {
+            filename: file.name,
+            size: file.size,
+            uploadedAt: updatedBook.updatedAt.toISOString()
+          },
+          triggerFailure: autoPipelineWarning
+        })
+        autoPipelineCompensationTaskId = compensationResult.taskId
+        autoPipelineCompensationScheduled = compensationResult.status === 'scheduled'
+        if (compensationResult.status !== 'scheduled') {
+          autoPipelineWarning = `${autoPipelineWarning}；补偿任务已创建但入队失败`
+        }
+      } catch (compensationError) {
+        const compensationMessage = compensationError instanceof Error
+          ? compensationError.message
+          : '上传补偿任务创建失败'
+        autoPipelineWarning = `${autoPipelineWarning}；补偿任务创建失败：${compensationMessage}`
+        logger.warn('Upload compensation scheduling failed', {
+          bookId,
+          warning: compensationMessage
+        })
+      }
     }
   }
 
@@ -244,6 +279,8 @@ export const POST = withErrorHandler(async (
         taskId: autoPipelineResult?.taskId || null,
         totalStages: autoPipelineResult?.totalStages || null,
         qualityCheckEnabled: autoPipelineResult?.qualityCheckEnabled || null,
+        compensationTaskId: autoPipelineCompensationTaskId,
+        compensationScheduled: autoPipelineCompensationScheduled,
         warning: autoPipelineWarning
       }
     }

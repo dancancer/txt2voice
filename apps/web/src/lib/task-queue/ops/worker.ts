@@ -1,5 +1,6 @@
 import type Bull from "bull";
 import { runAutoPipelineTask } from "@/lib/auto-pipeline-runner";
+import { runAutoPipelineCompensationTask } from "@/lib/auto-pipeline-compensation-runner";
 import { runAudioGenerationTask } from "@/lib/audio-generation-runner";
 import { runQualityCheckTask } from "@/lib/quality-check-runner";
 import { runScriptGenerationTask } from "@/lib/script-generation-runner";
@@ -154,21 +155,32 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
   autoPipelineQueue.process(1, async (job: Bull.Job<AutoPipelineJobData>) => {
     await markTaskAttemptStart(job.data.taskId, job);
 
+    const isCompensation = job.data.mode === "trigger_compensation";
+
     try {
       await withTaskHeartbeat(job.data.taskId, job, HEARTBEAT_INTERVAL_MS, async () =>
-        runAutoPipelineTask({
-          taskId: job.data.taskId,
-          bookId: job.data.bookId,
-          options: job.data.options,
-        })
+        isCompensation
+          ? runAutoPipelineCompensationTask({
+              taskId: job.data.taskId,
+              bookId: job.data.bookId,
+              options: job.data.options,
+              triggerSource: job.data.triggerSource,
+              triggerMetadata: job.data.triggerMetadata,
+              allowReuseRunningTask: job.data.allowReuseRunningTask,
+            })
+          : runAutoPipelineTask({
+              taskId: job.data.taskId,
+              bookId: job.data.bookId,
+              options: job.data.options,
+            })
       );
     } catch (error) {
       await handleWorkerFailure({
-        taskType: "AUTO_PIPELINE",
+        taskType: isCompensation ? "AUTO_PIPELINE_COMPENSATION" : "AUTO_PIPELINE",
         job,
         taskId: job.data.taskId,
         bookId: job.data.bookId,
-        fallbackStatus: "error",
+        fallbackStatus: isCompensation ? "uploaded" : "error",
         error,
         payload: {
           ...job.data,

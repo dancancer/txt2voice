@@ -71,6 +71,17 @@ export const AUTO_PIPELINE_JOB_OPTIONS: Bull.JobOptions = {
   removeOnFail: 500,
 };
 
+export const AUTO_PIPELINE_COMPENSATION_JOB_OPTIONS: Bull.JobOptions = {
+  attempts: 6,
+  backoff: {
+    type: "exponential",
+    delay: 30_000,
+  },
+  timeout: 5 * 60 * 1_000,
+  removeOnComplete: 200,
+  removeOnFail: 500,
+};
+
 export const DEAD_LETTER_JOB_OPTIONS: Bull.JobOptions = {
   removeOnComplete: false,
   removeOnFail: false,

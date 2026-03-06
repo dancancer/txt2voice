@@ -15,7 +15,8 @@ export type QueueTaskType =
   | "SCRIPT_GENERATION"
   | "AUDIO_GENERATION"
   | "QUALITY_CHECK"
-  | "AUTO_PIPELINE";
+  | "AUTO_PIPELINE"
+  | "AUTO_PIPELINE_COMPENSATION";
 
 export interface ScriptReplayInput {
   taskId: string;
@@ -47,6 +48,10 @@ export interface AutoPipelineReplayInput {
   taskId: string;
   bookId: string;
   options?: AutoPipelineOptions;
+  mode?: "pipeline" | "trigger_compensation";
+  triggerSource?: string;
+  triggerMetadata?: Record<string, unknown>;
+  allowReuseRunningTask?: boolean;
 }
 
 interface ScriptPayloadContainer {
@@ -202,6 +207,17 @@ const buildAutoPipelineReplayPayloadFromTask = (
     taskId: task.id,
     bookId: task.bookId,
     options: options as AutoPipelineOptions,
+    mode:
+      typeof metadata?.mode === "string" && metadata.mode === "trigger_compensation"
+        ? "trigger_compensation"
+        : "pipeline",
+    triggerSource:
+      typeof metadata?.triggerSource === "string" ? metadata.triggerSource : undefined,
+    triggerMetadata: (asRecord(metadata?.triggerMetadata) || {}) as Record<string, unknown>,
+    allowReuseRunningTask:
+      typeof metadata?.allowReuseRunningTask === "boolean"
+        ? metadata.allowReuseRunningTask
+        : undefined,
   };
 };
 
@@ -298,7 +314,7 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
     };
   }
 
-  if (task.taskType === "AUTO_PIPELINE") {
+  if (task.taskType === "AUTO_PIPELINE" || task.taskType === "AUTO_PIPELINE_COMPENSATION") {
     if (queuePayload) {
       return {
         kind: "auto_pipeline",
@@ -306,6 +322,19 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
           taskId: task.id,
           bookId: task.bookId,
           options: (asRecord(queuePayload.options) || {}) as AutoPipelineOptions,
+          mode:
+            typeof queuePayload.mode === "string" && queuePayload.mode === "trigger_compensation"
+              ? "trigger_compensation"
+              : "pipeline",
+          triggerSource:
+            typeof queuePayload.triggerSource === "string"
+              ? queuePayload.triggerSource
+              : undefined,
+          triggerMetadata: (asRecord(queuePayload.triggerMetadata) || {}) as Record<string, unknown>,
+          allowReuseRunningTask:
+            typeof queuePayload.allowReuseRunningTask === "boolean"
+              ? queuePayload.allowReuseRunningTask
+              : undefined,
         },
       };
     }
@@ -324,6 +353,7 @@ export const isRecoverableTask = (taskType: string): taskType is QueueTaskType =
     taskType === "SCRIPT_GENERATION" ||
     taskType === "AUDIO_GENERATION" ||
     taskType === "QUALITY_CHECK" ||
-    taskType === "AUTO_PIPELINE"
+    taskType === "AUTO_PIPELINE" ||
+    taskType === "AUTO_PIPELINE_COMPENSATION"
   );
 };

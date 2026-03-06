@@ -48,6 +48,10 @@ describe("auto pipeline replay payload", () => {
             enabled: false,
           },
         },
+        mode: "pipeline",
+        triggerSource: undefined,
+        triggerMetadata: {},
+        allowReuseRunningTask: undefined,
       },
     });
   });
@@ -76,6 +80,10 @@ describe("auto pipeline replay payload", () => {
             autoMerge: true,
           },
         },
+        mode: "pipeline",
+        triggerSource: undefined,
+        triggerMetadata: {},
+        allowReuseRunningTask: undefined,
       },
     });
   });
@@ -84,4 +92,49 @@ describe("auto pipeline replay payload", () => {
     expect(isRecoverableTask("AUTO_PIPELINE")).toBe(true);
     expect(isRecoverableTask("UNKNOWN_TASK")).toBe(false);
   });
+
+  it("should extract compensation payload and mark it recoverable", () => {
+    const payload = extractPayloadFromTask({
+      ...baseTask,
+      taskType: "AUTO_PIPELINE_COMPENSATION",
+      taskData: {
+        metadata: {
+          queuePayload: {
+            mode: "trigger_compensation",
+            triggerSource: "upload_compensation",
+            triggerMetadata: {
+              filename: "book.txt",
+            },
+            allowReuseRunningTask: true,
+            options: {
+              qualityCheck: {
+                enabled: true,
+              },
+            },
+          },
+        },
+      },
+    } as any);
+
+    expect(payload).toEqual({
+      kind: "auto_pipeline",
+      input: {
+        taskId: "task-auto-1",
+        bookId: "book-1",
+        mode: "trigger_compensation",
+        triggerSource: "upload_compensation",
+        triggerMetadata: {
+          filename: "book.txt",
+        },
+        allowReuseRunningTask: true,
+        options: {
+          qualityCheck: {
+            enabled: true,
+          },
+        },
+      },
+    });
+    expect(isRecoverableTask("AUTO_PIPELINE_COMPENSATION")).toBe(true);
+  });
+
 });

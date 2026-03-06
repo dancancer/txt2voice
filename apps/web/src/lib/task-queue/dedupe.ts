@@ -29,6 +29,9 @@ interface QualityDedupeInput {
 interface AutoPipelineDedupeInput {
   bookId: string;
   options?: AutoPipelineOptions;
+  mode?: string;
+  triggerSource?: string;
+  allowReuseRunningTask?: boolean;
 }
 
 const hashScope = (payload: unknown): string => {
@@ -78,6 +81,9 @@ export const buildAutoPipelineDedupeKey = (
 ): string => {
   const normalized = {
     options: input.options || {},
+    mode: input.mode || "pipeline",
+    triggerSource: input.triggerSource || null,
+    allowReuseRunningTask: input.allowReuseRunningTask ?? true,
   };
 
   return `auto_pipeline:${input.bookId}:${hashScope(normalized)}`;

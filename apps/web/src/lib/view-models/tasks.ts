@@ -15,6 +15,7 @@ const TASK_TYPE_LABEL: Record<string, string> = {
   AUDIO_GENERATION: "音频生成",
   QUALITY_CHECK: "质量检查",
   AUTO_PIPELINE: "自动编排",
+  AUTO_PIPELINE_COMPENSATION: "上传触发补偿",
 };
 
 const TASK_STATUS_META: Record<ProcessingTaskStatus, TaskStatusMeta> = {

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/error-handler";
 import { parseAutoPipelineOptions } from "@/lib/auto-pipeline-runner";
 import { startAutoPipelineTask } from "@/lib/auto-pipeline-trigger-service";
+import { ensureTaskWorkerStarted } from "@/lib/task-queue";
 
 export const POST = withErrorHandler(
   async (
@@ -15,6 +16,7 @@ export const POST = withErrorHandler(
     const { id: bookId } = await params;
     const body = await request.json().catch(() => ({}));
     const options = parseAutoPipelineOptions(body?.options);
+    await ensureTaskWorkerStarted();
     const result = await startAutoPipelineTask({
       bookId,
       options,

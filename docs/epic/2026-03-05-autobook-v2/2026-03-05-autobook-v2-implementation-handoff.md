@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S30 + S27.1 功能实施已完成；已补齐阈值治理任务化回放，待推进 S28.1/S30.1/S31/S32。
+- 当前进度：S0-S30 + S27.1 + S28.1 功能实施已完成；已补齐上传触发补偿任务化，待推进 S30.1/S31/S32。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -18,7 +18,7 @@
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
-| M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑。 |
+| M1（Annotation v2 + Auto Pipeline） | 🟢 完成度较高 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑；上传触发失败补偿也已任务化。 |
 | M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环、Engine Router v1、Q0-Q3 指标化已具备；CER/声纹原始信号生产仍待任务化接入。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放已补齐，剩余交付任务语义与 SLO 产品化收口。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测可用；核心 SLO 指标体系与告警仍需补齐。 |
@@ -366,16 +366,14 @@
 
 ## 待完成内容
 
-1. 上传自动触发已落地，但仍需补“触发失败补偿任务化”（S28.1），避免漏触发窗口。
 3. S30 已完成 Q0-Q3 指标化判定，但 CER/声纹原始信号生产仍依赖上游注入，需补 ASR/embedding 任务化供给（S30.1）。
 4. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务（S31）。
 5. 核心 SLO 指标（`pipeline_success_rate` 等）尚未形成统一 API + 告警闭环（S32）。
 
-## 剩余任务优先级（建议，S28.1-S32）
+## 剩余任务优先级（建议，S30.1-S32）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S28.1 | 上传触发补偿任务化 | 上传触发失败后创建补偿任务并自动重试 | 漏触发率可观测且可自动收敛 | S28 |
 | P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务并稳定回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可观测、可追溯 | S30 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
 | P2 | S32 | 核心 SLO 指标产品化 | 输出核心指标 API、看板和阈值告警 | 支持按计划执行运营验收 | S30/S31 |
@@ -383,7 +381,7 @@
 ## 执行卡片索引（S27-S32）
 
 1. 详细执行卡：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。
-2. 接手执行顺序：S28.1 -> S30.1 -> S31/S32。
+2. 接手执行顺序：S30.1 -> S31 -> S32。
 3. 交接要求：每完成一项任务，必须同步更新实施卡中的“API 变更”和“验收结果”。
 
 ## 测试与验证结果
@@ -462,7 +460,7 @@
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S28.1（P0）**：补齐上传触发补偿任务，继续收敛“可回放 + 可收敛”底线能力。
+1. 先做 **S30.1（P1）**：把 ASR/CER + speaker embedding 变成稳定信号生产任务，补齐 Q0-Q3 的供给侧。
 2. 再做 **S30.1（P1）**：接入 ASR/CER + 声纹 embedding 稳定供给链路，解决 Q0-Q3 信号来源 SLA 问题。
 3. 收尾执行 **S31 + S32（P2）**：补 `FINAL_ASSEMBLY` 任务化与核心 SLO 指标产品化，完成运营验收。
 
@@ -488,3 +486,25 @@
   1. 执行 `S28.1`：上传触发失败补偿任务化，补齐 Auto Pipeline 漏触发收敛链路；
   2. 执行 `S30.1`：把 ASR/CER 与 speaker embedding 变成稳定信号生产任务，而不是依赖上游注入；
   3. 执行 `S31`：落地 `FINAL_ASSEMBLY`/必要的复核同步任务，收口交付阶段的可重放语义。
+
+
+### 23) 第二十二轮增量（S28.1：上传触发补偿任务化）
+
+- 上传失败补偿任务化：
+  - 新增 `AUTO_PIPELINE_COMPENSATION` 任务语义，专门承载“上传成功但自动触发失败”的补偿重试；
+  - 上传接口在直接触发失败后会自动创建补偿任务，而不再只返回 warning。
+- 自动收敛链路：
+  - 补偿任务复用 `auto-pipeline` 队列，支持指数退避重试；
+  - worker 会执行 `runAutoPipelineCompensationTask`，成功时重新触发或复用真实 `AUTO_PIPELINE`，失败时仅回写补偿状态，不污染书籍主状态。
+- 观测与 replay/recovery：
+  - `task-replay/retry/watchdog recovery` 已支持 `AUTO_PIPELINE_COMPENSATION`；
+  - 书籍 `metadata.autoPipeline.compensation` 会保存 `scheduled/processing/completed/failed` 与 `linkedTaskId`，便于追踪漏触发收敛情况。
+- API 回显增强：
+  - `POST /api/books/[id]/upload` 响应新增 `compensationTaskId/compensationScheduled`，调用方可直接感知是否进入补偿链路。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-trigger-service.test.ts src/lib/__tests__/auto-pipeline-compensation-runner.test.ts src/lib/__tests__/task-replay-payload-auto.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 执行 `S30.1`：把 CER/声纹从“消费现成信号”升级为“稳定生产信号”；
+  2. 执行 `S31`：落地 `FINAL_ASSEMBLY`/必要复核同步任务，打通交付阶段语义；
+  3. 执行 `S32`：产品化核心 SLO 指标与阈值告警闭环。
