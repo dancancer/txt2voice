@@ -7,7 +7,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ComponentType } from "react";
-import { FileText, Users, Play, LayoutList, ListTodo } from "lucide-react";
+import {
+  FileText,
+  Users,
+  Play,
+  LayoutList,
+  ListTodo,
+  ClipboardCheck,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BookNavigationProps {
@@ -52,6 +59,12 @@ const bookTabs: BookTab[] = [
     name: "播放",
     href: "/play",
     icon: Play,
+  },
+  {
+    id: "review",
+    name: "质检复核",
+    href: "/review",
+    icon: ClipboardCheck,
   },
   {
     id: "tasks",

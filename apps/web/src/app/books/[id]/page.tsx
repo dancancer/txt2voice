@@ -24,6 +24,7 @@ import {
   Music,
   BookOpen,
   ChevronRight,
+  ClipboardCheck,
 } from "lucide-react";
 
 type ChapterSummary = {
@@ -206,6 +207,14 @@ export default function BookDetailPage() {
             >
               <Music className="w-4 h-4 mr-2" />
               高级音频
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-11"
+              onClick={() => router.push(`/books/${bookId}/review`)}
+            >
+              <ClipboardCheck className="w-4 h-4 mr-2" />
+              质检复核
             </Button>
             <Button className="min-h-11" onClick={handleGenerateScript} disabled={generatingScript || counts.segments === 0}>
               {generatingScript ? (

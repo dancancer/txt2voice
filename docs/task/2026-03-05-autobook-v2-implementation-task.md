@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S22（前十二批改造）已完成，本次推进第十三批“Deep Gate + 章节审计”增量：
+S0-S23（前十三批改造）已完成，本次推进第十四批“人工复核工作台 + SLO 看板”增量：
 
-1. 接入 Deep Gate（Q4/Q5），在句级质检中补齐情绪匹配与章节一致性评分。
-2. 落地 `chapter_quality_audits` 写入链路与章节级验收结论，支持返工决策。
-3. 提供阈值模板（书籍元数据 + 任务级覆盖）与误报观测指标，完成测试回归、task/handoff 回写与提交。
+1. 落地人工复核最小工作台，覆盖列表筛选、句级试听与单条重生闭环。
+2. 集成 SLO 看板，展示 backlog/pass/retry/false-positive 与派单告警摘要。
+3. 打通书籍导航入口，完成验证回归、task/handoff 回写与提交。
 
 ## 2. 执行步骤
 
@@ -40,7 +40,7 @@ S0-S22（前十二批改造）已完成，本次推进第十三批“Deep Gate +
 | S21 | 告警扫描任务 + 事件沉淀 + 生命周期闭环 | ✅ 完成 | 提供定时扫描入口、`qc_dispatch_alert_events` 事件表、`dispatch-events` 查询/ack/resolve API、Webhook 通知联动，并完成测试回归 |
 | S22 | `dispatchPolicy` 配置中心化 + 审计/灰度/回滚 | ✅ 完成 | 提供租户/项目/书籍三级策略配置模型与 API，`qc_retry` 主入口切换到配置中心，并支持版本审计、灰度开关和回滚 |
 | S23 | Deep Gate（Q4/Q5）+ `chapter_quality_audits` + 阈值模板 | ✅ 完成 | `QUALITY_CHECK` 写入 Q1-Q5 指标，产出章节审计记录、误报观测指标，并支持任务级阈值覆盖 |
-| S24 | 人工复核最小工作台 + SLO 看板整合 | ⏳ 待开始 | 提供列表/试听/重生最小 UI 与 backlog/pass/retry 日常运营指标 |
+| S24 | 人工复核最小工作台 + SLO 看板整合 | ✅ 完成 | 提供列表/试听/重生最小 UI 与 backlog/pass/retry 日常运营指标 |
 
 ## 3. 执行日志
 
@@ -489,13 +489,48 @@ S0-S22（前十二批改造）已完成，本次推进第十三批“Deep Gate +
   2. 在 S24 同步接入运营看板（backlog/pass/retry/false-positive）可视化，复用本轮沉淀指标。
   3. 下一轮将 Deep Gate 代理规则替换为真实模型（情绪分类/章节一致性 embedding），降低启发式误差。
 
+### [S24] 人工复核最小工作台 + SLO 看板整合（2026-03-06 10:22 CST）
+
+- 完成内容：
+  1. 新增 `books/[id]/review` 页面，落地人工复核最小工作台：
+     - 支持 `status/issueType/priority` 筛选与分页；
+     - 支持句级文本查看、最近音频试听；
+     - 支持单条 `approve/reject/regenerate` 操作并自动刷新队列与看板。
+  2. 工作台接入 SLO 看板：
+     - 聚合展示 backlog、pass rate、retry pressure、false-positive 候选；
+     - 集成 `dispatch-metrics` 与 `dispatch-alerts` 数据，支持窗口（日/周/月）与来源过滤；
+     - 展示 issueType 维度拆分表和告警建议动作。
+  3. 导航入口联动：
+     - `BookNavigation` 新增“质检复核”页签；
+     - 书籍概览页操作区新增“质检复核”快捷入口。
+  4. 结构与可维护性：
+     - 新页面按 `components/hooks/models` 分层，单文件控制在 400 行内；
+     - 类型约束与数据钩子分离，避免 UI 逻辑和请求编排耦合。
+- 关键文件：
+  - `apps/web/src/app/books/[id]/review/page.tsx`
+  - `apps/web/src/app/books/[id]/review/hooks/useReviewWorkbenchData.ts`
+  - `apps/web/src/app/books/[id]/review/components/ReviewQueuePanel.tsx`
+  - `apps/web/src/app/books/[id]/review/components/ReviewSloPanel.tsx`
+  - `apps/web/src/app/books/[id]/review/models/types.ts`
+  - `apps/web/src/components/BookNavigation.tsx`
+  - `apps/web/src/app/books/[id]/page.tsx`
+- 执行命令：
+  - `pnpm --filter web lint`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web test:regression`
+- 结果：Lint、类型校验与回归测试通过，复核工作台最小可用 UI 与 SLO 看板整合完成。
+- 下一步建议：
+  1. 执行 S25：将 Deep Gate 代理规则替换为真实情绪分类与章节一致性模型，降低误报率。
+  2. 为复核工作台补批量操作（批量通过/批量重生）与审计记录导出能力。
+  3. 为 SLO 看板补事件生命周期视图（open/acked/resolved）与处置入口。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
 2. Fast Gate + Deep Gate 当前仍使用启发式代理，未接入真实 ASR/CER/声纹/情绪模型，需继续做离线对齐验证。
-3. 已落地 `AUTO_PIPELINE` 主链路入口、S21 告警运营闭环、S22 策略配置中心与 S23 章节审计；当前主要缺口为复核工作台 UI 与 SLO 看板。
+3. 已落地 `AUTO_PIPELINE` 主链路入口、S21 告警运营闭环、S22 策略配置中心、S23 章节审计与 S24 复核工作台；当前主要缺口是 Deep Gate 真模型替换与运营处置自动化。
 
-## 5. 总体回顾与剩余任务优先级（2026-03-05 21:08 CST）
+## 5. 总体回顾与剩余任务优先级（2026-03-06 10:22 CST）
 
 ### 5.1 总体目标回顾（对齐 `full-automation-plan`）
 
@@ -503,27 +538,28 @@ S0-S22（前十二批改造）已完成，本次推进第十三批“Deep Gate +
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S23 完成后）
+### 5.2 当前现状（S0-S24 完成后）
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
 | M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
-| M3（Deep Gate + 人工复核工作台） | 🔄 部分完成 | Q4/Q5 与 `chapter_quality_audit` 执行链路已完成；复核工作台 UI 仍未落地。 |
-| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook 通知与 `dispatchPolicy` 配置中心已就绪；缺 SLO 看板与策略治理 UI。 |
+| M3（Deep Gate + 人工复核工作台） | ✅ 已完成（MVP） | Q4/Q5、`chapter_quality_audit` 与复核工作台最小 UI（列表/试听/重生）已打通。 |
+| M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook、配置中心与 SLO 看板已就绪；仍缺运营处置自动化与治理 UI。 |
 
 ### 5.3 剩余任务目标与优先级（重排）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S24 | 人工复核与运营体验补齐 | 人工复核最小工作台（列表/试听/重生）+ SLO 看板整合 + Deep Gate issueType 运营视图 | 复核操作可视化；关键指标（backlog/pass/retry/false-positive）可日常运营使用 | S23 |
+| P0 | S25 | Deep Gate 质量能力生产化 | 情绪分类模型 + 章节一致性 embedding 替换启发式代理；回放集评估与阈值重标定 | `EMOTION/CONTINUITY` 误报率下降且质量评分稳定，形成可复现实验报告 | S24 |
+| P1 | S26 | 复核运营自动化 | 批量复核操作、告警事件处置入口（ack/resolve）与处置审计导出 | 运营可以在单页完成“发现-处置-追踪”闭环 | S24 |
 
 ### 5.4 推荐执行顺序（下一轮）
 
-1. **S24（P0）**：补人工复核最小工作台 + SLO 看板，完成运营侧闭环。
-2. **S24.1（建议）**：在 S24 末尾追加 Deep Gate 误报看板联调与阈值调参流程文档。
+1. **S25（P0）**：优先替换 Deep Gate 启发式代理，完成误报控制与阈值回放校准。
+2. **S26（P1）**：补齐复核批量处置与告警事件生命周期操作，减少人工切页成本。
 
 ### 5.5 本次文档同步说明
 
-1. 已同步更新本任务文档 S23 实施结果（代码落点、测试命令、风险与后续优先级）。
-2. 已同步更新 handoff 文档，确保接手人可直接从 S24 开始推进。
+1. 已同步更新本任务文档 S24 实施结果（代码落点、测试命令、风险与后续优先级）。
+2. 已同步更新 handoff 文档，确保接手人可直接从 S25 开始推进。
