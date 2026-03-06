@@ -904,3 +904,19 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
   1. 执行 `S30.1`：把 ASR/CER + speaker embedding 任务化，补齐 Q0-Q3 信号供给侧。
   2. 执行 `S31`：落地 `FINAL_ASSEMBLY/MANUAL_REVIEW_SYNC`，收口交付阶段语义与可重放能力。
   3. 执行 `S32`：输出统一 SLO 指标 API 与阈值告警闭环。
+
+
+### [P1] 测试就绪与下一阶段执行规划文档化（2026-03-06 20:25 CST）
+
+- 完成内容：
+  1. 新增独立规划文档 `docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`，把“当前是否适合测试、怎么测、先测什么、后做什么”落成可执行计划。
+  2. 规划文档明确把 `uploads/sample.txt` 设为统一测试素材，覆盖上传主链路、补偿演练、`calibration_eval` 隔离验证与 S30.1 基线建立。
+  3. 规划文档明确下一阶段顺序：先链路验收，再推进 `S30.1 -> S31 -> S32`，避免继续叠功能而不做收敛验证。
+  4. 同步更新 epic 索引，确保接手人可以从 `README` 直接进入新规划文档。
+- 关键文件：
+  - `docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-test-readiness-and-next-phase-plan.md`
+  - `docs/epic/2026-03-05-autobook-v2/README.md`
+- 下一步建议：
+  1. 按规划文档的 `Phase A/B/C` 先做上传、补偿、回放隔离验收。
+  2. 验收完成后再进入 `S30.1`，并用 `uploads/sample.txt` 固化前后基线对比。
+  3. 若测试中暴露链路缺口，先回写本文档与 handoff，再决定是否继续推功能。
