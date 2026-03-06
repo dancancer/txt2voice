@@ -190,6 +190,34 @@ export const booksApi = {
       throw new Error('Failed to start audio generation')
     }
     return response.json()
+  },
+
+  // 获取音频路由指标
+  async getAudioRouterMetrics(
+    id: string,
+    query: { days?: number; source?: string; engine?: string; policyVersion?: string } = {}
+  ): Promise<any> {
+    const params = new URLSearchParams()
+    if (typeof query.days === 'number') {
+      params.set('days', String(query.days))
+    }
+    if (query.source) {
+      params.set('source', query.source)
+    }
+    if (query.engine) {
+      params.set('engine', query.engine)
+    }
+    if (query.policyVersion) {
+      params.set('policyVersion', query.policyVersion)
+    }
+
+    const response = await fetch(
+      `${API_BASE}/${id}/audio/router/metrics${params.toString() ? `?${params.toString()}` : ''}`
+    )
+    if (!response.ok) {
+      throw new Error('Failed to fetch audio router metrics')
+    }
+    return response.json()
   }
 }
 

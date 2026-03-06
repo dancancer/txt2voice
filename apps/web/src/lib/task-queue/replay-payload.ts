@@ -153,6 +153,14 @@ const buildAudioReplayPayloadFromTask = (task: ProcessingTask): AudioReplayInput
         metadata && typeof metadata.provider === "string"
           ? metadata.provider
           : undefined,
+      routerPolicyVersion:
+        metadata && typeof metadata.routerPolicyVersion === "string"
+          ? metadata.routerPolicyVersion
+          : undefined,
+      enableRouterDebug:
+        metadata && typeof metadata.enableRouterDebug === "boolean"
+          ? metadata.enableRouterDebug
+          : undefined,
     },
   };
 };

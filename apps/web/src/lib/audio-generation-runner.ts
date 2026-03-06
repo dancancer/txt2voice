@@ -258,6 +258,143 @@ const appendResolutionNote = (
   return `${current}\n${next}`;
 };
 
+interface RouterDecisionSummary {
+  totalResults: number;
+  decisionCount: number;
+  fallbackCount: number;
+  byEngine: Array<{
+    engine: string;
+    total: number;
+    success: number;
+    failed: number;
+    fallbackCount: number;
+  }>;
+  bySource: Array<{
+    source: string;
+    total: number;
+    success: number;
+    failed: number;
+  }>;
+  byPolicyVersion: Array<{
+    policyVersion: string;
+    total: number;
+  }>;
+}
+
+const summarizeRouterDecisions = (results: any[]): RouterDecisionSummary => {
+  const engineMap = new Map<
+    string,
+    {
+      engine: string;
+      total: number;
+      success: number;
+      failed: number;
+      fallbackCount: number;
+    }
+  >();
+  const sourceMap = new Map<
+    string,
+    {
+      source: string;
+      total: number;
+      success: number;
+      failed: number;
+    }
+  >();
+  const policyVersionMap = new Map<string, { policyVersion: string; total: number }>();
+
+  let decisionCount = 0;
+  let fallbackCount = 0;
+
+  for (const result of results) {
+    const metadata = asRecord(result?.metadata);
+    const decision = asRecord(metadata?.routerDecision);
+    if (!decision) {
+      continue;
+    }
+
+    decisionCount += 1;
+    const success = Boolean(result?.success);
+    const selectedEngine =
+      (typeof decision.selectedEngine === "string" &&
+        decision.selectedEngine.trim().toLowerCase()) ||
+      "unknown";
+    const selectedSource =
+      (typeof decision.selectedSource === "string" &&
+        decision.selectedSource.trim().toLowerCase()) ||
+      "unknown";
+    const fallback = decision.isFallback === true;
+    const policyVersion =
+      (typeof decision.policyVersion === "string" &&
+        decision.policyVersion.trim()) ||
+      "unknown";
+
+    if (fallback) {
+      fallbackCount += 1;
+    }
+
+    const engineBucket = engineMap.get(selectedEngine) || {
+      engine: selectedEngine,
+      total: 0,
+      success: 0,
+      failed: 0,
+      fallbackCount: 0,
+    };
+    engineBucket.total += 1;
+    if (success) {
+      engineBucket.success += 1;
+    } else {
+      engineBucket.failed += 1;
+    }
+    if (fallback) {
+      engineBucket.fallbackCount += 1;
+    }
+    engineMap.set(selectedEngine, engineBucket);
+
+    const sourceBucket = sourceMap.get(selectedSource) || {
+      source: selectedSource,
+      total: 0,
+      success: 0,
+      failed: 0,
+    };
+    sourceBucket.total += 1;
+    if (success) {
+      sourceBucket.success += 1;
+    } else {
+      sourceBucket.failed += 1;
+    }
+    sourceMap.set(selectedSource, sourceBucket);
+
+    const policyBucket = policyVersionMap.get(policyVersion) || {
+      policyVersion,
+      total: 0,
+    };
+    policyBucket.total += 1;
+    policyVersionMap.set(policyVersion, policyBucket);
+  }
+
+  return {
+    totalResults: results.length,
+    decisionCount,
+    fallbackCount,
+    byEngine: Array.from(engineMap.values()).sort((left, right) => right.total - left.total),
+    bySource: Array.from(sourceMap.values()).sort((left, right) => right.total - left.total),
+    byPolicyVersion: Array.from(policyVersionMap.values()).sort(
+      (left, right) => right.total - left.total
+    ),
+  };
+};
+
+const extractRouterDecisionField = (
+  metadata: unknown,
+  field: "selectedEngine" | "selectedSource"
+): string | null => {
+  const metadataRecord = asRecord(metadata);
+  const decision = asRecord(metadataRecord?.routerDecision);
+  const value = decision && typeof decision[field] === "string" ? decision[field].trim() : "";
+  return value.length > 0 ? value : null;
+};
+
 const rejectManualReviewReprocessingItem = async ({
   bookId,
   manualReviewItemId,
@@ -670,6 +807,7 @@ export async function runAudioGenerationTask({
 
   const successCount = results.filter((r) => r.success).length;
   const failedCount = results.filter((r) => !r.success).length;
+  const routerDecisionSummary = summarizeRouterDecisions(results);
 
   let mergeResult = null;
   if (autoMerge && successCount > 0) {
@@ -712,9 +850,12 @@ export async function runAudioGenerationTask({
       chapterId,
       voiceProfileId,
       provider: options.provider || null,
+      routerPolicyVersion: options.routerPolicyVersion || null,
+      enableRouterDebug: options.enableRouterDebug === true,
       totalSentences,
       successCount,
       failedCount,
+      routerDecisionSummary,
       autoMerge,
       mergeResult: mergeResult
         ? {
@@ -729,6 +870,8 @@ export async function runAudioGenerationTask({
         error: r.error,
         duration: r.duration,
         audioFileId: typeof r.audioFileId === "string" ? r.audioFileId : null,
+        selectedEngine: extractRouterDecisionField(r.metadata, "selectedEngine"),
+        selectedSource: extractRouterDecisionField(r.metadata, "selectedSource"),
       })),
     },
   });

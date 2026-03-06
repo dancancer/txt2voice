@@ -8,6 +8,16 @@ import prisma, { Prisma } from './prisma'
 import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { getBookAudioDir } from './storage-path'
+import {
+  AudioRouteCandidate,
+  AudioRouteContext,
+  AudioRouteEngineHealth,
+  AudioRouteEmotionPreset,
+  AudioRouteSelectionResult,
+  RankedAudioRouteCandidate,
+  RoutedVoiceProfile,
+  selectAudioRouteCandidate,
+} from './audio-engine-router'
 
 export interface AudioGenerationRequest {
   scriptSentenceId: string
@@ -30,6 +40,8 @@ export interface AudioGenerationOptions {
   skipExisting?: boolean
   overwriteExisting?: boolean
   provider?: string
+  routerPolicyVersion?: string
+  enableRouterDebug?: boolean
 }
 
 export interface AudioGenerationResult {
@@ -43,6 +55,29 @@ export interface AudioGenerationResult {
 
 const asRecord = (value: Prisma.JsonValue | null | undefined): Record<string, any> | undefined =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : undefined
+
+interface VoiceRouteResolution {
+  selectedCandidate: RankedAudioRouteCandidate | null
+  rankedCandidates: RankedAudioRouteCandidate[]
+  routeDecision: AudioRouteSelectionResult['decision']
+}
+
+interface EngineHealthCacheValue {
+  expiresAt: number
+  snapshot: Record<string, AudioRouteEngineHealth>
+}
+
+interface RouteAttemptContext {
+  selectedCandidate: RankedAudioRouteCandidate
+  rankedCandidates: RankedAudioRouteCandidate[]
+  routeDecision: AudioRouteSelectionResult['decision']
+  candidateIndex: number
+  policyVersion: string
+}
+
+const ENGINE_HEALTH_CACHE_TTL_MS = 60 * 1000
+const ENGINE_HEALTH_WINDOW_MS = 24 * 60 * 60 * 1000
+const engineHealthCache = new Map<string, EngineHealthCacheValue>()
 
 /**
  * 音频生成器类
@@ -66,9 +101,9 @@ export class AudioGenerator {
   ): Promise<AudioGenerationResult> {
     const finalOptions = { ...this.defaultOptions, ...options }
     let scriptSentence: any | null = null
-    let voiceProfile: any | null = null
-    let ttsRequest: TTSRequest | null = null
     let attemptStartedAt: Date | null = null
+    let routeResolution: VoiceRouteResolution | null = null
+    let lastError: unknown = null
 
     try {
       // 获取台词信息
@@ -84,6 +119,35 @@ export class AudioGenerator {
                 orderBy: [
                   { isDefault: 'desc' },
                   { createdAt: 'desc' }
+                ]
+              },
+              speakerBindings: {
+                include: {
+                  speakerProfile: {
+                    include: {
+                      engineVariants: {
+                        where: {
+                          isActive: true
+                        },
+                        include: {
+                          emotionPresets: {
+                            where: {
+                              isActive: true
+                            }
+                          }
+                        },
+                        orderBy: [
+                          { isDefault: 'desc' },
+                          { routingWeight: 'desc' },
+                          { createdAt: 'asc' }
+                        ]
+                      }
+                    }
+                  }
+                },
+                orderBy: [
+                  { isDefault: 'desc' },
+                  { createdAt: 'asc' }
                 ]
               }
             }
@@ -126,18 +190,25 @@ export class AudioGenerator {
 
       // 确定使用的声音配置
       attemptStartedAt = new Date()
-      voiceProfile = await this.resolveVoiceProfileForSentence(
+      routeResolution = await this.resolveVoiceRouteForSentence(
         scriptSentence,
         request,
         finalOptions
       )
 
-      if (!voiceProfile) {
+      if (!routeResolution?.selectedCandidate) {
         try {
           await this.recordFailedSynthesisAttempt({
             scriptSentence,
             request,
             startedAt: attemptStartedAt,
+            routeAttemptContext: routeResolution
+              ? this.createRouteAttemptContext({
+                  routeResolution,
+                  selectedCandidate: routeResolution.rankedCandidates[0] || null,
+                  candidateIndex: 0,
+                })
+              : undefined,
             fallbackEngine: finalOptions.provider || scriptSentence.engineHint || undefined,
             error: new Error('未找到可用的声音配置（包含旁白兜底）')
           })
@@ -150,47 +221,122 @@ export class AudioGenerator {
         }
       }
 
-      // 构建TTS请求
-      ttsRequest = await this.buildTTSRequest(
-        scriptSentence,
-        voiceProfile,
-        request
+      const attemptCandidates = routeResolution.rankedCandidates.filter(
+        (candidate) => candidate.eligible && Boolean(candidate.voiceProfile)
       )
 
-      // 调用TTS服务
-      const ttsResponse = await ttsServiceManager.synthesize(
-        ttsRequest,
-        voiceProfile.provider
-      )
+      for (let index = 0; index < attemptCandidates.length; index += 1) {
+        const candidate = attemptCandidates[index]
+        const voiceProfile = candidate.voiceProfile
+        if (!voiceProfile) {
+          continue
+        }
 
-      // 保存音频文件
-      const audioFile = await this.saveAudioFile(
-        scriptSentence,
-        voiceProfile,
-        ttsResponse,
-        request,
-        ttsRequest,
-        attemptStartedAt
-      )
+        const routeAttemptContext = this.createRouteAttemptContext({
+          routeResolution,
+          selectedCandidate: candidate,
+          candidateIndex: index,
+        })
+        const effectiveRequest = this.applyRouterPresetToRequest(
+          request,
+          candidate.matchedPreset
+        )
+        let ttsRequest: TTSRequest | null = null
+
+        try {
+          // 构建TTS请求
+          ttsRequest = await this.buildTTSRequest(
+            scriptSentence,
+            voiceProfile,
+            effectiveRequest,
+            routeAttemptContext
+          )
+
+          // 调用TTS服务
+          const ttsResponse = await ttsServiceManager.synthesize(
+            ttsRequest,
+            voiceProfile.provider
+          )
+
+          // 保存音频文件
+          const audioFile = await this.saveAudioFile(
+            scriptSentence,
+            voiceProfile,
+            ttsResponse,
+            effectiveRequest,
+            ttsRequest,
+            attemptStartedAt,
+            routeAttemptContext
+          )
+
+          return {
+            success: true,
+            audioFileId: audioFile.id,
+            duration: Number(audioFile.duration) ?? undefined,
+            fileSize: Number(audioFile.fileSize) ?? undefined,
+            metadata: {
+              routerDecision: routeAttemptContext.routeDecision,
+              routerPolicyVersion: routeAttemptContext.policyVersion,
+              fallbackDepth: routeAttemptContext.routeDecision.fallbackDepth,
+              attemptCandidateId: candidate.candidateId,
+              attemptSource: candidate.source,
+              attemptEngine: candidate.provider,
+            }
+          }
+        } catch (error) {
+          lastError = error
+          const isFinalAttempt = index >= attemptCandidates.length - 1
+          try {
+            await this.recordFailedSynthesisAttempt({
+              scriptSentence,
+              voiceProfile,
+              request: effectiveRequest,
+              ttsRequest,
+              startedAt: attemptStartedAt,
+              fallbackEngine: finalOptions.provider || scriptSentence.engineHint || undefined,
+              routeAttemptContext,
+              error,
+              isFinal: isFinalAttempt
+            })
+          } catch (persistError) {
+            console.warn('写入失败合成尝试记录失败:', persistError)
+          }
+
+          if (!isFinalAttempt && finalOptions.enableRouterDebug) {
+            console.warn('音频路由降级重试', {
+              sentenceId: request.scriptSentenceId,
+              candidateId: candidate.candidateId,
+              provider: candidate.provider,
+              error: error instanceof Error ? error.message : 'unknown',
+            })
+          }
+        }
+      }
 
       return {
-        success: true,
-        audioFileId: audioFile.id,
-        duration: Number(audioFile.duration) ?? undefined,
-        fileSize: Number(audioFile.fileSize) ?? undefined
+        success: false,
+        error: lastError instanceof Error ? lastError.message : '音频生成失败：全部路由候选均失败',
+        metadata: {
+          routerDecision: routeResolution.routeDecision,
+        }
       }
 
     } catch (error) {
       console.error('音频生成失败:', error)
-      if (scriptSentence && attemptStartedAt) {
+      if (scriptSentence && attemptStartedAt && !routeResolution?.selectedCandidate) {
         try {
           await this.recordFailedSynthesisAttempt({
             scriptSentence,
-            voiceProfile,
             request,
-            ttsRequest,
             startedAt: attemptStartedAt,
             fallbackEngine: finalOptions.provider || scriptSentence.engineHint || undefined,
+            routeAttemptContext: routeResolution
+              ? this.createRouteAttemptContext({
+                  routeResolution,
+                  selectedCandidate: routeResolution.rankedCandidates[0] || null,
+                  candidateIndex: 0,
+                })
+              : undefined,
             error
           })
         } catch (persistError) {
@@ -370,7 +516,8 @@ export class AudioGenerator {
   private async buildTTSRequest(
     scriptSentence: any,
     voiceProfile: any,
-    request: AudioGenerationRequest
+    request: AudioGenerationRequest,
+    routeAttemptContext?: RouteAttemptContext
   ): Promise<TTSRequest> {
     await ttsServiceManager.ready()
     // 获取TTS声音信息
@@ -429,7 +576,8 @@ export class AudioGenerator {
     )
 
     const tone = typeof scriptSentence.tone === 'string' ? scriptSentence.tone.trim() : ''
-    const emotion = request.overrides?.emotion || tone || undefined
+    const routeEmotion = routeAttemptContext?.routeDecision.emotionLabel || undefined
+    const emotion = request.overrides?.emotion || routeEmotion || tone || undefined
     const style = request.overrides?.style || this.resolveStyleFromTone(tone, voice.style) || voice.style[0]
 
     // 构建请求
@@ -445,62 +593,457 @@ export class AudioGenerator {
     }
   }
 
-  private async resolveVoiceProfileForSentence(
+  private async resolveVoiceRouteForSentence(
     scriptSentence: any,
     request: AudioGenerationRequest,
     options: AudioGenerationOptions
-  ): Promise<any | null> {
-    const preferredProvider = typeof options.provider === 'string' ? options.provider : undefined
+  ): Promise<VoiceRouteResolution | null> {
+    const policyVersion = this.resolveRouterPolicyVersion(scriptSentence, options)
+    const preferredProvider =
+      typeof options.provider === 'string' && options.provider.trim()
+        ? options.provider.trim().toLowerCase()
+        : null
+    const context: AudioRouteContext = {
+      roleType: typeof scriptSentence.roleType === 'string' ? scriptSentence.roleType : null,
+      emotionLabel:
+        typeof scriptSentence.emotionLabel === 'string' && scriptSentence.emotionLabel.trim()
+          ? scriptSentence.emotionLabel
+          : scriptSentence.tone,
+      priority: typeof scriptSentence.priority === 'string' ? scriptSentence.priority : null,
+      engineHint: typeof scriptSentence.engineHint === 'string' ? scriptSentence.engineHint : null,
+      preferredProvider,
+      policyVersion,
+      debugEnabled: options.enableRouterDebug === true,
+    }
+
+    const candidates = await this.collectRouteCandidates({
+      scriptSentence,
+      request,
+      options,
+    })
+
+    if (candidates.length === 0) {
+      return null
+    }
+
+    const providers = Array.from(
+      new Set(
+        candidates
+          .map((candidate) => candidate.provider.trim().toLowerCase())
+          .filter((provider) => provider.length > 0)
+      )
+    )
+
+    const engineHealth = await this.getEngineHealthSnapshot(scriptSentence.bookId, providers)
+    const selection = selectAudioRouteCandidate({
+      candidates,
+      context,
+      engineHealth,
+    })
+
+    return {
+      selectedCandidate: selection.selectedCandidate,
+      rankedCandidates: selection.rankedCandidates,
+      routeDecision: selection.decision,
+    }
+  }
+
+  private resolveRouterPolicyVersion(
+    scriptSentence: any,
+    options: AudioGenerationOptions
+  ): string {
+    if (
+      typeof options.routerPolicyVersion === 'string' &&
+      options.routerPolicyVersion.trim().length > 0
+    ) {
+      return options.routerPolicyVersion.trim()
+    }
+
+    const metadata = asRecord(scriptSentence?.book?.metadata)
+    const audioRouter = asRecord(metadata?.audioRouter)
+    const metadataVersion =
+      (typeof audioRouter?.policyVersion === 'string' && audioRouter.policyVersion.trim()) ||
+      (typeof metadata?.routerPolicyVersion === 'string' && metadata.routerPolicyVersion.trim())
+
+    if (metadataVersion) {
+      return metadataVersion
+    }
+
+    return 'engine-router-v1'
+  }
+
+  private async collectRouteCandidates({
+    scriptSentence,
+    request,
+    options,
+  }: {
+    scriptSentence: any
+    request: AudioGenerationRequest
+    options: AudioGenerationOptions
+  }): Promise<AudioRouteCandidate[]> {
+    const preferredProvider =
+      typeof options.provider === 'string' && options.provider.trim()
+        ? options.provider.trim().toLowerCase()
+        : null
+    const candidates: AudioRouteCandidate[] = []
 
     if (request.voiceProfileId) {
       const selectedProfile = await prisma.tTSVoiceProfile.findUnique({
         where: { id: request.voiceProfileId }
       })
       if (!selectedProfile) {
-        return null
+        return []
       }
       if (preferredProvider && selectedProfile.provider !== preferredProvider) {
-        return null
+        return []
       }
-      return selectedProfile
+
+      candidates.push({
+        candidateId: `manual:${selectedProfile.id}`,
+        source: 'manual_voice_profile',
+        provider: selectedProfile.provider,
+        voiceId: selectedProfile.voiceId,
+        voiceProfile: {
+          id: selectedProfile.id,
+          provider: selectedProfile.provider,
+          voiceId: selectedProfile.voiceId,
+          defaultParameters: asRecord(selectedProfile.defaultParameters),
+        },
+        isDefault: true,
+        routingWeight: 1,
+      })
+
+      return candidates
+    }
+
+    const speakerBindings = scriptSentence.character?.speakerBindings || []
+    for (const speakerBinding of speakerBindings) {
+      const speakerProfile = speakerBinding.speakerProfile
+      if (!speakerProfile?.isActive) {
+        continue
+      }
+
+      const engineVariants = speakerProfile.engineVariants || []
+      for (const variant of engineVariants) {
+        const provider = typeof variant.engine === 'string' ? variant.engine.trim().toLowerCase() : ''
+        if (!provider) {
+          continue
+        }
+        if (preferredProvider && provider !== preferredProvider) {
+          continue
+        }
+
+        const voiceId = this.resolveVariantVoiceId(provider, variant.providerVoiceId)
+        const emotionPresets = this.parseEmotionPresets(variant.emotionPresets || [])
+        const capability = asRecord(variant.capability) || {}
+        const defaultParameters = {
+          ...(asRecord(capability.defaultParameters) || {}),
+        } as Record<string, unknown>
+
+        candidates.push({
+          candidateId: `variant:${variant.id}`,
+          source: 'speaker_engine_variant',
+          provider,
+          voiceId,
+          voiceProfile: voiceId
+            ? ({
+                provider,
+                voiceId,
+                defaultParameters,
+              } as RoutedVoiceProfile)
+            : null,
+          isDefault: Boolean(variant.isDefault || speakerBinding.isDefault),
+          routingWeight: this.toFiniteNumber(variant.routingWeight, 1) ?? 1,
+          capability,
+          speakerProfileId: speakerProfile.id,
+          speakerEngineVariantId: variant.id,
+          emotionPresets,
+        })
+      }
     }
 
     const characterBindings = scriptSentence.character?.voiceBindings || []
-    const matchedCharacterBinding = this.pickBindingByProvider(characterBindings, preferredProvider)
-    if (matchedCharacterBinding?.voiceProfile) {
-      return matchedCharacterBinding.voiceProfile
+    for (const binding of characterBindings) {
+      const voiceProfile = binding.voiceProfile
+      if (!voiceProfile || voiceProfile.isAvailable === false) {
+        continue
+      }
+
+      const provider = typeof voiceProfile.provider === 'string'
+        ? voiceProfile.provider.trim().toLowerCase()
+        : ''
+      if (!provider) {
+        continue
+      }
+      if (preferredProvider && provider !== preferredProvider) {
+        continue
+      }
+
+      candidates.push({
+        candidateId: `binding:${binding.id}`,
+        source: 'character_voice_binding',
+        provider,
+        voiceId: voiceProfile.voiceId,
+        voiceProfile: {
+          id: voiceProfile.id,
+          provider,
+          voiceId: voiceProfile.voiceId,
+          defaultParameters: asRecord(voiceProfile.defaultParameters),
+        },
+        isDefault: Boolean(binding.isDefault),
+        routingWeight: 1,
+      })
     }
 
-    const fallbackProfile = await this.findNarrationFallbackVoice(
+    const narrationFallback = await this.findNarrationFallbackVoice(
       scriptSentence.bookId,
-      preferredProvider
+      preferredProvider || undefined
     )
-    if (fallbackProfile) {
-      return fallbackProfile
+    if (narrationFallback) {
+      candidates.push({
+        candidateId: `fallback:${narrationFallback.id}`,
+        source: 'narration_fallback',
+        provider: narrationFallback.provider,
+        voiceId: narrationFallback.voiceId,
+        voiceProfile: {
+          id: narrationFallback.id,
+          provider: narrationFallback.provider,
+          voiceId: narrationFallback.voiceId,
+          defaultParameters: asRecord(narrationFallback.defaultParameters),
+        },
+        isDefault: true,
+        routingWeight: 1,
+      })
     }
 
-    if (preferredProvider) {
-      return this.findNarrationFallbackVoice(scriptSentence.bookId)
+    return candidates
+  }
+
+  private parseEmotionPresets(rawPresets: any[]): AudioRouteEmotionPreset[] {
+    if (!Array.isArray(rawPresets) || rawPresets.length === 0) {
+      return []
+    }
+
+    return rawPresets
+      .map((preset) => {
+        const aliases = Array.isArray(preset?.rawAliases)
+          ? preset.rawAliases.filter((alias: unknown): alias is string => typeof alias === 'string')
+          : []
+        const normalizedLabel =
+          typeof preset?.emotionLabel === 'string' ? preset.emotionLabel.trim() : ''
+        if (!normalizedLabel) {
+          return null
+        }
+
+        return {
+          emotionLabel: normalizedLabel,
+          aliases,
+          intensityDefault: this.toFiniteNumber(preset?.intensityDefault, null),
+          prosodyPreset: asRecord(preset?.prosodyPreset) || {},
+          engineParams: asRecord(preset?.engineParams) || {},
+        } as AudioRouteEmotionPreset
+      })
+      .filter((preset): preset is AudioRouteEmotionPreset => Boolean(preset))
+  }
+
+  private resolveVariantVoiceId(provider: string, providerVoiceId: unknown): string | null {
+    if (typeof providerVoiceId === 'string' && providerVoiceId.trim().length > 0) {
+      return providerVoiceId.trim()
+    }
+
+    if (provider === 'voxcpm') {
+      return '__voxcpm_default__'
     }
 
     return null
   }
 
-  private pickBindingByProvider(bindings: any[], provider?: string): any | null {
-    if (!Array.isArray(bindings) || bindings.length === 0) {
-      return null
+  private toFiniteNumber(value: unknown, fallback: number | null): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value
+    }
+    if (typeof value === 'string') {
+      const parsed = Number(value)
+      if (Number.isFinite(parsed)) {
+        return parsed
+      }
+    }
+    return fallback
+  }
+
+  private async getEngineHealthSnapshot(
+    bookId: string,
+    providers: string[]
+  ): Promise<Record<string, AudioRouteEngineHealth>> {
+    if (providers.length === 0) {
+      return {}
     }
 
-    if (provider) {
-      const providerMatched =
-        bindings.find((binding) => binding.isDefault && binding.voiceProfile?.provider === provider) ||
-        bindings.find((binding) => binding.voiceProfile?.provider === provider)
-      if (providerMatched) {
-        return providerMatched
+    const cacheKey = `${bookId}:${providers.slice().sort().join(',')}`
+    const now = Date.now()
+    const cached = engineHealthCache.get(cacheKey)
+    if (cached && cached.expiresAt > now) {
+      return cached.snapshot
+    }
+
+    const attempts = await prisma.synthesisAttempt.findMany({
+      where: {
+        bookId,
+        engine: {
+          in: providers,
+        },
+        startedAt: {
+          gte: new Date(now - ENGINE_HEALTH_WINDOW_MS),
+        },
+      },
+      select: {
+        engine: true,
+        status: true,
+        errorCode: true,
+      },
+      orderBy: {
+        startedAt: 'desc',
+      },
+      take: 300,
+    })
+
+    const snapshot: Record<string, AudioRouteEngineHealth> = {}
+    for (const provider of providers) {
+      const providerAttempts = attempts.filter((attempt) => attempt.engine === provider)
+      const total = providerAttempts.length
+      const failed = providerAttempts.filter((attempt) => attempt.status === 'failed').length
+      const timeoutFailed = providerAttempts.filter((attempt) => {
+        if (attempt.status !== 'failed') {
+          return false
+        }
+        const code = typeof attempt.errorCode === 'string' ? attempt.errorCode.toUpperCase() : ''
+        return code.includes('TIMEOUT') || code.includes('RATE_LIMIT')
+      }).length
+      const failureRate = total > 0 ? Number((failed / total).toFixed(4)) : 0
+      const timeoutRate = total > 0 ? Number((timeoutFailed / total).toFixed(4)) : 0
+      const healthy = total < 5 || (failureRate <= 0.45 && timeoutRate <= 0.25)
+
+      snapshot[provider] = {
+        provider,
+        sampleSize: total,
+        failureRate,
+        timeoutRate,
+        healthy,
+        updatedAt: new Date(now).toISOString(),
       }
     }
 
-    return bindings.find((binding) => binding.isDefault) || bindings[0]
+    engineHealthCache.set(cacheKey, {
+      expiresAt: now + ENGINE_HEALTH_CACHE_TTL_MS,
+      snapshot,
+    })
+
+    return snapshot
+  }
+
+  private applyRouterPresetToRequest(
+    request: AudioGenerationRequest,
+    preset: AudioRouteEmotionPreset | null
+  ): AudioGenerationRequest {
+    if (!preset) {
+      return request
+    }
+
+    const engineParams = preset.engineParams || {}
+    const speed = this.toFiniteNumber(engineParams.speed ?? engineParams.rate, null)
+    const pitch = this.toFiniteNumber(engineParams.pitch, null)
+    const volume = this.toFiniteNumber(engineParams.volume, null)
+    const style =
+      typeof engineParams.style === 'string' && engineParams.style.trim().length > 0
+        ? engineParams.style.trim()
+        : undefined
+
+    const overrides = {
+      ...(request.overrides || {}),
+      ...(speed !== null ? { speed } : {}),
+      ...(pitch !== null ? { pitch } : {}),
+      ...(volume !== null ? { volume } : {}),
+      ...(style ? { style } : {}),
+      ...(request.overrides?.emotion
+        ? {}
+        : {
+            emotion: preset.emotionLabel,
+          }),
+    }
+
+    return {
+      ...request,
+      overrides,
+    }
+  }
+
+  private createRouteAttemptContext({
+    routeResolution,
+    selectedCandidate,
+    candidateIndex,
+  }: {
+    routeResolution: VoiceRouteResolution
+    selectedCandidate: RankedAudioRouteCandidate | null
+    candidateIndex: number
+  }): RouteAttemptContext {
+    const candidate = selectedCandidate || routeResolution.selectedCandidate || routeResolution.rankedCandidates[0]
+    if (!candidate) {
+      const placeholderCandidate: RankedAudioRouteCandidate = {
+        candidateId: 'unknown',
+        source: 'narration_fallback',
+        provider: 'unknown',
+        voiceId: null,
+        voiceProfile: null,
+        isDefault: false,
+        routingWeight: 0,
+        score: 0,
+        eligible: false,
+        healthy: false,
+        rule: 'none',
+        reason: ['missing_candidate'],
+        presetMatch: 'none',
+        matchedPreset: null,
+      }
+      return {
+        selectedCandidate: placeholderCandidate,
+        rankedCandidates: routeResolution.rankedCandidates,
+        routeDecision: routeResolution.routeDecision,
+        candidateIndex,
+        policyVersion: routeResolution.routeDecision.policyVersion,
+      }
+    }
+
+    const selectedIndex = routeResolution.rankedCandidates.findIndex(
+      (item) => item.candidateId === candidate.candidateId
+    )
+    const fallbackDepth = selectedIndex < 0 ? 0 : selectedIndex
+    const fallbackPath = fallbackDepth > 0
+      ? routeResolution.rankedCandidates.slice(0, fallbackDepth).map((item) => ({
+          candidateId: item.candidateId,
+          provider: item.provider,
+          source: item.source,
+          reason: item.reason,
+        }))
+      : []
+    const routeDecision = {
+      ...routeResolution.routeDecision,
+      selectedEngine: candidate.provider,
+      selectedVoiceId: candidate.voiceId,
+      selectedSource: candidate.source,
+      selectedRule: candidate.rule,
+      selectedCandidateId: candidate.candidateId,
+      fallbackDepth,
+      isFallback: fallbackDepth > 0 || candidate.source === 'narration_fallback',
+      fallbackPath,
+    }
+
+    return {
+      selectedCandidate: candidate,
+      rankedCandidates: routeResolution.rankedCandidates,
+      routeDecision,
+      candidateIndex,
+      policyVersion: routeDecision.policyVersion,
+    }
   }
 
   private async findNarrationFallbackVoice(
@@ -609,6 +1152,41 @@ export class AudioGenerator {
     return undefined
   }
 
+  private buildRouteAttemptPayload(routeAttemptContext?: RouteAttemptContext): {
+    policyVersion: string | null
+    fallbackDepth: number | null
+    selection: Record<string, unknown> | null
+    routerDecision: Record<string, unknown> | null
+  } {
+    if (!routeAttemptContext) {
+      return {
+        policyVersion: null,
+        fallbackDepth: null,
+        selection: null,
+        routerDecision: null,
+      }
+    }
+
+    const selection = {
+      candidateId: routeAttemptContext.selectedCandidate.candidateId,
+      provider: routeAttemptContext.selectedCandidate.provider,
+      source: routeAttemptContext.selectedCandidate.source,
+      rule: routeAttemptContext.selectedCandidate.rule,
+      presetMatch: routeAttemptContext.selectedCandidate.presetMatch,
+      speakerProfileId: routeAttemptContext.selectedCandidate.speakerProfileId || null,
+      speakerEngineVariantId:
+        routeAttemptContext.selectedCandidate.speakerEngineVariantId || null,
+      candidateIndex: routeAttemptContext.candidateIndex,
+    }
+
+    return {
+      policyVersion: routeAttemptContext.policyVersion,
+      fallbackDepth: routeAttemptContext.routeDecision.fallbackDepth,
+      selection,
+      routerDecision: routeAttemptContext.routeDecision as unknown as Record<string, unknown>,
+    }
+  }
+
   /**
    * 保存音频文件
    */
@@ -618,7 +1196,8 @@ export class AudioGenerator {
     ttsResponse: any,
     request: AudioGenerationRequest,
     ttsRequest: TTSRequest,
-    startedAt: Date | null
+    startedAt: Date | null,
+    routeAttemptContext?: RouteAttemptContext
   ) {
     // 创建音频文件目录
     const audioDir = getBookAudioDir(scriptSentence.bookId)
@@ -659,7 +1238,7 @@ export class AudioGenerator {
           segmentId: scriptSentence.segmentId,
           chapterId: scriptSentence.chapterId ?? scriptSentence.segment?.chapterId,
           bookId: scriptSentence.bookId,
-          voiceProfileId: voiceProfile.id,
+          voiceProfileId: typeof voiceProfile.id === 'string' ? voiceProfile.id : null,
           filePath,
           fileName: filename,
           fileSize: BigInt(fileSize),
@@ -673,6 +1252,7 @@ export class AudioGenerator {
       })
 
       const now = new Date()
+      const routePayload = this.buildRouteAttemptPayload(routeAttemptContext)
       await tx.synthesisAttempt.create({
         data: {
           bookId: scriptSentence.bookId,
@@ -680,6 +1260,9 @@ export class AudioGenerator {
           segmentId: scriptSentence.segmentId,
           sentenceId: scriptSentence.id,
           audioFileId: audioFile.id,
+          speakerProfileId: routeAttemptContext?.selectedCandidate.speakerProfileId || null,
+          speakerEngineVariantId:
+            routeAttemptContext?.selectedCandidate.speakerEngineVariantId || null,
           engine: voiceProfile.provider || 'unknown',
           status: 'completed',
           attemptNo,
@@ -687,18 +1270,25 @@ export class AudioGenerator {
           requestPayload: {
             outputFormat: request.outputFormat || 'mp3',
             overrides: request.overrides || {},
-            voiceProfileId: voiceProfile.id
+            voiceProfileId:
+              request.voiceProfileId ||
+              (typeof voiceProfile.id === 'string' ? voiceProfile.id : null),
+            routerDecision: routePayload.routerDecision,
+            routerPolicyVersion: routePayload.policyVersion,
           } as Prisma.InputJsonValue,
           appliedParams: {
             speed: ttsRequest.speed,
             pitch: ttsRequest.pitch,
             volume: ttsRequest.volume,
             emotion: ttsRequest.emotion,
-            style: ttsRequest.style
+            style: ttsRequest.style,
+            routerSelection: routePayload.selection,
           } as Prisma.InputJsonValue,
           metrics: {
             durationSeconds,
-            fileSize
+            fileSize,
+            routerFallbackDepth: routePayload.fallbackDepth,
+            routerCandidateIndex: routeAttemptContext?.candidateIndex ?? null,
           } as Prisma.InputJsonValue,
           startedAt: startedAt ?? now,
           finishedAt: now,
@@ -719,6 +1309,8 @@ export class AudioGenerator {
     voiceProfile?: any | null
     ttsRequest?: TTSRequest | null
     fallbackEngine?: string
+    routeAttemptContext?: RouteAttemptContext
+    isFinal?: boolean
   }): Promise<void> {
     const {
       scriptSentence,
@@ -727,12 +1319,15 @@ export class AudioGenerator {
       error,
       voiceProfile,
       ttsRequest,
-      fallbackEngine
+      fallbackEngine,
+      routeAttemptContext,
+      isFinal = false,
     } = params
 
     const now = new Date()
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const errorCode = error instanceof TTSError ? error.code : 'AUDIO_GENERATION_FAILED'
+    const routePayload = this.buildRouteAttemptPayload(routeAttemptContext)
     const attemptNo =
       (await prisma.synthesisAttempt.count({
         where: {
@@ -746,6 +1341,9 @@ export class AudioGenerator {
         chapterId: scriptSentence.chapterId ?? scriptSentence.segment?.chapterId,
         segmentId: scriptSentence.segmentId,
         sentenceId: scriptSentence.id,
+        speakerProfileId: routeAttemptContext?.selectedCandidate.speakerProfileId || null,
+        speakerEngineVariantId:
+          routeAttemptContext?.selectedCandidate.speakerEngineVariantId || null,
         engine: voiceProfile?.provider || fallbackEngine || 'unknown',
         status: 'failed',
         attemptNo,
@@ -753,22 +1351,30 @@ export class AudioGenerator {
         requestPayload: {
           outputFormat: request.outputFormat || 'mp3',
           overrides: request.overrides || {},
-          voiceProfileId: request.voiceProfileId || voiceProfile?.id || null
+          voiceProfileId:
+            request.voiceProfileId ||
+            (typeof voiceProfile?.id === 'string' ? voiceProfile.id : null),
+          routerDecision: routePayload.routerDecision,
+          routerPolicyVersion: routePayload.policyVersion,
         } as Prisma.InputJsonValue,
         appliedParams: {
           speed: ttsRequest?.speed ?? null,
           pitch: ttsRequest?.pitch ?? null,
           volume: ttsRequest?.volume ?? null,
           emotion: ttsRequest?.emotion ?? null,
-          style: ttsRequest?.style ?? null
+          style: ttsRequest?.style ?? null,
+          routerSelection: routePayload.selection,
         } as Prisma.InputJsonValue,
-        metrics: {} as Prisma.InputJsonValue,
+        metrics: {
+          routerFallbackDepth: routeAttemptContext?.routeDecision.fallbackDepth ?? null,
+          routerCandidateIndex: routeAttemptContext?.candidateIndex ?? null,
+        } as Prisma.InputJsonValue,
         startedAt,
         finishedAt: now,
         durationMs: Math.max(0, now.getTime() - startedAt.getTime()),
         errorCode,
         errorMessage,
-        isFinal: false
+        isFinal
       }
     })
   }

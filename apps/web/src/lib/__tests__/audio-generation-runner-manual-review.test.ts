@@ -417,4 +417,73 @@ describe("runAudioGenerationTask manual review followup", () => {
       }),
     });
   });
+
+  it("should persist router decision summary into task metadata", async () => {
+    mockProcessingTaskFindUnique.mockResolvedValue({
+      taskData: {
+        metadata: {},
+      },
+    });
+
+    mockGetAudioGenerator.mockReturnValue({
+      generateBatchAudio: jest.fn().mockResolvedValue([
+        {
+          success: true,
+          audioFileId: "audio-router-1",
+          duration: 2.4,
+          metadata: {
+            routerDecision: {
+              selectedEngine: "voxcpm",
+              selectedSource: "speaker_engine_variant",
+              policyVersion: "router-v1",
+              isFallback: false,
+            },
+          },
+        },
+        {
+          success: false,
+          error: "provider unavailable",
+          metadata: {
+            routerDecision: {
+              selectedEngine: "indextts",
+              selectedSource: "character_voice_binding",
+              policyVersion: "router-v1",
+              isFallback: true,
+            },
+          },
+        },
+      ]),
+    } as any);
+
+    await runAudioGenerationTask({
+      bookId: "book-1",
+      taskId: "task-router-summary",
+      type: "batch",
+      scriptSentenceIds: ["sentence-a", "sentence-b"],
+      options: {
+        routerPolicyVersion: "router-v1",
+      },
+    });
+
+    expect(mockMergeTaskData).toHaveBeenCalledWith(
+      "task-router-summary",
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          routerPolicyVersion: "router-v1",
+          routerDecisionSummary: expect.objectContaining({
+            totalResults: 2,
+            decisionCount: 2,
+            fallbackCount: 1,
+            byEngine: expect.arrayContaining([
+              expect.objectContaining({
+                engine: "voxcpm",
+                total: 1,
+                success: 1,
+              }),
+            ]),
+          }),
+        }),
+      })
+    );
+  });
 });

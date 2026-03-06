@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S28 功能实施已完成；S28（上传自动触发 + 主入口统一）已落地，待推进 S29-S32。
+- 当前进度：S0-S29 功能实施已完成；S29（Engine Router v1 运行时接入）已落地，待推进 S30/S27.1/S28.1/S31/S32。
 
-## 总体目标回顾与现状判断（2026-03-06 13:05 CST）
+## 总体目标回顾与现状判断（2026-03-06 14:08 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -19,7 +19,7 @@
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑。 |
-| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环已具备；Q1-Q3 仍以启发式为主，CER/声纹未主链路接入。 |
+| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环已具备，Engine Router v1 已接入；Q1-Q3 仍以启发式为主，CER/声纹未主链路接入。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放仍需补齐。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测可用；核心 SLO 指标体系与告警仍需补齐。 |
 
@@ -329,21 +329,37 @@
 - 里程碑节奏：
   - 当前累计执行到第 18 轮；按“每 5 轮回顾”约定，下一次阶段总结应在第 20 轮（预计 S30）完成后执行。
 
+### 20) 第十九轮增量（S29：Engine Router v1 运行时接入）
+
+- 路由运行时接入：
+  - 新增 `audio-engine-router`，按 `roleType/emotionLabel/priority/engineHint/engineHealth` 对候选进行评分并输出可审计决策。
+  - 候选来源统一纳入 `speaker_engine_variants`、角色声线绑定与旁白兜底，支持同句候选降级重试。
+- 落库诊断增强：
+  - `synthesis_attempts` 成功/失败链路补写 `speakerProfileId/speakerEngineVariantId`。
+  - `requestPayload/appliedParams/metrics` 新增 `routerDecision/routerSelection/routerFallbackDepth` 诊断字段。
+- 任务元数据增强：
+  - `audio-generation-runner` 在任务 `taskData.metadata` 写入 `routerDecisionSummary`（按 engine/source/policyVersion 聚合）。
+  - 结果级摘要补 `selectedEngine/selectedSource`，用于重放排障与运营观测。
+- API 与队列透传：
+  - `POST /api/books/[id]/audio/generate` 支持 `routerPolicyVersion` 与 `routerDebug`（兼容 `enableRouterDebug`）。
+  - 新增 `GET /api/books/[id]/audio/router/metrics`，返回路由命中率、降级率、失败率与规则 TopN。
+  - `task-queue/dedupe` 纳入 `routerPolicyVersion`；`task-replay-payload` 补路由参数回放透传。
+- 里程碑节奏：
+  - 当前累计执行到第 19 轮；按“每 5 轮回顾”约定，下一次阶段总结应在第 20 轮（预计 S30）完成后执行。
+
 ## 待完成内容
 
 1. 上传自动触发已落地，但仍需补“触发失败补偿任务化”（S28.1），避免漏触发窗口。
 2. S27 当前为 metadata 审计闭环 V1，仍需补“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
-3. `speaker_engine_variants/speaker_emotion_presets` 尚未接入音频生成运行时主决策链路。
-4. Q1-Q3 仍以启发式判定为主，未完成 CER/声纹等关键质量信号主链路接入。
-5. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
-6. 核心 SLO 指标（`pipeline_success_rate` 等）尚未形成统一 API + 告警闭环。
+3. Q1-Q3 仍以启发式判定为主，未完成 CER/声纹等关键质量信号主链路接入（S30）。
+4. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务（S31）。
+5. 核心 SLO 指标（`pipeline_success_rate` 等）尚未形成统一 API + 告警闭环（S32）。
 
-## 剩余任务优先级（建议，S29-S32）
+## 剩余任务优先级（建议，S30-S32）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S29 | Engine Router v1 运行时接入 | 按 `role_type/emotion/priority/engine_health` 路由并记录命中策略 | 引擎选择可解释、可回放、可降级 | S28 |
-| P1 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并联动返工策略 | 质量判定误报/漏报显著下降 | S29 |
+| P0 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并联动返工策略 | 质量判定误报/漏报显著下降 | S29 |
 | P1 | S27.1 | 阈值治理任务化补齐 | 固化评估样本集并接入 `QUALITY_CHECK(source=calibration_eval)` 回放链路 | 阈值评估可重放、可对比、可追溯 | S27 |
 | P1 | S28.1 | 上传触发补偿任务化 | 上传触发失败后创建补偿任务并自动重试 | 漏触发率可观测且可自动收敛 | S28 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
@@ -352,7 +368,7 @@
 ## 执行卡片索引（S27-S32）
 
 1. 详细执行卡：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。
-2. 接手执行顺序：S29 -> S30 -> S27.1/S28.1 -> S31/S32。
+2. 接手执行顺序：S30 -> S27.1/S28.1 -> S31/S32。
 3. 交接要求：每完成一项任务，必须同步更新实施卡中的“API 变更”和“验收结果”。
 
 ## 测试与验证结果
@@ -377,6 +393,9 @@
   - `apps/web/src/lib/__tests__/deep-gate-calibration.test.ts`（新增）
   - `apps/web/src/lib/__tests__/deep-gate-calibration-governance-service.test.ts`（新增，S27 阈值治理闭环）
   - `apps/web/src/lib/__tests__/auto-pipeline-trigger-service.test.ts`（新增，S28 上传/手工触发统一服务）
+  - `apps/web/src/lib/__tests__/audio-engine-router.test.ts`（新增，S29 路由评分与降级）
+  - `apps/web/src/lib/__tests__/audio-router-metrics-service.test.ts`（新增，S29 路由指标聚合）
+  - `apps/web/src/lib/__tests__/task-replay-payload-audio.test.ts`（新增，S29 音频任务回放参数透传）
 - 已执行：
   - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
   - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
@@ -414,11 +433,14 @@
   - `pnpm --filter web typecheck`（S28）
   - `pnpm --filter web lint`（S28）
   - `pnpm --filter web test:regression`（S28）
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-engine-router.test.ts src/lib/__tests__/audio-router-metrics-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/task-replay-payload-audio.test.ts src/lib/__tests__/auto-pipeline-trigger-service.test.ts`（S29）
+  - `pnpm --filter web typecheck`（S29）
+  - `pnpm --filter web lint`（S29）
+  - `pnpm --filter web test:regression`（S29）
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S29（P0）**：接入 Engine Router 运行时，把路由命中、降级路径和策略版本沉淀到任务元数据。
-2. 然后执行 **S30（P1）**：补 Q0-Q3 指标化（CER/声纹优先），提升质量判定可信度与返工命中率。
-3. 并行补 **S27.1 + S28.1（P1）**：把阈值治理升级为任务化回放，并补上传触发失败补偿任务。
-4. 收尾执行 **S31 + S32（P2）**：补 `FINAL_ASSEMBLY` 任务化与核心 SLO 指标产品化，完成运营验收。
+1. 先做 **S30（P0）**：补 Q0-Q3 指标化（CER/声纹优先），提升质量判定可信度与返工命中率。
+2. 并行补 **S27.1 + S28.1（P1）**：把阈值治理升级为任务化回放，并补上传触发失败补偿任务。
+3. 收尾执行 **S31 + S32（P2）**：补 `FINAL_ASSEMBLY` 任务化与核心 SLO 指标产品化，完成运营验收。

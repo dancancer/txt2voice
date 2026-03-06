@@ -57,6 +57,7 @@ export const buildAudioDedupeKey = (input: AudioDedupeInput): string => {
     scriptSentenceIds: (input.scriptSentenceIds || []).slice().sort(),
     voiceProfileId: input.voiceProfileId || null,
     provider: input.options?.provider || null,
+    routerPolicyVersion: input.options?.routerPolicyVersion || null,
   };
 
   return `audio:${input.bookId}:${hashScope(normalized)}`;

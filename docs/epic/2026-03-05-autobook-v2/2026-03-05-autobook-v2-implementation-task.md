@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S27（前十七批改造）已完成，本轮推进第十八批“S28 上传自动触发 Auto Pipeline + 主入口统一”增量：
+S0-S28（前十八批改造）已完成，本轮推进第十九批 **S29 Engine Router v1 运行时接入**：
 
-1. 改造 `POST /api/books/[id]/upload`，默认自动触发 `AUTO_PIPELINE`，并支持显式关闭和参数覆盖。
-2. 统一自动编排建链入口（上传链路与手工触发复用同一服务），补齐并发幂等与触发元数据沉淀。
-3. 扩展 `GET /api/books/[id]/pipeline/status`，返回最近一次 upload 触发来源与阶段耗时统计；完成测试回归、文档回写和提交。
+1. 在 `audio-generator` 接入 Engine Router：按 `roleType/emotionLabel/priority/engineHint/engineHealth` 进行候选评分与自动降级。
+2. 在 `synthesis_attempts` 与 `AUDIO_GENERATION` 任务元数据沉淀路由诊断字段（策略版本、命中规则、降级深度、来源聚合）。
+3. 扩展音频 API：`POST /api/books/[id]/audio/generate` 支持 `routerPolicyVersion/routerDebug`；新增 `GET /api/books/[id]/audio/router/metrics` 提供路由命中/降级/失败观测。
 
 ## 2. 执行步骤
 
@@ -45,6 +45,7 @@ S0-S27（前十七批改造）已完成，本轮推进第十八批“S28 上传�
 | S26 | 复核运营自动化（批量处置 + 告警处置 + 审计导出） | ✅ 完成 | 复核页支持批量通过/重生、告警事件 ack/resolve、处置日志 CSV 导出并通过测试回归 |
 | S27 | Deep Gate 阈值治理闭环 V1（evaluate/publish/rollback） | ✅ 完成 | 支持离线评估报告、阈值版本发布与回滚，链路可审计且测试/回归通过 |
 | S28 | 上传自动触发 Auto Pipeline + 主入口统一 | ✅ 完成 | 上传后默认触发自动编排，手工触发/上传触发复用同一建链服务，并回传 upload 来源与阶段耗时 |
+| S29 | Engine Router v1 运行时接入 | ✅ 完成 | 音频生成支持路由决策/自动降级/策略透传，新增路由指标 API，并完成测试回归 |
 
 ## 3. 执行日志
 
@@ -672,20 +673,60 @@ S0-S27（前十七批改造）已完成，本轮推进第十八批“S28 上传�
   - `pnpm --filter web test:regression`
 - 结果：S28 主链路闭环完成；上传后默认自动建链，上传/手工触发共享同一建链逻辑，阶段耗时与 upload 来源可观测。
 - 五轮回顾节奏：当前累计到第 18 轮；下一次阶段性总结回顾节点为第 20 轮（计划在 S30 完成后执行）。
+
+### [S29] Engine Router v1 运行时接入（2026-03-06 14:08 CST）
+
+- 完成内容：
+  1. 新增 `audio-engine-router`，在音频生成阶段按 `roleType/emotionLabel/priority/engineHint/engineHealth` 对候选引擎评分，并输出可审计路由决策。
+  2. `audio-generator` 接入路由运行时与自动降级：
+     - 候选来源统一纳入 `speaker_engine_variants`、角色声线绑定与旁白兜底；
+     - 单句生成支持“同任务内候选降级重试”，并记录候选命中、降级深度与规则。
+  3. `synthesis_attempts` 落库增强：
+     - 成功/失败路径均写入 `speakerProfileId/speakerEngineVariantId`；
+     - `requestPayload/appliedParams/metrics` 新增 `routerDecision/routerSelection/routerFallbackDepth` 诊断字段。
+  4. `audio-generation-runner` 任务回写增强：
+     - 在 `taskData.metadata` 新增 `routerDecisionSummary`（按 engine/source/policyVersion 聚合）；
+     - 补充结果级 `selectedEngine/selectedSource` 摘要，便于重放排障。
+  5. API 扩展：
+     - `POST /api/books/[id]/audio/generate` 支持 `routerPolicyVersion` 和 `routerDebug`（兼容 `enableRouterDebug`）；
+     - 新增 `GET /api/books/[id]/audio/router/metrics`，输出路由命中率、降级率、失败率与规则 TopN。
+  6. 队列重放/幂等对齐：
+     - `task-queue/dedupe` 纳入 `routerPolicyVersion`；
+     - `task-replay-payload` 支持回放透传 `routerPolicyVersion/enableRouterDebug`。
+- 关键文件：
+  - `apps/web/src/lib/audio-engine-router.ts`
+  - `apps/web/src/lib/audio-generator.ts`
+  - `apps/web/src/lib/audio-generation-runner.ts`
+  - `apps/web/src/lib/audio-router-metrics-service.ts`
+  - `apps/web/src/app/api/books/[id]/audio/generate/route.ts`
+  - `apps/web/src/app/api/books/[id]/audio/router/metrics/route.ts`
+  - `apps/web/src/lib/task-queue/dedupe.ts`
+  - `apps/web/src/lib/task-queue/replay-payload.ts`
+  - `apps/web/src/lib/__tests__/audio-engine-router.test.ts`
+  - `apps/web/src/lib/__tests__/audio-router-metrics-service.test.ts`
+  - `apps/web/src/lib/__tests__/task-replay-payload-audio.test.ts`
+  - `apps/web/src/lib/__tests__/audio-generation-runner-manual-review.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-engine-router.test.ts src/lib/__tests__/audio-router-metrics-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/task-replay-payload-audio.test.ts src/lib/__tests__/auto-pipeline-trigger-service.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：S29 已完成，Engine Router 已进入音频主链路，具备策略透传、自动降级与指标观测能力。
+- 五轮回顾节奏：当前累计到第 19 轮；下一次阶段性总结回顾节点为第 20 轮（计划在 S30 完成后执行）。
 - 下一步建议：
-  1. 执行 S29：接入 Engine Router v1，把 `speaker_engine_variants/speaker_emotion_presets` 拉入运行时决策并沉淀路由摘要。
-  2. 执行 S30：补 Q0-Q3 指标化（CER/声纹优先），把返工策略从启发式升级到指标优先。
-  3. 并行推进 S27.1：固化评估样本集并落地 `QUALITY_CHECK(source=calibration_eval)` 任务化回放。
+  1. 执行 S30：补 Q0-Q3 指标化（CER/声纹优先），把返工策略从启发式升级到指标优先。
+  2. 并行推进 S27.1：固化评估样本集并落地 `QUALITY_CHECK(source=calibration_eval)` 任务化回放。
+  3. 执行 S28.1：补上传触发补偿任务化，收敛“上传成功但自动触发失败”的漏触发窗口。
 
-## 4. 风险与备注（2026-03-06 13:05 CST）
+## 4. 风险与备注（2026-03-06 14:08 CST）
 
-1. 上传自动触发已落地，但上传接口当前以“触发失败不阻断上传”为策略；仍需补后台重试/补偿任务，避免漏触发。
-2. Engine Router 仍停留在数据层：`speaker_engine_variants/speaker_emotion_presets` 未进入音频生成主决策链路。
-3. Fast Gate 的 Q1-Q3 仍以启发式为主，CER/声纹等关键质量信号未形成稳定运行时依赖。
-4. S27 已落地治理闭环 V1（metadata 审计链路），但“评估样本集标准化 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”仍待补齐。
+1. S29 已完成运行时接入，但当前 engine health 仍基于近 24h 合成尝试统计，尚未接入独立健康探针与外部可用性信号。
+2. Fast Gate 的 Q1-Q3 仍以启发式为主，CER/声纹等关键质量信号未形成稳定运行时依赖（S30 待完成）。
+3. S27 已落地治理闭环 V1（metadata 审计链路），但“评估样本集标准化 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”仍待补齐（S27.1）。
+4. 上传自动触发虽已落地，但失败补偿尚未任务化（S28.1），仍存在漏触发窗口。
 5. 告警扫描虽已支持 API 入口，但默认仍依赖外部调度触发，需要补运营侧定时任务编排。
 
-## 5. 总体回顾与目标 gap（2026-03-06 13:05 CST）
+## 5. 总体回顾与目标 gap（2026-03-06 14:08 CST）
 
 ### 5.1 总体目标回顾（对齐 `full-automation-plan`）
 
@@ -693,30 +734,28 @@ S0-S27（前十七批改造）已完成，本轮推进第十八批“S28 上传�
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S28 完成后，按目标重新评估）
+### 5.2 当前现状（S0-S29 完成后，按目标重新评估）
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | 🟢 基本完成 | 上传链路已默认自动触发 `AUTO_PIPELINE`，手工触发/上传触发已统一；剩余补偿重试与灰度控制待完善。 |
-| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | `qc/retry`、二次派单与阈值拦截已具备，但 Q1-Q3 指标化不足（CER/声纹未主链路接入）。 |
+| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | `qc/retry`、二次派单与阈值拦截已具备，Engine Router v1 已接入；但 Q1-Q3 指标化不足（CER/声纹未主链路接入）。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Q4/Q5、复核 UI、批量处置与阈值治理 API 已上线；但评估样本集标准化与任务化回放仍需补齐。 |
 | M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 侧看板与事件处置已上线；核心 SLO 指标体系与告警尚未完整产品化。 |
 
 ### 5.3 目标 gap 列表（聚焦）
 
 1. `G1`：上传触发虽然已自动化，但“触发失败后的补偿重试”尚未任务化，仍可能出现漏触发窗口。
-2. `G2`：多引擎路由未运行时接入，`engine_hint` 与 Speaker 变体模型价值未兑现。
-3. `G3`：Q0-Q3 与计划定义存在差距，质量门控依赖启发式导致误报/漏报风险偏高。
-4. `G4`：S27 目前使用 metadata 审计链路，尚未完成“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
-5. `G5`：计划中 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
-6. `G6`：核心 SLO（`pipeline_success_rate` 等）尚未形成统一指标 API + 告警闭环。
+2. `G2`：Q0-Q3 与计划定义存在差距，质量门控依赖启发式导致误报/漏报风险偏高。
+3. `G3`：S27 目前使用 metadata 审计链路，尚未完成“固定评估样本集 + `QUALITY_CHECK(source=calibration_eval)` 任务化回放”。
+4. `G4`：计划中 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
+5. `G5`：核心 SLO（`pipeline_success_rate` 等）尚未形成统一指标 API + 告警闭环。
 
 ### 5.4 剩余任务目标与优先级（重排）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S29 | Engine Router v1 运行时接入 | 基于 `role_type/emotion/priority/engine_health` 路由并落库策略命中 | 引擎选择可解释、可回放、可降级 | S28 |
-| P1 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并与返工策略联动 | 关键质量判定具备可观测与复盘能力 | S29 |
+| P0 | S30 | Q0-Q3 指标化升级 | 接入 CER/声纹优先信号并与返工策略联动 | 关键质量判定具备可观测与复盘能力 | S29 |
 | P1 | S27.1 | 阈值治理链路任务化补齐 | 把评估样本集标准化并接入 `QUALITY_CHECK(source=calibration_eval)` 回放 | 阈值评估可重放、可审计、可复盘 | S27 |
 | P1 | S28.1 | 上传触发补偿任务化 | 上传触发失败后自动创建补偿任务并重试 | 上传触发失败可自动收敛，漏触发率可观测 | S28 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要的复核同步任务） | 合并交付阶段可独立重放与审计 | S28-S30 |
@@ -724,22 +763,21 @@ S0-S27（前十七批改造）已完成，本轮推进第十八批“S28 上传�
 
 ### 5.5 推荐执行顺序（下一轮）
 
-1. **S29（P0）**：优先补引擎路由运行时，兑现多引擎数据资产价值。
-2. **S30（P1）**：补 Q0-Q3 指标可信度，把返工决策从启发式升级到指标优先。
-3. **S27.1 + S28.1（P1）**：并行补阈值治理任务化回放和上传触发补偿任务，提升可回放与可收敛能力。
-4. **S31 + S32（P2）**：收口交付任务语义与 SLO 运营验收。
+1. **S30（P0）**：补 Q0-Q3 指标可信度，把返工决策从启发式升级到指标优先。
+2. **S27.1 + S28.1（P1）**：并行补阈值治理任务化回放和上传触发补偿任务，提升可回放与可收敛能力。
+3. **S31 + S32（P2）**：收口交付任务语义与 SLO 运营验收。
 
-### 5.6 本次仓库复核验证结果（2026-03-06 13:05 CST）
+### 5.6 本次仓库复核验证结果（2026-03-06 14:08 CST）
 
-1. `pnpm --filter web test -- --runInBand src/lib/__tests__/auto-pipeline-trigger-service.test.ts`：通过。
+1. `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-engine-router.test.ts src/lib/__tests__/audio-router-metrics-service.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/task-replay-payload-audio.test.ts src/lib/__tests__/auto-pipeline-trigger-service.test.ts`：通过。
 2. `pnpm --filter web typecheck`：通过。
 3. `pnpm --filter web lint`：通过。
 4. `pnpm --filter web test:regression`：通过。
 
 ### 5.7 本次文档同步说明
 
-1. 已同步追加 S28 实施日志、验收结果与关键文件索引。
-2. 已根据 S28 完成情况重排 S29-S32 优先级，并新增 S28.1（上传触发补偿任务化）后续项。
+1. 已同步追加 S29 实施日志、验收结果与关键文件索引。
+2. 已根据 S29 完成情况重排 S30-S32 优先级，并保持 S27.1/S28.1 并行补齐项。
 3. 已同步更新 handoff 文档，确保接手人可直接按新优先级执行。
 
 ### 5.8 S27-S32 实施卡（可执行拆分）

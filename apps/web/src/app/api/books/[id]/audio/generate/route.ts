@@ -26,7 +26,10 @@ export const POST = withErrorHandler(async (
     scriptSentenceIds,
     voiceProfileId,
     autoMerge = false,
-    options = {}
+    options: rawOptions = {},
+    routerPolicyVersion: routePolicyVersionInput,
+    routerDebug: routerDebugInput,
+    enableRouterDebug: enableRouterDebugInput
   }: {
     type: 'single' | 'batch' | 'book' | 'chapter'
     chapterId?: string
@@ -34,7 +37,34 @@ export const POST = withErrorHandler(async (
     voiceProfileId?: string
     autoMerge?: boolean
     options?: AudioGenerationOptions
+    routerPolicyVersion?: string
+    routerDebug?: boolean
+    enableRouterDebug?: boolean
   } = body
+
+  const normalizedRouterPolicyVersion =
+    typeof routePolicyVersionInput === 'string' && routePolicyVersionInput.trim().length > 0
+      ? routePolicyVersionInput.trim()
+      : undefined
+  const normalizedRouterDebug =
+    typeof routerDebugInput === 'boolean'
+      ? routerDebugInput
+      : typeof enableRouterDebugInput === 'boolean'
+        ? enableRouterDebugInput
+        : undefined
+  const options: AudioGenerationOptions = {
+    ...(rawOptions || {}),
+    ...(normalizedRouterPolicyVersion
+      ? {
+          routerPolicyVersion: normalizedRouterPolicyVersion,
+        }
+      : {}),
+    ...(typeof normalizedRouterDebug === 'boolean'
+      ? {
+          enableRouterDebug: normalizedRouterDebug,
+        }
+      : {}),
+  }
 
   // 验证书籍状态
   const book = await prisma.book.findUnique({
@@ -130,7 +160,9 @@ export const POST = withErrorHandler(async (
             totalSentences,
             voiceProfileId,
             autoMerge,
-            provider: options.provider || null
+            provider: options.provider || null,
+            routerPolicyVersion: options.routerPolicyVersion || null,
+            enableRouterDebug: options.enableRouterDebug === true,
           }
         }
       }
