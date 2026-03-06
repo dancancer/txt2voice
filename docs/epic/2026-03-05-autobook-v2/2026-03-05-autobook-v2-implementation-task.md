@@ -935,3 +935,32 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 - 下一步建议：
   1. 按独立规划文档开始执行 `Phase A/B/C` 测试验收。
   2. 验收完成后再推进 `S30.1`。
+
+
+### [P3] Phase A/B 自动化验收入口落地（2026-03-06 20:43 CST）
+
+- 完成内容：
+  1. 新增 `upload-route.test.ts`，直接使用 `uploads/sample.txt` 作为测试素材，覆盖上传成功自动触发与触发失败后创建补偿任务两条主路径。
+  2. 新增 `pipeline-status-route.test.ts`，覆盖 `GET /api/books/[id]/pipeline/status` 的阶段状态与 `latestUploadTriggerSource=upload_api` 观测回显。
+  3. 本轮把新规划中的 `Phase A/B` 先落成“代码可执行的自动化验收入口”，为后续手工链路验收和故障演练提供稳定基线。
+- 关键文件：
+  - `apps/web/src/lib/__tests__/upload-route.test.ts`
+  - `apps/web/src/lib/__tests__/pipeline-status-route.test.ts`
+  - `uploads/sample.txt`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/upload-route.test.ts src/lib/__tests__/pipeline-status-route.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；Phase A/B 已具备自动化验收入口。
+- 下一步建议：
+  1. 继续执行规划中的 `Phase C`：对 `calibration_eval` 做真实链路隔离验收。
+  2. 完成 `Phase C` 后，用 `uploads/sample.txt` 固化 `S30.1` 的前置对照基线。
+  3. 若 `Phase C` 无阻塞，再进入 `S30.1` 实施。
+
+### 5.10 第 25 轮阶段回顾（S27.1-S28.1 + 规划执行启动）
+
+1. 进度确认：本轮已完成新规划的第一段执行，`Phase A/B` 已从“纸面计划”推进到“可运行自动化验收”。
+2. 方向一致性：当前开发方向仍与原始需求保持一致，仍然围绕“上传即自动生成、质量闭环、可运营”三条主线推进，没有偏离主目标。
+3. 收敛判断：`G1/G3` 已关闭，当前主要缺口进一步收敛到 `Phase C` 验收与 `S30.1/S31/S32` 三项主线工作。
+4. 下一轮策略：先完成 `Phase C` 和 `S30.1` 基线固化，再进入信号生产任务化，避免边接外部信号边补验收。

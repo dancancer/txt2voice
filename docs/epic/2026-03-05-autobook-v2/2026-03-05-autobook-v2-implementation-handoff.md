@@ -535,3 +535,25 @@
 - 下一步建议：
   1. 直接按新目录中的规划文档执行 `Phase A/B/C`；
   2. 待链路验收通过后推进 `S30.1`。
+
+
+### 26) 第二十五轮增量（Phase A/B 自动化验收入口）
+
+- 自动化验收入口补齐：
+  - 新增 `apps/web/src/lib/__tests__/upload-route.test.ts`，用 `uploads/sample.txt` 覆盖上传成功自动触发与上传失败补偿任务调度；
+  - 新增 `apps/web/src/lib/__tests__/pipeline-status-route.test.ts`，验证 `pipeline/status` 的阶段回显和 `latestUploadTriggerSource`。
+- 规划执行状态：
+  - 新规划中的 `Phase A/B` 已不再只是文档步骤，而是有对应可运行测试；
+  - 当前可在不依赖真实前端点击的情况下快速回归上传主链路与补偿主链路。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/upload-route.test.ts src/lib/__tests__/pipeline-status-route.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 继续执行 `Phase C`，验证 `calibration_eval` 的真实隔离效果；
+  2. 完成 `Phase C` 后，再进入 `S30.1` 的信号生产任务化。
+
+### 27) 第 25 轮阶段回顾（S27.1-S28.1 + 规划执行启动）
+
+- 进度结论：已完成 `S27.1`、`S28.1`、规划文档拆分，以及新规划 `Phase A/B` 的自动化验收入口。
+- 方向结论：与原始需求保持一致，当前仍聚焦“自动链路 + 质量闭环 + 可运营”三条主线。
+- 剩余主线：`Phase C`、`S30.1`、`S31`、`S32`。

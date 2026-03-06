@@ -251,3 +251,25 @@
 2. 再按 Phase D 固化基线，作为 S30.1 的对照样本。
 3. S30.1 开发期间，每完成一个子阶段，都用 `uploads/sample.txt` 回归一次。
 4. 若范围发生变化，先更新本文档，再继续开发。
+
+
+## 10. 执行快照（2026-03-06 20:43 CST）
+
+### 已完成
+
+1. `Phase A/B` 已落成自动化验收入口：
+   - `apps/web/src/lib/__tests__/upload-route.test.ts`
+   - `apps/web/src/lib/__tests__/pipeline-status-route.test.ts`
+2. 统一使用 `uploads/sample.txt` 作为测试书夹具。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/upload-route.test.ts src/lib/__tests__/pipeline-status-route.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+
+### 待继续
+
+1. 执行 `Phase C`：`calibration_eval` 隔离验收。
+2. 执行 `Phase D`：固化 `S30.1` 前置对照基线。
+3. 然后进入 `S30.1` 实施。
