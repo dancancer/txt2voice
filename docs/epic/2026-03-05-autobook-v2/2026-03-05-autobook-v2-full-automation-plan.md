@@ -367,6 +367,6 @@ score = 100 * (
 
 ### 14.5 S27-S32 实施卡（输入/输出/API/验收/风险）
 
-1. 实施卡文档：`docs/task/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。  
+1. 实施卡文档：`docs/epic/2026-03-05-autobook-v2/2026-03-06-autobook-v2-s27-s32-execution-cards.md`。  
 2. 使用方式：每个任务按“输入 -> 输出 -> API -> 验收 -> 风险”逐项打勾推进，避免里程碑口径漂移。  
 3. 约束：如执行中新增任务，需先补实施卡再进入开发，保持 handoff 可接手性。  

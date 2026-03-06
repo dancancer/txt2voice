@@ -10,6 +10,7 @@ docs/
 ├── API_RESTRUCTURE.md
 ├── CHAPTER_EDITOR_DESIGN.md
 ├── IndexTTS-API.md
+├── epic/               # 按 Epic 聚合的计划/任务/交接文档
 ├── technical/          # 当前仍在参考的技术文档
 └── archive/
     └── history/        # 历史文档（仅追溯，不代表当前实现）
@@ -34,6 +35,10 @@ docs/
 - [NAVIGATION_OPTIMIZATION.md](./technical/NAVIGATION_OPTIMIZATION.md)
 - [NAVIGATION_QUICK_REFERENCE.md](./technical/NAVIGATION_QUICK_REFERENCE.md)
 - [NAVIGATION_SUMMARY.md](./technical/NAVIGATION_SUMMARY.md)
+
+### epic/
+
+- [2026-03-05-autobook-v2](./epic/2026-03-05-autobook-v2/README.md)：AutoBook V2 计划、任务、交接与实施卡
 
 ## 历史归档（archive/history）
 

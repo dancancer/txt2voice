@@ -2,7 +2,7 @@
 
 > 版本：v0.9-draft  
 > 日期：2026-03-05  
-> 关联计划：`docs/plan/2026-03-05-autobook-v2-full-automation-plan.md`  
+> 关联计划：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-full-automation-plan.md`  
 > 目标：为“多引擎路由 + 自动质检 + 人工复核闭环”提供可演进的数据底座
 
 ---
