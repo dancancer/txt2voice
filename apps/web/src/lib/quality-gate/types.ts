@@ -60,15 +60,44 @@ export interface DeepGateInput {
   voiceProfileId?: string | null;
 }
 
+export type Q4ScoreSource = "heuristic" | "emotion_model";
+
+export type Q5ScoreSource = "heuristic" | "continuity_model";
+
+export interface DeepGateModelRuntime {
+  useEmotionModel: boolean;
+  useContinuityModel: boolean;
+  emotionModelUrl: string | null;
+  continuityModelUrl: string | null;
+  timeoutMs: number;
+}
+
+export interface DeepGateModelRuntimeResolution {
+  runtime: DeepGateModelRuntime;
+  source: "default" | "book_metadata" | "task_override";
+}
+
+export interface DeepGateModelInference {
+  q4Score?: number;
+  q5Score?: number;
+  reasons: string[];
+  q4Source: Q4ScoreSource;
+  q5Source: Q5ScoreSource;
+  diagnostics: Record<string, unknown>;
+}
+
 export interface DeepGateDecision {
   verdict: QualityGateVerdict;
   hardFail: boolean;
   score: number;
   q4Score: number;
   q5Score: number;
+  q4Source: Q4ScoreSource;
+  q5Source: Q5ScoreSource;
   reasons: string[];
   repairPlan: string[];
   issueType: QualityIssueType;
+  modelDiagnostics: Record<string, unknown>;
 }
 
 export interface CombinedQualityDecision {
@@ -80,12 +109,51 @@ export interface CombinedQualityDecision {
   q3Score: number;
   q4Score: number;
   q5Score: number;
+  q4Source: Q4ScoreSource;
+  q5Source: Q5ScoreSource;
   fastGateScore: number;
   deepGateScore: number;
   charsPerSecond: number;
   reasons: string[];
   repairPlan: string[];
   issueType: QualityIssueType;
+}
+
+export interface DeepGateCalibrationSample {
+  verdict: QualityGateVerdict;
+  q4Score: number;
+  q5Score: number;
+}
+
+export interface DeepGateScoreQuantiles {
+  p10: number;
+  p25: number;
+  p50: number;
+  p75: number;
+  p90: number;
+}
+
+export interface DeepGateCalibrationSnapshot {
+  sampleSize: number;
+  passLikeCount: number;
+  reviewLikeCount: number;
+  stable: boolean;
+  quantiles: {
+    q4: DeepGateScoreQuantiles | null;
+    q5: DeepGateScoreQuantiles | null;
+  };
+  recommendation: {
+    q4PassScore: number;
+    q4ManualReviewScore: number;
+    q5PassScore: number;
+    q5ManualReviewScore: number;
+  };
+  deltas: {
+    q4PassDelta: number;
+    q4ManualReviewDelta: number;
+    q5PassDelta: number;
+    q5ManualReviewDelta: number;
+  };
 }
 
 export const DEFAULT_DEEP_GATE_TEMPLATE: DeepGateThresholdTemplate = {

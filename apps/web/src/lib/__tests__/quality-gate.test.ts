@@ -111,6 +111,51 @@ describe("quality-gate decisions", () => {
     expect(deep.verdict).toBe("hard_fail");
     expect(deep.issueType).toBe("CONTINUITY");
     expect(deep.reasons).toContain("emotion_overexpressed");
+    expect(deep.q4Source).toBe("heuristic");
+    expect(deep.q5Source).toBe("heuristic");
+  });
+
+  it("should accept model inference scores when provided", () => {
+    const deep = evaluateDeepGate({
+      input: {
+        text: "我知道了。",
+        roleType: "dialogue",
+        emotionLabel: "joy",
+        emotionIntensity: 0.8,
+        charsPerSecond: 2.1,
+        chapterContext: {
+          chapterId: "chapter-1",
+          sampleCount: 6,
+          averageCharsPerSecond: 2,
+          roleTypeAverages: {
+            dialogue: 2,
+          },
+          voiceProfileAverages: {
+            "voice-a": 2,
+          },
+        },
+        voiceProfileId: "voice-a",
+      },
+      thresholds,
+      modelInference: {
+        q4Score: 42,
+        q5Score: 88,
+        q4Source: "emotion_model",
+        q5Source: "continuity_model",
+        reasons: ["emotion_mismatch"],
+        diagnostics: {
+          emotionModel: {
+            used: true,
+          },
+        },
+      },
+    });
+
+    expect(deep.q4Score).toBe(42);
+    expect(deep.q5Score).toBe(88);
+    expect(deep.q4Source).toBe("emotion_model");
+    expect(deep.q5Source).toBe("continuity_model");
+    expect(deep.reasons).toContain("emotion_mismatch");
   });
 
   it("should promote deep issue type when fast gate passes", () => {
@@ -199,9 +244,12 @@ describe("quality-gate decisions", () => {
           score: 69,
           q4Score: 66,
           q5Score: 70,
+          q4Source: "heuristic",
+          q5Source: "heuristic",
           reasons: ["emotion_mismatch"],
           repairPlan: ["increase_emotion_intensity_0.10"],
           issueType: "EMOTION",
+          modelDiagnostics: {},
         },
         combined: {
           verdict: "manual_review",
@@ -212,6 +260,8 @@ describe("quality-gate decisions", () => {
           q3Score: 88,
           q4Score: 66,
           q5Score: 70,
+          q4Source: "heuristic",
+          q5Source: "heuristic",
           fastGateScore: 89,
           deepGateScore: 69,
           charsPerSecond: 2.3,

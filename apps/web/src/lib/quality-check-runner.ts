@@ -8,6 +8,9 @@ import {
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import { buildDeepGateCalibrationSnapshot } from "@/lib/quality-check/deep-gate-calibration";
+import { inferDeepGateModelSignals } from "@/lib/quality-check/deep-gate-model-inference";
+import { resolveDeepGateModelRuntime } from "@/lib/quality-check/deep-gate-model-runtime";
 import {
   buildChapterGateContextMap,
   combineQualityGateDecision,
@@ -18,6 +21,7 @@ import {
 import type {
   ChapterGateSample,
   CombinedQualityDecision,
+  DeepGateCalibrationSample,
   FastGateSnapshot,
 } from "@/lib/quality-gate";
 
@@ -790,6 +794,10 @@ export async function runQualityCheckTask({
     taskMetadata: taskContext.taskMetadata,
     bookMetadata: book?.metadata,
   });
+  const modelRuntimeResolution = resolveDeepGateModelRuntime({
+    taskMetadata: taskContext.taskMetadata,
+    bookMetadata: book?.metadata,
+  });
   const chapterContextMap = buildChapterGateContextMap(
     audioFiles
       .map((audioFile) => {
@@ -829,7 +837,11 @@ export async function runQualityCheckTask({
   let secondaryDispatchSkippedByThresholdCount = 0;
   let deepGateOverrideCount = 0;
   let falsePositiveCandidateCount = 0;
+  let emotionModelUsedCount = 0;
+  let continuityModelUsedCount = 0;
+  let deepGateModelFallbackCount = 0;
   const issueTypeCounts: Record<string, number> = {};
+  const deepGateCalibrationSamples: DeepGateCalibrationSample[] = [];
   const chapterAuditMap = new Map<string, ChapterAuditAccumulator>();
   const candidateReviewItemIds =
     taskContext.retryReviewItemIds.length > 0
@@ -849,28 +861,49 @@ export async function runQualityCheckTask({
       durationSeconds,
       hasVoiceProfile: Boolean(audioFile.voiceProfileId),
     });
+    const deepInput = {
+      text: audioFile.scriptSentence.text,
+      roleType: audioFile.scriptSentence.roleType,
+      emotionLabel: audioFile.scriptSentence.emotionLabel,
+      emotionIntensity:
+        audioFile.scriptSentence.emotionIntensity !== null &&
+        audioFile.scriptSentence.emotionIntensity !== undefined
+          ? Number(audioFile.scriptSentence.emotionIntensity)
+          : null,
+      charsPerSecond: fastDecision.charsPerSecond,
+      chapterContext: audioFile.chapterId
+        ? chapterContextMap.get(audioFile.chapterId)
+        : undefined,
+      voiceProfileId: audioFile.voiceProfileId,
+    };
+    const deepModelInference = await inferDeepGateModelSignals({
+      runtime: modelRuntimeResolution.runtime,
+      input: deepInput,
+    });
     const deepDecision = evaluateDeepGate({
-      input: {
-        text: audioFile.scriptSentence.text,
-        roleType: audioFile.scriptSentence.roleType,
-        emotionLabel: audioFile.scriptSentence.emotionLabel,
-        emotionIntensity:
-          audioFile.scriptSentence.emotionIntensity !== null &&
-          audioFile.scriptSentence.emotionIntensity !== undefined
-            ? Number(audioFile.scriptSentence.emotionIntensity)
-            : null,
-        charsPerSecond: fastDecision.charsPerSecond,
-        chapterContext: audioFile.chapterId
-          ? chapterContextMap.get(audioFile.chapterId)
-          : undefined,
-        voiceProfileId: audioFile.voiceProfileId,
-      },
+      input: deepInput,
       thresholds: thresholdResolution.template,
+      modelInference: deepModelInference,
     });
     const decision = combineQualityGateDecision({
       fast: fastDecision,
       deep: deepDecision,
     });
+
+    if (deepDecision.q4Source === "emotion_model") {
+      emotionModelUsedCount += 1;
+    }
+    if (deepDecision.q5Source === "continuity_model") {
+      continuityModelUsedCount += 1;
+    }
+    if (
+      (modelRuntimeResolution.runtime.useEmotionModel &&
+        deepDecision.q4Source === "heuristic") ||
+      (modelRuntimeResolution.runtime.useContinuityModel &&
+        deepDecision.q5Source === "heuristic")
+    ) {
+      deepGateModelFallbackCount += 1;
+    }
 
     if (
       fastDecision.verdict === "pass" &&
@@ -931,6 +964,10 @@ export async function runQualityCheckTask({
               verdict: deepDecision.verdict,
               score: deepDecision.score,
               issueType: deepDecision.issueType,
+              q4Source: deepDecision.q4Source,
+              q5Source: deepDecision.q5Source,
+              modelDiagnostics: deepDecision.modelDiagnostics,
+              modelRuntimeSource: modelRuntimeResolution.source,
             },
           }),
         },
@@ -1016,6 +1053,11 @@ export async function runQualityCheckTask({
       manualReviewCount += 1;
     }
     updateIssueTypeCount(issueTypeCounts, decision.issueType);
+    deepGateCalibrationSamples.push({
+      verdict: decision.verdict,
+      q4Score: decision.q4Score,
+      q5Score: decision.q5Score,
+    });
 
     if (audioFile.chapterId) {
       const chapterAudit = chapterAuditMap.get(audioFile.chapterId) || {
@@ -1070,6 +1112,11 @@ export async function runQualityCheckTask({
   if (checked === 0) {
     throw new Error("没有可执行质检的句子数据");
   }
+
+  const deepGateCalibration = buildDeepGateCalibrationSnapshot({
+    samples: deepGateCalibrationSamples,
+    template: thresholdResolution.template,
+  });
 
   await updateTaskProgress(taskId, 92, "写入章节一致性审计");
 
@@ -1167,6 +1214,15 @@ export async function runQualityCheckTask({
     falsePositiveCandidateCount,
     thresholdTemplate: thresholdResolution.template,
     thresholdTemplateSource: thresholdResolution.source,
+    deepGateModelRuntime: {
+      source: modelRuntimeResolution.source,
+      useEmotionModel: modelRuntimeResolution.runtime.useEmotionModel,
+      useContinuityModel: modelRuntimeResolution.runtime.useContinuityModel,
+      emotionModelUsedCount,
+      continuityModelUsedCount,
+      fallbackCount: deepGateModelFallbackCount,
+    },
+    deepGateCalibration,
     chapterAuditCount,
     chapterAuditRepairCount,
     chapterAuditManualReviewCount,

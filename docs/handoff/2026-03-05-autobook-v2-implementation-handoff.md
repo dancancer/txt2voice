@@ -4,9 +4,9 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/task/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S24 全部完成，已完成第十四轮（人工复核工作台 + SLO 看板）；待推进 S25。
+- 当前进度：S0-S25 全部完成，已完成第十五轮（Deep Gate 模型运行时 + 阈值重标定）；待推进 S26。
 
-## 总体目标回顾与现状判断（2026-03-06 10:22 CST）
+## 总体目标回顾与现状判断（2026-03-06 10:48 CST）
 
 ### 总体目标（来自 `full-automation-plan`）
 
@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
 | M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
-| M3（Deep Gate + 人工复核工作台） | ✅ 已完成（MVP） | Q4/Q5、`chapter_quality_audit` 与复核工作台最小 UI（列表/试听/重生）均已落地。 |
+| M3（Deep Gate + 人工复核工作台） | ✅ 已完成（增强） | Q4/Q5、`chapter_quality_audit`、复核工作台最小 UI 已落地，并补充模型运行时接入与阈值重标定快照。 |
 | M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook 通知、配置中心与 SLO 看板已具备；仍缺运营处置自动化。 |
 
 ## 已完成内容
@@ -259,18 +259,34 @@
   - 新页面按 `components/hooks/models` 分层，避免页面层堆叠请求逻辑；
   - 单文件控制在 400 行内，便于后续演进批量复核能力。
 
+### 16) 第十五轮增量（S25：Deep Gate 模型运行时 + 阈值重标定）
+
+- 模型运行时接入：
+  - 新增 `deep-gate-model-runtime`，支持情绪模型与一致性模型双路调用；
+  - 新增 `deep-gate-model-inference` + `deep-gate-model-scoring`，把模型请求、响应解析与评分映射解耦；
+  - 运行时配置支持三层来源：环境变量 -> `book.metadata.qualityCheck.deepGateModelRuntime` -> 任务级 `deepGateModelRuntime/modelRuntime` 覆盖；
+  - 模型请求失败自动回退启发式评分，不阻塞质检主链路。
+- 判定融合升级：
+  - `evaluateDeepGate` 支持接收模型推理分数并落库来源标记（`q4Source/q5Source`）；
+  - 质检明细新增 `deepGate.modelDiagnostics`，可追踪模型不可用/低置信度等原因。
+- 阈值重标定快照：
+  - 新增 `deep-gate-calibration`，按样本分位点产出 `deepGateCalibration`（建议阈值 + delta）；
+  - `quality-check-runner` 汇总 `emotionModelUsedCount/continuityModelUsedCount/fallbackCount`，并回写 `taskData.metadata` 与 `book.metadata.qualityCheck`。
+- API 扩展：
+  - `POST /api/books/[id]/qc/run` 支持 `deepGateModelRuntime`（兼容 `modelRuntime`）任务级传参，支持灰度任务切换模型配置。
+
 ## 待完成内容
 
-1. Deep Gate 当前仍为启发式代理规则，尚未替换为真实情绪/一致性模型。
-2. 复核工作台尚缺批量处置（批量通过/批量重生）与审计导出能力。
-3. 告警事件生命周期（open/acked/resolved）尚未在工作台提供一体化处置入口。
+1. 复核工作台尚缺批量处置（批量通过/批量重生）与审计导出能力。
+2. 告警事件生命周期（open/acked/resolved）尚未在工作台提供一体化处置入口。
+3. `deepGateCalibration.recommendation` 还未接入策略配置中心发布流程，阈值发布仍需人工搬运。
 
-## 剩余任务优先级（建议，S25）
+## 剩余任务优先级（建议，S26）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S25 | Deep Gate 模型替换与阈值重标定 | 引入真实情绪分类/章节一致性 embedding，替换启发式代理；完善回放评估集 | `EMOTION/CONTINUITY` 误报率下降，且回归通过率稳定 | S24 |
-| P1 | S26 | 复核与告警处置自动化 | 支持批量复核动作、告警事件 ack/resolve UI、处置日志导出 | 运营单页可完成“发现-处置-追踪”闭环 | S24 |
+| P0 | S26 | 复核与告警处置自动化 | 支持批量复核动作、告警事件 ack/resolve UI、处置日志导出 | 运营单页可完成“发现-处置-追踪”闭环 | S25 |
+| P1 | S27 | 阈值发布治理闭环 | 接入离线回放评估集、阈值审批与配置中心发布链路 | 阈值调整有审计记录，模型回退率与误报率可持续下降 | S25 |
 
 ## 测试与验证结果
 
@@ -290,6 +306,8 @@
   - `apps/web/src/lib/__tests__/auto-pipeline-runner.test.ts`（新增）
   - `apps/web/src/lib/__tests__/task-replay-payload-auto.test.ts`（新增）
   - `apps/web/src/lib/__tests__/quality-gate.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/deep-gate-model-runtime.test.ts`（新增）
+  - `apps/web/src/lib/__tests__/deep-gate-calibration.test.ts`（新增）
 - 已执行：
   - `pnpm --filter web exec prisma format --schema prisma/schema.prisma`
   - `pnpm --filter web exec prisma generate --schema prisma/schema.prisma`
@@ -304,15 +322,19 @@
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/manual-review-service.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/task-replay-payload-quality.test.ts`
   - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-gate.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/audio-generation-runner-manual-review.test.ts src/lib/__tests__/qc-retry-service.test.ts`
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/deep-gate-model-runtime.test.ts src/lib/__tests__/deep-gate-calibration.test.ts src/lib/__tests__/quality-gate.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
   - `pnpm --filter web lint`（S24 UI）
   - `pnpm --filter web typecheck`（S24 UI）
   - `pnpm --filter web test:regression`（S24 UI）
+  - `pnpm --filter web lint`（S25）
+  - `pnpm --filter web typecheck`（S25）
+  - `pnpm --filter web test:regression`（S25）
   - `pnpm --filter web test:regression`
   - `pnpm --filter web typecheck`
 - 结果：全部通过。
 
 ## 下一步建议（接手即做）
 
-1. 先做 **S25（P0）**：Deep Gate 真模型替换 + 阈值重标定（重点盯 `EMOTION/CONTINUITY` 误报率）。
-2. 随后做 **S26（P1）**：在复核工作台补批量动作和告警事件处置入口，降低人工切页成本。
-3. 在 S26 收尾阶段补“运营手册 + 日常巡检清单”，固化窗口指标阈值与应急动作。
+1. 先做 **S26（P0）**：在复核工作台补批量动作 + 告警事件 `ack/resolve` 处置入口，降低人工切页成本。
+2. 随后做 **S27（P1）**：将 `deepGateCalibration.recommendation` 接入离线评估与配置中心发布闭环，形成阈值治理流程。
+3. 在 S27 收尾阶段补“运营手册 + 日常巡检清单”，固化模型回退率、误报率与应急动作。

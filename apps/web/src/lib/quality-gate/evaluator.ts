@@ -7,6 +7,7 @@ import {
   CombinedQualityDecision,
   DeepGateDecision,
   DeepGateInput,
+  DeepGateModelInference,
   DeepGateThresholdTemplate,
   FastGateSnapshot,
   QualityGateVerdict,
@@ -84,7 +85,11 @@ const resolveEmotionTargetEnergy = ({
 const buildDeepRepairPlan = (reasons: string[]): string[] => {
   const plans = new Set<string>();
 
-  if (reasons.includes("emotion_underexpressed") || reasons.includes("emotion_mismatch")) {
+  if (
+    reasons.includes("emotion_underexpressed") ||
+    reasons.includes("emotion_mismatch") ||
+    reasons.includes("emotion_label_shift")
+  ) {
     plans.add("increase_emotion_intensity_0.10");
   }
 
@@ -92,7 +97,12 @@ const buildDeepRepairPlan = (reasons: string[]): string[] => {
     plans.add("decrease_emotion_intensity_0.10");
   }
 
-  if (reasons.includes("chapter_pace_drift") || reasons.includes("chapter_pace_drift_high")) {
+  if (
+    reasons.includes("chapter_pace_drift") ||
+    reasons.includes("chapter_pace_drift_high") ||
+    reasons.includes("chapter_embedding_drift") ||
+    reasons.includes("chapter_embedding_drift_high")
+  ) {
     plans.add("align_chapter_pace_profile");
   }
 
@@ -110,9 +120,11 @@ const buildDeepRepairPlan = (reasons: string[]): string[] => {
 export const evaluateDeepGate = ({
   input,
   thresholds,
+  modelInference,
 }: {
   input: DeepGateInput;
   thresholds: DeepGateThresholdTemplate;
+  modelInference?: DeepGateModelInference;
 }): DeepGateDecision => {
   const normalizedEmotion = normalizeEmotionLabel(input.emotionLabel);
   const roleType = normalizeRoleType(input.roleType);
@@ -129,23 +141,23 @@ export const evaluateDeepGate = ({
 
   const emotionGap = Math.abs(observedEmotionEnergy - expectedEmotionEnergy);
   let q4Score = clampScore(100 - emotionGap * 115);
-  const reasons: string[] = [];
+  const q4Reasons: string[] = [];
 
   if (!input.emotionLabel) {
     q4Score = Math.min(q4Score, 82);
-    reasons.push("emotion_label_missing");
+    q4Reasons.push("emotion_label_missing");
   }
 
   if (emotionGap >= 0.52) {
-    reasons.push("emotion_mismatch_hard");
+    q4Reasons.push("emotion_mismatch_hard");
   } else if (emotionGap >= 0.3) {
-    reasons.push("emotion_mismatch");
+    q4Reasons.push("emotion_mismatch");
   }
 
   if (expectedEmotionEnergy - observedEmotionEnergy > 0.24) {
-    reasons.push("emotion_underexpressed");
+    q4Reasons.push("emotion_underexpressed");
   } else if (observedEmotionEnergy - expectedEmotionEnergy > 0.24) {
-    reasons.push("emotion_overexpressed");
+    q4Reasons.push("emotion_overexpressed");
   }
 
   const chapterContext = input.chapterContext;
@@ -159,18 +171,36 @@ export const evaluateDeepGate = ({
   const continuityBaseline = voiceBaseline ?? roleBaseline ?? chapterBaseline;
 
   let q5Score = 86;
+  const q5Reasons: string[] = [];
   if (chapterSampleCount < 3 || continuityBaseline === undefined) {
     q5Score = 82;
-    reasons.push("chapter_context_sparse");
+    q5Reasons.push("chapter_context_sparse");
   } else {
     const continuityGap = Math.abs(input.charsPerSecond - continuityBaseline);
     q5Score = clampScore(100 - continuityGap * 24);
     if (continuityGap >= 2.4) {
-      reasons.push("chapter_pace_drift_high");
+      q5Reasons.push("chapter_pace_drift_high");
     } else if (continuityGap >= 1.6) {
-      reasons.push("chapter_pace_drift");
+      q5Reasons.push("chapter_pace_drift");
     }
   }
+
+  const modelReasons = modelInference?.reasons || [];
+  const q4ModelReasons = modelReasons.filter((reason) => reason.startsWith("emotion_"));
+  const q5ModelReasons = modelReasons.filter((reason) => reason.startsWith("chapter_"));
+
+  if (modelInference?.q4Score !== undefined) {
+    q4Score = clampScore(modelInference.q4Score);
+  }
+  if (modelInference?.q5Score !== undefined) {
+    q5Score = clampScore(modelInference.q5Score);
+  }
+
+  const q4Source = modelInference?.q4Source || "heuristic";
+  const q5Source = modelInference?.q5Source || "heuristic";
+  const reasons = Array.from(
+    new Set([...q4Reasons, ...q5Reasons, ...q4ModelReasons, ...q5ModelReasons])
+  );
 
   const score = clampScore(0.58 * q4Score + 0.42 * q5Score);
   const hardFail =
@@ -196,9 +226,12 @@ export const evaluateDeepGate = ({
     score,
     q4Score,
     q5Score,
+    q4Source,
+    q5Source,
     reasons,
     repairPlan: buildDeepRepairPlan(reasons),
     issueType,
+    modelDiagnostics: modelInference?.diagnostics || {},
   };
 };
 
@@ -250,6 +283,8 @@ export const combineQualityGateDecision = ({
     q3Score: fast.q3Score,
     q4Score: deep.q4Score,
     q5Score: deep.q5Score,
+    q4Source: deep.q4Source,
+    q5Source: deep.q5Source,
     fastGateScore: fast.score,
     deepGateScore: deep.score,
     charsPerSecond: fast.charsPerSecond,

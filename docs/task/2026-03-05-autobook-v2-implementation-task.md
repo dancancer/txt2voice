@@ -6,11 +6,11 @@
 
 ## 1. 本轮目标（可提交增量）
 
-S0-S23（前十三批改造）已完成，本次推进第十四批“人工复核工作台 + SLO 看板”增量：
+S0-S24（前十四批改造）已完成，本次推进第十五批“Deep Gate 模型化 + 阈值重标定”增量：
 
-1. 落地人工复核最小工作台，覆盖列表筛选、句级试听与单条重生闭环。
-2. 集成 SLO 看板，展示 backlog/pass/retry/false-positive 与派单告警摘要。
-3. 打通书籍导航入口，完成验证回归、task/handoff 回写与提交。
+1. 接入 Deep Gate 模型运行时能力，支持情绪分类与章节一致性 embedding 双模型可配置调用。
+2. 在 `QUALITY_CHECK` 链路落地模型/启发式双轨融合与回退观测，沉淀来源与诊断信息。
+3. 增加阈值重标定快照输出，完成测试回归、task/handoff 回写与提交。
 
 ## 2. 执行步骤
 
@@ -41,6 +41,7 @@ S0-S23（前十三批改造）已完成，本次推进第十四批“人工复�
 | S22 | `dispatchPolicy` 配置中心化 + 审计/灰度/回滚 | ✅ 完成 | 提供租户/项目/书籍三级策略配置模型与 API，`qc_retry` 主入口切换到配置中心，并支持版本审计、灰度开关和回滚 |
 | S23 | Deep Gate（Q4/Q5）+ `chapter_quality_audits` + 阈值模板 | ✅ 完成 | `QUALITY_CHECK` 写入 Q1-Q5 指标，产出章节审计记录、误报观测指标，并支持任务级阈值覆盖 |
 | S24 | 人工复核最小工作台 + SLO 看板整合 | ✅ 完成 | 提供列表/试听/重生最小 UI 与 backlog/pass/retry 日常运营指标 |
+| S25 | Deep Gate 模型运行时接入 + 阈值重标定快照 | ✅ 完成 | 支持情绪/一致性模型可配置调用、自动回退观测、阈值校准建议输出与测试回归 |
 
 ## 3. 执行日志
 
@@ -524,13 +525,48 @@ S0-S23（前十三批改造）已完成，本次推进第十四批“人工复�
   2. 为复核工作台补批量操作（批量通过/批量重生）与审计记录导出能力。
   3. 为 SLO 看板补事件生命周期视图（open/acked/resolved）与处置入口。
 
+### [S25] Deep Gate 模型运行时接入 + 阈值重标定快照（2026-03-06 10:48 CST）
+
+- 完成内容：
+  1. 新增 Deep Gate 模型运行时模块，支持情绪模型与章节一致性模型双路可配置调用：
+     - 支持从环境变量、书籍 metadata、任务 metadata 三层解析运行时配置；
+     - 模型请求失败时自动回退启发式规则，不阻塞 `QUALITY_CHECK` 主链路。
+  2. 升级 Deep Gate 判定融合逻辑：
+     - `evaluateDeepGate` 支持接收模型推理分数（`q4/q5`）与来源标记（`heuristic/emotion_model/continuity_model`）；
+     - 质检明细中新增 `deepGate.q4Source/q5Source/modelDiagnostics`，可定位模型回退原因。
+  3. 在 `quality-check-runner` 落地模型观测与阈值重标定：
+     - 新增 `emotionModelUsedCount/continuityModelUsedCount/fallbackCount` 统计；
+     - 新增 `deepGateCalibration` 快照（分位点 + 建议阈值 + delta），同步回写 `taskData.metadata` 与 `book.metadata.qualityCheck`。
+  4. `POST /api/books/[id]/qc/run` 新增 `deepGateModelRuntime`（兼容 `modelRuntime`）任务级覆盖入口，支持灰度任务注入模型运行参数。
+- 关键文件：
+  - `apps/web/src/lib/quality-check/deep-gate-model-runtime.ts`
+  - `apps/web/src/lib/quality-check/deep-gate-model-inference.ts`
+  - `apps/web/src/lib/quality-check/deep-gate-model-scoring.ts`
+  - `apps/web/src/lib/quality-check/deep-gate-calibration.ts`
+  - `apps/web/src/lib/quality-check-runner.ts`
+  - `apps/web/src/lib/quality-gate/evaluator.ts`
+  - `apps/web/src/lib/quality-gate/types.ts`
+  - `apps/web/src/app/api/books/[id]/qc/run/route.ts`
+  - `apps/web/src/lib/__tests__/deep-gate-model-runtime.test.ts`
+  - `apps/web/src/lib/__tests__/deep-gate-calibration.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/deep-gate-model-runtime.test.ts src/lib/__tests__/deep-gate-calibration.test.ts src/lib/__tests__/quality-gate.test.ts src/lib/__tests__/quality-check-runner.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web test:regression`
+  - `pnpm --filter web lint`
+- 结果：新增测试、回归测试、类型校验与 lint 全部通过；Deep Gate 已具备“模型优先 + 启发式回退 + 阈值校准”的生产化基础能力。
+- 下一步建议：
+  1. 执行 S26：在复核工作台补批量操作（批量通过/批量重生）与告警事件 `ack/resolve` 一体化处置。
+  2. 为 S25 模型运行时补离线回放评估集（按 `issueType/source` 分桶），把 `deepGateCalibration.recommendation` 纳入阈值发布流程。
+  3. 增加模型可用性监控（成功率/延迟/回退率），避免模型波动导致复核队列突增。
+
 ## 4. 风险与备注
 
 1. 本轮未切换新读路径（仍保持旧查询兼容）。
-2. Fast Gate + Deep Gate 当前仍使用启发式代理，未接入真实 ASR/CER/声纹/情绪模型，需继续做离线对齐验证。
-3. 已落地 `AUTO_PIPELINE` 主链路入口、S21 告警运营闭环、S22 策略配置中心、S23 章节审计与 S24 复核工作台；当前主要缺口是 Deep Gate 真模型替换与运营处置自动化。
+2. S25 已接入模型运行时，但当前仍依赖外部模型服务配置（`QC_DEEP_GATE_*`）；若模型不可用将自动回退启发式，需持续监控回退率。
+3. `deepGateCalibration` 目前输出“建议阈值”而非自动写回策略中心，仍需在 S26/S27 补“评估 -> 审核 -> 发布”闭环。
 
-## 5. 总体回顾与剩余任务优先级（2026-03-06 10:22 CST）
+## 5. 总体回顾与剩余任务优先级（2026-03-06 10:48 CST）
 
 ### 5.1 总体目标回顾（对齐 `full-automation-plan`）
 
@@ -538,28 +574,28 @@ S0-S23（前十三批改造）已完成，本次推进第十四批“人工复�
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S24 完成后）
+### 5.2 当前现状（S0-S25 完成后）
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
 | M1（Annotation v2 + Auto Pipeline） | ✅ 已完成 | Annotation v2 与 `AUTO_PIPELINE` 编排、状态 API、任务恢复链路已打通。 |
 | M2（Fast Gate + 自动返工闭环） | ✅ 已完成（Fast Gate 范围） | Q1-Q3、`qc/retry`、二次派单策略、阈值拦截、观测指标与告警查询已具备。 |
-| M3（Deep Gate + 人工复核工作台） | ✅ 已完成（MVP） | Q4/Q5、`chapter_quality_audit` 与复核工作台最小 UI（列表/试听/重生）已打通。 |
+| M3（Deep Gate + 人工复核工作台） | ✅ 已完成（增强） | Q4/Q5、`chapter_quality_audit`、复核工作台最小 UI 已打通，并新增模型运行时接入、回退观测与阈值重标定快照。 |
 | M4（SLO + 告警运营 + 配置中心） | 🔄 部分完成 | 告警扫描、事件沉淀、Webhook、配置中心与 SLO 看板已就绪；仍缺运营处置自动化与治理 UI。 |
 
 ### 5.3 剩余任务目标与优先级（重排）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P0 | S25 | Deep Gate 质量能力生产化 | 情绪分类模型 + 章节一致性 embedding 替换启发式代理；回放集评估与阈值重标定 | `EMOTION/CONTINUITY` 误报率下降且质量评分稳定，形成可复现实验报告 | S24 |
-| P1 | S26 | 复核运营自动化 | 批量复核操作、告警事件处置入口（ack/resolve）与处置审计导出 | 运营可以在单页完成“发现-处置-追踪”闭环 | S24 |
+| P0 | S26 | 复核运营自动化 | 批量复核操作、告警事件处置入口（ack/resolve）与处置审计导出 | 运营可以在单页完成“发现-处置-追踪”闭环 | S25 |
+| P1 | S27 | Deep Gate 阈值发布闭环 | 引入离线回放评估集、阈值审批与发布流程，监控模型回退率 | 阈值调整有审计记录，`EMOTION/CONTINUITY` 误报率持续下降 | S25 |
 
 ### 5.4 推荐执行顺序（下一轮）
 
-1. **S25（P0）**：优先替换 Deep Gate 启发式代理，完成误报控制与阈值回放校准。
-2. **S26（P1）**：补齐复核批量处置与告警事件生命周期操作，减少人工切页成本。
+1. **S26（P0）**：补齐复核批量处置与告警事件生命周期操作，减少人工切页成本。
+2. **S27（P1）**：将 S25 输出的阈值校准建议接入评估与发布流程，固化模型治理机制。
 
 ### 5.5 本次文档同步说明
 
-1. 已同步更新本任务文档 S24 实施结果（代码落点、测试命令、风险与后续优先级）。
-2. 已同步更新 handoff 文档，确保接手人可直接从 S25 开始推进。
+1. 已同步更新本任务文档 S25 实施结果（代码落点、测试命令、风险与后续优先级）。
+2. 已同步更新 handoff 文档，确保接手人可直接从 S26 开始推进。

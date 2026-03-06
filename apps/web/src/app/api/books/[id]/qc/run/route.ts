@@ -57,6 +57,9 @@ export const POST = withErrorHandler(async (
   const deepGateThresholdTemplate = asRecord(
     body.deepGateThresholdTemplate || body.thresholdTemplate
   )
+  const deepGateModelRuntime = asRecord(
+    body.deepGateModelRuntime || body.modelRuntime
+  )
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -98,6 +101,9 @@ export const POST = withErrorHandler(async (
   }
   if (deepGateThresholdTemplate) {
     taskMetadata.deepGateThresholdTemplate = toInputJsonValue(deepGateThresholdTemplate)
+  }
+  if (deepGateModelRuntime) {
+    taskMetadata.deepGateModelRuntime = toInputJsonValue(deepGateModelRuntime)
   }
 
   const task = await prisma.processingTask.create({
