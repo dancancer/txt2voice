@@ -784,14 +784,14 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 2. 建立可持续优化的数据与流程底座（多引擎策略、返工闭环、可观测性与告警）。
 3. 在质量与成本上可运营（SLO、阈值、灰度、告警联动）。
 
-### 5.2 当前现状（S0-S30 完成后，按目标重新评估）
+### 5.2 当前现状（S0-S32 完成后，按目标重新评估）
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
-| M1（Annotation v2 + Auto Pipeline） | 🟢 完成度较高 | 上传链路已默认自动触发 `AUTO_PIPELINE`，手工触发/上传触发已统一；补偿重试也已任务化，剩余灰度控制可后续补强。 |
-| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | `qc/retry`、二次派单、Engine Router v1 与 Q0-Q3 指标化已具备；但 CER/声纹原始信号生产仍待任务化接入。 |
-| M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Q4/Q5、复核 UI、批量处置与阈值治理 API 已上线；评估样本集与任务化回放已补齐，剩余交付任务语义与 SLO 产品化收口。 |
-| M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 侧看板与事件处置已上线；核心 SLO 指标体系与告警尚未完整产品化。 |
+| M1（Annotation v2 + Auto Pipeline） | ✅ 完成 | 上传自动触发、统一建链、状态查询与补偿回收已完成，主链路可追踪。 |
+| M2（Fast Gate + 自动返工闭环） | ✅ 完成 | `qc/retry`、二次派单、Engine Router v1、Q0-Q3 指标化与信号生产任务化已闭环。 |
+| M3（Deep Gate + 人工复核工作台） | ✅ 完成 | Q4/Q5、复核工作台、批量处置、阈值治理、交付任务语义已闭环。 |
+| M4（SLO + 告警运营 + 配置中心） | ✅ 完成 | 核心 SLO API、扫描告警、复核页统一口径、配置中心与运营模板已具备。 |
 
 ### 5.3 目标 gap 列表（聚焦）
 
@@ -799,21 +799,20 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 2. `G2`：已基本关闭，CER/声纹信号已具备独立任务化供给与默认质检链路接入；后续主要是 provider 运维与质量调优。
 3. `G3`：已关闭，固定评估样本集与 `QUALITY_CHECK(source=calibration_eval)` 任务化回放已落地。
 4. `G4`：已关闭，`MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 已落地为独立可重放任务。
-5. `G5`：核心 SLO（`pipeline_success_rate` 等）尚未形成统一指标 API + 告警闭环。
+5. `G5`：已关闭，核心 SLO API、扫描告警与复核页统一口径已形成闭环。
 
-### 5.4 剩余任务目标与优先级（重排）
+### 5.4 剩余任务目标与优先级（当前）
 
 | 优先级 | 任务编号 | 目标 | 建议落地项 | 验收标准 | 前置依赖 |
 | --- | --- | --- | --- | --- | --- |
-| P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务化产线并回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可监控、可追溯 | S30 |
-| P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要的复核同步任务） | 合并交付阶段可独立重放与审计 | S28-S30 |
-| P2 | S32 | 核心 SLO 指标产品化 | 输出 `pipeline_success_rate` 等核心指标 API 与阈值告警 | 支持按计划执行运营验收 | S30/S31 |
+| P1 | 发布准备 | 环境参数核对与灰度准备 | 校对 provider/webhook/token/队列配置，准备灰度方案 | 具备上线准备条件 | S31/S32 |
+| P2 | 运营执行 | 固化周验收与异常处置节奏 | 按模板输出周报并跟踪 SLO 告警事件 | 能持续执行运营验收 | 发布准备 |
 
 ### 5.5 推荐执行顺序（下一轮）
 
-1. **S30.1（P1）**：把 ASR/CER + 声纹 embedding 变成稳定信号生产任务，补齐 Q0-Q3 供给侧。
-2. **S30.1（P1）**：补 ASR/CER + 声纹 embedding 的稳定信号产线，把 Q0-Q3 指标从“可消费”推进到“稳定供给”。
-3. **S31 + S32（P2）**：收口交付任务语义与 SLO 运营验收。
+1. **发布准备（P1）**：核对 provider、webhook、token、队列与阈值配置，完成上线前环境检查。
+2. **灰度执行（P1）**：先以小流量或样本书灰度运行，观察 `pipeline_success_rate` 与核心 SLO 事件。
+3. **运营执行（P2）**：按 `docs/plan/autobook-v2-weekly-ops-report-template.md` 固化周验收与异常处置节奏。
 
 ### 5.6 本次仓库复核验证结果（2026-03-06 15:27 CST）
 
@@ -1241,3 +1240,31 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 - 下一步建议：
   1. 下一轮执行最终运营验收收口，并完成第 35 轮阶段回顾，确认当前交付仍与原始需求严格一致。
   2. 若不再新增代码功能，后续以验收结果、周报模板和发布准备为主。
+
+
+### 5.12 最终运营验收（2026-03-07 23:28 CST）
+
+- 验收范围：
+  1. 自动链路：上传自动触发、`pipeline/status`、补偿任务与交付任务语义。
+  2. 质量闭环：Q0-Q5、信号生产、自动返工、人工复核、章节审计与回放隔离。
+  3. 运营能力：核心 SLO API、SLO 扫描告警、复核页统一口径与周运营验收模板。
+- 本轮验收命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/upload-route.test.ts src/lib/__tests__/pipeline-status-route.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/quality-signal-sync-runner-provider.test.ts src/lib/__tests__/final-assembly-runner.test.ts src/lib/__tests__/manual-review-sync-runner.test.ts src/lib/__tests__/slo-metrics-service.test.ts src/lib/__tests__/slo-metrics-route.test.ts src/lib/__tests__/slo-alert-scanner.test.ts src/lib/__tests__/slo-alert-scan-route.test.ts src/lib/__tests__/review-slo-models.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 验收结论：
+  1. 通过：主链路、质量闭环、交付语义与运营面能力均已有自动化验证支撑。
+  2. 风险已从“功能缺口”收敛为“上线配置与运行阈值治理”：主要是 provider / webhook / token 等运行参数。
+  3. 代码范围内不再存在必须继续开发的新功能缺口。
+
+### 5.13 第 35 轮阶段回顾（S31-S32 收口 + 最终运营验收）
+
+1. 进度确认：`S31`、`S32-A`、`S32-B`、`S32-C` 与最终运营验收已按计划完成。
+2. 方向一致性：当前实现仍严格围绕原始三条主线推进：
+   - 上传即自动生成；
+   - 质量闭环可收敛；
+   - 生产可运营。
+3. 范围控制：本阶段没有再扩新业务范围，只完成了告警扫描、前端统一口径与验收模板等收口项。
+4. 阶段结论：AutoBook V2 当前已达到“功能侧收口 + 验收可执行 + 运维口径固定”的状态，可进入发布准备。
+5. 后续策略：下一轮若继续，只做发布前检查、环境参数核对与灰度准备，不再新增功能。

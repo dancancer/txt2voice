@@ -387,3 +387,16 @@
    - `pnpm --filter web test:regression`
 4. 结果：全部通过。
 5. 结论：`S32` 功能侧已收口完成，下一步只剩最终运营验收与阶段回顾。
+
+
+### 最终验收更新（2026-03-07 23:28 CST）
+
+1. 已完成最终运营验收：自动链路、质量闭环、交付任务语义、核心 SLO API、扫描告警与复核页统一口径均有自动化验证支撑。
+2. 已补运营模板：`docs/plan/autobook-v2-weekly-ops-report-template.md`，用于固定周验收口径与异常处置记录。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/upload-route.test.ts src/lib/__tests__/pipeline-status-route.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/quality-signal-sync-runner-provider.test.ts src/lib/__tests__/final-assembly-runner.test.ts src/lib/__tests__/manual-review-sync-runner.test.ts src/lib/__tests__/slo-metrics-service.test.ts src/lib/__tests__/slo-metrics-route.test.ts src/lib/__tests__/slo-alert-scanner.test.ts src/lib/__tests__/slo-alert-scan-route.test.ts src/lib/__tests__/review-slo-models.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+5. 结论：当前实现已与原始需求保持一致，可进入发布准备与灰度阶段。

@@ -28,6 +28,7 @@ jest.mock("@/lib/prisma", () => ({
     },
     audioFile: {
       findMany: jest.fn(),
+      count: jest.fn(),
     },
     chapterQualityAudit: {
       create: jest.fn(),
@@ -54,6 +55,7 @@ const mockTaskUpdate = (prisma as any).processingTask.update as jest.Mock;
 const mockBookFindUnique = (prisma as any).book.findUnique as jest.Mock;
 const mockBookUpdate = (prisma as any).book.update as jest.Mock;
 const mockAudioFindMany = (prisma as any).audioFile.findMany as jest.Mock;
+const mockAudioCount = (prisma as any).audioFile.count as jest.Mock;
 const mockChapterAuditCreate = (prisma as any).chapterQualityAudit.create as jest.Mock;
 const mockTransaction = (prisma as any).$transaction as jest.Mock;
 const mockMergeTaskData = mergeTaskData as jest.MockedFunction<typeof mergeTaskData>;
@@ -85,12 +87,14 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
         metadata: {
           source: "qc_retry",
           autoCreatePendingOnReject: true,
+          syncSignalsBeforeRun: false,
         },
       },
     });
     mockBookFindUnique.mockResolvedValue({ metadata: {} });
     mockBookUpdate.mockResolvedValue({});
     mockAudioFindMany.mockResolvedValue([buildAudioFile()]);
+    mockAudioCount.mockResolvedValue(1);
     mockChapterAuditCreate.mockResolvedValue({ id: "chapter-audit-base" });
     mockTaskUpdate.mockResolvedValue({});
     mockMergeTaskData.mockImplementation(async (_taskId, updates) => updates as any);
@@ -178,6 +182,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
         metadata: {
           source: "qc_retry",
           autoCreatePendingOnReject: true,
+          syncSignalsBeforeRun: false,
           maxAutoRejectedCount: 1,
         },
       },
@@ -255,6 +260,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       taskData: {
         metadata: {
           source: "manual_review_batch",
+          syncSignalsBeforeRun: false,
           retryReviewItemIds: ["review-batch-1"],
         },
       },
@@ -328,6 +334,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       taskData: {
         metadata: {
           source: "calibration_eval",
+          syncSignalsBeforeRun: false,
           calibrationEval: {
             enabled: true,
             dryRun: true,

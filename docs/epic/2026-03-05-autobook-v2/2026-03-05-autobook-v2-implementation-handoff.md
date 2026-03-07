@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S31 + S27.1 + S28.1 + S30.1 + S32-A/B/C 已完成；下一步进入最终运营验收收口。
+- 当前进度：S0-S31 + S27.1 + S28.1 + S30.1 + S32-A/B/C 与最终运营验收已完成；下一步进入发布准备。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -18,10 +18,10 @@
 
 | 里程碑 | 当前状态 | 现状说明 |
 | --- | --- | --- |
-| M1（Annotation v2 + Auto Pipeline） | 🟢 完成度较高 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑；上传触发失败补偿也已任务化。 |
-| M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环、Engine Router v1、Q0-Q3 指标化已具备；CER/声纹原始信号生产仍待任务化接入。 |
-| M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放已补齐，剩余交付任务语义与 SLO 产品化收口。 |
-| M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测、核心 SLO API、扫描告警与复核页统一口径已可用；剩余最终运营验收收口。 |
+| M1（Annotation v2 + Auto Pipeline） | ✅ 完成 | 上传默认自动触发、统一建链、补偿回收与状态查询已闭环。 |
+| M2（Fast Gate + 自动返工闭环） | ✅ 完成 | 自动返工、Engine Router v1、Q0-Q3 指标化与信号生产任务化已闭环。 |
+| M3（Deep Gate + 人工复核工作台） | ✅ 完成 | Deep Gate、复核工作台、批量处置、阈值治理与交付任务语义已闭环。 |
+| M4（SLO + 告警运营 + 配置中心） | ✅ 完成 | 核心 SLO API、扫描告警、复核页统一口径、配置中心与运营模板已具备。 |
 
 ## 已完成内容
 
@@ -368,7 +368,7 @@
 
 3. S30 已完成 Q0-Q3 指标化判定，但 CER/声纹原始信号生产仍依赖上游注入，需补 ASR/embedding 任务化供给（S30.1）。
 4. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务（S31）。
-5. 核心 SLO 功能侧已收口完成；剩余工作以最终运营验收、周报模板与阶段回顾为主。
+5. 代码与产品能力侧已收口完成；剩余工作以发布前环境配置、灰度与运营执行为主。
 
 ## 剩余任务优先级（建议，S30.1-S32）
 
@@ -376,7 +376,7 @@
 | --- | --- | --- | --- | --- | --- |
 | P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务并稳定回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可观测、可追溯 | S30 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
-| P2 | 收口验收 | 最终运营验收与发布准备 | 固化周报模板、完成阶段回顾与发布前检查 | 支持按计划执行运营验收 | S30/S31/S32-A/S32-B/S32-C |
+| P2 | 发布准备 | 最终环境核对与灰度发布准备 | 校对 webhook/token/provider 配置并执行灰度 | 具备上线准备条件 | S30/S31/S32-A/S32-B/S32-C |
 
 ## 执行卡片索引（S27-S32）
 
@@ -727,3 +727,26 @@
 - 下一步建议：
   1. 下一轮只做最终运营验收收口，不再扩展功能范围；
   2. 同步完成第 35 轮阶段回顾，确认整体方向与原始需求完全一致。
+
+
+### 38) 最终运营验收收口（2026-03-07 23:28 CST）
+
+- 验收覆盖：
+  - 自动链路：`upload-route`、`pipeline-status-route`；
+  - 质量闭环：`quality-check-runner-reprocessing`、`quality-signal-sync-runner-provider`；
+  - 交付语义：`final-assembly-runner`、`manual-review-sync-runner`；
+  - 运营能力：`slo-metrics`、`slo-alerts`、复核页统一 SLO 模型。
+- 已执行：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/upload-route.test.ts src/lib/__tests__/pipeline-status-route.test.ts src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/quality-signal-sync-runner-provider.test.ts src/lib/__tests__/final-assembly-runner.test.ts src/lib/__tests__/manual-review-sync-runner.test.ts src/lib/__tests__/slo-metrics-service.test.ts src/lib/__tests__/slo-metrics-route.test.ts src/lib/__tests__/slo-alert-scanner.test.ts src/lib/__tests__/slo-alert-scan-route.test.ts src/lib/__tests__/review-slo-models.test.ts`；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`。
+- 结论：
+  1. 当前代码库已满足原始计划中的三条主线目标；
+  2. 功能性缺口已关闭，剩余风险主要是环境参数与运行期阈值治理；
+  3. 已补运营模板：`docs/plan/autobook-v2-weekly-ops-report-template.md`。
+
+### 39) 第 35 轮阶段回顾（S31-S32 收口）
+
+- 进度结论：`S31`、`S32-A/B/C` 与最终运营验收均已完成。
+- 方向结论：与原始需求保持一致，未发生范围漂移。
+- 当前状态：代码功能已收口，可进入发布准备。
+- 下一步建议：仅做环境核对、灰度与上线准备，不再继续加功能。
