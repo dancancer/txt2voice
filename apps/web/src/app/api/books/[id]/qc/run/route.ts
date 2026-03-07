@@ -66,6 +66,10 @@ export const POST = withErrorHandler(async (
   const q0q3Thresholds = asRecord(
     body.q0q3Thresholds || body.fastGateThresholds
   )
+  const signalPayloadByAudioFileId = asRecord(body.signalPayloadByAudioFileId)
+  const signalPayloadBySentenceId = asRecord(body.signalPayloadBySentenceId)
+  const syncSignalsBeforeRun = body.syncSignalsBeforeRun !== false
+  const forceSignalResync = body.forceSignalResync === true
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -103,7 +107,9 @@ export const POST = withErrorHandler(async (
     type,
     chapterId: chapterId || null,
     audioFileIds: audioFileIds || [],
-    totalItems
+    totalItems,
+    syncSignalsBeforeRun,
+    forceSignalResync
   }
   if (deepGateThresholdTemplate) {
     taskMetadata.deepGateThresholdTemplate = toInputJsonValue(deepGateThresholdTemplate)
@@ -116,6 +122,12 @@ export const POST = withErrorHandler(async (
   }
   if (q0q3Thresholds) {
     taskMetadata.q0q3Thresholds = toInputJsonValue(q0q3Thresholds)
+  }
+  if (signalPayloadByAudioFileId) {
+    taskMetadata.signalPayloadByAudioFileId = toInputJsonValue(signalPayloadByAudioFileId)
+  }
+  if (signalPayloadBySentenceId) {
+    taskMetadata.signalPayloadBySentenceId = toInputJsonValue(signalPayloadBySentenceId)
   }
 
   const task = await prisma.processingTask.create({
@@ -168,7 +180,9 @@ export const POST = withErrorHandler(async (
       taskId: task.id,
       message: '质量检查任务已启动',
       type,
-      totalItems
+      totalItems,
+      syncSignalsBeforeRun,
+      forceSignalResync
     }
   })
 })

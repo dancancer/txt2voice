@@ -15,6 +15,7 @@ import {
   resolveQ0Q3ThresholdTemplate,
 } from "@/lib/quality-check/q0q3-runtime";
 import { buildDeepGateCalibrationSnapshot } from "@/lib/quality-check/deep-gate-calibration";
+import { runQualitySignalSyncTask } from "@/lib/quality-signal-sync-runner";
 import { readGovernanceState } from "@/lib/deep-gate-calibration-governance/parsers";
 import { inferDeepGateModelSignals } from "@/lib/quality-check/deep-gate-model-inference";
 import { resolveDeepGateModelRuntime } from "@/lib/quality-check/deep-gate-model-runtime";
@@ -65,6 +66,7 @@ interface QualityCheckTaskContext {
   maxAutoRejectedCount: number | null;
   issueTypePolicies: Record<string, IssueTypeDispatchPolicy>;
   calibrationEval: CalibrationEvalTaskContext;
+  signalSync: SignalSyncTaskContext;
   taskMetadata: Record<string, unknown>;
 }
 
@@ -93,6 +95,13 @@ interface CalibrationEvalTaskContext {
   reportId: string | null;
   sampleSetId: string | null;
   sampleLabelsByAudioFileId: Record<string, CalibrationSampleLabel>;
+}
+
+interface SignalSyncTaskContext {
+  enabled: boolean;
+  forceResync: boolean;
+  signalPayloadByAudioFileId: Record<string, unknown>;
+  signalPayloadBySentenceId: Record<string, unknown>;
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -254,6 +263,9 @@ const extractQualityCheckTaskContext = (
       ? metadata.manualReviewItemId
       : "";
   const retryReviewItemIds = asStringArray(metadata?.retryReviewItemIds);
+  const syncSignalsBeforeRun =
+    asBoolean(metadata?.syncSignalsBeforeRun) ?? source !== "calibration_eval";
+  const forceSignalResync = asBoolean(metadata?.forceSignalResync) ?? false;
 
   const policySource = asRecord(metadata?.dispatchPolicy) || metadata;
   const autoCreatePendingOnReject =
@@ -279,6 +291,12 @@ const extractQualityCheckTaskContext = (
       sampleLabelsByAudioFileId: parseCalibrationSampleLabels(
         calibrationEvalRecord?.sampleLabels
       ),
+    },
+    signalSync: {
+      enabled: syncSignalsBeforeRun,
+      forceResync: forceSignalResync,
+      signalPayloadByAudioFileId: asRecord(metadata?.signalPayloadByAudioFileId) || {},
+      signalPayloadBySentenceId: asRecord(metadata?.signalPayloadBySentenceId) || {},
     },
     taskMetadata: metadata || {},
   };
@@ -360,6 +378,89 @@ const updateCalibrationEvalReportStatus = async ({
       }),
     },
   });
+};
+
+
+const runSignalSyncBeforeQualityCheck = async ({
+  parentTaskId,
+  bookId,
+  type,
+  chapterId,
+  audioFileIds,
+  totalItems,
+  signalSync,
+}: {
+  parentTaskId: string;
+  bookId: string;
+  type: QualityCheckTaskType;
+  chapterId?: string;
+  audioFileIds?: string[];
+  totalItems: number;
+  signalSync: SignalSyncTaskContext;
+}): Promise<string | null> => {
+  if (!signalSync.enabled || totalItems <= 0) {
+    return null;
+  }
+
+  const childTask = await prisma.processingTask.create({
+    data: {
+      bookId,
+      taskType: "QUALITY_SIGNAL_SYNC",
+      status: "processing",
+      progress: 0,
+      totalItems,
+      taskData: toInputJsonValue({
+        message: "质量检查前置信号生产任务已创建",
+        metadata: {
+          source: "quality_signal_sync",
+          parentQualityCheckTaskId: parentTaskId,
+          type,
+          chapterId: chapterId || null,
+          audioFileIds: audioFileIds || [],
+          totalItems,
+          forceResync: signalSync.forceResync,
+          signalPayloadByAudioFileId: signalSync.signalPayloadByAudioFileId,
+          signalPayloadBySentenceId: signalSync.signalPayloadBySentenceId,
+        },
+      }),
+    },
+  });
+
+  try {
+    await runQualitySignalSyncTask({
+      taskId: childTask.id,
+      bookId,
+      type,
+      chapterId,
+      audioFileIds,
+      forceResync: signalSync.forceResync,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "质量检查前置信号生产失败";
+    const failedTaskData = await mergeTaskData(childTask.id, {
+      message: "质量检查前置信号生产失败",
+      metadata: {
+        source: "quality_signal_sync",
+        parentQualityCheckTaskId: parentTaskId,
+        lastError: message,
+      },
+    });
+
+    await prisma.processingTask.update({
+      where: { id: childTask.id },
+      data: {
+        status: "failed",
+        completedAt: new Date(),
+        errorMessage: message,
+        taskData: failedTaskData,
+      },
+    });
+
+    throw error;
+  }
+
+  return childTask.id;
 };
 
 export const resolveReprocessingStatusFromVerdict = (
@@ -928,43 +1029,52 @@ export async function runQualityCheckTask({
     audioFileIds,
   });
 
-  const [book, audioFiles] = await Promise.all([
-    prisma.book.findUnique({
-      where: { id: bookId },
-      select: { metadata: true },
-    }),
-    prisma.audioFile.findMany({
-      where,
-      select: {
-        id: true,
-        bookId: true,
-        chapterId: true,
-        segmentId: true,
-        sentenceId: true,
-        voiceProfileId: true,
-        duration: true,
-        scriptSentence: {
-          select: {
-            id: true,
-            text: true,
-            roleType: true,
-            priority: true,
-            emotionLabel: true,
-            emotionIntensity: true,
-          },
-        },
-        synthesisAttempts: {
-          select: {
-            id: true,
-            metrics: true,
-          },
-          orderBy: [{ attemptNo: "desc" }, { createdAt: "desc" }],
-          take: 1,
+  const book = await prisma.book.findUnique({
+    where: { id: bookId },
+    select: { metadata: true },
+  });
+
+  const signalSyncTaskId = await runSignalSyncBeforeQualityCheck({
+    parentTaskId: taskId,
+    bookId,
+    type,
+    chapterId,
+    audioFileIds,
+    totalItems: await prisma.audioFile.count({ where }),
+    signalSync: taskContext.signalSync,
+  });
+
+  const audioFiles = await prisma.audioFile.findMany({
+    where,
+    select: {
+      id: true,
+      bookId: true,
+      chapterId: true,
+      segmentId: true,
+      sentenceId: true,
+      voiceProfileId: true,
+      duration: true,
+      scriptSentence: {
+        select: {
+          id: true,
+          text: true,
+          roleType: true,
+          priority: true,
+          emotionLabel: true,
+          emotionIntensity: true,
         },
       },
-      orderBy: [{ createdAt: "asc" }],
-    }),
-  ]);
+      synthesisAttempts: {
+        select: {
+          id: true,
+          metrics: true,
+        },
+        orderBy: [{ attemptNo: "desc" }, { createdAt: "desc" }],
+        take: 1,
+      },
+    },
+    orderBy: [{ createdAt: "asc" }],
+  });
 
   if (audioFiles.length === 0) {
     throw new Error("没有可执行质检的音频");
@@ -1598,6 +1708,7 @@ export async function runQualityCheckTask({
     chapterAuditCount,
     chapterAuditRepairCount,
     chapterAuditManualReviewCount,
+    signalSyncTaskId,
     source: taskContext.source,
   };
 

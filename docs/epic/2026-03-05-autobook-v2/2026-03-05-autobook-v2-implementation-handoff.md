@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S30 + S27.1 + S28.1 已完成，S30.1 V1（信号生产任务化骨架）已落地；待推进 S30.1 收口 / S31 / S32。
+- 当前进度：S0-S30 + S27.1 + S28.1 已完成，S30.1 V1/V2（信号生产任务化骨架 + 默认质检链路接入）已落地；待推进 S30.1 收口 / S31 / S32。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -609,3 +609,22 @@
 - 下一步建议：
   1. 执行 `S30.1-B`：把信号生产任务挂到自动编排与质检前置链路；
   2. 执行 `S30.1-C`：接入真实 provider，降低对启发式 fallback 的依赖。
+
+
+### 31) 第二十九轮增量（S30.1-B：默认质检链路接入信号生产）
+
+- 默认链路升级：
+  - `runQualityCheckTask` 现在会默认先执行 `QUALITY_SIGNAL_SYNC` 子任务，再读取最新 `attempt.metrics` 做质检；
+  - `AUTO_PIPELINE` 质量检查阶段与手工 `qc/run` 都已透传 `syncSignalsBeforeRun/forceSignalResync`。
+- 当前收益：
+  - 已不再依赖“先手工补信号、再手工跑质检”；
+  - `S30.1` 从“有独立信号任务”推进到“默认质检链路会自动消费信号任务”。
+- 当前边界：
+  - 真实 provider 仍未接入，当前供给仍以 `task_payload + heuristic fallback` 为主；
+  - 下一步重点转为 `S30.1-C`。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner-signal-sync.test.ts src/lib/__tests__/qc-run-route.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 接入真实 ASR/CER 与 speaker embedding provider；
+  2. 在 provider 接入前先固化一版基线对照数据。

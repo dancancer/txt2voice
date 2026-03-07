@@ -1047,3 +1047,33 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
   1. 执行 `S30.1-B`：把 `QUALITY_SIGNAL_SYNC` 挂到 `AUTO_PIPELINE`/`qc/run` 前置链路，形成默认供给闭环。
   2. 执行 `S30.1-C`：接入真实 ASR/CER 与 speaker embedding provider，逐步替换纯启发式 fallback。
   3. `S30.1` 收口后再推进 `S31`。
+
+
+### [S30.1-B] 默认质检链路接入信号生产（2026-03-07 20:14 CST）
+
+- 完成内容：
+  1. `runQualityCheckTask` 新增前置 `QUALITY_SIGNAL_SYNC` 子任务执行逻辑：默认在正式质检前先完成信号生产，再读取最新 `attempt.metrics` 执行 Q0-Q3 判定。
+  2. `POST /api/books/[id]/qc/run` 新增/固化元数据：
+     - `syncSignalsBeforeRun`（默认 `true`）
+     - `forceSignalResync`（默认 `false`）
+     - `signalPayloadByAudioFileId/signalPayloadBySentenceId`
+  3. `AUTO_PIPELINE` 的质量检查阶段已透传 `syncSignalsBeforeRun/forceSignalResync`，使自动链路和手工链路口径一致。
+  4. 当前默认链路已从“先直接质检”升级为“先信号生产，再质检”，`S30.1` 进入默认供给闭环阶段。
+- 关键文件：
+  - `apps/web/src/lib/quality-check-runner.ts`
+  - `apps/web/src/app/api/books/[id]/qc/run/route.ts`
+  - `apps/web/src/lib/auto-pipeline/common.ts`
+  - `apps/web/src/lib/auto-pipeline/runner.ts`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/quality-check-runner-signal-sync.test.ts`
+  - `apps/web/src/lib/__tests__/qc-run-route.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner-signal-sync.test.ts src/lib/__tests__/qc-run-route.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；默认质检链路已接入前置信号生产。
+- 下一步建议：
+  1. 执行 `S30.1-C`：接入真实 ASR/CER 与 speaker embedding provider，降低对纯启发式 fallback 的依赖。
+  2. 用 `POST /api/books/[id]/qc/baseline` 固化一版当前基线，作为真实 provider 接入前的对照样本。
+  3. `S30.1` 收口后再推进 `S31`。

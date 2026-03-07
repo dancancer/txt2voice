@@ -311,3 +311,15 @@
    - `pnpm --filter web test:regression`
 4. 结果：全部通过。
 5. 结论：`S30.1` 已进入 V1 阶段，下一步应把信号生产挂入默认链路并接入真实 provider。
+
+
+### S30.1 V2 更新（2026-03-07 20:14 CST）
+
+1. 默认质检链路已接入前置信号生产：`qc/run` 和 `AUTO_PIPELINE` 质量阶段现在会默认先跑 `QUALITY_SIGNAL_SYNC`。
+2. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner-signal-sync.test.ts src/lib/__tests__/qc-run-route.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+3. 结果：全部通过。
+4. 结论：`S30.1` 默认供给闭环已成立，下一步应进入真实 provider 接入与基线对照。

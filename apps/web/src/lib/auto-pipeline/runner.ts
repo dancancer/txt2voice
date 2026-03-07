@@ -278,6 +278,8 @@ export async function runAutoPipelineTask({
         metadata: {
           type: qualityCheckType,
           source: "auto_pipeline",
+          syncSignalsBeforeRun: normalizedOptions.qualityCheck.syncSignalsBeforeRun,
+          forceSignalResync: normalizedOptions.qualityCheck.forceSignalResync,
         },
       });
 

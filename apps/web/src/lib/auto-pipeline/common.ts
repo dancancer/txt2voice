@@ -37,6 +37,8 @@ interface AutoPipelineAudioOptions {
 interface AutoPipelineQualityOptions {
   enabled?: boolean;
   type?: QualityCheckTaskType;
+  syncSignalsBeforeRun?: boolean;
+  forceSignalResync?: boolean;
 }
 
 export interface AutoPipelineOptions {
@@ -69,6 +71,8 @@ export const STAGE_LABEL: Record<AutoPipelineStage, string> = {
 const QUALITY_CHECK_DEFAULT: Required<AutoPipelineQualityOptions> = {
   enabled: true,
   type: "book",
+  syncSignalsBeforeRun: true,
+  forceSignalResync: false,
 };
 
 export const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -115,6 +119,12 @@ export const normalizeOptions = (
       options?.qualityCheck?.type && options.qualityCheck.type !== "batch"
         ? options.qualityCheck.type
         : QUALITY_CHECK_DEFAULT.type,
+    syncSignalsBeforeRun:
+      options?.qualityCheck?.syncSignalsBeforeRun ??
+      QUALITY_CHECK_DEFAULT.syncSignalsBeforeRun,
+    forceSignalResync:
+      options?.qualityCheck?.forceSignalResync ??
+      QUALITY_CHECK_DEFAULT.forceSignalResync,
   };
 
   return {
@@ -196,6 +206,16 @@ export const parseAutoPipelineOptions = (
       ...(qualityType
         ? {
             type: qualityType,
+          }
+        : {}),
+      ...(typeof qualityCheckRoot.syncSignalsBeforeRun === "boolean"
+        ? {
+            syncSignalsBeforeRun: qualityCheckRoot.syncSignalsBeforeRun,
+          }
+        : {}),
+      ...(typeof qualityCheckRoot.forceSignalResync === "boolean"
+        ? {
+            forceSignalResync: qualityCheckRoot.forceSignalResync,
           }
         : {}),
     },
