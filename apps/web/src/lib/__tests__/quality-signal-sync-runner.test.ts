@@ -97,7 +97,7 @@ describe("quality-signal-sync-runner", () => {
           speakerEmbeddingSimilarity: expect.any(Number),
           q3SpeakerSimilarity: expect.any(Number),
           signalSync: expect.objectContaining({
-            version: "s30.1-v1",
+            version: "s30.1-v2",
             taskId: "signal-task-1",
             cerSource: "heuristic",
             speakerSource: "heuristic",

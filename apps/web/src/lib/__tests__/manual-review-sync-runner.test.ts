@@ -13,6 +13,7 @@ jest.mock("@/lib/prisma", () => ({
       count: jest.fn(),
     },
     processingTask: {
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
@@ -39,6 +40,7 @@ import { runManualReviewSyncTask } from "@/lib/manual-review-sync-runner";
 const mockFindBook = (prisma as any).book.findUnique as jest.Mock;
 const mockUpdateBook = (prisma as any).book.update as jest.Mock;
 const mockCountItems = (prisma as any).manualReviewItem.count as jest.Mock;
+const mockFindProcessingTask = (prisma as any).processingTask.findFirst as jest.Mock;
 const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
 const mockEnqueueWorkflow = enqueueAutoPipelineJobInternal as jest.MockedFunction<
@@ -50,6 +52,7 @@ describe("manual-review-sync-runner", () => {
     jest.clearAllMocks();
     mockFindBook.mockResolvedValue({ metadata: {}, status: "manual_review_pending" });
     mockUpdateBook.mockResolvedValue({});
+    mockFindProcessingTask.mockResolvedValue(null);
     mockCreateTask.mockResolvedValue({ id: "assembly-task-1" });
     mockUpdateTask.mockResolvedValue({});
     mockEnqueueWorkflow.mockResolvedValue({
@@ -106,6 +109,38 @@ describe("manual-review-sync-runner", () => {
             taskId: "review-sync-task-1",
             readyForAssembly: true,
             finalAssemblyTaskId: "assembly-task-1",
+          }),
+        }),
+      }),
+    });
+  });
+
+  it("should reuse existing final assembly task instead of creating a duplicate", async () => {
+    mockCountItems
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(5)
+      .mockResolvedValueOnce(2);
+    mockFindProcessingTask.mockResolvedValueOnce({ id: "assembly-task-existing" });
+
+    await runManualReviewSyncTask({
+      taskId: "review-sync-task-1",
+      bookId: "book-1",
+      autoTriggerFinalAssembly: true,
+      finalAssemblyPayload: {
+        type: "book",
+      },
+    });
+
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueWorkflow).not.toHaveBeenCalled();
+    expect(mockUpdateBook).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        status: "assembling_audio",
+        metadata: expect.objectContaining({
+          manualReviewSync: expect.objectContaining({
+            finalAssemblyTaskId: "assembly-task-existing",
           }),
         }),
       }),

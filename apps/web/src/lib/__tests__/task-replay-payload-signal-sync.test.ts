@@ -41,6 +41,7 @@ describe("signal sync replay payload", () => {
         chapterId: undefined,
         audioFileIds: ["audio-1", "audio-2"],
         forceResync: true,
+        signalModelRuntime: {},
       },
     });
     expect(isRecoverableTask("QUALITY_SIGNAL_SYNC")).toBe(true);

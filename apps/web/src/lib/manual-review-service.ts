@@ -809,9 +809,14 @@ export const resolveManualReviewItemsInBatch = async ({
         .filter((sentenceId): sentenceId is string => Boolean(sentenceId))
     )
   );
+  const missingSentenceItemIds = orderedItems
+    .filter((item) => !item.sentenceId)
+    .map((item) => item.id);
 
-  if (scriptSentenceIds.length === 0) {
-    throw new ValidationError("批量重生失败：复核项缺少 sentenceId");
+  if (missingSentenceItemIds.length > 0) {
+    throw new ValidationError(
+      `批量重生失败：以下复核项缺少 sentenceId：${missingSentenceItemIds.join(", ")}`
+    );
   }
 
   await ensureNoActiveAudioTask(bookId);

@@ -126,4 +126,23 @@ describe("POST /api/books/[id]/qc/run", () => {
       }),
     });
   });
+
+  it("should reject chapter qc without chapterId", async () => {
+    const response: any = await POST(
+      {
+        async json() {
+          return {
+            type: "chapter",
+          };
+        },
+      } as any,
+      ROUTE_PARAMS as any
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.message).toContain("chapterId");
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueQualityCheck).not.toHaveBeenCalled();
+  });
 });

@@ -116,11 +116,31 @@ describe("/api/books/[id]/qc/signals/sync", () => {
         chapterId: undefined,
         audioFileIds: undefined,
         forceResync: true,
+        signalModelRuntime: {},
       },
       {
         reason: "qc_signal_sync_api",
       }
     );
+  });
+
+  it("should reject chapter signal sync without chapterId", async () => {
+    const response: any = await POST(
+      {
+        async json() {
+          return {
+            type: "chapter",
+          };
+        },
+      } as any,
+      ROUTE_PARAMS as any
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.message).toContain("chapterId");
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueSignalSync).not.toHaveBeenCalled();
   });
 
   it("should return latest signal sync task", async () => {

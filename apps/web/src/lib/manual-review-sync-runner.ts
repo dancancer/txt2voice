@@ -49,43 +49,58 @@ export async function runManualReviewSyncTask({
 
   if (readyForAssembly && autoTriggerFinalAssembly) {
     const payload = asRecord(finalAssemblyPayload) || {};
-    const finalTask = await prisma.processingTask.create({
-      data: {
+    const existingFinalAssemblyTask = await prisma.processingTask.findFirst({
+      where: {
         bookId,
         taskType: "FINAL_ASSEMBLY",
         status: "processing",
-        progress: 0,
-        totalItems: 1,
-        taskData: {
-          message: "复核同步后自动触发最终合并",
-          metadata: {
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingFinalAssemblyTask) {
+      finalAssemblyTaskId = existingFinalAssemblyTask.id;
+    } else {
+      const finalTask = await prisma.processingTask.create({
+        data: {
+          bookId,
+          taskType: "FINAL_ASSEMBLY",
+          status: "processing",
+          progress: 0,
+          totalItems: 1,
+          taskData: {
+            message: "复核同步后自动触发最终合并",
+            metadata: {
+              source: "final_assembly",
+              previousBookStatus: book?.status || "completed",
+              parentManualReviewSyncTaskId: taskId,
+              ...payload,
+            },
+          },
+        },
+      });
+      finalAssemblyTaskId = finalTask.id;
+
+      await enqueueAutoPipelineJobInternal(
+        {
+          taskId: finalTask.id,
+          bookId,
+          mode: "final_assembly",
+          workflowPayload: {
             source: "final_assembly",
             previousBookStatus: book?.status || "completed",
             parentManualReviewSyncTaskId: taskId,
             ...payload,
           },
         },
-      },
-    });
-    finalAssemblyTaskId = finalTask.id;
-
-    await enqueueAutoPipelineJobInternal(
-      {
-        taskId: finalTask.id,
-        bookId,
-        mode: "final_assembly",
-        workflowPayload: {
-          source: "final_assembly",
-          previousBookStatus: book?.status || "completed",
-          parentManualReviewSyncTaskId: taskId,
-          ...payload,
-        },
-      },
-      {
-        allowReuse: false,
-        reason: "manual_review_sync",
-      }
-    );
+        {
+          allowReuse: false,
+          reason: "manual_review_sync",
+        }
+      );
+    }
   }
 
   await updateTaskProgress(taskId, 100, "复核状态同步完成");

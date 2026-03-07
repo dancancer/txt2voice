@@ -382,6 +382,27 @@ describe("manual-review-service", () => {
     });
   });
 
+  it("should reject batch regenerate when any item is missing sentenceId", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({ id: "review-31", sentenceId: "sentence-31" }),
+      baseItem({ id: "review-32", sentenceId: null }),
+    ]);
+
+    await expect(
+      resolveManualReviewItemsInBatch({
+        bookId: "book-1",
+        payload: {
+          itemIds: ["review-31", "review-32"],
+          action: "regenerate",
+          autoMerge: false,
+        },
+      })
+    ).rejects.toThrow("review-32");
+
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueAudio).not.toHaveBeenCalled();
+  });
+
   it("should build manual review csv payload", () => {
     const csv = toManualReviewCsv([
       {

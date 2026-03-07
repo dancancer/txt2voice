@@ -137,4 +137,80 @@ describe("auto pipeline replay payload", () => {
     expect(isRecoverableTask("AUTO_PIPELINE_COMPENSATION")).toBe(true);
   });
 
+  it("should preserve final assembly mode when queue payload is missing", () => {
+    const payload = extractPayloadFromTask({
+      ...baseTask,
+      taskType: "FINAL_ASSEMBLY",
+      taskData: {
+        metadata: {
+          source: "final_assembly",
+          type: "chapter",
+          chapterId: "chapter-1",
+          options: {
+            format: "mp3",
+          },
+        },
+      },
+    } as any);
+
+    expect(payload).toEqual({
+      kind: "auto_pipeline",
+      input: {
+        taskId: "task-auto-1",
+        bookId: "book-1",
+        options: {
+          format: "mp3",
+        },
+        mode: "final_assembly",
+        triggerSource: undefined,
+        triggerMetadata: {},
+        allowReuseRunningTask: undefined,
+        workflowPayload: {
+          source: "final_assembly",
+          type: "chapter",
+          chapterId: "chapter-1",
+          options: {
+            format: "mp3",
+          },
+        },
+      },
+    });
+  });
+
+  it("should preserve manual review sync mode when queue payload is missing", () => {
+    const payload = extractPayloadFromTask({
+      ...baseTask,
+      taskType: "MANUAL_REVIEW_SYNC",
+      taskData: {
+        metadata: {
+          source: "manual_review_sync",
+          autoTriggerFinalAssembly: true,
+          finalAssembly: {
+            type: "book",
+          },
+        },
+      },
+    } as any);
+
+    expect(payload).toEqual({
+      kind: "auto_pipeline",
+      input: {
+        taskId: "task-auto-1",
+        bookId: "book-1",
+        options: {},
+        mode: "manual_review_sync",
+        triggerSource: undefined,
+        triggerMetadata: {},
+        allowReuseRunningTask: undefined,
+        workflowPayload: {
+          source: "manual_review_sync",
+          autoTriggerFinalAssembly: true,
+          finalAssembly: {
+            type: "book",
+          },
+        },
+      },
+    });
+  });
+
 });

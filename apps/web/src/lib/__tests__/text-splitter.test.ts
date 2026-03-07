@@ -282,7 +282,7 @@ describe('边界情况测试', () => {
       separators: ['。', ''],
     })
 
-    const text = '这是一个非常非常非常非常非常非常非常非常非常非常长的句子没有任何标点符号'
+    const text = '这是一个非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常非常长的句子没有任何标点符号而且还会继续延伸确保超过分段阈值'
     const chunks = splitter.splitText(text)
 
     expect(chunks.length).toBeGreaterThan(1)

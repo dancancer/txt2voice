@@ -245,15 +245,61 @@ const buildAutoPipelineReplayPayloadFromTask = (
   const rawTaskData = jsonObject(task.taskData);
   const metadata = asRecord(rawTaskData.metadata);
   const options = asRecord(metadata?.options) || {};
+  const workflowPayload =
+    (asRecord(metadata?.workflowPayload) ||
+      (task.taskType === "FINAL_ASSEMBLY"
+        ? {
+            source: "final_assembly",
+            previousBookStatus:
+              typeof metadata?.previousBookStatus === "string"
+                ? metadata.previousBookStatus
+                : undefined,
+            parentManualReviewSyncTaskId:
+              typeof metadata?.parentManualReviewSyncTaskId === "string"
+                ? metadata.parentManualReviewSyncTaskId
+                : undefined,
+            type: typeof metadata?.type === "string" ? metadata.type : undefined,
+            chapterId:
+              typeof metadata?.chapterId === "string" ? metadata.chapterId : undefined,
+            segmentId:
+              typeof metadata?.segmentId === "string" ? metadata.segmentId : undefined,
+            options: asRecord(metadata?.options) || {},
+          }
+        : task.taskType === "MANUAL_REVIEW_SYNC"
+          ? {
+              source: "manual_review_sync",
+              previousBookStatus:
+                typeof metadata?.previousBookStatus === "string"
+                  ? metadata.previousBookStatus
+                  : undefined,
+              autoTriggerFinalAssembly:
+                typeof metadata?.autoTriggerFinalAssembly === "boolean"
+                  ? metadata.autoTriggerFinalAssembly
+                  : undefined,
+              finalAssembly: asRecord(metadata?.finalAssembly) || {},
+            }
+          : {})) as Record<string, unknown>;
+  const mode =
+    typeof metadata?.mode === "string" &&
+    (metadata.mode === "trigger_compensation" ||
+      metadata.mode === "final_assembly" ||
+      metadata.mode === "manual_review_sync")
+      ? metadata.mode
+      : task.taskType === "AUTO_PIPELINE_COMPENSATION" ||
+          metadata?.source === "upload_compensation"
+        ? "trigger_compensation"
+        : task.taskType === "FINAL_ASSEMBLY" || metadata?.source === "final_assembly"
+          ? "final_assembly"
+          : task.taskType === "MANUAL_REVIEW_SYNC" ||
+              metadata?.source === "manual_review_sync"
+            ? "manual_review_sync"
+            : "pipeline";
 
   return {
     taskId: task.id,
     bookId: task.bookId,
     options: options as AutoPipelineOptions,
-    mode:
-      typeof metadata?.mode === "string" && metadata.mode === "trigger_compensation"
-        ? "trigger_compensation"
-        : "pipeline",
+    mode,
     triggerSource:
       typeof metadata?.triggerSource === "string" ? metadata.triggerSource : undefined,
     triggerMetadata: (asRecord(metadata?.triggerMetadata) || {}) as Record<string, unknown>,
@@ -261,7 +307,7 @@ const buildAutoPipelineReplayPayloadFromTask = (
       typeof metadata?.allowReuseRunningTask === "boolean"
         ? metadata.allowReuseRunningTask
         : undefined,
-    workflowPayload: (asRecord(metadata?.workflowPayload) || {}) as Record<string, unknown>,
+    ...(Object.keys(workflowPayload).length > 0 ? { workflowPayload } : {}),
   };
 };
 
@@ -387,6 +433,9 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
 
   if (task.taskType === "AUTO_PIPELINE" || task.taskType === "AUTO_PIPELINE_COMPENSATION" || task.taskType === "FINAL_ASSEMBLY" || task.taskType === "MANUAL_REVIEW_SYNC") {
     if (queuePayload) {
+      const workflowPayload =
+        (asRecord(queuePayload.workflowPayload) || {}) as Record<string, unknown>;
+
       return {
         kind: "auto_pipeline",
         input: {
@@ -409,7 +458,7 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
             typeof queuePayload.allowReuseRunningTask === "boolean"
               ? queuePayload.allowReuseRunningTask
               : undefined,
-          workflowPayload: (asRecord(queuePayload.workflowPayload) || {}) as Record<string, unknown>,
+          ...(Object.keys(workflowPayload).length > 0 ? { workflowPayload } : {}),
         },
       };
     }

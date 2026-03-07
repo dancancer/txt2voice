@@ -6,20 +6,24 @@
  * @jest-environment node
  */
 
-import { readFileSync } from 'fs'
-import path from 'path'
+import iconv from 'iconv-lite'
 import { processFileContent, segmentText } from '@/lib/text-processor'
 
+const buildGbkSampleText = (): string => {
+  const sentence = '张三沿着老街慢慢往前走，路边摊贩的吆喝声和自行车铃声交织在一起。'
+  return sentence.repeat(30)
+}
+
 describe('GBK 文本分段', () => {
-  it('docs/test.txt 每段不超过500字符', () => {
-    const repoRoot = path.resolve(__dirname, '../../../../../')
-    const filePath = path.join(repoRoot, 'docs', 'test.txt')
-    const buffer = readFileSync(filePath)
+  it('内联 GBK 样本文本的非末段保持在 500±100 字范围内', () => {
+    const sourceText = buildGbkSampleText()
+    const buffer = iconv.encode(sourceText, 'gbk')
 
     const processed = processFileContent(buffer, 'test.txt', { preserveFormatting: true })
     const segments = segmentText(processed.content, { useSmartSplitter: true })
 
-    expect(segments.length).toBeGreaterThan(0)
+    expect(processed.encoding).toBe('gbk')
+    expect(segments.length).toBeGreaterThan(1)
 
     const nonLastSegments = segments.slice(0, -1)
     const oversized = nonLastSegments.filter((segment) => segment.content.length > 600)

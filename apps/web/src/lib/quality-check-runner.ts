@@ -886,6 +886,9 @@ const buildQualityWhere = ({
   if (type === "batch" && (!audioFileIds || audioFileIds.length === 0)) {
     throw new Error("批量质检必须提供 audioFileIds");
   }
+  if (type === "chapter" && !chapterId) {
+    throw new Error("章节质检必须提供 chapterId");
+  }
 
   return {
     bookId,

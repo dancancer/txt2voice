@@ -41,6 +41,13 @@ export const POST = withErrorHandler(
     const signalPayloadBySentenceId = asRecord(body.signalPayloadBySentenceId);
     const signalModelRuntime = asRecord(body.signalModelRuntime || body.signalRuntime);
 
+    if (type === "chapter" && !chapterId) {
+      throw new ValidationError("章节信号生产必须提供 chapterId");
+    }
+    if (type === "batch" && (!audioFileIds || audioFileIds.length === 0)) {
+      throw new ValidationError("批量信号生产必须提供 audioFileIds");
+    }
+
     const existingTask = await prisma.processingTask.findFirst({
       where: {
         bookId,

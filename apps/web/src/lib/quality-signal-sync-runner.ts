@@ -76,12 +76,21 @@ const buildWhere = ({
   type: QualitySignalSyncTaskType;
   chapterId?: string;
   audioFileIds?: string[];
-}): Prisma.AudioFileWhereInput => ({
-  bookId,
-  status: "completed",
-  ...(type === "chapter" && chapterId ? { chapterId } : {}),
-  ...(type === "batch" && audioFileIds?.length ? { id: { in: audioFileIds } } : {}),
-});
+}): Prisma.AudioFileWhereInput => {
+  if (type === "chapter" && !chapterId) {
+    throw new Error("章节信号生产必须提供 chapterId");
+  }
+  if (type === "batch" && (!audioFileIds || audioFileIds.length === 0)) {
+    throw new Error("批量信号生产必须提供 audioFileIds");
+  }
+
+  return {
+    bookId,
+    status: "completed",
+    ...(type === "chapter" ? { chapterId } : {}),
+    ...(type === "batch" ? { id: { in: audioFileIds } } : {}),
+  };
+};
 
 const readSignalPayload = ({
   metadata,
