@@ -49,7 +49,8 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 | S30 | Q0-Q3 指标化升级（CER/声纹优先） | ✅ 完成 | 质检主链路支持 Q0-Q3 指标化评分与信号来源观测，新增参数透传与指标聚合 API，测试/回归/类型校验通过 |
 | S31 | 编排任务语义补齐 | ✅ 完成 | 提供 `FINAL_ASSEMBLY/MANUAL_REVIEW_SYNC` 任务与 API，交付阶段可独立重放/恢复/审计 |
 | S32-A | 核心 SLO 指标 API 统一 | ✅ 完成 | 提供 `GET /api/books/[id]/slo/metrics`，统一 5 项核心 SLO 指标口径与 `days/source` 查询 |
-| S32-B | 核心 SLO 告警扫描与事件兼容 | ⏳ 待执行 | 提供 `POST /api/slo/alerts/scan` 并扩展 `dispatch-events` 兼容核心 SLO 事件 |
+| S32-B | 核心 SLO 告警扫描 | ✅ 完成 | 提供 `POST /api/slo/alerts/scan`，复用现有事件表与通知链路沉淀核心 SLO breach 事件 |
+| S32-C | 复核页切换统一 SLO API | ⏳ 待执行 | 复核页核心卡片与 SLO 看板改读统一指标 API，完成 S32 收口 |
 
 ## 3. 执行日志
 
@@ -1183,3 +1184,34 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
   1. 执行 `S32-B`：新增 `POST /api/slo/alerts/scan`，把核心 SLO 阈值扫描接到现有通知/事件生命周期。
   2. 执行 `S32-C`：扩展 `GET /api/books/[id]/qc/dispatch-events` 兼容核心 SLO 事件，并把复核页看板切到统一 SLO API。
   3. 第 35 轮阶段回顾时，确认 `S31 + S32` 收口方向仍与原始需求保持一致。
+
+
+### [S32-B] 核心 SLO 告警扫描（2026-03-07 23:07 CST）
+
+- 完成内容：
+  1. 新增 `slo-alerts` 模块，基于 `slo-metrics` 统一口径输出核心 SLO breach 告警，默认覆盖 `pipeline_success_rate>=95%` 与 `chapter_consistency_fail_rate<3%`，其余阈值支持按扫描参数显式覆盖。
+  2. 新增 `POST /api/slo/alerts/scan`，支持 `days/source/maxBooks/autoResolveStale` 与 `bookIds` 批量扫描，并兼容 `SLO_ALERT_SCAN_TOKEN` / `QC_DISPATCH_ALERT_SCAN_TOKEN`。
+  3. 核心 SLO 告警已复用现有 `qc_dispatch_alert_events` 事件表与 `ack/resolve` 生命周期：扫描结果会以 `issueType=SLO` 沉淀，可直接被既有事件接口消费。
+  4. 通知链路复用现有 webhook 通道，并支持 `SLO_ALERT_WEBHOOK_URL` 优先、`QC_DISPATCH_ALERT_WEBHOOK_URL` 回退，避免新增独立运维面。
+  5. `chapter_consistency_fail_rate` 已补默认 target=`0.03`，保证指标 API 与告警扫描共享同一阈值基线。
+- 关键文件：
+  - `apps/web/src/lib/slo-alerts/service.ts`
+  - `apps/web/src/lib/slo-alerts/query.ts`
+  - `apps/web/src/lib/slo-alerts/scanner.ts`
+  - `apps/web/src/lib/slo-alerts/notifier.ts`
+  - `apps/web/src/lib/slo-alerts/types.ts`
+  - `apps/web/src/app/api/slo/alerts/scan/route.ts`
+  - `apps/web/src/lib/slo-metrics/service.ts`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/slo-alert-service.test.ts`
+  - `apps/web/src/lib/__tests__/slo-alert-scanner.test.ts`
+  - `apps/web/src/lib/__tests__/slo-alert-scan-route.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/slo-alert-service.test.ts src/lib/__tests__/slo-alert-scanner.test.ts src/lib/__tests__/slo-alert-scan-route.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`S32` 已进入“统一指标 + 扫描告警”阶段。
+- 下一步建议：
+  1. 执行 `S32-C`：把复核页核心卡片与 SLO 看板切到 `GET /api/books/[id]/slo/metrics`，结束当前口径并存状态。
+  2. `S32-C` 完成后做一次面向原始需求的收口检查，确认“自动链路、质量闭环、可运营”三条主线都已闭合。

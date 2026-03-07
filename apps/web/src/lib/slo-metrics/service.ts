@@ -338,6 +338,7 @@ export const getBookSloMetrics = async ({
         numerator: chapterAuditSummary.failedCount,
         denominator: chapterAuditSummary.total,
         direction: "lower_is_better",
+        target: 0.03,
       }),
     },
     workflowSummary,

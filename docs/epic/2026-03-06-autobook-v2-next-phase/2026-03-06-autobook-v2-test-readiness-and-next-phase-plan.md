@@ -361,3 +361,16 @@
    - `pnpm --filter web test:regression`
 4. 结果：全部通过。
 5. 结论：`S32` 已进入 V1 阶段，下一步应补 `POST /api/slo/alerts/scan` 与事件生命周期兼容层。
+
+
+### S32 V2 更新（2026-03-07 23:07 CST）
+
+1. 已新增 `slo-alerts` 模块与 `POST /api/slo/alerts/scan`，用于按窗口扫描核心 SLO breach 并批量沉淀事件。
+2. 核心 SLO 告警已复用既有 `qc_dispatch_alert_events` 与 webhook 通道，避免新增第二套事件生命周期。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/slo-alert-service.test.ts src/lib/__tests__/slo-alert-scanner.test.ts src/lib/__tests__/slo-alert-scan-route.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+5. 结论：`S32` 已进入 V2 阶段，下一步只剩复核页切换统一 SLO API 与最终验收收口。

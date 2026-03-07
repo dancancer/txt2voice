@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S31 + S27.1 + S28.1 + S30.1 + S32-A 已完成；待推进 S32-B / S32-C。
+- 当前进度：S0-S31 + S27.1 + S28.1 + S30.1 + S32-A/B 已完成；待推进 S32-C。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -21,7 +21,7 @@
 | M1（Annotation v2 + Auto Pipeline） | 🟢 完成度较高 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑；上传触发失败补偿也已任务化。 |
 | M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环、Engine Router v1、Q0-Q3 指标化已具备；CER/声纹原始信号生产仍待任务化接入。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放已补齐，剩余交付任务语义与 SLO 产品化收口。 |
-| M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测与核心 SLO API 已可用；剩余核心 SLO 告警扫描与事件兼容收口。 |
+| M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测、核心 SLO API 与扫描告警已可用；剩余复核页统一口径与最终运营验收收口。 |
 
 ## 已完成内容
 
@@ -368,7 +368,7 @@
 
 3. S30 已完成 Q0-Q3 指标化判定，但 CER/声纹原始信号生产仍依赖上游注入，需补 ASR/embedding 任务化供给（S30.1）。
 4. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务（S31）。
-5. 核心 SLO 指标 API 已落地，但 `POST /api/slo/alerts/scan` 与事件生命周期兼容层仍待补齐（S32-B / S32-C）。
+5. 核心 SLO 指标 API 与扫描告警已落地，但复核页仍未切到统一 SLO API，存在旧指标接口并存状态（S32-C）。
 
 ## 剩余任务优先级（建议，S30.1-S32）
 
@@ -376,7 +376,7 @@
 | --- | --- | --- | --- | --- | --- |
 | P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务并稳定回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可观测、可追溯 | S30 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
-| P2 | S32 | 核心 SLO 指标产品化（剩余告警扫描 + 事件兼容） | 补 `POST /api/slo/alerts/scan`、事件兼容层与前端切换 | 支持按计划执行运营验收 | S30/S31/S32-A |
+| P2 | S32 | 核心 SLO 指标产品化（剩余前端统一口径） | 把复核页切到统一 SLO API，并完成最终运营验收收口 | 支持按计划执行运营验收 | S30/S31/S32-A/S32-B |
 
 ## 执行卡片索引（S27-S32）
 
@@ -694,3 +694,20 @@
 - 下一步建议：
   1. 执行 `S32-B`：新增 `POST /api/slo/alerts/scan`，把核心 SLO 阈值扫描接入现有通知/事件闭环；
   2. 执行 `S32-C`：扩展 `GET /api/books/[id]/qc/dispatch-events` 兼容核心 SLO 事件，并让复核页切换到统一 SLO API。
+
+
+### 36) 第三十三轮增量（S32-B：核心 SLO 告警扫描）
+
+- 核心 SLO 扫描已落地：
+  - 新增 `slo-alerts` 模块与 `POST /api/slo/alerts/scan`，可按 `days/source/maxBooks` 批量扫描核心 SLO breach；
+  - 默认阈值与统一指标口径对齐，先覆盖 `pipeline_success_rate>=95%` 与 `chapter_consistency_fail_rate<3%`。
+- 事件与通知复用：
+  - SLO 告警直接复用现有 `qc_dispatch_alert_events` 事件表，落库 `issueType=SLO`；
+  - `ack/resolve` 生命周期无需新表即可继续使用；
+  - webhook 通道支持 `SLO_ALERT_WEBHOOK_URL` 优先、`QC_DISPATCH_ALERT_WEBHOOK_URL` 回退。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/slo-alert-service.test.ts src/lib/__tests__/slo-alert-scanner.test.ts src/lib/__tests__/slo-alert-scan-route.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 执行 `S32-C`：让复核页核心卡片与 SLO 看板改读 `GET /api/books/[id]/slo/metrics`；
+  2. `S32-C` 后执行最终收口检查，避免旧指标接口继续分裂口径。
