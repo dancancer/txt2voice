@@ -964,3 +964,24 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 2. 方向一致性：当前开发方向仍与原始需求保持一致，仍然围绕“上传即自动生成、质量闭环、可运营”三条主线推进，没有偏离主目标。
 3. 收敛判断：`G1/G3` 已关闭，当前主要缺口进一步收敛到 `Phase C` 验收与 `S30.1/S31/S32` 三项主线工作。
 4. 下一轮策略：先完成 `Phase C` 和 `S30.1` 基线固化，再进入信号生产任务化，避免边接外部信号边补验收。
+
+
+### [P4] Phase C 自动化隔离验收落地（2026-03-07 11:12 CST）
+
+- 完成内容：
+  1. 补强 `quality-check-runner-reprocessing.test.ts` 中的 `calibration_eval` 用例，新增对 `quality_check_results.detail.calibrationLabel` 与 `detail.source=calibration_eval` 的断言，确保回放结果确实被打上校准标签。
+  2. 新增 `task-queue-worker-state.test.ts`，覆盖 `calibration_eval` 失败路径：确认失败时会回写 `deepGateThresholdGovernance.report.replayTaskStatus=failed`，且不会把书籍状态降级为 `completed_with_errors`。
+  3. 本轮把规划中的 `Phase C` 从“已有实现”推进到“可重复自动化验收”，覆盖成功回放隔离与失败隔离两侧场景。
+- 关键文件：
+  - `apps/web/src/lib/__tests__/quality-check-runner-reprocessing.test.ts`
+  - `apps/web/src/lib/__tests__/task-queue-worker-state.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/task-queue-worker-state.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`Phase C` 已具备自动化隔离验收能力。
+- 下一步建议：
+  1. 执行 `Phase D`：使用 `uploads/sample.txt` 固化 `S30.1` 前置对照基线。
+  2. 随后进入 `S30.1`，把 ASR/CER + speaker embedding 任务化。
+  3. 若 `Phase D` 数据口径稳定，再推进 `S31`。

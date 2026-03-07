@@ -273,3 +273,15 @@
 1. 执行 `Phase C`：`calibration_eval` 隔离验收。
 2. 执行 `Phase D`：固化 `S30.1` 前置对照基线。
 3. 然后进入 `S30.1` 实施。
+
+
+### Phase C 更新（2026-03-07 11:12 CST）
+
+1. 已新增自动化测试覆盖 `calibration_eval` 成功回放打标与失败回写治理状态。
+2. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/task-queue-worker-state.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+3. 结果：全部通过。
+4. 结论：`Phase C` 已可视为自动化验收完成，下一步进入 `Phase D` 基线固化。

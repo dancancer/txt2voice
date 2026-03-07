@@ -557,3 +557,19 @@
 - 进度结论：已完成 `S27.1`、`S28.1`、规划文档拆分，以及新规划 `Phase A/B` 的自动化验收入口。
 - 方向结论：与原始需求保持一致，当前仍聚焦“自动链路 + 质量闭环 + 可运营”三条主线。
 - 剩余主线：`Phase C`、`S30.1`、`S31`、`S32`。
+
+
+### 28) 第二十六轮增量（Phase C 自动化隔离验收）
+
+- 自动化隔离验收补齐：
+  - `quality-check-runner-reprocessing.test.ts` 已补 `calibrationLabel` 与 `source=calibration_eval` 断言；
+  - 新增 `task-queue-worker-state.test.ts`，覆盖 `calibration_eval` 失败回写 `replayTaskStatus=failed` 且不降级书籍主状态。
+- 规划执行状态：
+  - 新规划中的 `Phase C` 已具备自动化验收入口；
+  - 当前 `Phase A/B/C` 都已经从“文档计划”推进到“可重复测试”。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-check-runner-reprocessing.test.ts src/lib/__tests__/task-queue-worker-state.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 执行 `Phase D`，固化 `S30.1` 前置对照基线；
+  2. 然后进入 `S30.1` 实施。

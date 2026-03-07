@@ -418,6 +418,21 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
     expect(tx.audioFile.update).not.toHaveBeenCalled();
     expect(tx.manualReviewItem.findMany).not.toHaveBeenCalled();
     expect(mockChapterAuditCreate).not.toHaveBeenCalled();
+    expect(tx.qualityCheckResult.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        detail: expect.objectContaining({
+          source: "calibration_eval",
+          calibrationLabel: expect.objectContaining({
+            expectedVerdict: "manual_review",
+            issueType: "EMOTION",
+            source: "manual_review",
+            reportId: "report-1",
+            sampleSetId: "sample-set-1",
+            dryRun: true,
+          }),
+        }),
+      }),
+    });
     expect(mockMergeTaskData).toHaveBeenCalledWith(
       "quality-task-calibration-1",
       expect.objectContaining({
