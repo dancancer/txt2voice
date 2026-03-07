@@ -985,3 +985,29 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
   1. 执行 `Phase D`：使用 `uploads/sample.txt` 固化 `S30.1` 前置对照基线。
   2. 随后进入 `S30.1`，把 ASR/CER + speaker embedding 任务化。
   3. 若 `Phase D` 数据口径稳定，再推进 `S31`。
+
+
+### [P5] Phase D 基线采集服务落地（2026-03-07 14:05 CST）
+
+- 完成内容：
+  1. 新增 `qc-baseline-service`，从最新已完成且非 `calibration_eval` 的 `QUALITY_CHECK` 任务中提取当前质量摘要，形成可固化的基线快照。
+  2. 新增 `GET/POST /api/books/[id]/qc/baseline`：
+     - `GET` 返回当前可用于对照的实时摘要与历史基线；
+     - `POST` 固化一份基线快照到 `book.metadata.qualityCheck.baselineSnapshots`，默认 `sampleSourcePath=uploads/sample.txt`。
+  3. 基线快照包含 `pass/repair/manualReview/hardFail`、`issueTypeCounts`、`q0q3Summary`、`signalSourceSummary`、`pendingReviewCount` 与计数摘要，可直接作为 `S30.1` 前后对照基线。
+  4. 新增服务测试与路由测试，确认会跳过 `calibration_eval` 任务、能正确固化默认测试书路径，并能通过 API 读写基线。
+- 关键文件：
+  - `apps/web/src/lib/qc-baseline-service.ts`
+  - `apps/web/src/app/api/books/[id]/qc/baseline/route.ts`
+  - `apps/web/src/lib/__tests__/qc-baseline-service.test.ts`
+  - `apps/web/src/lib/__tests__/qc-baseline-route.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-baseline-service.test.ts src/lib/__tests__/qc-baseline-route.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`Phase D` 已具备可复用的基线采集入口。
+- 下一步建议：
+  1. 基于 `uploads/sample.txt` 调用 `POST /api/books/[id]/qc/baseline` 固化当前基线。
+  2. 进入 `S30.1`，开始 ASR/CER + speaker embedding 任务化。
+  3. 进入 `S30.1` 后，每完成一个子阶段，用同一书籍重新抓一版基线做前后对照。

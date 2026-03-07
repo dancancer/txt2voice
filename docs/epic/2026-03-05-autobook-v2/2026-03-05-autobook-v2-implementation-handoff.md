@@ -573,3 +573,19 @@
 - 下一步建议：
   1. 执行 `Phase D`，固化 `S30.1` 前置对照基线；
   2. 然后进入 `S30.1` 实施。
+
+
+### 29) 第二十七轮增量（Phase D 基线采集服务）
+
+- 基线采集能力已落地：
+  - 新增 `qc-baseline-service`，从最新非 `calibration_eval` 质检任务中提取当前质量摘要；
+  - 新增 `GET/POST /api/books/[id]/qc/baseline`，可查询当前摘要并将其固化为历史基线快照。
+- 默认测试素材绑定：
+  - `POST /api/books/[id]/qc/baseline` 默认 `sampleSourcePath=uploads/sample.txt`，和当前测试规划保持一致；
+  - 后续可直接用这份样本做 `S30.1` 前后对照。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-baseline-service.test.ts src/lib/__tests__/qc-baseline-route.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 直接基于当前测试书固化一版 `S30.1` 前置基线；
+  2. 然后进入 `S30.1` 实施。

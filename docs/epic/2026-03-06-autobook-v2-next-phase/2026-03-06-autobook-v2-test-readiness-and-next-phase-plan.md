@@ -285,3 +285,16 @@
    - `pnpm --filter web test:regression`
 3. 结果：全部通过。
 4. 结论：`Phase C` 已可视为自动化验收完成，下一步进入 `Phase D` 基线固化。
+
+
+### Phase D 更新（2026-03-07 14:05 CST）
+
+1. 已新增 `GET/POST /api/books/[id]/qc/baseline`，用于查询和固化 `S30.1` 前置基线。
+2. 默认测试素材已绑定为 `uploads/sample.txt`。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/qc-baseline-service.test.ts src/lib/__tests__/qc-baseline-route.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+5. 结论：`Phase D` 已具备可复用采集入口，下一步可直接切换到 `S30.1`。
