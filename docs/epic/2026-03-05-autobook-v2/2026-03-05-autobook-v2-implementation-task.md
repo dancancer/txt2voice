@@ -47,6 +47,9 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 | S28 | 上传自动触发 Auto Pipeline + 主入口统一 | ✅ 完成 | 上传后默认触发自动编排，手工触发/上传触发复用同一建链服务，并回传 upload 来源与阶段耗时 |
 | S29 | Engine Router v1 运行时接入 | ✅ 完成 | 音频生成支持路由决策/自动降级/策略透传，新增路由指标 API，并完成测试回归 |
 | S30 | Q0-Q3 指标化升级（CER/声纹优先） | ✅ 完成 | 质检主链路支持 Q0-Q3 指标化评分与信号来源观测，新增参数透传与指标聚合 API，测试/回归/类型校验通过 |
+| S31 | 编排任务语义补齐 | ✅ 完成 | 提供 `FINAL_ASSEMBLY/MANUAL_REVIEW_SYNC` 任务与 API，交付阶段可独立重放/恢复/审计 |
+| S32-A | 核心 SLO 指标 API 统一 | ✅ 完成 | 提供 `GET /api/books/[id]/slo/metrics`，统一 5 项核心 SLO 指标口径与 `days/source` 查询 |
+| S32-B | 核心 SLO 告警扫描与事件兼容 | ⏳ 待执行 | 提供 `POST /api/slo/alerts/scan` 并扩展 `dispatch-events` 兼容核心 SLO 事件 |
 
 ## 3. 执行日志
 
@@ -1152,3 +1155,31 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 - 下一步建议：
   1. 主线切换到 `S32`：统一核心 SLO 指标口径、API 与告警闭环。
   2. 在 `S32` 中优先落 `GET /api/books/[id]/slo/metrics`，把现有散落指标先统一成单一口径。
+
+
+### [S32-A] 统一核心 SLO 指标 API（2026-03-07 22:50 CST）
+
+- 完成内容：
+  1. 新增 `slo-metrics` 模块，统一固化 `pipeline_success_rate / sentence_pass_rate_first_try / avg_retry_per_sentence / manual_review_ratio / chapter_consistency_fail_rate` 五项指标口径，并支持 `days/source` 查询。
+  2. 新增 `GET /api/books/[id]/slo/metrics`，输出窗口信息、核心指标、`workflowSummary`、`qualitySummary`、`manualReviewSummary`、`chapterAuditSummary` 与 `latestQualityTask`。
+  3. 指标复算统一基于 `ProcessingTask / QualityCheckResult / ManualReviewItem / SynthesisAttempt / ChapterQualityAudit`，并自动剔除 `calibration_eval` 结果，避免审计回放污染生产 SLO。
+  4. `pipeline_success_rate` 已按“`AUTO_PIPELINE` 直达交付 + `FINAL_ASSEMBLY` 复核后交付”统一到 delivery terminal 口径，和 `S31` 新任务语义对齐。
+- 关键文件：
+  - `apps/web/src/lib/slo-metrics/service.ts`
+  - `apps/web/src/lib/slo-metrics/query.ts`
+  - `apps/web/src/lib/slo-metrics/helpers.ts`
+  - `apps/web/src/lib/slo-metrics/types.ts`
+  - `apps/web/src/app/api/books/[id]/slo/metrics/route.ts`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/slo-metrics-service.test.ts`
+  - `apps/web/src/lib/__tests__/slo-metrics-route.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/slo-metrics-service.test.ts src/lib/__tests__/slo-metrics-route.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`S32` 已进入“核心指标口径统一 + API 可消费”阶段。
+- 下一步建议：
+  1. 执行 `S32-B`：新增 `POST /api/slo/alerts/scan`，把核心 SLO 阈值扫描接到现有通知/事件生命周期。
+  2. 执行 `S32-C`：扩展 `GET /api/books/[id]/qc/dispatch-events` 兼容核心 SLO 事件，并把复核页看板切到统一 SLO API。
+  3. 第 35 轮阶段回顾时，确认 `S31 + S32` 收口方向仍与原始需求保持一致。

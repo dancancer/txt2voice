@@ -348,3 +348,16 @@
    - `pnpm --filter web test:regression`
 3. 结果：全部通过。
 4. 结论：`S31` 已完成，下一步切换到 `S32`。
+
+
+### S32 V1 更新（2026-03-07 22:50 CST）
+
+1. 已新增 `slo-metrics` 模块与 `GET /api/books/[id]/slo/metrics`，统一五项核心 SLO 指标口径，并支持 `days/source` 过滤。
+2. `pipeline_success_rate` 已建立 `AUTO_PIPELINE` 直达交付 + `FINAL_ASSEMBLY` 复核后交付的 delivery terminal 口径；`calibration_eval` 已自动从生产 SLO 统计中剔除。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/slo-metrics-service.test.ts src/lib/__tests__/slo-metrics-route.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+5. 结论：`S32` 已进入 V1 阶段，下一步应补 `POST /api/slo/alerts/scan` 与事件生命周期兼容层。
