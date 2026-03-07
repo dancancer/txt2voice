@@ -11,6 +11,7 @@ import {
   enqueueAutoPipelineJob,
   enqueueAudioGenerationJob,
   enqueueQualityCheckJob,
+  enqueueQualitySignalSyncJob,
   enqueueScriptGenerationJob,
 } from "@/lib/task-queue/ops/enqueue";
 
@@ -62,6 +63,21 @@ export async function replayProcessingTask(
     return {
       taskId: payload.input.taskId,
       taskType: "AUDIO_GENERATION",
+      jobId: result.jobId,
+      reused: result.reused,
+      reason,
+    };
+  }
+
+  if (payload.kind === "signal_sync") {
+    const result = await enqueueQualitySignalSyncJob(payload.input, {
+      allowReuse: !force,
+      reason,
+    });
+
+    return {
+      taskId: payload.input.taskId,
+      taskType: "QUALITY_SIGNAL_SYNC",
       jobId: result.jobId,
       reused: result.reused,
       reason,

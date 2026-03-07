@@ -3,6 +3,7 @@ import type { AutoPipelineOptions } from "@/lib/auto-pipeline-runner";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
+import type { QualitySignalSyncTaskType } from "@/lib/quality-signal-sync-runner";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 
 interface ScriptDedupeInput {
@@ -24,6 +25,14 @@ interface QualityDedupeInput {
   type: QualityCheckTaskType;
   chapterId?: string;
   audioFileIds?: string[];
+}
+
+interface SignalSyncDedupeInput {
+  bookId: string;
+  type: QualitySignalSyncTaskType;
+  chapterId?: string;
+  audioFileIds?: string[];
+  forceResync?: boolean;
 }
 
 interface AutoPipelineDedupeInput {
@@ -74,6 +83,17 @@ export const buildQualityDedupeKey = (input: QualityDedupeInput): string => {
   };
 
   return `quality:${input.bookId}:${hashScope(normalized)}`;
+};
+
+export const buildSignalSyncDedupeKey = (input: SignalSyncDedupeInput): string => {
+  const normalized = {
+    type: input.type,
+    chapterId: input.chapterId || null,
+    audioFileIds: (input.audioFileIds || []).slice().sort(),
+    forceResync: Boolean(input.forceResync),
+  };
+
+  return `signal_sync:${input.bookId}:${hashScope(normalized)}`;
 };
 
 export const buildAutoPipelineDedupeKey = (

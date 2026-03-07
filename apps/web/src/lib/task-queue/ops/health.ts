@@ -8,6 +8,7 @@ import {
   getDeadLetterQueue,
   getQualityQueue,
   getScriptQueue,
+  getSignalSyncQueue,
 } from "@/lib/task-queue/core/runtime";
 import { recoverStalledProcessingTasks } from "@/lib/task-queue/ops/recovery";
 import { ensureTaskWorkerStarted } from "@/lib/task-queue/ops/worker";
@@ -27,6 +28,7 @@ export async function getTaskQueueHealth(): Promise<Record<string, unknown>> {
       scriptCounts,
       audioCounts,
       qualityCounts,
+      signalSyncCounts,
       autoPipelineCounts,
       deadLetterCounts,
       recovery,
@@ -34,6 +36,7 @@ export async function getTaskQueueHealth(): Promise<Record<string, unknown>> {
       getScriptQueue().getJobCounts(),
       getAudioQueue().getJobCounts(),
       getQualityQueue().getJobCounts(),
+      getSignalSyncQueue().getJobCounts(),
       getAutoPipelineQueue().getJobCounts(),
       getDeadLetterQueue().getJobCounts(),
       recoverStalledProcessingTasks(),
@@ -45,6 +48,7 @@ export async function getTaskQueueHealth(): Promise<Record<string, unknown>> {
       script: scriptCounts,
       audio: audioCounts,
       quality: qualityCounts,
+      signalSync: signalSyncCounts,
       autoPipeline: autoPipelineCounts,
       deadLetter: deadLetterCounts,
       recovery,

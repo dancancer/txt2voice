@@ -7,6 +7,7 @@ import type { QueueTaskType } from "./replay-payload";
 
 export type BookFallbackStatus =
   | "uploaded"
+  | "completed"
   | "processed"
   | "script_generated"
   | "completed_with_errors"
@@ -133,6 +134,7 @@ export async function markTaskFailed(
       : {};
   const isCalibrationEval = taskMetadata.source === "calibration_eval";
   const isUploadCompensation = taskMetadata.source === "upload_compensation";
+  const isQualitySignalSync = taskMetadata.source === "quality_signal_sync";
   const calibrationEval =
     taskMetadata.calibrationEval &&
     typeof taskMetadata.calibrationEval === "object" &&
@@ -210,6 +212,47 @@ export async function markTaskFailed(
         },
       });
     }
+    return;
+  }
+
+  if (isQualitySignalSync) {
+    const book = await prisma.book.findUnique({
+      where: { id: bookId },
+      select: { metadata: true, status: true },
+    });
+    const rootMetadata = jsonObject(book?.metadata);
+    const qualityCheck =
+      rootMetadata.qualityCheck &&
+      typeof rootMetadata.qualityCheck === "object" &&
+      !Array.isArray(rootMetadata.qualityCheck)
+        ? (rootMetadata.qualityCheck as Record<string, unknown>)
+        : {};
+
+    await prisma.book.update({
+      where: { id: bookId },
+      data: {
+        status: book?.status || fallbackStatus,
+        metadata: JSON.parse(
+          JSON.stringify({
+            ...rootMetadata,
+            qualityCheck: {
+              ...qualityCheck,
+              signalSupply: {
+                ...(qualityCheck.signalSupply &&
+                typeof qualityCheck.signalSupply === "object" &&
+                !Array.isArray(qualityCheck.signalSupply)
+                  ? qualityCheck.signalSupply
+                  : {}),
+                taskId,
+                status: "failed",
+                failedAt: new Date().toISOString(),
+                lastError: message,
+              },
+            },
+          })
+        ),
+      },
+    });
     return;
   }
 

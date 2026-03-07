@@ -298,3 +298,16 @@
    - `pnpm --filter web test:regression`
 4. 结果：全部通过。
 5. 结论：`Phase D` 已具备可复用采集入口，下一步可直接切换到 `S30.1`。
+
+
+### S30.1 V1 更新（2026-03-07 19:44 CST）
+
+1. 已新增 `QUALITY_SIGNAL_SYNC` 任务、执行器和 `POST/GET /api/books/[id]/qc/signals/sync`。
+2. 当前已可稳定回写 `attempt.metrics.cer` 与 `attempt.metrics.speakerSimilarity` 系列字段。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-signal-sync-runner.test.ts src/lib/__tests__/qc-signal-sync-route.test.ts src/lib/__tests__/task-replay-payload-signal-sync.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+5. 结论：`S30.1` 已进入 V1 阶段，下一步应把信号生产挂入默认链路并接入真实 provider。

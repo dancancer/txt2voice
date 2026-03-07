@@ -6,6 +6,7 @@ export type {
   AutoPipelineQueueInput,
   AudioGenerationQueueInput,
   QualityCheckQueueInput,
+  QualitySignalSyncQueueInput,
   QueueControlOptions,
   RecoveryResult,
   ReplayControlOptions,
@@ -17,6 +18,7 @@ export {
   enqueueAutoPipelineJob,
   enqueueAudioGenerationJob,
   enqueueQualityCheckJob,
+  enqueueQualitySignalSyncJob,
   enqueueScriptGenerationJob,
 } from "@/lib/task-queue/ops/enqueue";
 export { getTaskQueueHealth } from "@/lib/task-queue/ops/health";

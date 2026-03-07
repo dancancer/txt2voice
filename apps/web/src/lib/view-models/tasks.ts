@@ -14,6 +14,7 @@ const TASK_TYPE_LABEL: Record<string, string> = {
   SCRIPT_GENERATION: "台本生成",
   AUDIO_GENERATION: "音频生成",
   QUALITY_CHECK: "质量检查",
+  QUALITY_SIGNAL_SYNC: "信号生产",
   AUTO_PIPELINE: "自动编排",
   AUTO_PIPELINE_COMPENSATION: "上传触发补偿",
 };

@@ -7,6 +7,7 @@ import {
   DEAD_LETTER_JOB_OPTIONS,
   DEAD_LETTER_QUEUE_NAME,
   QUALITY_QUEUE_NAME,
+  SIGNAL_SYNC_QUEUE_NAME,
   RUNNING_STATES,
   SCRIPT_QUEUE_NAME,
 } from "./constants";
@@ -16,6 +17,7 @@ import type {
   DeadLetterJobData,
   JobRuntimeState,
   QualityCheckJobData,
+  QualitySignalSyncJobData,
   QueueAddResult,
   ScriptGenerationJobData,
   TaskQueueState,
@@ -29,6 +31,7 @@ export const queueState: TaskQueueState = globalThis.__txt2voiceTaskQueueState ?
   scriptQueue: null,
   audioQueue: null,
   qualityQueue: null,
+  signalSyncQueue: null,
   autoPipelineQueue: null,
   deadLetterQueue: null,
   workerStarted: false,
@@ -108,6 +111,13 @@ export function getQualityQueue(): Bull.Queue<QualityCheckJobData> {
     queueState.qualityQueue = createQueue<QualityCheckJobData>(QUALITY_QUEUE_NAME);
   }
   return queueState.qualityQueue;
+}
+
+export function getSignalSyncQueue(): Bull.Queue<QualitySignalSyncJobData> {
+  if (!queueState.signalSyncQueue) {
+    queueState.signalSyncQueue = createQueue<QualitySignalSyncJobData>(SIGNAL_SYNC_QUEUE_NAME);
+  }
+  return queueState.signalSyncQueue;
 }
 
 export function getAutoPipelineQueue(): Bull.Queue<AutoPipelineJobData> {
@@ -202,7 +212,9 @@ export async function getQueueJobState(
         ? getAudioQueue()
         : taskType === "QUALITY_CHECK"
           ? getQualityQueue()
-          : getAutoPipelineQueue();
+          : taskType === "QUALITY_SIGNAL_SYNC"
+            ? getSignalSyncQueue()
+            : getAutoPipelineQueue();
   const job = await queue.getJob(taskId);
   if (!job) {
     return { state: null, exists: false };

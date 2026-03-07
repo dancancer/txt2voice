@@ -10,6 +10,7 @@ export const LEGACY_QUEUE_NAMESPACE = "txt2voice";
 export const SCRIPT_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:script-generation`;
 export const AUDIO_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:audio-generation`;
 export const QUALITY_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:quality-check`;
+export const SIGNAL_SYNC_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:quality-signal-sync`;
 export const AUTO_PIPELINE_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:auto-pipeline`;
 export const DEAD_LETTER_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:dead-letter`;
 
@@ -54,6 +55,17 @@ export const AUDIO_JOB_OPTIONS: Bull.JobOptions = {
 };
 
 export const QUALITY_JOB_OPTIONS: Bull.JobOptions = {
+  attempts: 2,
+  backoff: {
+    type: "exponential",
+    delay: 10_000,
+  },
+  timeout: 30 * 60 * 1_000,
+  removeOnComplete: 500,
+  removeOnFail: 1_000,
+};
+
+export const SIGNAL_SYNC_JOB_OPTIONS: Bull.JobOptions = {
   attempts: 2,
   backoff: {
     type: "exponential",

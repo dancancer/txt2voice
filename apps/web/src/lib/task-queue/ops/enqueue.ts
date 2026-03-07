@@ -4,12 +4,15 @@ import {
   buildAudioDedupeKey,
   buildQualityDedupeKey,
   buildScriptDedupeKey,
+  buildSignalSyncDedupeKey,
 } from "@/lib/task-queue/dedupe";
 import {
   AUDIO_JOB_OPTIONS,
   AUDIO_QUEUE_NAME,
   QUALITY_JOB_OPTIONS,
   QUALITY_QUEUE_NAME,
+  SIGNAL_SYNC_JOB_OPTIONS,
+  SIGNAL_SYNC_QUEUE_NAME,
   SCRIPT_JOB_OPTIONS,
   SCRIPT_QUEUE_NAME,
 } from "@/lib/task-queue/core/constants";
@@ -18,11 +21,13 @@ import {
   getAudioQueue,
   getQualityQueue,
   getScriptQueue,
+  getSignalSyncQueue,
 } from "@/lib/task-queue/core/runtime";
 import type {
   AutoPipelineQueueInput,
   AudioGenerationQueueInput,
   QualityCheckQueueInput,
+  QualitySignalSyncQueueInput,
   QueueControlOptions,
   ScriptGenerationQueueInput,
 } from "@/lib/task-queue/core/types";
@@ -59,6 +64,17 @@ const normalizeQualityInput = (
   type: input.type,
   chapterId: input.chapterId,
   audioFileIds: input.audioFileIds || [],
+});
+
+const normalizeSignalSyncInput = (
+  input: QualitySignalSyncQueueInput
+): QualitySignalSyncQueueInput => ({
+  taskId: input.taskId,
+  bookId: input.bookId,
+  type: input.type,
+  chapterId: input.chapterId,
+  audioFileIds: input.audioFileIds || [],
+  forceResync: Boolean(input.forceResync),
 });
 
 export async function enqueueScriptGenerationJob(
@@ -214,6 +230,64 @@ export async function enqueueQualityCheckJob(
         type: normalizedInput.type,
         chapterId: normalizedInput.chapterId || null,
         audioFileIds: normalizedInput.audioFileIds || [],
+      },
+      enqueuedAt: new Date().toISOString(),
+    },
+  });
+
+  await prisma.processingTask.update({
+    where: { id: normalizedInput.taskId },
+    data: {
+      status: "processing",
+      completedAt: null,
+      errorMessage: null,
+      externalTaskId: jobId,
+      taskData,
+    },
+  });
+
+  return { jobId, dedupeKey, reused: addResult.reused, state: addResult.state };
+}
+
+export async function enqueueQualitySignalSyncJob(
+  input: QualitySignalSyncQueueInput,
+  control: QueueControlOptions = {}
+): Promise<{ jobId: string; dedupeKey: string; reused: boolean; state: string }> {
+  await ensureTaskWorkerStarted();
+
+  const normalizedInput = normalizeSignalSyncInput(input);
+  const queue = getSignalSyncQueue();
+  const dedupeKey = buildSignalSyncDedupeKey(normalizedInput);
+  const addResult = await addOrReuseJob(
+    queue,
+    {
+      ...normalizedInput,
+      audioFileIds: normalizedInput.audioFileIds || [],
+      forceResync: Boolean(normalizedInput.forceResync),
+      dedupeKey,
+    },
+    {
+      ...SIGNAL_SYNC_JOB_OPTIONS,
+      jobId: normalizedInput.taskId,
+    },
+    control.allowReuse ?? true
+  );
+
+  const jobId = String(addResult.job.id);
+  const taskData = await mergeTaskData(normalizedInput.taskId, {
+    message: addResult.reused ? "任务已在队列中执行" : "任务已入队，等待执行",
+    metadata: {
+      queueName: SIGNAL_SYNC_QUEUE_NAME,
+      queueJobId: jobId,
+      dedupeKey,
+      queueMode: "redis_worker",
+      queueState: addResult.state,
+      enqueueReason: control.reason || "api_request",
+      queuePayload: {
+        type: normalizedInput.type,
+        chapterId: normalizedInput.chapterId || null,
+        audioFileIds: normalizedInput.audioFileIds || [],
+        forceResync: Boolean(normalizedInput.forceResync),
       },
       enqueuedAt: new Date().toISOString(),
     },

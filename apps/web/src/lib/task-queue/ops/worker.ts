@@ -3,6 +3,7 @@ import { runAutoPipelineTask } from "@/lib/auto-pipeline-runner";
 import { runAutoPipelineCompensationTask } from "@/lib/auto-pipeline-compensation-runner";
 import { runAudioGenerationTask } from "@/lib/audio-generation-runner";
 import { runQualityCheckTask } from "@/lib/quality-check-runner";
+import { runQualitySignalSyncTask } from "@/lib/quality-signal-sync-runner";
 import { runScriptGenerationTask } from "@/lib/script-generation-runner";
 import { warnIfLegacyNamespaceHasPendingJobs } from "@/lib/task-queue/namespace-check";
 import {
@@ -12,6 +13,7 @@ import {
   LEGACY_QUEUE_NAMESPACE,
   QUALITY_QUEUE_NAME,
   SCRIPT_QUEUE_NAME,
+  SIGNAL_SYNC_QUEUE_NAME,
   TASK_QUEUE_NAMESPACE,
 } from "@/lib/task-queue/core/constants";
 import {
@@ -21,12 +23,14 @@ import {
   getDeadLetterQueue,
   getQualityQueue,
   getScriptQueue,
+  getSignalSyncQueue,
   queueState,
 } from "@/lib/task-queue/core/runtime";
 import type {
   AutoPipelineJobData,
   AudioGenerationJobData,
   QualityCheckJobData,
+  QualitySignalSyncJobData,
   ScriptGenerationJobData,
 } from "@/lib/task-queue/core/types";
 import {
@@ -43,6 +47,7 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
   const scriptQueue = getScriptQueue();
   const audioQueue = getAudioQueue();
   const qualityQueue = getQualityQueue();
+  const signalSyncQueue = getSignalSyncQueue();
   const autoPipelineQueue = getAutoPipelineQueue();
   getDeadLetterQueue();
 
@@ -51,6 +56,7 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
     scriptQueue: SCRIPT_QUEUE_NAME,
     audioQueue: AUDIO_QUEUE_NAME,
     qualityQueue: QUALITY_QUEUE_NAME,
+    signalSyncQueue: SIGNAL_SYNC_QUEUE_NAME,
     autoPipelineQueue: AUTO_PIPELINE_QUEUE_NAME,
   });
 
@@ -142,6 +148,37 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         taskId: job.data.taskId,
         bookId: job.data.bookId,
         fallbackStatus: "completed_with_errors",
+        error,
+        payload: {
+          ...job.data,
+        },
+        addDeadLetter,
+      });
+      throw error;
+    }
+  });
+
+  signalSyncQueue.process(2, async (job: Bull.Job<QualitySignalSyncJobData>) => {
+    await markTaskAttemptStart(job.data.taskId, job);
+
+    try {
+      await withTaskHeartbeat(job.data.taskId, job, HEARTBEAT_INTERVAL_MS, async () =>
+        runQualitySignalSyncTask({
+          taskId: job.data.taskId,
+          bookId: job.data.bookId,
+          type: job.data.type,
+          chapterId: job.data.chapterId,
+          audioFileIds: job.data.audioFileIds,
+          forceResync: job.data.forceResync,
+        })
+      );
+    } catch (error) {
+      await handleWorkerFailure({
+        taskType: "QUALITY_SIGNAL_SYNC",
+        job,
+        taskId: job.data.taskId,
+        bookId: job.data.bookId,
+        fallbackStatus: "completed",
         error,
         payload: {
           ...job.data,

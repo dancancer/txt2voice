@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S30 + S27.1 + S28.1 功能实施已完成；已补齐上传触发补偿任务化，待推进 S30.1/S31/S32。
+- 当前进度：S0-S30 + S27.1 + S28.1 已完成，S30.1 V1（信号生产任务化骨架）已落地；待推进 S30.1 收口 / S31 / S32。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -589,3 +589,23 @@
 - 下一步建议：
   1. 直接基于当前测试书固化一版 `S30.1` 前置基线；
   2. 然后进入 `S30.1` 实施。
+
+
+### 30) 第二十八轮增量（S30.1-A：信号生产任务化 V1）
+
+- 信号供给链起步：
+  - 新增 `QUALITY_SIGNAL_SYNC` 任务，支持按 `book/chapter/batch` 为最新合成尝试回写 `cer` 与 `speakerSimilarity` 系列指标；
+  - 当前信号来源为 `task_payload + heuristic fallback`，先保证供给链稳定可跑。
+- API 与运维接入：
+  - 新增 `POST/GET /api/books/[id]/qc/signals/sync`；
+  - `task-replay/retry/watchdog recovery/health` 已支持 `QUALITY_SIGNAL_SYNC`。
+- 当前边界：
+  - 已解决“信号只能被消费、不能稳定生产”的问题；
+  - 尚未把 `QUALITY_SIGNAL_SYNC` 默认接入 `AUTO_PIPELINE` / `qc/run` 前置阶段；
+  - 尚未接入真实外部 ASR/CER 与 speaker embedding provider。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-signal-sync-runner.test.ts src/lib/__tests__/qc-signal-sync-route.test.ts src/lib/__tests__/task-replay-payload-signal-sync.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 执行 `S30.1-B`：把信号生产任务挂到自动编排与质检前置链路；
+  2. 执行 `S30.1-C`：接入真实 provider，降低对启发式 fallback 的依赖。

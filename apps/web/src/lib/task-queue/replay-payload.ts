@@ -8,6 +8,7 @@ import { jsonObject } from "@/lib/processing-task-utils";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
+import type { QualitySignalSyncTaskType } from "@/lib/quality-signal-sync-runner";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 
@@ -15,6 +16,7 @@ export type QueueTaskType =
   | "SCRIPT_GENERATION"
   | "AUDIO_GENERATION"
   | "QUALITY_CHECK"
+  | "QUALITY_SIGNAL_SYNC"
   | "AUTO_PIPELINE"
   | "AUTO_PIPELINE_COMPENSATION";
 
@@ -44,6 +46,15 @@ export interface QualityReplayInput {
   audioFileIds?: string[];
 }
 
+export interface SignalSyncReplayInput {
+  taskId: string;
+  bookId: string;
+  type: QualitySignalSyncTaskType;
+  chapterId?: string;
+  audioFileIds?: string[];
+  forceResync?: boolean;
+}
+
 export interface AutoPipelineReplayInput {
   taskId: string;
   bookId: string;
@@ -69,6 +80,11 @@ interface QualityPayloadContainer {
   input: QualityReplayInput;
 }
 
+interface SignalSyncPayloadContainer {
+  kind: "signal_sync";
+  input: SignalSyncReplayInput;
+}
+
 interface AutoPipelinePayloadContainer {
   kind: "auto_pipeline";
   input: AutoPipelineReplayInput;
@@ -78,6 +94,7 @@ export type PayloadContainer =
   | ScriptPayloadContainer
   | AudioPayloadContainer
   | QualityPayloadContainer
+  | SignalSyncPayloadContainer
   | AutoPipelinePayloadContainer;
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -193,6 +210,27 @@ const buildQualityReplayPayloadFromTask = (task: ProcessingTask): QualityReplayI
         ? metadata.chapterId
         : undefined,
     audioFileIds,
+  };
+};
+
+const buildSignalSyncReplayPayloadFromTask = (task: ProcessingTask): SignalSyncReplayInput => {
+  const rawTaskData = jsonObject(task.taskData);
+  const metadata = asRecord(rawTaskData.metadata);
+
+  return {
+    taskId: task.id,
+    bookId: task.bookId,
+    type:
+      metadata && typeof metadata.type === "string"
+        ? (metadata.type as QualitySignalSyncTaskType)
+        : "book",
+    chapterId:
+      metadata && typeof metadata.chapterId === "string" ? metadata.chapterId : undefined,
+    audioFileIds:
+      metadata && Array.isArray(metadata.audioFileIds)
+        ? metadata.audioFileIds.filter((value): value is string => typeof value === "string")
+        : undefined,
+    forceResync: Boolean(metadata?.forceResync),
   };
 };
 
@@ -314,6 +352,32 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
     };
   }
 
+  if (task.taskType === "QUALITY_SIGNAL_SYNC") {
+    if (queuePayload) {
+      const audioFileIds = Array.isArray(queuePayload.audioFileIds)
+        ? queuePayload.audioFileIds.filter((value): value is string => typeof value === "string")
+        : undefined;
+
+      return {
+        kind: "signal_sync",
+        input: {
+          taskId: task.id,
+          bookId: task.bookId,
+          type: String(queuePayload.type || "book") as QualitySignalSyncTaskType,
+          chapterId:
+            typeof queuePayload.chapterId === "string" ? queuePayload.chapterId : undefined,
+          audioFileIds,
+          forceResync: Boolean(queuePayload.forceResync),
+        },
+      };
+    }
+
+    return {
+      kind: "signal_sync",
+      input: buildSignalSyncReplayPayloadFromTask(task),
+    };
+  }
+
   if (task.taskType === "AUTO_PIPELINE" || task.taskType === "AUTO_PIPELINE_COMPENSATION") {
     if (queuePayload) {
       return {
@@ -353,6 +417,7 @@ export const isRecoverableTask = (taskType: string): taskType is QueueTaskType =
     taskType === "SCRIPT_GENERATION" ||
     taskType === "AUDIO_GENERATION" ||
     taskType === "QUALITY_CHECK" ||
+    taskType === "QUALITY_SIGNAL_SYNC" ||
     taskType === "AUTO_PIPELINE" ||
     taskType === "AUTO_PIPELINE_COMPENSATION"
   );

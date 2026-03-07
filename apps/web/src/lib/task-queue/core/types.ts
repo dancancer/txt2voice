@@ -3,6 +3,7 @@ import type { AutoPipelineOptions } from "@/lib/auto-pipeline-runner";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
+import type { QualitySignalSyncTaskType } from "@/lib/quality-signal-sync-runner";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 import type { QueueTaskType } from "@/lib/task-queue/replay-payload";
@@ -35,6 +36,15 @@ export interface QualityCheckQueueInput {
   audioFileIds?: string[];
 }
 
+export interface QualitySignalSyncQueueInput {
+  taskId: string;
+  bookId: string;
+  type: QualitySignalSyncTaskType;
+  chapterId?: string;
+  audioFileIds?: string[];
+  forceResync?: boolean;
+}
+
 export type AutoPipelineQueueMode = "pipeline" | "trigger_compensation";
 
 export interface AutoPipelineQueueInput {
@@ -64,6 +74,12 @@ export interface QualityCheckJobData extends QualityCheckQueueInput {
   dedupeKey: string;
 }
 
+export interface QualitySignalSyncJobData extends QualitySignalSyncQueueInput {
+  audioFileIds: string[];
+  forceResync: boolean;
+  dedupeKey: string;
+}
+
 export interface AutoPipelineJobData extends AutoPipelineQueueInput {
   options: AutoPipelineOptions;
   mode: AutoPipelineQueueMode;
@@ -88,6 +104,7 @@ export interface TaskQueueState {
   scriptQueue: Bull.Queue<ScriptGenerationJobData> | null;
   audioQueue: Bull.Queue<AudioGenerationJobData> | null;
   qualityQueue: Bull.Queue<QualityCheckJobData> | null;
+  signalSyncQueue: Bull.Queue<QualitySignalSyncJobData> | null;
   autoPipelineQueue: Bull.Queue<AutoPipelineJobData> | null;
   deadLetterQueue: Bull.Queue<DeadLetterJobData> | null;
   workerStarted: boolean;

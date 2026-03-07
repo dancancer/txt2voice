@@ -1011,3 +1011,39 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
   1. 基于 `uploads/sample.txt` 调用 `POST /api/books/[id]/qc/baseline` 固化当前基线。
   2. 进入 `S30.1`，开始 ASR/CER + speaker embedding 任务化。
   3. 进入 `S30.1` 后，每完成一个子阶段，用同一书籍重新抓一版基线做前后对照。
+
+
+### [S30.1-A] 信号生产任务化 V1（2026-03-07 19:44 CST）
+
+- 完成内容：
+  1. 新增 `QUALITY_SIGNAL_SYNC` 任务类型与 `quality-signal-sync-runner`，支持按 `book/chapter/batch` 扫描已完成音频并回写最新 `synthesis_attempts.metrics`。
+  2. 信号生产任务会产出并回写：
+     - `cer/asrCer/q2Cer`
+     - `speakerSimilarity/speakerEmbeddingSimilarity/q3SpeakerSimilarity`
+     - `signalSync.version/syncedAt/taskId/cerSource/speakerSource`
+  3. 新增 `POST/GET /api/books/[id]/qc/signals/sync`，支持手动发起信号生产、查看最近一次生产任务摘要。
+  4. `task-replay/retry/watchdog recovery` 全链路已支持 `QUALITY_SIGNAL_SYNC`，并补齐任务标签、health、dedupe、队列 worker 与失败隔离。
+  5. 当前 V1 以 `task_payload + heuristic fallback` 作为稳定供给方案，先把“任务化供给链”跑通；真实外部 ASR / speaker embedding provider 将作为后续收口项继续接入。
+- 关键文件：
+  - `apps/web/src/lib/quality-signal-sync-runner.ts`
+  - `apps/web/src/app/api/books/[id]/qc/signals/sync/route.ts`
+  - `apps/web/src/lib/task-queue/core/constants.ts`
+  - `apps/web/src/lib/task-queue/core/runtime.ts`
+  - `apps/web/src/lib/task-queue/core/types.ts`
+  - `apps/web/src/lib/task-queue/ops/enqueue.ts`
+  - `apps/web/src/lib/task-queue/ops/worker.ts`
+  - `apps/web/src/lib/task-queue/replay-payload.ts`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/quality-signal-sync-runner.test.ts`
+  - `apps/web/src/lib/__tests__/qc-signal-sync-route.test.ts`
+  - `apps/web/src/lib/__tests__/task-replay-payload-signal-sync.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/quality-signal-sync-runner.test.ts src/lib/__tests__/qc-signal-sync-route.test.ts src/lib/__tests__/task-replay-payload-signal-sync.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`S30.1` 已进入“任务化供给链可用”阶段。
+- 下一步建议：
+  1. 执行 `S30.1-B`：把 `QUALITY_SIGNAL_SYNC` 挂到 `AUTO_PIPELINE`/`qc/run` 前置链路，形成默认供给闭环。
+  2. 执行 `S30.1-C`：接入真实 ASR/CER 与 speaker embedding provider，逐步替换纯启发式 fallback。
+  3. `S30.1` 收口后再推进 `S31`。
