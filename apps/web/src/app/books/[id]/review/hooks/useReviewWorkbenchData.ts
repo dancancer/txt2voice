@@ -7,14 +7,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { booksApi } from "@/lib/api";
 import type {
+  BookSloMetricsResponse,
   DispatchAlertEvent,
   DispatchAlertEventListResponse,
-  DispatchAlertResponse,
-  DispatchMetricsResponse,
   ManualReviewItem,
   ManualReviewStatusFilter,
-  PipelineStatusResponse,
-  QualitySummary,
   ReviewListResponse,
   ReviewPagination,
   ReviewSummary,
@@ -40,15 +37,6 @@ const DEFAULT_SUMMARY: ReviewSummary = {
   total: 0,
 };
 
-const DEFAULT_QUALITY_SUMMARY: QualitySummary = {
-  checked: 0,
-  passCount: 0,
-  repairCount: 0,
-  manualReviewCount: 0,
-  deepGateOverrideCount: 0,
-  falsePositiveCandidateCount: 0,
-};
-
 const DEFAULT_DISPATCH_EVENT_SUMMARY = {
   openCount: 0,
   ackedCount: 0,
@@ -56,52 +44,12 @@ const DEFAULT_DISPATCH_EVENT_SUMMARY = {
   totalCount: 0,
 };
 
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-};
-
-const asNonNegativeNumber = (value: unknown): number => {
-  if (typeof value === "number" && Number.isFinite(value) && value >= 0) {
-    return value;
-  }
-  if (typeof value === "string" && value.trim().length > 0) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed >= 0) {
-      return parsed;
-    }
-  }
-  return 0;
-};
-
-const parseQualitySummary = (value: unknown): QualitySummary => {
-  const record = asRecord(value) || {};
-  const falsePositiveSignals = asRecord(record.falsePositiveSignals) || {};
-
-  return {
-    checked: asNonNegativeNumber(record.checked),
-    passCount: asNonNegativeNumber(record.passCount),
-    repairCount: asNonNegativeNumber(record.repairCount),
-    manualReviewCount: asNonNegativeNumber(record.manualReviewCount),
-    deepGateOverrideCount:
-      asNonNegativeNumber(record.deepGateOverrideCount) ||
-      asNonNegativeNumber(falsePositiveSignals.deepGateOverrideCount),
-    falsePositiveCandidateCount:
-      asNonNegativeNumber(record.falsePositiveCandidateCount) ||
-      asNonNegativeNumber(falsePositiveSignals.candidateCount),
-  };
-};
-
 export function useReviewWorkbenchData(bookId: string) {
   const [bookTitle, setBookTitle] = useState("质检复核工作台");
   const [items, setItems] = useState<ManualReviewItem[]>([]);
   const [pagination, setPagination] = useState<ReviewPagination>(DEFAULT_PAGINATION);
   const [summary, setSummary] = useState<ReviewSummary>(DEFAULT_SUMMARY);
-  const [qualitySummary, setQualitySummary] = useState<QualitySummary>(DEFAULT_QUALITY_SUMMARY);
-  const [metrics, setMetrics] = useState<DispatchMetricsResponse["data"] | null>(null);
-  const [alerts, setAlerts] = useState<DispatchAlertResponse["data"]["alerts"]>([]);
+  const [sloMetrics, setSloMetrics] = useState<BookSloMetricsResponse["data"] | null>(null);
   const [dispatchEvents, setDispatchEvents] = useState<DispatchAlertEvent[]>([]);
   const [dispatchEventSummary, setDispatchEventSummary] = useState(
     DEFAULT_DISPATCH_EVENT_SUMMARY
@@ -128,11 +76,8 @@ export function useReviewWorkbenchData(bookId: string) {
         options.add(item.issueType.toUpperCase());
       }
     }
-    for (const bucket of metrics?.byIssueType || []) {
-      options.add(bucket.issueType.toUpperCase());
-    }
     return Array.from(options).sort((a, b) => a.localeCompare(b));
-  }, [items, metrics]);
+  }, [items]);
 
   const loadBookTitle = useCallback(async () => {
     try {
@@ -209,73 +154,44 @@ export function useReviewWorkbenchData(bookId: string) {
       if (sourceFilter !== "all") {
         params.set("source", sourceFilter);
       }
-      if (filters.issueType !== "all") {
-        params.set("issueType", filters.issueType);
-      }
 
       try {
         const dispatchEventParams = new URLSearchParams({
           status: "active",
           page: "1",
           limit: "12",
+          issueType: "SLO",
         });
         if (sourceFilter !== "all") {
           dispatchEventParams.set("source", sourceFilter);
         }
-        if (filters.issueType !== "all") {
-          dispatchEventParams.set("issueType", filters.issueType);
-        }
 
-        const [metricsResponse, alertsResponse, pipelineResponse, dispatchEventResponse] =
-          await Promise.all([
-            fetch(`/api/books/${bookId}/qc/dispatch-metrics?${params.toString()}`, {
-              cache: "no-store",
-            }),
-            fetch(`/api/books/${bookId}/qc/dispatch-alerts?${params.toString()}`, {
-              cache: "no-store",
-            }),
-            fetch(`/api/books/${bookId}/pipeline/status`, { cache: "no-store" }),
-            fetch(
-              `/api/books/${bookId}/qc/dispatch-events?${dispatchEventParams.toString()}`,
-              {
-                cache: "no-store",
-              }
-            ),
-          ]);
+        const [sloMetricsResponse, dispatchEventResponse] = await Promise.all([
+          fetch(`/api/books/${bookId}/slo/metrics?${params.toString()}`, {
+            cache: "no-store",
+          }),
+          fetch(`/api/books/${bookId}/qc/dispatch-events?${dispatchEventParams.toString()}`, {
+            cache: "no-store",
+          }),
+        ]);
 
-        const [metricsPayload, alertsPayload, pipelinePayload, dispatchEventPayload] =
-          (await Promise.all([
-            metricsResponse.json(),
-            alertsResponse.json(),
-            pipelineResponse.json(),
-            dispatchEventResponse.json(),
-          ])) as [
-            DispatchMetricsResponse,
-            DispatchAlertResponse,
-            PipelineStatusResponse,
-            DispatchAlertEventListResponse,
-          ];
+        const [sloMetricsPayload, dispatchEventPayload] = (await Promise.all([
+          sloMetricsResponse.json(),
+          dispatchEventResponse.json(),
+        ])) as [BookSloMetricsResponse, DispatchAlertEventListResponse];
 
-        if (!metricsResponse.ok || !metricsPayload.success) {
-          throw new Error(metricsPayload.error?.message || "加载 dispatch 指标失败");
-        }
-        if (!alertsResponse.ok || !alertsPayload.success) {
-          throw new Error(alertsPayload.error?.message || "加载 dispatch 告警失败");
-        }
-        if (!pipelineResponse.ok || !pipelinePayload.success) {
-          throw new Error(pipelinePayload.error?.message || "加载 pipeline 状态失败");
+        if (!sloMetricsResponse.ok || !sloMetricsPayload.success) {
+          throw new Error(sloMetricsPayload.error?.message || "加载 SLO 指标失败");
         }
         if (!dispatchEventResponse.ok || !dispatchEventPayload.success) {
           throw new Error(dispatchEventPayload.error?.message || "加载告警事件失败");
         }
 
-        setMetrics(metricsPayload.data);
-        setAlerts(alertsPayload.data.alerts || []);
+        setSloMetrics(sloMetricsPayload.data);
         setDispatchEvents(dispatchEventPayload.data || []);
         setDispatchEventSummary(
           dispatchEventPayload.summary || DEFAULT_DISPATCH_EVENT_SUMMARY
         );
-        setQualitySummary(parseQualitySummary(pipelinePayload.data.qualitySummary));
       } catch (loadError) {
         console.error("Failed to load SLO board data:", loadError);
         toast.error(loadError instanceof Error ? loadError.message : "加载 SLO 指标失败");
@@ -285,7 +201,7 @@ export function useReviewWorkbenchData(bookId: string) {
         }
       }
     },
-    [bookId, filters.issueType, sourceFilter, windowDays]
+    [bookId, sourceFilter, windowDays]
   );
 
   useEffect(() => {
@@ -345,9 +261,7 @@ export function useReviewWorkbenchData(bookId: string) {
     items,
     pagination,
     summary,
-    qualitySummary,
-    metrics,
-    alerts,
+    sloMetrics,
     dispatchEvents,
     dispatchEventSummary,
     filters,

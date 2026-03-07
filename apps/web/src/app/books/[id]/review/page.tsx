@@ -41,9 +41,7 @@ export default function ReviewWorkbenchPage() {
     items,
     pagination,
     summary,
-    qualitySummary,
-    metrics,
-    alerts,
+    sloMetrics,
     dispatchEvents,
     dispatchEventSummary,
     filters,
@@ -75,8 +73,8 @@ export default function ReviewWorkbenchPage() {
 
   const backlog = summary.pendingCount + summary.reprocessingCount;
   const isInitialLoading = useMemo(
-    () => reviewLoading && sloLoading && items.length === 0 && !metrics,
-    [items.length, metrics, reviewLoading, sloLoading]
+    () => reviewLoading && sloLoading && items.length === 0 && !sloMetrics,
+    [items.length, reviewLoading, sloLoading, sloMetrics]
   );
 
   if (isInitialLoading) {
@@ -144,7 +142,7 @@ export default function ReviewWorkbenchPage() {
           </TabsList>
 
           <TabsContent value="queue" className="mt-4 space-y-4">
-            <SloCardSection reviewSummary={summary} qualitySummary={qualitySummary} metrics={metrics} />
+            <SloCardSection sloMetrics={sloMetrics} />
             <ReviewFilterBar
               status={filters.status}
               issueType={filters.issueType}
@@ -176,7 +174,7 @@ export default function ReviewWorkbenchPage() {
           </TabsContent>
 
           <TabsContent value="slo" className="mt-4 space-y-4">
-            <SloCardSection reviewSummary={summary} qualitySummary={qualitySummary} metrics={metrics} />
+            <SloCardSection sloMetrics={sloMetrics} />
             <Card className="border-slate-200 shadow-sm">
               <CardContent className="p-4 !pt-4">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -226,8 +224,7 @@ export default function ReviewWorkbenchPage() {
               </CardContent>
             </Card>
             <SloPanel
-              metrics={metrics}
-              alerts={alerts}
+              sloMetrics={sloMetrics}
               dispatchEvents={dispatchEvents}
               dispatchEventSummary={dispatchEventSummary}
               dispatchEventActionId={dispatchEventActionId}

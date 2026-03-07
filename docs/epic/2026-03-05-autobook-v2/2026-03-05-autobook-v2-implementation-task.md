@@ -50,7 +50,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 | S31 | 编排任务语义补齐 | ✅ 完成 | 提供 `FINAL_ASSEMBLY/MANUAL_REVIEW_SYNC` 任务与 API，交付阶段可独立重放/恢复/审计 |
 | S32-A | 核心 SLO 指标 API 统一 | ✅ 完成 | 提供 `GET /api/books/[id]/slo/metrics`，统一 5 项核心 SLO 指标口径与 `days/source` 查询 |
 | S32-B | 核心 SLO 告警扫描 | ✅ 完成 | 提供 `POST /api/slo/alerts/scan`，复用现有事件表与通知链路沉淀核心 SLO breach 事件 |
-| S32-C | 复核页切换统一 SLO API | ⏳ 待执行 | 复核页核心卡片与 SLO 看板改读统一指标 API，完成 S32 收口 |
+| S32-C | 复核页切换统一 SLO API | ✅ 完成 | 复核页核心卡片与 SLO 看板改读统一指标 API，结束旧指标接口并存状态 |
 
 ## 3. 执行日志
 
@@ -1215,3 +1215,29 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 - 下一步建议：
   1. 执行 `S32-C`：把复核页核心卡片与 SLO 看板切到 `GET /api/books/[id]/slo/metrics`，结束当前口径并存状态。
   2. `S32-C` 完成后做一次面向原始需求的收口检查，确认“自动链路、质量闭环、可运营”三条主线都已闭合。
+
+
+### [S32-C] 复核页切换统一 SLO API（2026-03-07 23:19 CST）
+
+- 完成内容：
+  1. 复核页 `useReviewWorkbenchData` 已切换为以 `GET /api/books/[id]/slo/metrics` 作为核心 SLO 数据源，不再拼接 `dispatch-metrics/dispatch-alerts/pipeline-status` 三套旧接口。
+  2. SLO 事件面板已改为读取 `issueType=SLO` 的既有事件流，继续复用 `ack/resolve` 生命周期，不新增前端事件协议。
+  3. `SloCardSection` 与 `SloPanel` 已改为展示五项核心 SLO 指标、delivery terminal 摘要、review backlog 与最新质检任务，完成 `S32-A/B` 能力的页面收口。
+  4. 复核页来源过滤已补 `auto_pipeline/final_assembly/manual_review_sync`，使 UI 与统一 SLO API 的 source 口径一致。
+- 关键文件：
+  - `apps/web/src/app/books/[id]/review/hooks/useReviewWorkbenchData.ts`
+  - `apps/web/src/app/books/[id]/review/components/ReviewSloPanel.tsx`
+  - `apps/web/src/app/books/[id]/review/models/types.ts`
+  - `apps/web/src/app/books/[id]/review/models/slo.ts`
+  - `apps/web/src/app/books/[id]/review/page.tsx`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/review-slo-models.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/review-slo-models.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`S32` 功能侧收口完成。
+- 下一步建议：
+  1. 下一轮执行最终运营验收收口，并完成第 35 轮阶段回顾，确认当前交付仍与原始需求严格一致。
+  2. 若不再新增代码功能，后续以验收结果、周报模板和发布准备为主。

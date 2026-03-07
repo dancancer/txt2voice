@@ -374,3 +374,16 @@
    - `pnpm --filter web test:regression`
 4. 结果：全部通过。
 5. 结论：`S32` 已进入 V2 阶段，下一步只剩复核页切换统一 SLO API 与最终验收收口。
+
+
+### S32 V3 更新（2026-03-07 23:19 CST）
+
+1. 复核页核心卡片与 SLO 看板已切换到 `GET /api/books/[id]/slo/metrics`，页面侧不再拼接旧的 dispatch/pipeline 指标接口。
+2. SLO 面板已直接消费 `issueType=SLO` 事件，继续复用既有 `ack/resolve` 生命周期。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/review-slo-models.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+5. 结论：`S32` 功能侧已收口完成，下一步只剩最终运营验收与阶段回顾。

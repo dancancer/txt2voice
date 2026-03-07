@@ -2,6 +2,7 @@
 // input: 复核工作台 API 返回值
 // output: 页面展示类型与常量
 // pos: 质检复核页面共享类型
+import type { BookSloMetricsResult } from "@/lib/slo-metrics/types";
 
 export type ManualReviewStatus = "pending" | "reprocessing" | "resolved" | "rejected";
 export type ManualReviewStatusFilter = ManualReviewStatus | "all";
@@ -231,6 +232,14 @@ export interface DispatchAlertEventListResponse {
   };
 }
 
+export interface BookSloMetricsResponse {
+  success: boolean;
+  data: BookSloMetricsResult;
+  error?: {
+    message?: string;
+  };
+}
+
 export interface PipelineStatusResponse {
   success: boolean;
   data: {
@@ -279,6 +288,9 @@ export const SLO_WINDOW_OPTIONS = [
 
 export const SOURCE_FILTER_OPTIONS = [
   { value: "all", label: "全部来源" },
+  { value: "auto_pipeline", label: "auto_pipeline" },
+  { value: "final_assembly", label: "final_assembly" },
+  { value: "manual_review_sync", label: "manual_review_sync" },
   { value: "qc_retry", label: "qc_retry" },
   { value: "manual_review", label: "manual_review" },
   { value: "manual_review_batch", label: "manual_review_batch" },

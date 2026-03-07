@@ -1,5 +1,5 @@
 // 一旦我被更新，请更新我的开头注释
-// input: 质量摘要/派单指标/告警数据
+// input: 统一 SLO 指标/告警事件数据
 // output: SLO 看板展示
 // pos: 质检复核页面子组件
 
@@ -15,15 +15,28 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { AlertTriangle, CheckCircle2, Loader2, Waves } from "lucide-react";
-import type {
-  DispatchAlertItem,
-  DispatchAlertEvent,
-  DispatchMetricsResult,
-  QualitySummary,
-  ReviewSummary,
-} from "../models/types";
+import { buildReviewSloMetricViews } from "../models/slo";
+import type { BookSloMetricsResponse, DispatchAlertEvent } from "../models/types";
 
-const ALERT_SEVERITY_META = {
+const METRIC_STATUS_META = {
+  healthy: {
+    label: "healthy",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    valueClassName: "text-emerald-700",
+  },
+  breached: {
+    label: "breached",
+    className: "border-rose-200 bg-rose-50 text-rose-700",
+    valueClassName: "text-rose-700",
+  },
+  unknown: {
+    label: "unknown",
+    className: "border-slate-200 bg-slate-100 text-slate-700",
+    valueClassName: "text-slate-700",
+  },
+} as const;
+
+const EVENT_SEVERITY_META = {
   critical: {
     className: "border-rose-200 bg-rose-50 text-rose-700",
     icon: AlertTriangle,
@@ -51,87 +64,55 @@ const EVENT_STATUS_META = {
   },
 } as const;
 
-const formatPercent = (value: number): string => `${value.toFixed(1)}%`;
-
-const toIssueLabel = (issueType: string): string => {
-  const normalized = issueType.trim().toUpperCase();
-  if (normalized === "CER") {
-    return "文本准确率";
-  }
-  if (normalized === "SPEAKER") {
-    return "说话人一致性";
-  }
-  if (normalized === "EMOTION") {
-    return "情绪匹配";
-  }
-  if (normalized === "CONTINUITY") {
-    return "章节一致性";
-  }
-  if (normalized === "AUDIO") {
-    return "音频质量";
-  }
-  return normalized;
-};
-
 interface SloCardSectionProps {
-  reviewSummary: ReviewSummary;
-  qualitySummary: QualitySummary;
-  metrics: DispatchMetricsResult | null;
+  sloMetrics: BookSloMetricsResponse["data"] | null;
 }
 
-export function SloCardSection({
-  reviewSummary,
-  qualitySummary,
-  metrics,
-}: SloCardSectionProps) {
-  const backlog = reviewSummary.pendingCount + reviewSummary.reprocessingCount;
-  const passRate =
-    qualitySummary.checked > 0
-      ? (qualitySummary.passCount / qualitySummary.checked) * 100
-      : 0;
-  const retryCount = qualitySummary.repairCount + qualitySummary.manualReviewCount;
-  const falsePositive = qualitySummary.falsePositiveCandidateCount;
+export function SloCardSection({ sloMetrics }: SloCardSectionProps) {
+  if (!sloMetrics) {
+    return (
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Card key={index} className="border-slate-200 shadow-sm">
+            <CardContent className="p-4 !pt-4">
+              <p className="text-xs text-slate-500">核心指标</p>
+              <p className="mt-2 text-2xl font-semibold text-slate-400">--</p>
+              <p className="mt-2 text-xs text-slate-400">等待加载</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  const metricViews = buildReviewSloMetricViews(sloMetrics.metrics);
 
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-4 !pt-4">
-          <p className="text-xs text-slate-500">当前 backlog</p>
-          <p className="mt-2 text-2xl font-semibold text-slate-900">{backlog}</p>
-          <p className="mt-2 text-xs text-slate-500">pending + reprocessing</p>
-        </CardContent>
-      </Card>
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-4 !pt-4">
-          <p className="text-xs text-slate-500">最新质检通过率</p>
-          <p className="mt-2 text-2xl font-semibold text-emerald-700">{formatPercent(passRate)}</p>
-          <p className="mt-2 text-xs text-slate-500">pass {qualitySummary.passCount} / checked {qualitySummary.checked}</p>
-        </CardContent>
-      </Card>
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-4 !pt-4">
-          <p className="text-xs text-slate-500">重试压力</p>
-          <p className="mt-2 text-2xl font-semibold text-amber-700">{retryCount}</p>
-          <p className="mt-2 text-xs text-slate-500">
-            repair + manual review
-            {metrics ? `（窗口 autoRejected ${metrics.totals.autoRejectedEventCount}）` : ""}
-          </p>
-        </CardContent>
-      </Card>
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="p-4 !pt-4">
-          <p className="text-xs text-slate-500">误报候选</p>
-          <p className="mt-2 text-2xl font-semibold text-indigo-700">{falsePositive}</p>
-          <p className="mt-2 text-xs text-slate-500">override {qualitySummary.deepGateOverrideCount}</p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+      {metricViews.map((metric) => {
+        const meta = METRIC_STATUS_META[metric.status];
+        return (
+          <Card key={metric.key} className="border-slate-200 shadow-sm">
+            <CardContent className="p-4 !pt-4">
+              <p className="text-xs text-slate-500">{metric.shortLabel}</p>
+              <p className={`mt-2 text-2xl font-semibold ${meta.valueClassName}`}>
+                {metric.valueText}
+              </p>
+              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-slate-500">
+                <span>target {metric.targetText}</span>
+                <Badge className={meta.className}>{meta.label}</Badge>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">样本 {metric.detailText}</p>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }
 
 interface SloPanelProps {
-  metrics: DispatchMetricsResult | null;
-  alerts: DispatchAlertItem[];
+  sloMetrics: BookSloMetricsResponse["data"] | null;
   dispatchEvents: DispatchAlertEvent[];
   dispatchEventSummary: {
     openCount: number;
@@ -145,47 +126,59 @@ interface SloPanelProps {
 }
 
 export function SloPanel({
-  metrics,
-  alerts,
+  sloMetrics,
   dispatchEvents,
   dispatchEventSummary,
   dispatchEventActionId,
   onResolveDispatchEvent,
   loading,
 }: SloPanelProps) {
+  const metricViews = sloMetrics ? buildReviewSloMetricViews(sloMetrics.metrics) : [];
+  const reviewBacklog = sloMetrics
+    ? sloMetrics.manualReviewSummary.pendingCount +
+      sloMetrics.manualReviewSummary.reprocessingCount
+    : 0;
+
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">运营指标拆分</CardTitle>
+          <CardTitle className="text-base">核心 SLO 指标</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="py-10 text-center text-slate-600">
               <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-600" />
-              正在计算窗口指标...
+              正在计算核心指标...
             </div>
-          ) : !metrics ? (
-            <p className="text-sm text-slate-600">暂无指标数据。</p>
+          ) : !sloMetrics ? (
+            <p className="text-sm text-slate-600">暂无 SLO 指标数据。</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>issueType</TableHead>
-                  <TableHead>autoRejected</TableHead>
-                  <TableHead>secondaryPending</TableHead>
-                  <TableHead>thresholdBlocked</TableHead>
+                  <TableHead>metric</TableHead>
+                  <TableHead>current</TableHead>
+                  <TableHead>target</TableHead>
+                  <TableHead>sample</TableHead>
+                  <TableHead>status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {metrics.byIssueType.slice(0, 6).map((row) => (
-                  <TableRow key={row.issueType}>
-                    <TableCell className="font-medium">{toIssueLabel(row.issueType)}</TableCell>
-                    <TableCell>{row.autoRejectedEventCount}</TableCell>
-                    <TableCell>{row.secondaryPendingCount}</TableCell>
-                    <TableCell>{row.thresholdBlockedCount}</TableCell>
-                  </TableRow>
-                ))}
+                {metricViews.map((metric) => {
+                  const meta = METRIC_STATUS_META[metric.status];
+                  return (
+                    <TableRow key={metric.key}>
+                      <TableCell className="font-medium">{metric.label}</TableCell>
+                      <TableCell>{metric.valueText}</TableCell>
+                      <TableCell>{metric.targetText}</TableCell>
+                      <TableCell>{metric.detailText}</TableCell>
+                      <TableCell>
+                        <Badge className={meta.className}>{meta.label}</Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -194,108 +187,126 @@ export function SloPanel({
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">当前告警与事件</CardTitle>
+          <CardTitle className="text-base">交付摘要与告警事件</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {loading ? (
             <div className="py-10 text-center text-slate-600">
               <Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin text-indigo-600" />
-              正在加载告警...
+              正在加载事件...
             </div>
-          ) : alerts.length === 0 ? (
-            <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
-              当前窗口无派单告警。
-            </div>
+          ) : !sloMetrics ? (
+            <p className="text-sm text-slate-600">暂无交付摘要。</p>
           ) : (
-            alerts.map((alert) => {
-              const meta = ALERT_SEVERITY_META[alert.severity];
-              const Icon = meta.icon;
-              return (
-                <div
-                  key={alert.code}
-                  className={`rounded-md border p-3 text-sm ${meta.className}`}
-                >
-                  <div className="mb-1 flex items-center gap-2 font-medium">
-                    <Icon className="h-4 w-4" />
-                    <span>{meta.label}</span>
-                    <Badge variant="outline" className="bg-white/70 text-inherit">
-                      {alert.code}
-                    </Badge>
-                  </div>
-                  <p className="leading-6">{alert.message}</p>
-                  <p className="mt-1 text-xs leading-5">建议：{alert.recommendedAction}</p>
+            <>
+              <div className="grid grid-cols-2 gap-3 text-xs text-slate-600">
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-700">delivery terminal</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">
+                    {sloMetrics.workflowSummary.deliverySuccessCount}/
+                    {sloMetrics.workflowSummary.deliveryTerminalCount}
+                  </p>
+                  <p className="mt-1">success / terminal</p>
                 </div>
-              );
-            })
-          )}
-          <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
-              <span className="font-medium text-slate-700">事件生命周期</span>
-              <Badge variant="outline">open {dispatchEventSummary.openCount}</Badge>
-              <Badge variant="outline">acked {dispatchEventSummary.ackedCount}</Badge>
-              <Badge variant="outline">resolved {dispatchEventSummary.resolvedCount}</Badge>
-            </div>
-            {dispatchEvents.length === 0 ? (
-              <p className="text-xs text-slate-500">暂无告警事件。</p>
-            ) : (
-              dispatchEvents.map((event) => {
-                const statusMeta = EVENT_STATUS_META[event.status];
-                const actionPending = dispatchEventActionId === event.id;
-                return (
-                  <div key={event.id} className="rounded-md border border-slate-200 bg-white p-3 text-xs">
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
-                      <Badge variant="outline">{event.alertCode}</Badge>
-                      <Badge variant="outline">{event.issueType || "ALL"}</Badge>
-                      <span className="text-slate-500">触发 {event.triggerCount} 次</span>
-                    </div>
-                    <p className="text-sm text-slate-700">{event.message}</p>
-                    <p className="mt-1 text-slate-500">
-                      最近触发: {new Date(event.lastTriggeredAt).toLocaleString("zh-CN")}
-                    </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="min-h-9"
-                        disabled={actionPending || event.status !== "open"}
-                        onClick={() => onResolveDispatchEvent(event.id, "ack")}
-                      >
-                        {actionPending ? (
-                          <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                        ) : (
-                          <AlertTriangle className="mr-1 h-3.5 w-3.5" />
-                        )}
-                        Ack
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        className="min-h-9"
-                        disabled={actionPending || event.status === "resolved"}
-                        onClick={() => onResolveDispatchEvent(event.id, "resolve")}
-                      >
-                        <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                        Resolve
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-          {metrics ? (
-            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
-              <p className="font-medium text-slate-700">窗口统计</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                <span>autoRejected: {metrics.totals.autoRejectedEventCount}</span>
-                <span>secondaryPending: {metrics.totals.secondaryPendingCount}</span>
-                <span>thresholdBlocked: {metrics.totals.thresholdBlockedCount}</span>
-                <span>qualityTask: {metrics.qualityTaskSummary.taskCount}</span>
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-700">review backlog</p>
+                  <p className="mt-2 text-lg font-semibold text-slate-900">{reviewBacklog}</p>
+                  <p className="mt-1">pending + reprocessing</p>
+                </div>
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-700">workflow</p>
+                  <p className="mt-2 leading-6">
+                    auto {sloMetrics.workflowSummary.autoPipeline.completed}/
+                    {sloMetrics.workflowSummary.autoPipeline.total}
+                  </p>
+                  <p className="leading-6">
+                    assembly {sloMetrics.workflowSummary.finalAssembly.completed}/
+                    {sloMetrics.workflowSummary.finalAssembly.total}
+                  </p>
+                </div>
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <p className="font-medium text-slate-700">latest quality task</p>
+                  <p className="mt-2 text-sm text-slate-900">
+                    {sloMetrics.latestQualityTask?.source || "--"}
+                  </p>
+                  <p className="mt-1">
+                    checked {sloMetrics.latestQualityTask?.checked ?? 0}
+                  </p>
+                </div>
               </div>
-            </div>
-          ) : null}
+
+              <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-3">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                  <span className="font-medium text-slate-700">事件生命周期</span>
+                  <Badge variant="outline">open {dispatchEventSummary.openCount}</Badge>
+                  <Badge variant="outline">acked {dispatchEventSummary.ackedCount}</Badge>
+                  <Badge variant="outline">resolved {dispatchEventSummary.resolvedCount}</Badge>
+                </div>
+                {dispatchEvents.length === 0 ? (
+                  <div className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+                    当前窗口无核心 SLO 告警事件。
+                  </div>
+                ) : (
+                  dispatchEvents.map((event) => {
+                    const severityMeta = EVENT_SEVERITY_META[event.severity];
+                    const statusMeta = EVENT_STATUS_META[event.status];
+                    const Icon = severityMeta.icon;
+                    const actionPending = dispatchEventActionId === event.id;
+
+                    return (
+                      <div
+                        key={event.id}
+                        className={`rounded-md border p-3 text-xs ${severityMeta.className}`}
+                      >
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
+                          <Badge variant="outline" className="bg-white/70 text-inherit">
+                            {event.alertCode}
+                          </Badge>
+                          <span className="flex items-center gap-1 font-medium">
+                            <Icon className="h-3.5 w-3.5" />
+                            {severityMeta.label}
+                          </span>
+                          <span className="text-slate-500">触发 {event.triggerCount} 次</span>
+                        </div>
+                        <p className="text-sm leading-6 text-slate-700">{event.message}</p>
+                        <p className="mt-1 text-slate-500">
+                          最近触发: {new Date(event.lastTriggeredAt).toLocaleString("zh-CN")}
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="min-h-9"
+                            disabled={actionPending || event.status !== "open"}
+                            onClick={() => onResolveDispatchEvent(event.id, "ack")}
+                          >
+                            {actionPending ? (
+                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <AlertTriangle className="mr-1 h-3.5 w-3.5" />
+                            )}
+                            Ack
+                          </Button>
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="min-h-9"
+                            disabled={actionPending || event.status === "resolved"}
+                            onClick={() => onResolveDispatchEvent(event.id, "resolve")}
+                          >
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                            Resolve
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S31 + S27.1 + S28.1 + S30.1 + S32-A/B 已完成；待推进 S32-C。
+- 当前进度：S0-S31 + S27.1 + S28.1 + S30.1 + S32-A/B/C 已完成；下一步进入最终运营验收收口。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -21,7 +21,7 @@
 | M1（Annotation v2 + Auto Pipeline） | 🟢 完成度较高 | 上传链路已默认自动触发 `AUTO_PIPELINE`，且上传/手工触发共享同一建链逻辑；上传触发失败补偿也已任务化。 |
 | M2（Fast Gate + 自动返工闭环） | 🟡 部分完成 | 自动返工闭环、Engine Router v1、Q0-Q3 指标化已具备；CER/声纹原始信号生产仍待任务化接入。 |
 | M3（Deep Gate + 人工复核工作台） | 🟡 部分完成 | Deep Gate、复核 UI、批量处置与阈值治理 API 已落地；样本集标准化与任务化回放已补齐，剩余交付任务语义与 SLO 产品化收口。 |
-| M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测、核心 SLO API 与扫描告警已可用；剩余复核页统一口径与最终运营验收收口。 |
+| M4（SLO + 告警运营 + 配置中心） | 🟡 部分完成 | dispatch 维度观测、核心 SLO API、扫描告警与复核页统一口径已可用；剩余最终运营验收收口。 |
 
 ## 已完成内容
 
@@ -368,7 +368,7 @@
 
 3. S30 已完成 Q0-Q3 指标化判定，但 CER/声纹原始信号生产仍依赖上游注入，需补 ASR/embedding 任务化供给（S30.1）。
 4. 计划中的 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务（S31）。
-5. 核心 SLO 指标 API 与扫描告警已落地，但复核页仍未切到统一 SLO API，存在旧指标接口并存状态（S32-C）。
+5. 核心 SLO 功能侧已收口完成；剩余工作以最终运营验收、周报模板与阶段回顾为主。
 
 ## 剩余任务优先级（建议，S30.1-S32）
 
@@ -376,7 +376,7 @@
 | --- | --- | --- | --- | --- | --- |
 | P1 | S30.1 | CER/声纹信号生产任务化 | 接入 ASR/CER 与 speaker embedding 任务并稳定回写 `attempt.metrics` | Q0-Q3 指标来源稳定、可观测、可追溯 | S30 |
 | P2 | S31 | 编排任务语义补齐 | 落地 `FINAL_ASSEMBLY`（及必要复核同步任务） | 交付阶段可独立重放/审计 | S28-S30 |
-| P2 | S32 | 核心 SLO 指标产品化（剩余前端统一口径） | 把复核页切到统一 SLO API，并完成最终运营验收收口 | 支持按计划执行运营验收 | S30/S31/S32-A/S32-B |
+| P2 | 收口验收 | 最终运营验收与发布准备 | 固化周报模板、完成阶段回顾与发布前检查 | 支持按计划执行运营验收 | S30/S31/S32-A/S32-B/S32-C |
 
 ## 执行卡片索引（S27-S32）
 
@@ -711,3 +711,19 @@
 - 下一步建议：
   1. 执行 `S32-C`：让复核页核心卡片与 SLO 看板改读 `GET /api/books/[id]/slo/metrics`；
   2. `S32-C` 后执行最终收口检查，避免旧指标接口继续分裂口径。
+
+
+### 37) 第三十四轮增量（S32-C：复核页切换统一 SLO API）
+
+- 复核页已切到统一口径：
+  - `useReviewWorkbenchData` 现以 `GET /api/books/[id]/slo/metrics` 作为核心 SLO 数据源；
+  - `SloCardSection` 与 `SloPanel` 已改读统一指标，不再在前端拼 `dispatch-metrics/dispatch-alerts/pipeline-status` 三套旧接口。
+- 事件兼容已在页面侧完成消费：
+  - 复核页 SLO 面板直接读取 `issueType=SLO` 事件；
+  - 继续复用既有 `ack/resolve` 生命周期，无需额外事件协议。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/review-slo-models.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 下一轮只做最终运营验收收口，不再扩展功能范围；
+  2. 同步完成第 35 轮阶段回顾，确认整体方向与原始需求完全一致。
