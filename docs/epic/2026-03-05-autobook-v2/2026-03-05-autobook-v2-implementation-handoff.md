@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S30 + S27.1 + S28.1 + S30.1 已完成；待推进 S31 / S32。
+- 当前进度：S0-S31 + S27.1 + S28.1 + S30.1 已完成；待推进 S32。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -657,3 +657,22 @@
 - 方向结论：与原始需求保持一致，自动链路、质量闭环、可运营三条主线仍然同向推进。
 - 剩余主线：`S31`、`S32`。
 - 下一步建议：先做 `S31`，再做 `S32`。
+
+
+### 34) 第三十一轮增量（S31：编排任务语义补齐）
+
+- 新任务类型已落地：
+  - `FINAL_ASSEMBLY`：承载最终音频合并与交付；
+  - `MANUAL_REVIEW_SYNC`：承载复核状态归集，并可在队列清空时自动触发 `FINAL_ASSEMBLY`。
+- API 入口改造：
+  - `POST /api/books/[id]/audio/merge` 已改为创建 `FINAL_ASSEMBLY` 任务；
+  - 新增 `POST /api/books/[id]/review/items/sync` 创建 `MANUAL_REVIEW_SYNC` 任务。
+- 运维链路补齐：
+  - `task-replay/retry/watchdog recovery`、worker、失败隔离已识别两种新任务类型；
+  - 合并失败与复核同步失败均会回写对应元数据，而不是把整个书籍状态粗暴打成错误。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/final-assembly-runner.test.ts src/lib/__tests__/manual-review-sync-runner.test.ts src/lib/__tests__/audio-merge-route.test.ts src/lib/__tests__/manual-review-sync-route.test.ts src/lib/__tests__/task-replay-payload-workflow.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 主线切换到 `S32`；
+  2. 先统一核心指标口径，再补阈值扫描与告警事件兼容层。

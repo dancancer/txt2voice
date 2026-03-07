@@ -42,6 +42,7 @@ interface AutoPipelineDedupeInput {
   mode?: string;
   triggerSource?: string;
   allowReuseRunningTask?: boolean;
+  workflowPayload?: Record<string, unknown>;
 }
 
 const hashScope = (payload: unknown): string => {
@@ -106,6 +107,7 @@ export const buildAutoPipelineDedupeKey = (
     mode: input.mode || "pipeline",
     triggerSource: input.triggerSource || null,
     allowReuseRunningTask: input.allowReuseRunningTask ?? true,
+    workflowPayload: input.workflowPayload || {},
   };
 
   return `auto_pipeline:${input.bookId}:${hashScope(normalized)}`;

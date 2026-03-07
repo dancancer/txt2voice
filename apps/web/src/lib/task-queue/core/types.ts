@@ -46,7 +46,11 @@ export interface QualitySignalSyncQueueInput {
   signalModelRuntime?: Record<string, unknown>;
 }
 
-export type AutoPipelineQueueMode = "pipeline" | "trigger_compensation";
+export type AutoPipelineQueueMode =
+  | "pipeline"
+  | "trigger_compensation"
+  | "final_assembly"
+  | "manual_review_sync";
 
 export interface AutoPipelineQueueInput {
   taskId: string;
@@ -56,6 +60,7 @@ export interface AutoPipelineQueueInput {
   triggerSource?: string;
   triggerMetadata?: Record<string, unknown>;
   allowReuseRunningTask?: boolean;
+  workflowPayload?: Record<string, unknown>;
 }
 
 export interface ScriptGenerationJobData extends ScriptGenerationQueueInput {

@@ -794,7 +794,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 1. `G1`：已关闭，上传触发失败后的补偿重试已任务化，漏触发可被自动收敛与观测。
 2. `G2`：已基本关闭，CER/声纹信号已具备独立任务化供给与默认质检链路接入；后续主要是 provider 运维与质量调优。
 3. `G3`：已关闭，固定评估样本集与 `QUALITY_CHECK(source=calibration_eval)` 任务化回放已落地。
-4. `G4`：计划中 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
+4. `G4`：已关闭，`MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 已落地为独立可重放任务。
 5. `G5`：核心 SLO（`pipeline_success_rate` 等）尚未形成统一指标 API + 告警闭环。
 
 ### 5.4 剩余任务目标与优先级（重排）
@@ -838,7 +838,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 
 1. 进度确认：S26（复核运营自动化）-> S27（阈值治理）-> S28（上传自动触发）-> S29（Engine Router）-> S30（Q0-Q3 指标化）五轮已按计划闭环完成。
 2. 方向一致性：与 `full-automation-plan` 原始目标保持一致（自动链路、质量闭环、可运营），没有出现偏离主需求的旁支开发。
-3. 差距定位：当前主要差距已收敛到“交付任务语义（S31）+ 核心 SLO 产品化（S32）”。
+3. 差距定位：当前主要差距已收敛到“核心 SLO 产品化（S32）”。
 4. 下一轮策略：先补“可回放 + 可收敛”基础设施，再推进 `FINAL_ASSEMBLY` 与核心 SLO 产品化，避免先做展示层而底层不稳。
 
 
@@ -1118,3 +1118,37 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 2. 方向一致性：当前执行方向仍与原始目标保持一致，仍然围绕“自动链路、质量闭环、可运营”推进，没有偏离主需求。
 3. 阶段结论：上传触发、补偿回收、回放隔离、基线采集、信号任务化与默认质检链路已经形成完整可运行底座。
 4. 下一轮策略：主线切换到 `S31 -> S32`，先补交付任务语义，再补核心 SLO 产品化。
+
+
+### [S31] 编排任务语义补齐（2026-03-07 22:30 CST）
+
+- 完成内容：
+  1. 新增 `FINAL_ASSEMBLY` 任务执行器与异步 API 入口：`POST /api/books/[id]/audio/merge` 现改为创建任务并入队执行，不再同步阻塞合并。
+  2. 新增 `MANUAL_REVIEW_SYNC` 任务执行器与 API 入口：`POST /api/books/[id]/review/items/sync` 可归集 `pending/reprocessing/resolved/rejected` 状态，并在复核队列清空时可选自动触发 `FINAL_ASSEMBLY`。
+  3. `task-replay/retry/watchdog recovery`、任务标签、队列 worker、失败隔离已全部识别 `FINAL_ASSEMBLY/MANUAL_REVIEW_SYNC`。
+  4. 状态机层已形成清晰路径：
+     - `manual_review_pending -> MANUAL_REVIEW_SYNC -> assembling_audio -> FINAL_ASSEMBLY -> completed`
+  5. `S31` 至此完成“交付阶段可独立追踪、可重放、可恢复、可审计”的目标。
+- 关键文件：
+  - `apps/web/src/lib/final-assembly-runner.ts`
+  - `apps/web/src/lib/manual-review-sync-runner.ts`
+  - `apps/web/src/app/api/books/[id]/audio/merge/route.ts`
+  - `apps/web/src/app/api/books/[id]/review/items/sync/route.ts`
+  - `apps/web/src/lib/task-queue/ops/worker.ts`
+  - `apps/web/src/lib/task-queue/replay-payload.ts`
+  - `apps/web/src/lib/task-queue/worker-state.ts`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/final-assembly-runner.test.ts`
+  - `apps/web/src/lib/__tests__/manual-review-sync-runner.test.ts`
+  - `apps/web/src/lib/__tests__/audio-merge-route.test.ts`
+  - `apps/web/src/lib/__tests__/manual-review-sync-route.test.ts`
+  - `apps/web/src/lib/__tests__/task-replay-payload-workflow.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/final-assembly-runner.test.ts src/lib/__tests__/manual-review-sync-runner.test.ts src/lib/__tests__/audio-merge-route.test.ts src/lib/__tests__/manual-review-sync-route.test.ts src/lib/__tests__/task-replay-payload-workflow.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`S31` 已完成，`G4` 关闭。
+- 下一步建议：
+  1. 主线切换到 `S32`：统一核心 SLO 指标口径、API 与告警闭环。
+  2. 在 `S32` 中优先落 `GET /api/books/[id]/slo/metrics`，把现有散落指标先统一成单一口径。

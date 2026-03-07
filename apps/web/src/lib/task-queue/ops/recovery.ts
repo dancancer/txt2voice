@@ -16,7 +16,7 @@ import { markTaskFailed } from "@/lib/task-queue/worker-state";
 
 const getFallbackStatus = (
   taskType: string
-): "uploaded" | "completed" | "processed" | "script_generated" | "completed_with_errors" | "error" => {
+): "uploaded" | "completed" | "processed" | "script_generated" | "manual_review_pending" | "completed_with_errors" | "error" => {
   if (taskType === "SCRIPT_GENERATION") {
     return "processed";
   }
@@ -28,6 +28,12 @@ const getFallbackStatus = (
   }
   if (taskType === "QUALITY_SIGNAL_SYNC") {
     return "completed";
+  }
+  if (taskType === "FINAL_ASSEMBLY") {
+    return "completed_with_errors";
+  }
+  if (taskType === "MANUAL_REVIEW_SYNC") {
+    return "manual_review_pending";
   }
   if (taskType === "AUTO_PIPELINE_COMPENSATION") {
     return "uploaded";
@@ -80,6 +86,8 @@ export async function recoverStalledProcessingTasks(): Promise<RecoveryResult> {
             "QUALITY_SIGNAL_SYNC",
             "AUTO_PIPELINE",
             "AUTO_PIPELINE_COMPENSATION",
+            "FINAL_ASSEMBLY",
+            "MANUAL_REVIEW_SYNC",
           ],
         },
         updatedAt: {

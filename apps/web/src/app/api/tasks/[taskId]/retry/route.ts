@@ -38,9 +38,11 @@ export const POST = withErrorHandler(
       task.taskType !== "QUALITY_CHECK" &&
       task.taskType !== "QUALITY_SIGNAL_SYNC" &&
       task.taskType !== "AUTO_PIPELINE" &&
-      task.taskType !== "AUTO_PIPELINE_COMPENSATION"
+      task.taskType !== "AUTO_PIPELINE_COMPENSATION" &&
+      task.taskType !== "FINAL_ASSEMBLY" &&
+      task.taskType !== "MANUAL_REVIEW_SYNC"
     ) {
-      throw new ValidationError("仅支持重试台本/音频/质检/信号生产/自动编排/上传补偿任务");
+      throw new ValidationError("仅支持重试台本/音频/质检/信号生产/自动编排/上传补偿/最终合并/复核同步任务");
     }
 
     const replayResult = await replayProcessingTask(taskId, {

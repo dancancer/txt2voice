@@ -336,3 +336,15 @@
    - `pnpm --filter web test:regression`
 4. 结果：全部通过。
 5. 结论：`S30.1` 已收口完成，下一步切换到 `S31`。
+
+
+### S31 更新（2026-03-07 22:30 CST）
+
+1. 已新增 `FINAL_ASSEMBLY` 与 `MANUAL_REVIEW_SYNC` 任务执行器，并接入 `audio/merge` 与 `review/items/sync`。
+2. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/final-assembly-runner.test.ts src/lib/__tests__/manual-review-sync-runner.test.ts src/lib/__tests__/audio-merge-route.test.ts src/lib/__tests__/manual-review-sync-route.test.ts src/lib/__tests__/task-replay-payload-workflow.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+3. 结果：全部通过。
+4. 结论：`S31` 已完成，下一步切换到 `S32`。

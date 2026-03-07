@@ -1,6 +1,8 @@
 import type Bull from "bull";
 import { runAutoPipelineTask } from "@/lib/auto-pipeline-runner";
 import { runAutoPipelineCompensationTask } from "@/lib/auto-pipeline-compensation-runner";
+import { runFinalAssemblyTask } from "@/lib/final-assembly-runner";
+import { runManualReviewSyncTask } from "@/lib/manual-review-sync-runner";
 import { runAudioGenerationTask } from "@/lib/audio-generation-runner";
 import { runQualityCheckTask } from "@/lib/quality-check-runner";
 import { runQualitySignalSyncTask } from "@/lib/quality-signal-sync-runner";
@@ -192,32 +194,68 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
   autoPipelineQueue.process(1, async (job: Bull.Job<AutoPipelineJobData>) => {
     await markTaskAttemptStart(job.data.taskId, job);
 
-    const isCompensation = job.data.mode === "trigger_compensation";
+    const mode = job.data.mode || "pipeline";
 
     try {
-      await withTaskHeartbeat(job.data.taskId, job, HEARTBEAT_INTERVAL_MS, async () =>
-        isCompensation
-          ? runAutoPipelineCompensationTask({
-              taskId: job.data.taskId,
-              bookId: job.data.bookId,
-              options: job.data.options,
-              triggerSource: job.data.triggerSource,
-              triggerMetadata: job.data.triggerMetadata,
-              allowReuseRunningTask: job.data.allowReuseRunningTask,
-            })
-          : runAutoPipelineTask({
-              taskId: job.data.taskId,
-              bookId: job.data.bookId,
-              options: job.data.options,
-            })
-      );
+      await withTaskHeartbeat(job.data.taskId, job, HEARTBEAT_INTERVAL_MS, async () => {
+        if (mode === "trigger_compensation") {
+          return runAutoPipelineCompensationTask({
+            taskId: job.data.taskId,
+            bookId: job.data.bookId,
+            options: job.data.options,
+            triggerSource: job.data.triggerSource,
+            triggerMetadata: job.data.triggerMetadata,
+            allowReuseRunningTask: job.data.allowReuseRunningTask,
+          });
+        }
+        if (mode === "final_assembly") {
+          const payload = job.data.workflowPayload || {};
+          return runFinalAssemblyTask({
+            taskId: job.data.taskId,
+            bookId: job.data.bookId,
+            type: (payload.type as any) || "book",
+            chapterId: typeof payload.chapterId === "string" ? payload.chapterId : undefined,
+            segmentId: typeof payload.segmentId === "string" ? payload.segmentId : undefined,
+            options: (payload.options as any) || {},
+          });
+        }
+        if (mode === "manual_review_sync") {
+          const payload = job.data.workflowPayload || {};
+          return runManualReviewSyncTask({
+            taskId: job.data.taskId,
+            bookId: job.data.bookId,
+            autoTriggerFinalAssembly: payload.autoTriggerFinalAssembly !== false,
+            finalAssemblyPayload:
+              payload.finalAssembly && typeof payload.finalAssembly === "object"
+                ? (payload.finalAssembly as Record<string, unknown>)
+                : {},
+          });
+        }
+        return runAutoPipelineTask({
+          taskId: job.data.taskId,
+          bookId: job.data.bookId,
+          options: job.data.options,
+        });
+      });
     } catch (error) {
       await handleWorkerFailure({
-        taskType: isCompensation ? "AUTO_PIPELINE_COMPENSATION" : "AUTO_PIPELINE",
+        taskType:
+          mode === "trigger_compensation"
+            ? "AUTO_PIPELINE_COMPENSATION"
+            : mode === "final_assembly"
+              ? "FINAL_ASSEMBLY"
+              : mode === "manual_review_sync"
+                ? "MANUAL_REVIEW_SYNC"
+                : "AUTO_PIPELINE",
         job,
         taskId: job.data.taskId,
         bookId: job.data.bookId,
-        fallbackStatus: isCompensation ? "uploaded" : "error",
+        fallbackStatus:
+          mode === "trigger_compensation"
+            ? "uploaded"
+            : mode === "manual_review_sync"
+              ? "manual_review_pending"
+              : "error",
         error,
         payload: {
           ...job.data,

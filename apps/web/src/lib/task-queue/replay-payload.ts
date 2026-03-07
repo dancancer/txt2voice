@@ -18,7 +18,9 @@ export type QueueTaskType =
   | "QUALITY_CHECK"
   | "QUALITY_SIGNAL_SYNC"
   | "AUTO_PIPELINE"
-  | "AUTO_PIPELINE_COMPENSATION";
+  | "AUTO_PIPELINE_COMPENSATION"
+  | "FINAL_ASSEMBLY"
+  | "MANUAL_REVIEW_SYNC";
 
 export interface ScriptReplayInput {
   taskId: string;
@@ -60,10 +62,11 @@ export interface AutoPipelineReplayInput {
   taskId: string;
   bookId: string;
   options?: AutoPipelineOptions;
-  mode?: "pipeline" | "trigger_compensation";
+  mode?: "pipeline" | "trigger_compensation" | "final_assembly" | "manual_review_sync";
   triggerSource?: string;
   triggerMetadata?: Record<string, unknown>;
   allowReuseRunningTask?: boolean;
+  workflowPayload?: Record<string, unknown>;
 }
 
 interface ScriptPayloadContainer {
@@ -258,6 +261,7 @@ const buildAutoPipelineReplayPayloadFromTask = (
       typeof metadata?.allowReuseRunningTask === "boolean"
         ? metadata.allowReuseRunningTask
         : undefined,
+    workflowPayload: (asRecord(metadata?.workflowPayload) || {}) as Record<string, unknown>,
   };
 };
 
@@ -381,7 +385,7 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
     };
   }
 
-  if (task.taskType === "AUTO_PIPELINE" || task.taskType === "AUTO_PIPELINE_COMPENSATION") {
+  if (task.taskType === "AUTO_PIPELINE" || task.taskType === "AUTO_PIPELINE_COMPENSATION" || task.taskType === "FINAL_ASSEMBLY" || task.taskType === "MANUAL_REVIEW_SYNC") {
     if (queuePayload) {
       return {
         kind: "auto_pipeline",
@@ -390,8 +394,11 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
           bookId: task.bookId,
           options: (asRecord(queuePayload.options) || {}) as AutoPipelineOptions,
           mode:
-            typeof queuePayload.mode === "string" && queuePayload.mode === "trigger_compensation"
-              ? "trigger_compensation"
+            typeof queuePayload.mode === "string" &&
+            (queuePayload.mode === "trigger_compensation" ||
+              queuePayload.mode === "final_assembly" ||
+              queuePayload.mode === "manual_review_sync")
+              ? (queuePayload.mode as "trigger_compensation" | "final_assembly" | "manual_review_sync")
               : "pipeline",
           triggerSource:
             typeof queuePayload.triggerSource === "string"
@@ -402,6 +409,7 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
             typeof queuePayload.allowReuseRunningTask === "boolean"
               ? queuePayload.allowReuseRunningTask
               : undefined,
+          workflowPayload: (asRecord(queuePayload.workflowPayload) || {}) as Record<string, unknown>,
         },
       };
     }
@@ -422,6 +430,8 @@ export const isRecoverableTask = (taskType: string): taskType is QueueTaskType =
     taskType === "QUALITY_CHECK" ||
     taskType === "QUALITY_SIGNAL_SYNC" ||
     taskType === "AUTO_PIPELINE" ||
-    taskType === "AUTO_PIPELINE_COMPENSATION"
+    taskType === "AUTO_PIPELINE_COMPENSATION" ||
+    taskType === "FINAL_ASSEMBLY" ||
+    taskType === "MANUAL_REVIEW_SYNC"
   );
 };

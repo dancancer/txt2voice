@@ -5,8 +5,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, ValidationError } from '@/lib/error-handler'
 import prisma from '@/lib/prisma'
-import { getAudioMerger, AudioMergeOptions } from '@/lib/audio-merger'
+import { AudioMergeOptions } from '@/lib/audio-merger'
 import { resolveExistingAudioFilePath } from '@/lib/storage-path'
+import { enqueueAutoPipelineJobInternal } from '@/lib/task-queue/ops/auto-pipeline-enqueue'
+import { mergeTaskData } from '@/lib/processing-task-utils'
+import { ensureTaskWorkerStarted } from '@/lib/task-queue'
+
+const toJson = (value: unknown) => JSON.parse(JSON.stringify(value ?? {}))
 
 // POST /api/books/[id]/audio/merge - 合并音频
 export const POST = withErrorHandler(async (
@@ -27,7 +32,6 @@ export const POST = withErrorHandler(async (
     options?: AudioMergeOptions
   } = body
 
-  // 验证书籍存在
   const book = await prisma.book.findUnique({
     where: { id: bookId },
     include: {
@@ -47,53 +51,99 @@ export const POST = withErrorHandler(async (
     throw new ValidationError('该书籍没有音频文件，请先生成音频')
   }
 
+  if (type === 'chapter' && !chapterId) {
+    throw new ValidationError('章节ID不能为空')
+  }
+  if (type === 'segment' && !segmentId) {
+    throw new ValidationError('段落ID不能为空')
+  }
+
+  const existingTask = await prisma.processingTask.findFirst({
+    where: {
+      bookId,
+      taskType: 'FINAL_ASSEMBLY',
+      status: 'processing'
+    },
+    select: { id: true }
+  })
+
+  if (existingTask) {
+    throw new ValidationError('最终合并任务正在执行中，请稍后')
+  }
+
+  const task = await prisma.processingTask.create({
+    data: {
+      bookId,
+      taskType: 'FINAL_ASSEMBLY',
+      status: 'processing',
+      progress: 0,
+      totalItems: 1,
+      taskData: toJson({
+        message: '最终合并任务已创建',
+        metadata: {
+          source: 'final_assembly',
+          type,
+          chapterId: chapterId || null,
+          segmentId: segmentId || null,
+          options,
+          previousBookStatus: book.status,
+        }
+      })
+    }
+  })
+
   try {
-    const audioMerger = getAudioMerger()
-    let result
-
-    switch (type) {
-      case 'chapter':
-        if (!chapterId) {
-          throw new ValidationError('章节ID不能为空')
+    await ensureTaskWorkerStarted()
+    await enqueueAutoPipelineJobInternal(
+      {
+        taskId: task.id,
+        bookId,
+        mode: 'final_assembly',
+        workflowPayload: {
+          source: 'final_assembly',
+          type,
+          chapterId: chapterId || null,
+          segmentId: segmentId || null,
+          options,
+          previousBookStatus: book.status,
         }
-        result = await audioMerger.mergeChapterAudio(bookId, chapterId, options)
-        break
-
-      case 'book':
-        result = await audioMerger.mergeBookAudio(bookId, options)
-        break
-
-      case 'segment':
-        if (!segmentId) {
-          throw new ValidationError('段落ID不能为空')
-        }
-        result = await audioMerger.mergeSegmentAudio(segmentId, options)
-        break
-
-      default:
-        throw new ValidationError('无效的合并类型')
-    }
-
-    if (!result.success) {
-      throw new Error(result.error || '音频合并失败')
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        message: '音频合并成功',
-        outputPath: result.outputPath,
-        fileName: result.fileName,
-        fileSize: result.fileSize,
-        duration: result.duration,
-        metadata: result.metadata
+      },
+      {
+        allowReuse: false,
+        reason: 'audio_merge_api'
+      }
+    )
+  } catch (queueError) {
+    const message = queueError instanceof Error ? queueError.message : '最终合并任务入队失败'
+    const failedTaskData = await mergeTaskData(task.id, {
+      message: '最终合并任务入队失败',
+      metadata: {
+        queueError: message
       }
     })
 
-  } catch (error) {
-    console.error('音频合并失败:', error)
-    throw error
+    await prisma.processingTask.update({
+      where: { id: task.id },
+      data: {
+        status: 'failed',
+        completedAt: new Date(),
+        errorMessage: message,
+        taskData: failedTaskData
+      }
+    })
+
+    throw queueError
   }
+
+  return NextResponse.json({
+    success: true,
+    data: {
+      taskId: task.id,
+      taskType: 'FINAL_ASSEMBLY',
+      type,
+      message: '最终合并任务已启动'
+    }
+  })
 })
 
 // GET /api/books/[id]/audio/merge - 获取合并的音频列表
@@ -107,7 +157,6 @@ export const GET = withErrorHandler(async (
 
   const { id: bookId } = await params
 
-  // 构建查询条件
   const where: any = {
     bookId,
     provider: 'merged',
@@ -122,7 +171,6 @@ export const GET = withErrorHandler(async (
     where.sentenceId = null
   }
 
-  // 查询合并的音频文件
   const mergedAudioFiles = await prisma.audioFile.findMany({
     where,
     include: {
@@ -178,7 +226,6 @@ export const DELETE = withErrorHandler(async (
 
   try {
     if (audioFileId) {
-      // 删除单个音频文件
       const audioFile = await prisma.audioFile.findUnique({
         where: { id: audioFileId }
       })
@@ -191,7 +238,6 @@ export const DELETE = withErrorHandler(async (
         throw new ValidationError('音频文件不属于该书籍')
       }
 
-      // 删除物理文件
       try {
         const fs = await import('fs')
         const resolvedPath = resolveExistingAudioFilePath({
@@ -208,7 +254,6 @@ export const DELETE = withErrorHandler(async (
         console.warn('删除物理文件失败:', error)
       }
 
-      // 删除数据库记录
       await prisma.audioFile.delete({
         where: { id: audioFileId }
       })
@@ -219,7 +264,6 @@ export const DELETE = withErrorHandler(async (
       })
 
     } else {
-      // 批量删除
       const where: any = {
         bookId,
         provider: 'merged'
@@ -234,37 +278,33 @@ export const DELETE = withErrorHandler(async (
       }
 
       const audioFiles = await prisma.audioFile.findMany({ where })
-
-      // 删除物理文件
-      for (const af of audioFiles) {
+      for (const audioFile of audioFiles) {
         try {
           const fs = await import('fs')
           const resolvedPath = resolveExistingAudioFilePath({
-            filePath: af.filePath,
-            fileName: af.fileName,
-            bookId: af.bookId,
-            provider: af.provider
+            filePath: audioFile.filePath,
+            fileName: audioFile.fileName,
+            bookId: audioFile.bookId,
+            provider: audioFile.provider
           })
-
           if (resolvedPath && fs.existsSync(resolvedPath)) {
             await import('fs/promises').then(fsp => fsp.unlink(resolvedPath))
           }
         } catch (error) {
-          console.warn(`删除物理文件失败 ${af.filePath}:`, error)
+          console.warn('删除物理文件失败:', error)
         }
       }
 
-      // 删除数据库记录
       const result = await prisma.audioFile.deleteMany({ where })
-
       return NextResponse.json({
         success: true,
-        message: `已删除 ${result.count} 个音频文件`
+        data: {
+          deletedCount: result.count
+        }
       })
     }
-
   } catch (error) {
-    console.error('删除音频文件失败:', error)
+    console.error('删除合并音频失败:', error)
     throw error
   }
 })

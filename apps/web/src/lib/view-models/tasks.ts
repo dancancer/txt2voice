@@ -17,6 +17,8 @@ const TASK_TYPE_LABEL: Record<string, string> = {
   QUALITY_SIGNAL_SYNC: "信号生产",
   AUTO_PIPELINE: "自动编排",
   AUTO_PIPELINE_COMPENSATION: "上传触发补偿",
+  FINAL_ASSEMBLY: "最终合并",
+  MANUAL_REVIEW_SYNC: "复核同步",
 };
 
 const TASK_STATUS_META: Record<ProcessingTaskStatus, TaskStatusMeta> = {

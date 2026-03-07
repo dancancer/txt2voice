@@ -14,10 +14,10 @@ import type {
 
 export const normalizeAutoPipelineInput = (
   input: AutoPipelineQueueInput
-): Required<Pick<AutoPipelineQueueInput, "taskId" | "bookId" | "options">> &
+): Required<Pick<AutoPipelineQueueInput, "taskId" | "bookId" | "options" | "mode">> &
   Pick<
     AutoPipelineQueueInput,
-    "mode" | "triggerSource" | "triggerMetadata" | "allowReuseRunningTask"
+    "mode" | "triggerSource" | "triggerMetadata" | "allowReuseRunningTask" | "workflowPayload"
   > => ({
   taskId: input.taskId,
   bookId: input.bookId,
@@ -26,6 +26,7 @@ export const normalizeAutoPipelineInput = (
   triggerSource: input.triggerSource,
   triggerMetadata: input.triggerMetadata || {},
   allowReuseRunningTask: input.allowReuseRunningTask,
+  workflowPayload: input.workflowPayload || {},
 });
 
 export async function enqueueAutoPipelineJobInternal(
@@ -46,6 +47,7 @@ export async function enqueueAutoPipelineJobInternal(
       options: normalizedInput.options || {},
       triggerMetadata: normalizedInput.triggerMetadata || {},
       allowReuseRunningTask: normalizedInput.allowReuseRunningTask ?? true,
+      workflowPayload: normalizedInput.workflowPayload || {},
       dedupeKey,
     },
     {
@@ -71,6 +73,7 @@ export async function enqueueAutoPipelineJobInternal(
         triggerSource: normalizedInput.triggerSource || null,
         triggerMetadata: normalizedInput.triggerMetadata || {},
         allowReuseRunningTask: normalizedInput.allowReuseRunningTask ?? true,
+        workflowPayload: normalizedInput.workflowPayload || {},
       },
       enqueuedAt: new Date().toISOString(),
     },

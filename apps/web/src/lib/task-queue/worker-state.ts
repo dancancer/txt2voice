@@ -10,6 +10,8 @@ export type BookFallbackStatus =
   | "completed"
   | "processed"
   | "script_generated"
+  | "manual_review_pending"
+  | "assembling_audio"
   | "completed_with_errors"
   | "error";
 
@@ -135,6 +137,8 @@ export async function markTaskFailed(
   const isCalibrationEval = taskMetadata.source === "calibration_eval";
   const isUploadCompensation = taskMetadata.source === "upload_compensation";
   const isQualitySignalSync = taskMetadata.source === "quality_signal_sync";
+  const isFinalAssembly = taskMetadata.source === "final_assembly";
+  const isManualReviewSync = taskMetadata.source === "manual_review_sync";
   const calibrationEval =
     taskMetadata.calibrationEval &&
     typeof taskMetadata.calibrationEval === "object" &&
@@ -248,6 +252,43 @@ export async function markTaskFailed(
                 failedAt: new Date().toISOString(),
                 lastError: message,
               },
+            },
+          })
+        ),
+      },
+    });
+    return;
+  }
+
+  if (isFinalAssembly || isManualReviewSync) {
+    const book = await prisma.book.findUnique({
+      where: { id: bookId },
+      select: { metadata: true, status: true },
+    });
+    const rootMetadata = jsonObject(book?.metadata);
+    const key = isFinalAssembly ? "finalAssembly" : "manualReviewSync";
+    const previousBookStatus =
+      typeof taskMetadata.previousBookStatus === "string"
+        ? taskMetadata.previousBookStatus
+        : book?.status || fallbackStatus;
+    const currentSection =
+      rootMetadata[key] && typeof rootMetadata[key] === "object" && !Array.isArray(rootMetadata[key])
+        ? (rootMetadata[key] as Record<string, unknown>)
+        : {};
+
+    await prisma.book.update({
+      where: { id: bookId },
+      data: {
+        status: previousBookStatus,
+        metadata: JSON.parse(
+          JSON.stringify({
+            ...rootMetadata,
+            [key]: {
+              ...currentSection,
+              taskId,
+              status: "failed",
+              failedAt: new Date().toISOString(),
+              lastError: message,
             },
           })
         ),

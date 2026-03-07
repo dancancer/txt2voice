@@ -95,7 +95,11 @@ export async function replayProcessingTask(
       taskType:
         task.taskType === "AUTO_PIPELINE_COMPENSATION"
           ? "AUTO_PIPELINE_COMPENSATION"
-          : "AUTO_PIPELINE",
+          : task.taskType === "FINAL_ASSEMBLY"
+            ? "FINAL_ASSEMBLY"
+            : task.taskType === "MANUAL_REVIEW_SYNC"
+              ? "MANUAL_REVIEW_SYNC"
+              : "AUTO_PIPELINE",
       jobId: result.jobId,
       reused: result.reused,
       reason,
