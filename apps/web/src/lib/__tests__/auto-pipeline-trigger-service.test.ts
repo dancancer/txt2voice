@@ -176,6 +176,26 @@ describe("auto-pipeline-trigger-service", () => {
     expect(mockCreateTask).not.toHaveBeenCalled();
   });
 
+  it("should reject chapter quality check without chapterId", async () => {
+    mockFindTask.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+
+    await expect(
+      startAutoPipelineTask({
+        bookId: "book-1",
+        triggerSource: "pipeline_auto_api",
+        options: {
+          qualityCheck: {
+            enabled: true,
+            type: "chapter",
+          },
+        },
+      })
+    ).rejects.toThrow("qualityCheck.chapterId");
+
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueAutoPipeline).not.toHaveBeenCalled();
+  });
+
   it("should mark task failed and restore book status when enqueue fails", async () => {
     mockFindTask.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
     mockCreateTask.mockResolvedValueOnce({

@@ -13,6 +13,10 @@ import { ensureTaskWorkerStarted } from '@/lib/task-queue'
 
 const toJson = (value: unknown) => JSON.parse(JSON.stringify(value ?? {}))
 
+const isFinalAssemblyType = (value: unknown): value is 'chapter' | 'book' | 'segment' => {
+  return value === 'chapter' || value === 'book' || value === 'segment'
+}
+
 // POST /api/books/[id]/audio/merge - 合并音频
 export const POST = withErrorHandler(async (
   request: NextRequest,
@@ -20,17 +24,20 @@ export const POST = withErrorHandler(async (
 ) => {
   const { id: bookId } = await params
   const body = await request.json()
+  const type = isFinalAssemblyType(body?.type) ? body.type : null
   const {
-    type,
     chapterId,
     segmentId,
     options = {}
   }: {
-    type: 'chapter' | 'book' | 'segment'
     chapterId?: string
     segmentId?: string
     options?: AudioMergeOptions
   } = body
+
+  if (!type) {
+    throw new ValidationError('无效的合并类型')
+  }
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },

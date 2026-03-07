@@ -37,6 +37,7 @@ interface AutoPipelineAudioOptions {
 interface AutoPipelineQualityOptions {
   enabled?: boolean;
   type?: QualityCheckTaskType;
+  chapterId?: string | null;
   syncSignalsBeforeRun?: boolean;
   forceSignalResync?: boolean;
 }
@@ -71,6 +72,7 @@ export const STAGE_LABEL: Record<AutoPipelineStage, string> = {
 const QUALITY_CHECK_DEFAULT: Required<AutoPipelineQualityOptions> = {
   enabled: true,
   type: "book",
+  chapterId: null,
   syncSignalsBeforeRun: true,
   forceSignalResync: false,
 };
@@ -80,6 +82,15 @@ export const asRecord = (value: unknown): Record<string, unknown> | null => {
     return null;
   }
   return value as Record<string, unknown>;
+};
+
+const asString = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 };
 
 const defaultStageState = (): AutoPipelineStageState => ({
@@ -119,6 +130,7 @@ export const normalizeOptions = (
       options?.qualityCheck?.type && options.qualityCheck.type !== "batch"
         ? options.qualityCheck.type
         : QUALITY_CHECK_DEFAULT.type,
+    chapterId: asString(options?.qualityCheck?.chapterId) || null,
     syncSignalsBeforeRun:
       options?.qualityCheck?.syncSignalsBeforeRun ??
       QUALITY_CHECK_DEFAULT.syncSignalsBeforeRun,
@@ -164,6 +176,7 @@ export const parseAutoPipelineOptions = (
     qualityCheckRoot.type === "book" || qualityCheckRoot.type === "chapter"
       ? qualityCheckRoot.type
       : undefined;
+  const qualityChapterId = asString(qualityCheckRoot.chapterId);
 
   return {
     textProcessing: {
@@ -206,6 +219,11 @@ export const parseAutoPipelineOptions = (
       ...(qualityType
         ? {
             type: qualityType,
+          }
+        : {}),
+      ...(qualityType === "chapter" && qualityChapterId
+        ? {
+            chapterId: qualityChapterId,
           }
         : {}),
       ...(typeof qualityCheckRoot.syncSignalsBeforeRun === "boolean"

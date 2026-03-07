@@ -92,4 +92,21 @@ describe("POST /api/books/[id]/audio/merge", () => {
       })
     );
   });
+
+  it("should reject invalid merge type before creating a task", async () => {
+    const response: any = await POST(
+      {
+        async json() {
+          return { type: "foo" };
+        },
+      } as any,
+      ROUTE_PARAMS as any
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(payload.error.message).toBe("无效的合并类型");
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueWorkflow).not.toHaveBeenCalled();
+  });
 });

@@ -20,6 +20,61 @@ export interface FinalAssemblyRunParams {
 const toJson = (value: unknown) =>
   JSON.parse(JSON.stringify(value ?? {}));
 
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+};
+
+const asString = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+const resolveBookFinalStatus = ({
+  type,
+  bookStatus,
+  bookMetadata,
+  taskData,
+}: {
+  type: FinalAssemblyType;
+  bookStatus: string | null | undefined;
+  bookMetadata: unknown;
+  taskData: unknown;
+}): string => {
+  if (type !== "book") {
+    return bookStatus || "completed";
+  }
+
+  const taskMetadata = asRecord(asRecord(taskData)?.metadata);
+  const previousBookStatus = asString(taskMetadata?.previousBookStatus);
+  const rootMetadata = asRecord(bookMetadata);
+  const audioGenerationStatus = asString(rootMetadata?.audioGenerationStatus);
+
+  if (
+    audioGenerationStatus === "completed_with_errors" ||
+    previousBookStatus === "completed_with_errors"
+  ) {
+    return "completed_with_errors";
+  }
+
+  if (audioGenerationStatus === "completed") {
+    return "completed";
+  }
+
+  if (previousBookStatus === "completed") {
+    return "completed";
+  }
+
+  return "completed";
+};
+
 export async function runFinalAssemblyTask({
   taskId,
   bookId,
@@ -28,13 +83,21 @@ export async function runFinalAssemblyTask({
   segmentId,
   options = {},
 }: FinalAssemblyRunParams): Promise<void> {
-  const book = await prisma.book.findUnique({
-    where: { id: bookId },
-    select: {
-      metadata: true,
-      status: true,
-    },
-  });
+  const [book, taskSnapshot] = await Promise.all([
+    prisma.book.findUnique({
+      where: { id: bookId },
+      select: {
+        metadata: true,
+        status: true,
+      },
+    }),
+    prisma.processingTask.findUnique({
+      where: { id: taskId },
+      select: {
+        taskData: true,
+      },
+    }),
+  ]);
 
   await prisma.book.update({
     where: { id: bookId },
@@ -98,7 +161,12 @@ export async function runFinalAssemblyTask({
   await prisma.book.update({
     where: { id: bookId },
     data: {
-      status: type === "book" ? "completed" : book?.status || "completed",
+      status: resolveBookFinalStatus({
+        type,
+        bookStatus: book?.status,
+        bookMetadata: book?.metadata,
+        taskData: taskSnapshot?.taskData,
+      }),
       metadata: toJson({
         ...rootMetadata,
         finalAssembly: {

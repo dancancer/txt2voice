@@ -38,6 +38,10 @@ export async function runAutoPipelineTask({
   const stageState = createStageStateMap();
   const qualityCheckEnabled = normalizedOptions.qualityCheck.enabled !== false;
   const qualityCheckType = normalizedOptions.qualityCheck.type || "book";
+  const qualityCheckChapterId =
+    qualityCheckType === "chapter"
+      ? normalizedOptions.qualityCheck.chapterId || undefined
+      : undefined;
   const stageCount = qualityCheckEnabled ? 4 : 3;
 
   const syncPipelineTask = async ({
@@ -257,10 +261,19 @@ export async function runAutoPipelineTask({
     audioTaskBookStatus = await getAudioTaskBookStatus(bookId);
 
     if (qualityCheckEnabled) {
+      if (qualityCheckType === "chapter" && !qualityCheckChapterId) {
+        throw new Error("自动编排章节质检必须提供 chapterId");
+      }
+
       const qcTotalItems = await prisma.audioFile.count({
         where: {
           bookId,
           status: "completed",
+          ...(qualityCheckType === "chapter" && qualityCheckChapterId
+            ? {
+                chapterId: qualityCheckChapterId,
+              }
+            : {}),
         },
       });
 
@@ -277,6 +290,7 @@ export async function runAutoPipelineTask({
         totalItems: qcTotalItems,
         metadata: {
           type: qualityCheckType,
+          chapterId: qualityCheckChapterId || null,
           source: "auto_pipeline",
           syncSignalsBeforeRun: normalizedOptions.qualityCheck.syncSignalsBeforeRun,
           forceSignalResync: normalizedOptions.qualityCheck.forceSignalResync,
@@ -312,6 +326,7 @@ export async function runAutoPipelineTask({
             taskId: qualityTask.id,
             bookId,
             type: qualityCheckType,
+            chapterId: qualityCheckChapterId,
           });
         },
       });

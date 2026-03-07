@@ -33,6 +33,10 @@ const isQualityCheckEnabled = (options: AutoPipelineOptions): boolean => {
   return options.qualityCheck?.enabled !== false;
 };
 
+const requiresQualityCheckChapter = (options: AutoPipelineOptions): boolean => {
+  return isQualityCheckEnabled(options) && options.qualityCheck?.type === "chapter";
+};
+
 const readTotalStagesFromTask = (
   taskData: Prisma.JsonValue | null | undefined
 ): number | null => {
@@ -171,6 +175,10 @@ export async function startAutoPipelineTask({
 
   const qualityCheckEnabled = isQualityCheckEnabled(options);
   const computedTotalStages = qualityCheckEnabled ? 4 : 3;
+
+  if (requiresQualityCheckChapter(options) && !options.qualityCheck?.chapterId) {
+    throw new ValidationError("自动编排章节质检必须提供 qualityCheck.chapterId");
+  }
 
   if (existingAutoPipelineTask) {
     if (!allowReuseRunningTask) {

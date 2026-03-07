@@ -418,6 +418,81 @@ describe("runAudioGenerationTask manual review followup", () => {
     });
   });
 
+  it("should reject only failed qc_retry items before followup quality check", async () => {
+    mockProcessingTaskFindUnique.mockResolvedValue({
+      taskData: {
+        metadata: {
+          source: "qc_retry",
+          selectedReviewItemIds: ["review-51", "review-52"],
+        },
+      },
+    });
+
+    mockGetAudioGenerator.mockReturnValue({
+      generateBatchAudio: jest.fn().mockResolvedValue([
+        {
+          success: true,
+          audioFileId: "audio-51",
+          duration: 2.7,
+        },
+        {
+          success: false,
+          error: "tts failed",
+        },
+      ]),
+    } as any);
+
+    mockManualReviewFindMany.mockResolvedValue([
+      {
+        id: "review-52",
+        resolutionNote: null,
+      },
+    ]);
+
+    mockEnqueueQualityCheck.mockResolvedValue({
+      jobId: "qc-task-qc-retry-partial",
+      dedupeKey: "quality:batch:audio-51",
+      reused: false,
+      state: "waiting",
+    });
+
+    mockProcessingTaskCreate.mockResolvedValueOnce({
+      id: "qc-task-qc-retry-partial",
+    });
+
+    await runAudioGenerationTask({
+      bookId: "book-1",
+      taskId: "task-audio-qc-retry-partial",
+      type: "batch",
+      scriptSentenceIds: ["sentence-51", "sentence-52"],
+    });
+
+    expect(mockManualReviewFindMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        sentenceId: {
+          in: ["sentence-52"],
+        },
+      }),
+      select: {
+        id: true,
+        resolutionNote: true,
+      },
+    });
+    expect(mockManualReviewUpdate).toHaveBeenCalledWith({
+      where: { id: "review-52" },
+      data: expect.objectContaining({
+        status: "rejected",
+        resolutionType: "batch_regenerate_failed",
+      }),
+    });
+    expect(mockEnqueueQualityCheck).toHaveBeenCalledWith({
+      taskId: "qc-task-qc-retry-partial",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-51"],
+    });
+  });
+
   it("should persist router decision summary into task metadata", async () => {
     mockProcessingTaskFindUnique.mockResolvedValue({
       taskData: {

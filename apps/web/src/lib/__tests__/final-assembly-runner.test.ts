@@ -10,6 +10,7 @@ jest.mock("@/lib/prisma", () => ({
       update: jest.fn(),
     },
     processingTask: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
   },
@@ -33,6 +34,7 @@ import { getAudioMerger } from "@/lib/audio-merger";
 import { runFinalAssemblyTask } from "@/lib/final-assembly-runner";
 
 const mockFindBook = (prisma as any).book.findUnique as jest.Mock;
+const mockFindTask = (prisma as any).processingTask.findUnique as jest.Mock;
 const mockUpdateBook = (prisma as any).book.update as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
 const mockGetAudioMerger = getAudioMerger as jest.MockedFunction<typeof getAudioMerger>;
@@ -41,6 +43,7 @@ describe("final-assembly-runner", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFindBook.mockResolvedValue({ metadata: {}, status: "manual_review_pending" });
+    mockFindTask.mockResolvedValue({ taskData: { metadata: {} } });
     mockUpdateBook.mockResolvedValue({});
     mockUpdateTask.mockResolvedValue({});
     mockGetAudioMerger.mockReturnValue({
@@ -84,6 +87,35 @@ describe("final-assembly-runner", () => {
             outputPath: "/tmp/book.mp3",
           }),
         }),
+      }),
+    });
+  });
+
+  it("should preserve completed_with_errors when final assembly packages a partial book", async () => {
+    mockFindBook.mockResolvedValue({
+      metadata: {
+        audioGenerationStatus: "completed_with_errors",
+      },
+      status: "assembling_audio",
+    });
+    mockFindTask.mockResolvedValue({
+      taskData: {
+        metadata: {
+          previousBookStatus: "completed_with_errors",
+        },
+      },
+    });
+
+    await runFinalAssemblyTask({
+      taskId: "assembly-task-errors",
+      bookId: "book-1",
+      type: "book",
+    });
+
+    expect(mockUpdateBook).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        status: "completed_with_errors",
       }),
     });
   });

@@ -49,6 +49,7 @@ describe("auto-pipeline-runner", () => {
       qualityCheck: {
         enabled: false,
         type: "chapter",
+        chapterId: "chapter-1",
       },
     });
 
@@ -72,6 +73,7 @@ describe("auto-pipeline-runner", () => {
       qualityCheck: {
         enabled: false,
         type: "chapter",
+        chapterId: "chapter-1",
       },
     });
   });

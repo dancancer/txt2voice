@@ -483,6 +483,79 @@ const rejectQcRetryReprocessingItems = async ({
   return reprocessingItems.length;
 };
 
+const rejectQcRetryReprocessingItemsBySentenceIds = async ({
+  bookId,
+  reviewItemIds,
+  sentenceIds,
+  resolutionType,
+  note,
+}: {
+  bookId: string;
+  reviewItemIds: string[];
+  sentenceIds: string[];
+  resolutionType: string;
+  note: string;
+}): Promise<number> => {
+  if (reviewItemIds.length === 0 || sentenceIds.length === 0) {
+    return 0;
+  }
+
+  const reprocessingItems = await prisma.manualReviewItem.findMany({
+    where: {
+      bookId,
+      id: {
+        in: reviewItemIds,
+      },
+      sentenceId: {
+        in: sentenceIds,
+      },
+      status: "reprocessing",
+    },
+    select: {
+      id: true,
+      resolutionNote: true,
+    },
+  });
+
+  if (reprocessingItems.length === 0) {
+    return 0;
+  }
+
+  for (const item of reprocessingItems) {
+    await prisma.manualReviewItem.update({
+      where: { id: item.id },
+      data: {
+        status: "rejected",
+        resolutionType,
+        resolutionNote: appendResolutionNote(item.resolutionNote, note),
+        resolvedAt: new Date(),
+      },
+    });
+  }
+
+  return reprocessingItems.length;
+};
+
+const collectFailedBatchSentenceIds = ({
+  type,
+  scriptSentenceIds,
+  results,
+}: {
+  type: AudioGenerationTaskType;
+  scriptSentenceIds?: string[];
+  results: Array<{ success?: boolean }>;
+}): string[] => {
+  if (type !== "batch" || !scriptSentenceIds || scriptSentenceIds.length === 0) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(
+      scriptSentenceIds.filter((sentenceId, index) => results[index]?.success !== true)
+    )
+  );
+};
+
 const enqueueManualReviewFollowupQualityCheck = async ({
   bookId,
   audioTaskId,
@@ -960,6 +1033,34 @@ export async function runAudioGenerationTask({
 
   if (!manualReviewContext && !manualReviewBatchContext && !qcRetryContext) {
     return;
+  }
+
+  const failedBatchSentenceIds = collectFailedBatchSentenceIds({
+    type,
+    scriptSentenceIds,
+    results,
+  });
+
+  if (failedBatchSentenceIds.length > 0) {
+    if (qcRetryContext) {
+      await rejectQcRetryReprocessingItemsBySentenceIds({
+        bookId,
+        reviewItemIds: qcRetryContext.selectedReviewItemIds,
+        sentenceIds: failedBatchSentenceIds,
+        resolutionType: "batch_regenerate_failed",
+        note: `auto_reject:qc_retry部分返工失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
+      });
+    }
+
+    if (manualReviewBatchContext) {
+      await rejectQcRetryReprocessingItemsBySentenceIds({
+        bookId,
+        reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
+        sentenceIds: failedBatchSentenceIds,
+        resolutionType: "batch_regenerate_failed",
+        note: `auto_reject:manual_review_batch部分重生失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
+      });
+    }
   }
 
   const generatedAudioFileIds = Array.from(
