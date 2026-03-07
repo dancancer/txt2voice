@@ -53,6 +53,7 @@ export interface SignalSyncReplayInput {
   chapterId?: string;
   audioFileIds?: string[];
   forceResync?: boolean;
+  signalModelRuntime?: Record<string, unknown>;
 }
 
 export interface AutoPipelineReplayInput {
@@ -231,6 +232,7 @@ const buildSignalSyncReplayPayloadFromTask = (task: ProcessingTask): SignalSyncR
         ? metadata.audioFileIds.filter((value): value is string => typeof value === "string")
         : undefined,
     forceResync: Boolean(metadata?.forceResync),
+    signalModelRuntime: (asRecord(metadata?.signalModelRuntime) || {}) as Record<string, unknown>,
   };
 };
 
@@ -368,6 +370,7 @@ export const extractPayloadFromTask = (task: ProcessingTask): PayloadContainer |
             typeof queuePayload.chapterId === "string" ? queuePayload.chapterId : undefined,
           audioFileIds,
           forceResync: Boolean(queuePayload.forceResync),
+          signalModelRuntime: (asRecord(queuePayload.signalModelRuntime) || {}) as Record<string, unknown>,
         },
       };
     }

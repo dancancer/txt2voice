@@ -70,6 +70,7 @@ export const POST = withErrorHandler(async (
   const signalPayloadBySentenceId = asRecord(body.signalPayloadBySentenceId)
   const syncSignalsBeforeRun = body.syncSignalsBeforeRun !== false
   const forceSignalResync = body.forceSignalResync === true
+  const signalModelRuntime = asRecord(body.signalModelRuntime || body.signalRuntime)
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -128,6 +129,9 @@ export const POST = withErrorHandler(async (
   }
   if (signalPayloadBySentenceId) {
     taskMetadata.signalPayloadBySentenceId = toInputJsonValue(signalPayloadBySentenceId)
+  }
+  if (signalModelRuntime) {
+    taskMetadata.signalModelRuntime = toInputJsonValue(signalModelRuntime)
   }
 
   const task = await prisma.processingTask.create({

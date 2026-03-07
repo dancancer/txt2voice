@@ -323,3 +323,16 @@
    - `pnpm --filter web test:regression`
 3. 结果：全部通过。
 4. 结论：`S30.1` 默认供给闭环已成立，下一步应进入真实 provider 接入与基线对照。
+
+
+### S30.1 V3 更新（2026-03-07 21:21 CST）
+
+1. 已新增真实 provider 运行时与推理模块：支持 env / book / task 三层配置，以及 direct score / transcript / embedding 三类响应解析。
+2. `QUALITY_SIGNAL_SYNC` 已升级为 `existing -> task_payload -> provider -> heuristic` 四级决策。
+3. 已执行：
+   - `pnpm --filter web test -- --runInBand src/lib/__tests__/signal-model-runtime.test.ts src/lib/__tests__/signal-model-inference.test.ts src/lib/__tests__/quality-signal-sync-runner-provider.test.ts`
+   - `pnpm --filter web typecheck`
+   - `pnpm --filter web lint`
+   - `pnpm --filter web test:regression`
+4. 结果：全部通过。
+5. 结论：`S30.1` 已收口完成，下一步切换到 `S31`。

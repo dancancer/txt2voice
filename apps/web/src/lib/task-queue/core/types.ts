@@ -43,6 +43,7 @@ export interface QualitySignalSyncQueueInput {
   chapterId?: string;
   audioFileIds?: string[];
   forceResync?: boolean;
+  signalModelRuntime?: Record<string, unknown>;
 }
 
 export type AutoPipelineQueueMode = "pipeline" | "trigger_compensation";

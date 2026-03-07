@@ -792,7 +792,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 ### 5.3 目标 gap 列表（聚焦）
 
 1. `G1`：已关闭，上传触发失败后的补偿重试已任务化，漏触发可被自动收敛与观测。
-2. `G2`：Q0-Q3 虽已指标化，但 CER/声纹信号仍未形成独立生产任务（ASR/embedding）与 SLA 保障。
+2. `G2`：已基本关闭，CER/声纹信号已具备独立任务化供给与默认质检链路接入；后续主要是 provider 运维与质量调优。
 3. `G3`：已关闭，固定评估样本集与 `QUALITY_CHECK(source=calibration_eval)` 任务化回放已落地。
 4. `G4`：计划中 `MANUAL_REVIEW_SYNC/FINAL_ASSEMBLY` 任务类型尚未落地为独立可重放任务。
 5. `G5`：核心 SLO（`pipeline_success_rate` 等）尚未形成统一指标 API + 告警闭环。
@@ -838,7 +838,7 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
 
 1. 进度确认：S26（复核运营自动化）-> S27（阈值治理）-> S28（上传自动触发）-> S29（Engine Router）-> S30（Q0-Q3 指标化）五轮已按计划闭环完成。
 2. 方向一致性：与 `full-automation-plan` 原始目标保持一致（自动链路、质量闭环、可运营），没有出现偏离主需求的旁支开发。
-3. 差距定位：当前主要差距已收敛到“信号稳定供给（S30.1）+ 交付/SLO 收口（S31/S32）”。
+3. 差距定位：当前主要差距已收敛到“交付任务语义（S31）+ 核心 SLO 产品化（S32）”。
 4. 下一轮策略：先补“可回放 + 可收敛”基础设施，再推进 `FINAL_ASSEMBLY` 与核心 SLO 产品化，避免先做展示层而底层不稳。
 
 
@@ -1077,3 +1077,44 @@ S0-S29（前十九批改造）已完成，本轮推进第二十批 **S30 Q0-Q3 �
   1. 执行 `S30.1-C`：接入真实 ASR/CER 与 speaker embedding provider，降低对纯启发式 fallback 的依赖。
   2. 用 `POST /api/books/[id]/qc/baseline` 固化一版当前基线，作为真实 provider 接入前的对照样本。
   3. `S30.1` 收口后再推进 `S31`。
+
+
+### [S30.1-C] 真实 provider 接入（2026-03-07 21:21 CST）
+
+- 完成内容：
+  1. 新增 `signal-model-runtime`，支持从环境变量 / 书籍 metadata / 任务 metadata 解析真实 ASR 与 speaker provider 运行时配置。
+  2. 新增 `signal-model-inference`，支持：
+     - ASR provider 直接返回 `cer`，或返回 `transcript` 后本地计算 CER；
+     - speaker provider 直接返回 `speakerSimilarity`，或返回 embedding 后本地计算相似度。
+  3. `quality-signal-sync-runner` 已升级为“existing -> task_payload -> provider -> heuristic”四级决策：
+     - provider 可用时优先使用真实推理结果；
+     - provider 不可用时自动回退启发式，并记录 `modelDiagnostics/fallbackCount`。
+  4. `signal sync` 路由与 replay 链路已支持 `signalModelRuntime` 透传；`S30.1` 至此完成从“任务化供给骨架”到“真实 provider 可接入”的闭环。
+- 关键文件：
+  - `apps/web/src/lib/quality-check/signal-model-runtime.ts`
+  - `apps/web/src/lib/quality-check/signal-model-inference.ts`
+  - `apps/web/src/lib/quality-signal-sync-runner.ts`
+  - `apps/web/src/app/api/books/[id]/qc/signals/sync/route.ts`
+  - `apps/web/src/lib/task-queue/core/types.ts`
+  - `apps/web/src/lib/task-queue/replay-payload.ts`
+- 新增/更新测试：
+  - `apps/web/src/lib/__tests__/signal-model-runtime.test.ts`
+  - `apps/web/src/lib/__tests__/signal-model-inference.test.ts`
+  - `apps/web/src/lib/__tests__/quality-signal-sync-runner-provider.test.ts`
+- 执行命令：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/signal-model-runtime.test.ts src/lib/__tests__/signal-model-inference.test.ts src/lib/__tests__/quality-signal-sync-runner-provider.test.ts`
+  - `pnpm --filter web typecheck`
+  - `pnpm --filter web lint`
+  - `pnpm --filter web test:regression`
+- 结果：新增测试、类型校验、lint 与回归测试全部通过；`S30.1` 已完成“信号任务化 + 默认链路接入 + 真实 provider 接入”三段闭环。
+- 下一步建议：
+  1. 执行 `S31`：落地 `FINAL_ASSEMBLY/MANUAL_REVIEW_SYNC`，补齐交付阶段独立任务语义。
+  2. 执行 `S32`：输出统一 SLO 指标 API 与阈值告警闭环。
+
+
+### 5.11 第 30 轮阶段回顾（Phase A-D + S30.1 收口）
+
+1. 进度确认：`Phase A/B/C/D` 与 `S30.1-A/B/C` 已按计划闭环完成。
+2. 方向一致性：当前执行方向仍与原始目标保持一致，仍然围绕“自动链路、质量闭环、可运营”推进，没有偏离主需求。
+3. 阶段结论：上传触发、补偿回收、回放隔离、基线采集、信号任务化与默认质检链路已经形成完整可运行底座。
+4. 下一轮策略：主线切换到 `S31 -> S32`，先补交付任务语义，再补核心 SLO 产品化。

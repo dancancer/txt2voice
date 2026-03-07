@@ -4,7 +4,7 @@
 
 - 分支基线：`main`
 - 任务文档：`docs/epic/2026-03-05-autobook-v2/2026-03-05-autobook-v2-implementation-task.md`
-- 当前进度：S0-S30 + S27.1 + S28.1 已完成，S30.1 V1/V2（信号生产任务化骨架 + 默认质检链路接入）已落地；待推进 S30.1 收口 / S31 / S32。
+- 当前进度：S0-S30 + S27.1 + S28.1 + S30.1 已完成；待推进 S31 / S32。
 
 ## 总体目标回顾与现状判断（2026-03-06 15:27 CST）
 
@@ -628,3 +628,32 @@
 - 下一步建议：
   1. 接入真实 ASR/CER 与 speaker embedding provider；
   2. 在 provider 接入前先固化一版基线对照数据。
+
+
+### 32) 第三十轮增量（S30.1-C：真实 provider 接入）
+
+- 真实 provider 接入：
+  - 新增 `signal-model-runtime`，支持 env / book / task 三层运行时配置解析；
+  - 新增 `signal-model-inference`，支持从真实 ASR / speaker provider 响应中解析 `cer` / `speakerSimilarity`，并支持 transcript / embedding 回退计算。
+- 默认供给顺序升级：
+  - `quality-signal-sync-runner` 现在按 `existing -> task_payload -> provider -> heuristic` 决策；
+  - provider 不可用时自动回退启发式，并记录 `modelDiagnostics/fallbackCount`。
+- 当前结论：
+  - `S30.1` 已完成三段闭环：
+    1. 独立信号生产任务化；
+    2. 默认质检链路接入信号生产；
+    3. 真实 provider 可接入。
+- 验证结果：
+  - `pnpm --filter web test -- --runInBand src/lib/__tests__/signal-model-runtime.test.ts src/lib/__tests__/signal-model-inference.test.ts src/lib/__tests__/quality-signal-sync-runner-provider.test.ts`：通过；
+  - `pnpm --filter web typecheck`、`pnpm --filter web lint`、`pnpm --filter web test:regression`：通过。
+- 下一步建议：
+  1. 主线切换到 `S31`；
+  2. `S31` 完成后进入 `S32`。
+
+
+### 33) 第 30 轮阶段回顾（Phase A-D + S30.1 收口）
+
+- 进度结论：`Phase A/B/C/D` 与 `S30.1-A/B/C` 已全部按计划落地。
+- 方向结论：与原始需求保持一致，自动链路、质量闭环、可运营三条主线仍然同向推进。
+- 剩余主线：`S31`、`S32`。
+- 下一步建议：先做 `S31`，再做 `S32`。

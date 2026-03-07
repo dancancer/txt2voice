@@ -102,6 +102,7 @@ interface SignalSyncTaskContext {
   forceResync: boolean;
   signalPayloadByAudioFileId: Record<string, unknown>;
   signalPayloadBySentenceId: Record<string, unknown>;
+  signalModelRuntime: Record<string, unknown>;
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -297,6 +298,7 @@ const extractQualityCheckTaskContext = (
       forceResync: forceSignalResync,
       signalPayloadByAudioFileId: asRecord(metadata?.signalPayloadByAudioFileId) || {},
       signalPayloadBySentenceId: asRecord(metadata?.signalPayloadBySentenceId) || {},
+      signalModelRuntime: asRecord(metadata?.signalModelRuntime) || {},
     },
     taskMetadata: metadata || {},
   };
@@ -421,6 +423,7 @@ const runSignalSyncBeforeQualityCheck = async ({
           forceResync: signalSync.forceResync,
           signalPayloadByAudioFileId: signalSync.signalPayloadByAudioFileId,
           signalPayloadBySentenceId: signalSync.signalPayloadBySentenceId,
+          signalModelRuntime: signalSync.signalModelRuntime,
         },
       }),
     },

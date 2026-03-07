@@ -75,6 +75,7 @@ const normalizeSignalSyncInput = (
   chapterId: input.chapterId,
   audioFileIds: input.audioFileIds || [],
   forceResync: Boolean(input.forceResync),
+  signalModelRuntime: input.signalModelRuntime || {},
 });
 
 export async function enqueueScriptGenerationJob(
@@ -264,6 +265,7 @@ export async function enqueueQualitySignalSyncJob(
       ...normalizedInput,
       audioFileIds: normalizedInput.audioFileIds || [],
       forceResync: Boolean(normalizedInput.forceResync),
+      signalModelRuntime: normalizedInput.signalModelRuntime || {},
       dedupeKey,
     },
     {
@@ -288,6 +290,7 @@ export async function enqueueQualitySignalSyncJob(
         chapterId: normalizedInput.chapterId || null,
         audioFileIds: normalizedInput.audioFileIds || [],
         forceResync: Boolean(normalizedInput.forceResync),
+        signalModelRuntime: normalizedInput.signalModelRuntime || {},
       },
       enqueuedAt: new Date().toISOString(),
     },

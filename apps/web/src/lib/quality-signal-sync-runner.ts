@@ -3,6 +3,8 @@
 // output: Q0-Q3 信号生产任务结果
 // pos: 信号生产执行器
 import prisma, { Prisma } from "@/lib/prisma";
+import { inferQualitySignalProviders } from "@/lib/quality-check/signal-model-inference";
+import { resolveQualitySignalModelRuntime } from "@/lib/quality-check/signal-model-runtime";
 import {
   jsonObject,
   mergeTaskData,
@@ -20,7 +22,7 @@ export interface QualitySignalSyncRunParams {
   forceResync?: boolean;
 }
 
-type SignalValueSource = "task_payload" | "heuristic" | "existing";
+type SignalValueSource = "task_payload" | "provider" | "heuristic" | "existing";
 
 interface SyncSignalResult {
   value: number | null;
@@ -147,11 +149,13 @@ const estimateSpeakerSimilarity = ({
 const resolveSignal = ({
   currentValue,
   payloadValue,
+  providerValue,
   fallbackValue,
   forceResync,
 }: {
   currentValue: number | null;
   payloadValue: number | null;
+  providerValue: number | null;
   fallbackValue: number;
   forceResync: boolean;
 }): SyncSignalResult => {
@@ -166,6 +170,13 @@ const resolveSignal = ({
     return {
       value: clampUnit(payloadValue),
       source: "task_payload",
+    };
+  }
+
+  if (providerValue !== null) {
+    return {
+      value: clampUnit(providerValue),
+      source: "provider",
     };
   }
 
@@ -196,6 +207,15 @@ export async function runQualitySignalSyncTask({
 
   await updateTaskProgress(taskId, 10, "准备执行 Q0-Q3 信号生产");
 
+  const book = await prisma.book.findUnique({
+    where: { id: bookId },
+    select: { metadata: true },
+  });
+  const modelRuntimeResolution = resolveQualitySignalModelRuntime({
+    taskMetadata,
+    bookMetadata: book?.metadata,
+  });
+
   const audioFiles = await prisma.audioFile.findMany({
     where: buildWhere({
       bookId,
@@ -205,7 +225,9 @@ export async function runQualitySignalSyncTask({
     }),
     select: {
       id: true,
+      bookId: true,
       sentenceId: true,
+      filePath: true,
       voiceProfileId: true,
       duration: true,
       scriptSentence: {
@@ -240,14 +262,19 @@ export async function runQualitySignalSyncTask({
   let skippedExistingCount = 0;
   let cerUpdatedCount = 0;
   let speakerUpdatedCount = 0;
+  let asrModelUsedCount = 0;
+  let speakerModelUsedCount = 0;
+  let modelFallbackCount = 0;
   const sourceBreakdown = {
     cer: {
       task_payload: 0,
+      provider: 0,
       heuristic: 0,
       existing: 0,
     },
     speaker: {
       task_payload: 0,
+      provider: 0,
       heuristic: 0,
       existing: 0,
     },
@@ -267,9 +294,24 @@ export async function runQualitySignalSyncTask({
       audioFileId: audioFile.id,
       sentenceId: audioFile.sentenceId,
     });
+    const providerInference = await inferQualitySignalProviders({
+      runtime: modelRuntimeResolution.runtime,
+      input: {
+        audioFileId: audioFile.id,
+        sentenceId: audioFile.sentenceId,
+        bookId: audioFile.bookId,
+        filePath: audioFile.filePath,
+        text: audioFile.scriptSentence.text,
+        durationSeconds: Number(audioFile.duration || 0),
+        roleType: audioFile.scriptSentence.roleType,
+        priority: audioFile.scriptSentence.priority,
+        voiceProfileId: audioFile.voiceProfileId,
+      },
+    });
     const cerResult = resolveSignal({
       currentValue: asNumber(metrics.cer ?? metrics.asrCer ?? metrics.q2Cer),
       payloadValue: asNumber(signalPayload.cer ?? signalPayload.asrCer ?? signalPayload.q2Cer),
+      providerValue: providerInference.cer,
       fallbackValue: estimateCer({
         text: audioFile.scriptSentence.text,
         durationSeconds: Number(audioFile.duration || 0),
@@ -288,6 +330,7 @@ export async function runQualitySignalSyncTask({
           signalPayload.speakerEmbeddingSimilarity ??
           signalPayload.q3SpeakerSimilarity
       ),
+      providerValue: providerInference.speakerSimilarity,
       fallbackValue: estimateSpeakerSimilarity({
         hasVoiceProfile: Boolean(audioFile.voiceProfileId),
         roleType: audioFile.scriptSentence.roleType,
@@ -295,6 +338,18 @@ export async function runQualitySignalSyncTask({
       }),
       forceResync,
     });
+    if (cerResult.source === "provider") {
+      asrModelUsedCount += 1;
+    }
+    if (speakerResult.source === "provider") {
+      speakerModelUsedCount += 1;
+    }
+    if (
+      (modelRuntimeResolution.runtime.useAsrModel && cerResult.source === "heuristic") ||
+      (modelRuntimeResolution.runtime.useSpeakerModel && speakerResult.source === "heuristic")
+    ) {
+      modelFallbackCount += 1;
+    }
 
     sourceBreakdown.cer[cerResult.source] += 1;
     sourceBreakdown.speaker[speakerResult.source] += 1;
@@ -315,12 +370,14 @@ export async function runQualitySignalSyncTask({
             speakerEmbeddingSimilarity: speakerResult.value,
             q3SpeakerSimilarity: speakerResult.value,
             signalSync: {
-              version: "s30.1-v1",
+              version: "s30.1-v2",
               syncedAt: new Date().toISOString(),
               taskId,
               forceResync,
               cerSource: cerResult.source,
               speakerSource: speakerResult.source,
+              modelRuntimeSource: modelRuntimeResolution.source,
+              modelDiagnostics: providerInference.diagnostics,
             },
           }),
         },
@@ -351,6 +408,14 @@ export async function runQualitySignalSyncTask({
     cerUpdatedCount,
     speakerUpdatedCount,
     sourceBreakdown,
+    signalModelRuntime: {
+      source: modelRuntimeResolution.source,
+      useAsrModel: modelRuntimeResolution.runtime.useAsrModel,
+      useSpeakerModel: modelRuntimeResolution.runtime.useSpeakerModel,
+      asrModelUsedCount,
+      speakerModelUsedCount,
+      fallbackCount: modelFallbackCount,
+    },
   };
 
   const taskData = await mergeTaskData(taskId, {
@@ -373,10 +438,6 @@ export async function runQualitySignalSyncTask({
     },
   });
 
-  const book = await prisma.book.findUnique({
-    where: { id: bookId },
-    select: { metadata: true },
-  });
   const rootMetadata = jsonObject(book?.metadata);
   const qualityCheck = asRecord(rootMetadata.qualityCheck) || {};
 

@@ -33,6 +33,7 @@ interface SignalSyncDedupeInput {
   chapterId?: string;
   audioFileIds?: string[];
   forceResync?: boolean;
+  signalModelRuntime?: Record<string, unknown>;
 }
 
 interface AutoPipelineDedupeInput {
@@ -91,6 +92,7 @@ export const buildSignalSyncDedupeKey = (input: SignalSyncDedupeInput): string =
     chapterId: input.chapterId || null,
     audioFileIds: (input.audioFileIds || []).slice().sort(),
     forceResync: Boolean(input.forceResync),
+    signalModelRuntime: input.signalModelRuntime || {},
   };
 
   return `signal_sync:${input.bookId}:${hashScope(normalized)}`;

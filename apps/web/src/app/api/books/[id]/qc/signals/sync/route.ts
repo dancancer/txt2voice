@@ -39,6 +39,7 @@ export const POST = withErrorHandler(
     const forceResync = body.forceResync === true;
     const signalPayloadByAudioFileId = asRecord(body.signalPayloadByAudioFileId);
     const signalPayloadBySentenceId = asRecord(body.signalPayloadBySentenceId);
+    const signalModelRuntime = asRecord(body.signalModelRuntime || body.signalRuntime);
 
     const existingTask = await prisma.processingTask.findFirst({
       where: {
@@ -84,6 +85,7 @@ export const POST = withErrorHandler(
             forceResync,
             signalPayloadByAudioFileId: signalPayloadByAudioFileId || {},
             signalPayloadBySentenceId: signalPayloadBySentenceId || {},
+            signalModelRuntime: signalModelRuntime || {},
           },
         }),
       },
@@ -98,6 +100,7 @@ export const POST = withErrorHandler(
           chapterId,
           audioFileIds,
           forceResync,
+          signalModelRuntime: signalModelRuntime || {},
         },
         {
           reason: "qc_signal_sync_api",
