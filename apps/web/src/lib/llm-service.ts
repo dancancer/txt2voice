@@ -113,12 +113,16 @@ export class LLMService {
         model: this.model,
         messages: messages,
         temperature: 0.3,
-        max_tokens: 4000,
+        max_tokens: 8000,
         // DeepSeek等兼容API的特殊参数
         ...(this.providerName === "custom" && { stream: false }),
       });
 
-      console.log("===========response", response);
+      console.log("LLM API完成", {
+        model: response.model,
+        finishReason: response.choices[0]?.finish_reason || null,
+        completionTokens: response.usage?.completion_tokens || null,
+      });
       return response.choices[0]?.message?.content || "";
     } catch (error: any) {
       console.error("OpenAI SDK错误:", error);

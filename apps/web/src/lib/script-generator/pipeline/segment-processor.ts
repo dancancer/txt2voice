@@ -244,7 +244,7 @@ ${segment.content}
 请只输出一个完整JSON对象，必须以 { 开始、以 } 结束，不要包含任何额外文字或Markdown代码块。`;
 
   const response = await llmService.callLLM(prompt, systemPrompt);
-  console.log("=============", response);
+  console.log("LLM台本响应长度", { segmentId: segment.id, length: response.length });
 
   try {
     const result = await parseLLMJsonResult(llmService, response);

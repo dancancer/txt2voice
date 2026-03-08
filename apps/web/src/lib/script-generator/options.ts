@@ -5,7 +5,7 @@ export const DEFAULT_SCRIPT_GENERATION_OPTIONS: ScriptGenerationOptions = {
   emotionDetection: true,
   contextAnalysis: true,
   minDialogueLength: 5,
-  maxDialogueLength: 200,
+  maxDialogueLength: 800,
   preserveOriginalBreaks: true,
 };
 
