@@ -12,7 +12,7 @@ import {
   SearchInfoBar,
   AcquisitionCards,
   PaginationBar,
-} from "./layout";
+} from "./components";
 import { CharactersTable } from "./table";
 import { CharacterFormModal, SpeakerDialog } from "./dialogs";
 import { Button } from "@/components/ui/button";
@@ -219,7 +219,6 @@ export default function CharacterProfilesPage() {
   return (
     <div className="min-h-full bg-gray-50">
       <CharactersHeader
-        bookId={bookId}
         title={book.title}
         total={pagination.total}
         totalPages={pagination.totalPages}

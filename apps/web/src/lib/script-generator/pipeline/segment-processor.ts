@@ -6,8 +6,13 @@ import {
   upsertCharacterCandidates,
 } from "../storage/character-utils";
 import { parseLLMJsonResult } from "./json-utils";
+import {
+  formatSegmentValidationError,
+  validateSegmentScript,
+} from "./segment-script-validator";
 import { saveSegmentScriptToDatabase } from "../storage/persistence";
 import type {
+  CharacterCandidate,
   DialogueLine,
   ScriptGenerationOptions,
   SegmentProcessingResult,
@@ -54,39 +59,48 @@ const buildCharacterInfoText = (characterProfiles: any[]): string => {
     .join("\n");
 };
 
-const buildSystemPrompt = (characterInfoText: string): string => {
-  return `你是一个专业的台本编剧，专门将小说文本转换为适合有声读物朗读的台本。
+const buildSystemPrompt = (
+  characterInfoText: string,
+  options: ScriptGenerationOptions
+): string => {
+  return `你是一个严格的小说台本抽取器，不是改写器，不是总结器，也不是润色器。
 
-你的任务是：
-1. 识别文本中的对话和旁白
-2. 将对话分配给正确的角色
-3. 分析每段台词的情感色彩
-4. 提供适当的朗读指导
-5. 同步补充本段出现的新角色或新别名
+你的唯一任务是把原文逐条映射成可朗读台本，并保持 100% 原文覆盖。
 
 已知角色信息：
 ${characterInfoText}
 
-识别规则：
-1. 优先使用提供的角色名称
-2. 注意角色的别名变化，别名应归一为角色名称
-3. 如果出现未收录角色，先在角色列表补充，再在台词中使用该名称
-4. 旁白内容标记为 "旁白"，旁白不要出现在角色列表中
+强制规则：
+1. 必须完整覆盖原文，不能遗漏任何非空白内容。
+2. 不能总结、压缩、改写、解释或补写原文。
+3. 每条 dialogues 都必须包含 sourceText，且 sourceText 必须是原文中的连续原句切片。
+4. 所有 sourceText 必须按原文顺序出现，且每段原文只能映射一次，不能重复抽取。
+5. 引号中的对白不能同时出现在旁白句和对白句中。
+6. narration 的 text 必须与 sourceText 完全一致；dialogue 的 text 只能保留真正可朗读的正文。
+   - 纯引号对白如 “你好。”，text 应为 你好。
+   - 当 sourceText 含归属语或动作时，dialogue 的 text 只能保留真正说出口的对白正文。
+   - 例如 sourceText 为 张三说：“你好。” 时，text 应为 你好。；sourceText 为 “走吧。”他站起身。 时，text 应为 走吧。
+   - 标语、牌子、题词等没有明确说话人的引号文本，如果原样朗读，speaker 必须是“旁白”，text 必须与 sourceText 完全一致。
+7. 如果某句较长，不要删字，必须按原文句界继续拆分，单条 text 尽量不超过 ${options.maxDialogueLength} 个字符。
+8. 极短语气词、短回答、拟声词也必须保留，不能因为太短而省略。
+9. speaker 只能使用已知角色、新识别角色，或“旁白”；无法确定时使用“未知”，不要乱猜。
+10. characters 里只放本段新增角色或新增别名；旁白不要进入角色列表。
 
-请返回严格JSON对象，包含以下字段：
+请返回严格 JSON 对象：
 {
   "dialogues": [
     {
       "id": "sentence_001",
-      "text": "具体语句内容",
-      "speaker": "说话人角色名",
-      "tone": "情绪/语气",
+      "sourceText": "“你好。”",
+      "text": "你好。",
+      "speaker": "张三",
+      "tone": "平静",
       "strength": 75,
       "pauseAfter": 1.5,
       "ttsHints": {
         "pitch": 1.0,
         "rate": 1.0,
-        "emphasis": "需要强调的词"
+        "emphasis": ""
       }
     }
   ],
@@ -104,25 +118,25 @@ ${characterInfoText}
   ]
 }
 
-字段说明：
-- dialogues: 台词数组
-  - id: 台词唯一标识符（自动生成）
-  - text: 台词内容
-  - speaker: 说话人角色名称（必须是已知角色、新增角色，或"旁白"）
-  - tone: 情感/语气（如：平静、激动、悲伤、愤怒、温柔、严肃等）
-  - strength: 音量强度（0-100，默认75）
-  - pauseAfter: 后停顿时间（秒，默认1.5）
-  - ttsHints: TTS提示对象
-    - pitch: 音调（默认1.0）
-    - rate: 语速（默认1.0）
-    - emphasis: 需要强调的词
-- characters: 新增角色或新增别名的角色，没有则返回空数组
+输出要求：
+- 只返回 JSON，不要包含 Markdown、解释或额外文字。
+- 如果本段没有新增角色，characters 返回 []。
+- dialogues 必须覆盖输入原文中的全部非空白内容。`;
+};
 
-注意事项：
-- 严格按照提供的角色列表分配对话
-- 情感描述要简洁明确，符合角色性格
-- 保持原文的语调和风格
-- 只返回JSON，不要添加其他文字，不要使用Markdown或代码块（例如\`\`\`json）`;
+const buildSegmentPrompt = (segmentContent: string): string => {
+  return `请分析下面这段原文，严格按顺序输出台本：
+
+【原文开始】
+${segmentContent}
+【原文结束】
+
+再次提醒：
+- 每条 dialogues 都要提供原文切片 sourceText。
+- sourceText 必须是上面原文中的原样子串。
+- 不要漏字，不要重抽，不要把对白再复述成旁白。
+- 带归属语的对白只保留真正说出口的正文；没有明确说话人的引号文本才允许作为旁白原样保留。
+- 最终只输出一个 JSON 对象。`;
 };
 
 const resolveScriptSentences = (result: any): any[] => {
@@ -154,17 +168,103 @@ const resolveRawCharacters = (result: any): any[] => {
   return [];
 };
 
+const ensureDialogueLengthCap = (params: {
+  segmentId: string;
+  dialogueLines: DialogueLine[];
+  maxDialogueLength: number;
+}) => {
+  const { segmentId, dialogueLines, maxDialogueLength } = params;
+  const oversizedLine = dialogueLines.find(
+    (line) => line.text.trim().length > maxDialogueLength
+  );
+
+  if (!oversizedLine) {
+    return;
+  }
+
+  throw new TTSError(
+    `段落 ${segmentId} 存在超长台词，长度 ${oversizedLine.text.trim().length} 超过上限 ${maxDialogueLength}`,
+    "TTS_SERVICE_DOWN",
+    "script-validator"
+  );
+};
+
+const buildStagedCharacterMap = (params: {
+  characterCandidates: CharacterCandidate[];
+  characterMap: Map<string, string>;
+}) => {
+  const { characterCandidates, characterMap } = params;
+  const stagedCharacterMap = new Map(characterMap);
+  const stagedProfiles: Array<{
+    canonicalName: string;
+    aliases: Array<{ alias: string }>;
+  }> = [];
+
+  for (const candidate of characterCandidates) {
+    const canonicalName = resolveCandidateCanonicalName(
+      candidate,
+      stagedCharacterMap
+    );
+    const aliasSet = new Set<string>(candidate.aliases);
+    if (candidate.name !== canonicalName) {
+      aliasSet.add(candidate.name);
+    }
+
+    const stagedProfile = {
+      canonicalName,
+      aliases: [...aliasSet].map((alias) => ({ alias })),
+    };
+
+    addCharacterToMap(stagedCharacterMap, stagedProfile);
+    stagedProfiles.push(stagedProfile);
+  }
+
+  return { stagedCharacterMap, stagedProfiles };
+};
+
+const commitStagedCharacterMap = (params: {
+  characterMap: Map<string, string>;
+  stagedProfiles: Array<{
+    canonicalName: string;
+    aliases: Array<{ alias: string }>;
+  }>;
+}) => {
+  const { characterMap, stagedProfiles } = params;
+
+  for (const profile of stagedProfiles) {
+    addCharacterToMap(characterMap, profile);
+  }
+};
+
 const mapDialogueLines = (params: {
   segment: any;
   scriptSentences: any[];
   characterMap: Map<string, string>;
 }): DialogueLine[] => {
   const { segment, scriptSentences, characterMap } = params;
+  const validation = validateSegmentScript({
+    segmentContent: segment.content,
+    scriptSentences,
+  });
 
-  return scriptSentences.map((sentence: any, index: number) => {
-    let characterName = sentence.speaker || "未知";
+  if (!validation.valid) {
+    console.warn("段落台本校验失败", {
+      segmentId: segment.id,
+      coverageRatio: validation.coverageRatio,
+      issues: validation.issues,
+    });
+    throw new TTSError(
+      formatSegmentValidationError(validation),
+      "TTS_SERVICE_DOWN",
+      "script-validator"
+    );
+  }
 
-    if (characterName !== "旁白") {
+  return validation.lines.map((validatedLine, index) => {
+    const sentence = scriptSentences[index] || {};
+    let characterName = validatedLine.speaker || "未知";
+
+    if (characterName !== "旁白" && characterName !== "未知") {
       characterName = characterMap.get(characterName) || characterName;
     }
 
@@ -177,16 +277,19 @@ const mapDialogueLines = (params: {
             emphasis: "",
           };
 
+    const text = validatedLine.resolvedText;
+
     return {
       id: sentence.id || `${segment.id}_${index}`,
       characterName,
-      rawSpeaker:
-        typeof sentence.speaker === "string" ? sentence.speaker : undefined,
-      text: sentence.text || "",
+      rawSpeaker: validatedLine.speaker,
+      text,
       tone: sentence.tone || "中性",
       roleType: characterName === "旁白" ? "narration" : "dialogue",
       emotionLabel:
-        typeof sentence.emotionLabel === "string" ? sentence.emotionLabel : undefined,
+        typeof sentence.emotionLabel === "string"
+          ? sentence.emotionLabel
+          : undefined,
       emotionIntensity:
         typeof sentence.emotionIntensity === "number"
           ? sentence.emotionIntensity
@@ -212,9 +315,14 @@ const mapDialogueLines = (params: {
       isNarration: characterName === "旁白",
       ttsParameters: {
         ttsHints,
-        originalSpeaker: sentence.speaker,
+        originalSpeaker: validatedLine.speaker,
+        sourceText: validatedLine.sourceText,
+        sourceStart: validatedLine.sourceStart,
+        sourceEnd: validatedLine.sourceEnd,
         engineHint:
-          typeof sentence.engineHint === "string" ? sentence.engineHint : undefined,
+          typeof sentence.engineHint === "string"
+            ? sentence.engineHint
+            : undefined,
         strength: typeof sentence.strength === "number" ? sentence.strength : 75,
         pauseAfter:
           typeof sentence.pauseAfter === "number" ? sentence.pauseAfter : 1.5,
@@ -235,13 +343,8 @@ export async function processSegment(params: {
     params;
 
   const characterInfoText = buildCharacterInfoText(characterProfiles);
-  const systemPrompt = buildSystemPrompt(characterInfoText);
-
-  const prompt = `请分析以下文本段落，生成朗读台本并补充角色信息：
-
-${segment.content}
-
-请只输出一个完整JSON对象，必须以 { 开始、以 } 结束，不要包含任何额外文字或Markdown代码块。`;
+  const systemPrompt = buildSystemPrompt(characterInfoText, options);
+  const prompt = buildSegmentPrompt(segment.content);
 
   const response = await llmService.callLLM(prompt, systemPrompt);
   console.log("LLM台本响应长度", { segmentId: segment.id, length: response.length });
@@ -252,35 +355,34 @@ ${segment.content}
     const rawCharacters = resolveRawCharacters(result);
 
     const characterCandidates = normalizeCharacterCandidates(rawCharacters);
-    for (const candidate of characterCandidates) {
-      const canonicalName = resolveCandidateCanonicalName(candidate, characterMap);
-      const aliasSet = new Set(candidate.aliases);
-      if (candidate.name !== canonicalName) {
-        aliasSet.add(candidate.name);
-      }
-
-      addCharacterToMap(characterMap, {
-        canonicalName,
-        aliases: [...aliasSet].map((alias) => ({ alias })),
-      });
-    }
+    const { stagedCharacterMap, stagedProfiles } = buildStagedCharacterMap({
+      characterCandidates,
+      characterMap,
+    });
 
     const dialogueLines = mapDialogueLines({
       segment,
       scriptSentences,
+      characterMap: stagedCharacterMap,
+    }).filter((line) => line.text.trim().length > 0);
+
+    ensureDialogueLengthCap({
+      segmentId: segment.id,
+      dialogueLines,
+      maxDialogueLength: options.maxDialogueLength,
+    });
+
+    commitStagedCharacterMap({
       characterMap,
+      stagedProfiles,
     });
 
-    const filteredLines = dialogueLines.filter((line) => {
-      const textLength = line.text.trim().length;
-      return (
-        textLength >= options.minDialogueLength &&
-        textLength <= options.maxDialogueLength
-      );
-    });
-
-    return { dialogueLines: filteredLines, characterCandidates };
+    return { dialogueLines, characterCandidates };
   } catch (error) {
+    if (error instanceof TTSError) {
+      throw error;
+    }
+
     console.error("台本解析失败:", error);
     throw new TTSError(
       "台本生成失败，LLM返回格式错误",
