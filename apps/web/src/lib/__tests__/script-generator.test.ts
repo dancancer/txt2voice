@@ -11,23 +11,105 @@ import { ScriptSentence, CharacterProfile } from "../types";
 
 jest.mock("../llm-service", () => ({
   getLLMService: () => ({
-    callLLM: jest.fn().mockResolvedValue(
-      JSON.stringify([
-        {
-          id: "sentence_001",
-          text: "测试台词内容充足，确保长度超过最小阈值",
-          speaker: "测试角色",
-          tone: "中性",
-          strength: 75,
-          pauseAfter: 1.5,
-          ttsHints: {
-            pitch: 1.0,
-            rate: 1.0,
-            emphasis: "",
+    callLLM: jest.fn().mockImplementation(async (prompt: string) => {
+      if (prompt.includes('这是第一段测试内容。"你好，"他说，"我是测试角色。"')) {
+        return JSON.stringify({
+          dialogues: [
+            {
+              id: "sentence_001",
+              sourceText: "这是第一段测试内容。",
+              text: "这是第一段测试内容。",
+              speaker: "旁白",
+              tone: "中性",
+              strength: 75,
+              pauseAfter: 1.5,
+              ttsHints: {
+                pitch: 1.0,
+                rate: 1.0,
+                emphasis: "",
+              },
+            },
+            {
+              id: "sentence_002",
+              sourceText: '"你好，"',
+              text: "你好，",
+              speaker: "测试角色",
+              tone: "中性",
+              strength: 75,
+              pauseAfter: 1.5,
+              ttsHints: {
+                pitch: 1.0,
+                rate: 1.0,
+                emphasis: "",
+              },
+            },
+            {
+              id: "sentence_003",
+              sourceText: "他说，",
+              text: "他说，",
+              speaker: "旁白",
+              tone: "中性",
+              strength: 75,
+              pauseAfter: 1.5,
+              ttsHints: {
+                pitch: 1.0,
+                rate: 1.0,
+                emphasis: "",
+              },
+            },
+            {
+              id: "sentence_004",
+              sourceText: '"我是测试角色。"',
+              text: "我是测试角色。",
+              speaker: "测试角色",
+              tone: "中性",
+              strength: 75,
+              pauseAfter: 1.5,
+              ttsHints: {
+                pitch: 1.0,
+                rate: 1.0,
+                emphasis: "",
+              },
+            },
+          ],
+          characters: [],
+        });
+      }
+
+      return JSON.stringify({
+        dialogues: [
+          {
+            id: "sentence_005",
+            sourceText: "这是第二段测试内容。她回答道：",
+            text: "这是第二段测试内容。她回答道：",
+            speaker: "旁白",
+            tone: "中性",
+            strength: 75,
+            pauseAfter: 1.5,
+            ttsHints: {
+              pitch: 1.0,
+              rate: 1.0,
+              emphasis: "",
+            },
           },
-        },
-      ])
-    ),
+          {
+            id: "sentence_006",
+            sourceText: '"很高兴认识你。"',
+            text: "很高兴认识你。",
+            speaker: "测试角色",
+            tone: "中性",
+            strength: 75,
+            pauseAfter: 1.5,
+            ttsHints: {
+              pitch: 1.0,
+              rate: 1.0,
+              emphasis: "",
+            },
+          },
+        ],
+        characters: [],
+      });
+    }),
   }),
 }));
 

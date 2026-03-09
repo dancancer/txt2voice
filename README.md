@@ -64,9 +64,12 @@ pnpm docker:up
 ```bash
 # monorepo
 pnpm dev
-pnpm build
 pnpm lint
 pnpm typecheck
+pnpm test
+pnpm build
+pnpm qc
+pnpm qc:quick
 
 # docker
 pnpm docker:up

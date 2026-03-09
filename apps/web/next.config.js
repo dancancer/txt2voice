@@ -1,20 +1,18 @@
+const path = require('node:path')
+
+const repoRoot = path.join(__dirname, '../..')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Enable standalone output for Docker deployment
   output: 'standalone',
-  // Optimize for production
-  swcMinify: true,
-  // Configure image optimization
   images: {
     domains: [],
   },
-  // Set workspace root for monorepo
-  experimental: {
-    turbo: {
-      root: '../../',
-    },
+  turbopack: {
+    root: repoRoot,
   },
+  outputFileTracingRoot: repoRoot,
 }
 
 module.exports = nextConfig

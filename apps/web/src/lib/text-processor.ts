@@ -8,6 +8,7 @@ import { smartSplitText, calculateTextLength, RecursiveCharacterTextSplitter } f
 import { SmartTextSplitter, splitTextSmartly, calculateSmartLength, validateSegmentQuality, type TextSegment as SmartSegment } from './smart-text-splitter'
 import { CONFIG } from './constants'
 import { logger } from './logger'
+import { resolveTextSegmentationRiskProfile } from './text-segmentation-profile'
 import { randomUUID } from 'crypto'
 import * as iconv from 'iconv-lite'
 
@@ -354,14 +355,28 @@ function segmentWithSmartSplitter(
   content: string,
   options: TextProcessingOptions
 ): TextSegmentData[] {
-  const { maxSegmentLength = CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH } = options
+  const {
+    maxSegmentLength = CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH,
+    minSegmentLength = CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
+  } = options
+  const targetLength = Math.min(
+    Math.max(
+      Math.round((maxSegmentLength + minSegmentLength) / 2),
+      minSegmentLength,
+    ),
+    maxSegmentLength,
+  )
+  const tolerance = Math.max(
+    40,
+    Math.round((maxSegmentLength - minSegmentLength) / 2),
+  )
 
   // 创建智能分段器
   const splitter = new SmartTextSplitter({
-    targetLength: CONFIG.TEXT_PROCESSING.DEFAULT_SEGMENT_LENGTH,
+    targetLength,
     maxLength: maxSegmentLength,
-    minLength: CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
-    tolerance: CONFIG.TEXT_PROCESSING.SEGMENT_TOLERANCE,
+    minLength: minSegmentLength,
+    tolerance,
     preferSentenceBoundary: true,
   })
 
@@ -370,10 +385,10 @@ function segmentWithSmartSplitter(
 
   // 验证分段质量
   const validation = validateSegmentQuality(smartSegments, {
-    targetLength: CONFIG.TEXT_PROCESSING.DEFAULT_SEGMENT_LENGTH,
+    targetLength,
     maxLength: maxSegmentLength,
-    minLength: CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
-    tolerance: CONFIG.TEXT_PROCESSING.SEGMENT_TOLERANCE,
+    minLength: minSegmentLength,
+    tolerance,
   })
 
   if (!validation.valid) {
@@ -638,6 +653,10 @@ export function createChapterSegmentRecords(
   const chapterRecords: Prisma.ChapterCreateManyInput[] = []
   const segmentRecords: Prisma.TextSegmentCreateManyInput[] = []
   const segmentTypeStats: Record<string, number> = {}
+  const baseMaxSegmentLength =
+    options.maxSegmentLength || CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH
+  const baseMinSegmentLength =
+    options.minSegmentLength || CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH
 
   let globalSegmentIndex = 0
   let globalPosition = 0
@@ -646,7 +665,15 @@ export function createChapterSegmentRecords(
   for (const slice of chapterSlices) {
     const chapterId = randomUUID()
     const chapterStartPosition = globalPosition
-    const chapterSegments = segmentText(slice.body, options)
+    const riskProfile = resolveTextSegmentationRiskProfile(slice.body, {
+      maxSegmentLength: baseMaxSegmentLength,
+      minSegmentLength: baseMinSegmentLength,
+    })
+    const chapterSegments = segmentText(slice.body, {
+      ...options,
+      maxSegmentLength: riskProfile.preferredMaxSegmentLength,
+      minSegmentLength: riskProfile.preferredMinSegmentLength,
+    })
     let chapterWordCount = 0
     let chapterCharacterCount = 0
     let chapterOrderIndex = 0
@@ -673,7 +700,12 @@ export function createChapterSegmentRecords(
           ...(segment.metadata || {}),
           chapterIndex: slice.index,
           chapterTitle: slice.title,
-          chapterOrderIndex
+          chapterOrderIndex,
+          segmentationRiskReasons: riskProfile.reasons,
+          segmentationQuoteRatio: Number(riskProfile.quoteRatio.toFixed(4)),
+          segmentationSentenceCount: riskProfile.sentenceCount,
+          segmentationTargetMaxLength: riskProfile.preferredMaxSegmentLength,
+          segmentationTargetMinLength: riskProfile.preferredMinSegmentLength
         } as Prisma.InputJsonValue,
         status: 'pending'
       }
@@ -704,7 +736,13 @@ export function createChapterSegmentRecords(
       metadata: {
         heading: slice.heading,
         detectionMethod: slice.detectionMethod,
-        isFallback: slice.isFallback
+        isFallback: slice.isFallback,
+        segmentationRiskReasons: riskProfile.reasons,
+        segmentationQuoteRatio: Number(riskProfile.quoteRatio.toFixed(4)),
+        segmentationSentenceCount: riskProfile.sentenceCount,
+        segmentationDialogueLineCount: riskProfile.dialogueLineCount,
+        segmentationTargetMaxLength: riskProfile.preferredMaxSegmentLength,
+        segmentationTargetMinLength: riskProfile.preferredMinSegmentLength
       } as Prisma.InputJsonValue
     }
 

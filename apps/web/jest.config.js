@@ -19,6 +19,7 @@ const customJestConfig = {
   collectCoverageFrom: ["src/**/*.{js,jsx,ts,tsx}"],
   coverageDirectory: "coverage",
   coverageReporters: ["text", "lcov", "html"],
+  modulePathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/coverage/"],
   transformIgnorePatterns: [
     "/node_modules/",
     "^.+\\.module\\.(css|sass|scss)$",
