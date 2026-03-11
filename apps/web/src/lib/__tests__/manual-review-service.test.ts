@@ -16,11 +16,15 @@ jest.mock("@/lib/prisma", () => ({
       create: jest.fn(),
       update: jest.fn(),
     },
+    book: {
+      update: jest.fn(),
+    },
   },
 }));
 
 jest.mock("@/lib/task-queue", () => ({
   enqueueAudioGenerationJob: jest.fn(),
+  enqueueScriptGenerationJob: jest.fn(),
 }));
 
 jest.mock("@/lib/processing-task-utils", () => ({
@@ -29,7 +33,10 @@ jest.mock("@/lib/processing-task-utils", () => ({
 
 import prisma from "@/lib/prisma";
 import { ValidationError } from "@/lib/error-handler";
-import { enqueueAudioGenerationJob } from "@/lib/task-queue";
+import {
+  enqueueAudioGenerationJob,
+  enqueueScriptGenerationJob,
+} from "@/lib/task-queue";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import {
   parseManualReviewBatchResolvePayload,
@@ -48,8 +55,12 @@ const mockUpdate = (prisma as any).manualReviewItem.update as jest.Mock;
 const mockFindFirstTask = (prisma as any).processingTask.findFirst as jest.Mock;
 const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
+const mockUpdateBook = (prisma as any).book.update as jest.Mock;
 const mockEnqueueAudio = enqueueAudioGenerationJob as jest.MockedFunction<
   typeof enqueueAudioGenerationJob
+>;
+const mockEnqueueScript = enqueueScriptGenerationJob as jest.MockedFunction<
+  typeof enqueueScriptGenerationJob
 >;
 const mockMergeTaskData = mergeTaskData as jest.MockedFunction<typeof mergeTaskData>;
 
@@ -107,6 +118,7 @@ const baseItem = (overrides: Record<string, unknown> = {}) => ({
 describe("manual-review-service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUpdateBook.mockResolvedValue({});
   });
 
   it("should parse query with default pending status", () => {
@@ -273,6 +285,79 @@ describe("manual-review-service", () => {
     expect(result.item.status).toBe("reprocessing");
   });
 
+  it("should enqueue script regeneration for script validation item without sentenceId", async () => {
+    mockFindUnique.mockResolvedValueOnce(
+      baseItem({
+        id: "review-script-1",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-1",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+      })
+    );
+    mockFindFirstTask.mockResolvedValueOnce(null);
+    mockCreateTask.mockResolvedValueOnce({
+      id: "task-script-retry-1",
+      status: "processing",
+    });
+    mockEnqueueScript.mockResolvedValueOnce({
+      jobId: "task-script-retry-1",
+      dedupeKey: "script:segment-script-1",
+      reused: false,
+      state: "waiting",
+    });
+
+    const result = await resolveManualReviewItem({
+      bookId: "book-1",
+      itemId: "review-script-1",
+      payload: {
+        action: "regenerate",
+        note: undefined,
+        assignedTo: "qa-1",
+        autoMerge: false,
+      },
+    });
+
+    expect(mockCreateTask).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookId: "book-1",
+        taskType: "SCRIPT_GENERATION",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            source: "manual_review",
+            manualReviewItemId: "review-script-1",
+            segmentIds: ["segment-script-1"],
+          }),
+        }),
+      }),
+    });
+    expect(mockEnqueueScript).toHaveBeenCalledWith({
+      taskId: "task-script-retry-1",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        regenerateSegments: true,
+        segmentIds: ["segment-script-1"],
+      },
+    });
+    expect(mockUpdateBook).toHaveBeenCalledWith({
+      where: { id: "book-1" },
+      data: { status: "generating_script" },
+    });
+    expect(result.retryTask).toMatchObject({
+      taskId: "task-script-retry-1",
+      taskType: "SCRIPT_GENERATION",
+      status: "processing",
+    });
+    expect(result.item.id).toBe("review-script-1");
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
   it("should batch approve manual review items", async () => {
     mockFindMany.mockResolvedValueOnce([
       baseItem({ id: "review-11" }),
@@ -380,6 +465,89 @@ describe("manual-review-service", () => {
       taskType: "AUDIO_GENERATION",
       status: "processing",
     });
+  });
+
+  it("should enqueue batch script regeneration for script validation items without sentenceId", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({
+        id: "review-script-21",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-21",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+      }),
+      baseItem({
+        id: "review-script-22",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-22",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+      }),
+    ]);
+    mockFindFirstTask.mockResolvedValueOnce(null);
+    mockCreateTask.mockResolvedValueOnce({
+      id: "task-script-batch-1",
+      status: "processing",
+    });
+    mockEnqueueScript.mockResolvedValueOnce({
+      jobId: "task-script-batch-1",
+      dedupeKey: "script:segment-script-21,segment-script-22",
+      reused: false,
+      state: "waiting",
+    });
+
+    const result = await resolveManualReviewItemsInBatch({
+      bookId: "book-1",
+      payload: {
+        itemIds: ["review-script-21", "review-script-22"],
+        action: "regenerate",
+        autoMerge: false,
+      },
+    });
+
+    expect(mockCreateTask).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookId: "book-1",
+        taskType: "SCRIPT_GENERATION",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            source: "manual_review_batch",
+            selectedReviewItemIds: ["review-script-21", "review-script-22"],
+            segmentIds: ["segment-script-21", "segment-script-22"],
+          }),
+        }),
+      }),
+    });
+    expect(mockEnqueueScript).toHaveBeenCalledWith({
+      taskId: "task-script-batch-1",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        regenerateSegments: true,
+        segmentIds: ["segment-script-21", "segment-script-22"],
+      },
+    });
+    expect(mockUpdateBook).toHaveBeenCalledWith({
+      where: { id: "book-1" },
+      data: { status: "generating_script" },
+    });
+    expect(result.retryTask).toMatchObject({
+      taskId: "task-script-batch-1",
+      taskType: "SCRIPT_GENERATION",
+      status: "processing",
+    });
+    expect(result.processedCount).toBe(2);
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it("should reject batch regenerate when any item is missing sentenceId", async () => {

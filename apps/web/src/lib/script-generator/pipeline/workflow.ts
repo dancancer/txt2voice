@@ -5,6 +5,7 @@ import { calculateScriptSummary } from "./summary";
 import type {
   DialogueLine,
   GeneratedScript,
+  SegmentFailureDetail,
   ScriptGenerationOptions,
   SegmentSummary,
   SegmentProcessingResult,
@@ -21,6 +22,83 @@ interface ProcessSegmentAndSaveInput {
 type ProcessSegmentAndSaveFn = (
   input: ProcessSegmentAndSaveInput
 ) => Promise<SegmentProcessingResult>;
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const asString = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.trim();
+};
+
+const asNumber = (value: unknown): number | null => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return value;
+};
+
+const asStringList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => asString(entry))
+    .filter((entry) => entry.length > 0);
+};
+
+const buildSegmentPreview = (content: string): string =>
+  content.replace(/\s+/g, " ").trim().slice(0, 120);
+
+const normalizeSegmentFailure = (params: {
+  segment: any;
+  error: unknown;
+}): SegmentFailureDetail => {
+  const { segment, error } = params;
+  const defaultMessage = error instanceof Error ? error.message : "未知错误";
+  const record =
+    error instanceof TTSError ? asRecord(error.details) : null;
+  const message = asString(record?.message) || defaultMessage;
+  const normalizedIssueMessages = asStringList(record?.issueMessages);
+  const issueMessages =
+    normalizedIssueMessages.length > 0
+      ? normalizedIssueMessages
+      : message
+        ? [message]
+        : [];
+
+  return {
+    segmentId: segment.id,
+    chapterId: segment.chapterId ?? null,
+    orderIndex:
+      typeof segment.orderIndex === "number" && Number.isFinite(segment.orderIndex)
+        ? segment.orderIndex
+        : -1,
+    stage: asString(record?.stage) || "unknown",
+    errorCode:
+      asString(record?.errorCode) ||
+      (error instanceof TTSError ? error.code : "UNKNOWN_ERROR"),
+    message,
+    provider:
+      asString(record?.provider) ||
+      (error instanceof TTSError ? error.provider : null),
+    retryable:
+      typeof record?.retryable === "boolean"
+        ? record.retryable
+        : error instanceof TTSError
+          ? error.retryable
+          : false,
+    coverageRatio: asNumber(record?.coverageRatio),
+    issueCodes: asStringList(record?.issueCodes),
+    issueMessages,
+    issuePreviews: asStringList(record?.issuePreviews),
+    segmentPreview: asString(record?.segmentPreview) || buildSegmentPreview(segment.content),
+  };
+};
 
 const loadBookForGeneration = async (params: {
   bookId: string;
@@ -93,6 +171,7 @@ const runSegmentGeneration = async (params: {
   const allDialogueLines: DialogueLine[] = [];
   const segmentSummaries: SegmentSummary[] = [];
   const failedSegmentIds: string[] = [];
+  const failedSegmentDetails: SegmentFailureDetail[] = [];
 
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index];
@@ -116,10 +195,16 @@ const runSegmentGeneration = async (params: {
     } catch (error) {
       console.error(`${errorPrefix} ${segment.id} 失败:`, error);
       failedSegmentIds.push(segment.id);
+      failedSegmentDetails.push(
+        normalizeSegmentFailure({
+          segment,
+          error,
+        })
+      );
     }
   }
 
-  if (allDialogueLines.length === 0) {
+  if (allDialogueLines.length === 0 && failedSegmentIds.length === 0) {
     throw new TTSError(
       "台本生成失败，没有生成任何台词",
       "TTS_SERVICE_DOWN",
@@ -132,6 +217,7 @@ const runSegmentGeneration = async (params: {
     summary: calculateScriptSummary(allDialogueLines, {
       totalSegments: segments.length,
       failedSegmentIds,
+      failedSegmentDetails,
     }),
     segments: segmentSummaries,
   };

@@ -57,15 +57,15 @@ RUN adduser --system --uid 1001 nextjs
 # Copy standalone build (this includes all necessary files)
 COPY --from=builder /app/apps/web/.next/standalone /app
 
-# Copy static files
+# Copy runtime static assets
 COPY --from=builder /app/apps/web/.next/static /app/apps/web/.next/static
-
-# Copy public folder if it exists, otherwise create empty dir
-RUN mkdir -p /app/apps/web/public
+COPY --from=builder /app/apps/web/public /app/apps/web/public
 
 # Copy prisma files (client is generated to src/generated/prisma)
 COPY --from=builder /app/apps/web/prisma /app/apps/web/prisma
 COPY --from=builder /app/apps/web/src/generated/prisma /app/apps/web/src/generated/prisma
+COPY --from=builder /app/apps/web/scripts /app/apps/web/scripts
+COPY --from=builder /app/apps/web/src/lib/standalone-runtime.js /app/apps/web/src/lib/standalone-runtime.js
 
 # Create uploads directory and set proper permissions
 RUN mkdir -p /app/apps/web/uploads/audio /app/apps/web/uploads/temp && \
@@ -78,4 +78,4 @@ EXPOSE 3001
 ENV PORT 3001
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "apps/web/server.js"]
+CMD ["node", "apps/web/scripts/start-standalone.cjs"]
