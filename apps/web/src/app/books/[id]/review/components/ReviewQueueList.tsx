@@ -7,8 +7,13 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  getScriptValidationSubtypeLabel,
+  SCRIPT_VALIDATION_ISSUE_TYPE,
+} from "@/lib/script-validation-review";
 import { CheckCircle2, Loader2, RotateCcw, XCircle } from "lucide-react";
 import type { ManualReviewItem, ManualReviewResolveAction, ManualReviewStatus } from "../models/types";
+import { buildScriptValidationDetailView } from "../models/script-validation-detail";
 
 const REVIEW_STATUS_META: Record<
   ManualReviewStatus,
@@ -65,6 +70,9 @@ const toIssueLabel = (issueType: string): string => {
   }
   if (normalized === "AUDIO") {
     return "音频质量";
+  }
+  if (normalized === SCRIPT_VALIDATION_ISSUE_TYPE) {
+    return "台本校验";
   }
   return normalized;
 };
@@ -208,6 +216,15 @@ export function ReviewQueueList({
         const actionPending = actionLoadingItemId === item.id;
         const canResolve = item.status === "pending";
         const checked = effectiveSelectedItemIds.includes(item.id);
+        const scriptDetail =
+          item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE
+            ? buildScriptValidationDetailView({
+                issueSubtype: item.issueSubtype,
+                issueDetail: item.issueDetail,
+              })
+            : null;
+        const primaryText =
+          item.sentence?.text || scriptDetail?.segmentPreview || "当前条目缺少句子文本";
 
         return (
           <Card key={item.id} className="border-slate-200 shadow-sm">
@@ -226,6 +243,11 @@ export function ReviewQueueList({
                 ) : null}
                 <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
                 <Badge variant="outline">{toIssueLabel(item.issueType)}</Badge>
+                {item.issueSubtype ? (
+                  <Badge variant="outline">
+                    {getScriptValidationSubtypeLabel(item.issueSubtype)}
+                  </Badge>
+                ) : null}
                 <Badge variant="outline">priority: {item.priority}</Badge>
                 {score !== null && score !== undefined ? (
                   <Badge variant="outline">score: {score.toFixed(2)}</Badge>
@@ -233,14 +255,75 @@ export function ReviewQueueList({
                 <span className="text-xs text-slate-500">创建于 {formatDateTime(item.createdAt)}</span>
               </div>
               <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
-                {item.sentence?.text || "当前条目缺少句子文本"}
+                {primaryText}
               </p>
+              {scriptDetail?.summary ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  {scriptDetail.summary}
+                </div>
+              ) : null}
               <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <span>chapter: {item.chapterId || "-"}</span>
+                <span>segment: {item.segmentId || "-"}</span>
                 <span>sentence: {item.sentenceId || "-"}</span>
                 <span>emotion: {item.sentence?.emotionLabel || "-"}</span>
                 <span>更新时间: {formatDateTime(item.updatedAt)}</span>
               </div>
+              {scriptDetail?.hasDetails ? (
+                <details className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-slate-800">
+                    查看脚本失败详情
+                  </summary>
+                  <div className="mt-3 space-y-3 text-sm text-slate-700">
+                    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                      {scriptDetail.stage ? <span>stage: {scriptDetail.stage}</span> : null}
+                      {scriptDetail.errorCode ? <span>errorCode: {scriptDetail.errorCode}</span> : null}
+                      {scriptDetail.coverageLabel ? <span>coverage: {scriptDetail.coverageLabel}</span> : null}
+                    </div>
+                    {scriptDetail.issueCodes.length > 0 ? (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          issue codes
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {scriptDetail.issueCodes.map((code) => (
+                            <Badge key={code} variant="outline">
+                              {code}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {scriptDetail.issuePreviews.length > 0 ? (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          issue previews
+                        </p>
+                        <div className="space-y-2">
+                          {scriptDetail.issuePreviews.map((preview) => (
+                            <p
+                              key={preview}
+                              className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700"
+                            >
+                              {preview}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {scriptDetail.segmentPreview ? (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                          segment preview
+                        </p>
+                        <p className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700">
+                          {scriptDetail.segmentPreview}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </details>
+              ) : null}
               {item.audio?.id ? (
                 <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
                   <p className="mb-2 text-xs text-slate-500">试听最近音频（audioId: {item.audio.id}）</p>

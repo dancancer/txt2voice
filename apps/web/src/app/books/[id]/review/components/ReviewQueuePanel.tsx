@@ -6,6 +6,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  getScriptValidationSubtypeLabel,
+  SCRIPT_VALIDATION_ISSUE_TYPE,
+} from "@/lib/script-validation-review";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -32,16 +36,23 @@ const toIssueLabel = (issueType: string): string => {
   if (normalized === "AUDIO") {
     return "音频质量";
   }
+  if (normalized === SCRIPT_VALIDATION_ISSUE_TYPE) {
+    return "台本校验";
+  }
   return normalized;
 };
 
 interface ReviewFilterBarProps {
   status: ManualReviewStatusFilter;
   issueType: string;
+  scriptSubtype: string;
   priority: string;
   issueTypeOptions: string[];
+  scriptSubtypeOptions: Array<{ value: string; label: string }>;
+  showScriptSubtypeFilter: boolean;
   onStatusChange: (value: ManualReviewStatusFilter) => void;
   onIssueTypeChange: (value: string) => void;
+  onScriptSubtypeChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onRefresh: () => void;
   onExport: () => void;
@@ -51,10 +62,14 @@ interface ReviewFilterBarProps {
 export function ReviewFilterBar({
   status,
   issueType,
+  scriptSubtype,
   priority,
   issueTypeOptions,
+  scriptSubtypeOptions,
+  showScriptSubtypeFilter,
   onStatusChange,
   onIssueTypeChange,
+  onScriptSubtypeChange,
   onPriorityChange,
   onRefresh,
   onExport,
@@ -63,7 +78,7 @@ export function ReviewFilterBar({
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardContent className="p-4 !pt-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
           <Select value={status} onValueChange={(value) => onStatusChange(value as ManualReviewStatusFilter)}>
             <SelectTrigger className="min-h-11 bg-white">
               <SelectValue placeholder="状态" />
@@ -90,6 +105,24 @@ export function ReviewFilterBar({
               ))}
             </SelectContent>
           </Select>
+
+          {showScriptSubtypeFilter ? (
+            <Select value={scriptSubtype} onValueChange={onScriptSubtypeChange}>
+              <SelectTrigger className="min-h-11 bg-white">
+                <SelectValue placeholder="脚本问题子类型" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部脚本问题</SelectItem>
+                {scriptSubtypeOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {getScriptValidationSubtypeLabel(option.value)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="hidden md:block" />
+          )}
 
           <Select value={priority} onValueChange={onPriorityChange}>
             <SelectTrigger className="min-h-11 bg-white">

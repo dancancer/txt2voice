@@ -6,6 +6,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { booksApi } from "@/lib/api";
+import {
+  SCRIPT_VALIDATION_ISSUE_TYPE,
+  SCRIPT_VALIDATION_SUBTYPE_OPTIONS,
+} from "@/lib/script-validation-review";
 import type {
   BookSloMetricsResponse,
   DispatchAlertEvent,
@@ -58,6 +62,7 @@ export function useReviewWorkbenchData(bookId: string) {
   const [filters, setFilters] = useState<ReviewWorkbenchFilters>({
     status: "pending",
     issueType: "all",
+    scriptSubtype: "all",
     priority: "all",
   });
   const [page, setPage] = useState(1);
@@ -70,7 +75,7 @@ export function useReviewWorkbenchData(bookId: string) {
   const [error, setError] = useState<string | null>(null);
 
   const issueTypeOptions = useMemo(() => {
-    const options = new Set<string>(["CER", "SPEAKER", "EMOTION", "CONTINUITY", "AUDIO"]);
+    const options = new Set<string>(["CER", "SPEAKER", "EMOTION", "CONTINUITY", "AUDIO", SCRIPT_VALIDATION_ISSUE_TYPE]);
     for (const item of items) {
       if (item.issueType) {
         options.add(item.issueType.toUpperCase());
@@ -78,6 +83,10 @@ export function useReviewWorkbenchData(bookId: string) {
     }
     return Array.from(options).sort((a, b) => a.localeCompare(b));
   }, [items]);
+
+  const showScriptSubtypeFilter = filters.issueType === SCRIPT_VALIDATION_ISSUE_TYPE;
+
+  const scriptSubtypeOptions = SCRIPT_VALIDATION_SUBTYPE_OPTIONS;
 
   const loadBookTitle = useCallback(async () => {
     try {
@@ -104,9 +113,12 @@ export function useReviewWorkbenchData(bookId: string) {
       if (filters.priority !== "all") {
         params.set("priority", filters.priority);
       }
+      if (showScriptSubtypeFilter && filters.scriptSubtype !== "all") {
+        params.set("scriptSubtype", filters.scriptSubtype);
+      }
       return params;
     },
-    [filters.issueType, filters.priority, filters.status, page]
+    [filters.issueType, filters.priority, filters.scriptSubtype, filters.status, page, showScriptSubtypeFilter]
   );
 
   const loadReviewData = useCallback(
@@ -248,7 +260,17 @@ export function useReviewWorkbenchData(bookId: string) {
 
   const updateIssueTypeFilter = useCallback((issueType: string) => {
     setPage(1);
-    setFilters((prev) => ({ ...prev, issueType }));
+    setFilters((prev) => ({
+      ...prev,
+      issueType,
+      scriptSubtype:
+        issueType === SCRIPT_VALIDATION_ISSUE_TYPE ? prev.scriptSubtype : "all",
+    }));
+  }, []);
+
+  const updateScriptSubtypeFilter = useCallback((scriptSubtype: string) => {
+    setPage(1);
+    setFilters((prev) => ({ ...prev, scriptSubtype }));
   }, []);
 
   const updatePriorityFilter = useCallback((priority: string) => {
@@ -276,6 +298,8 @@ export function useReviewWorkbenchData(bookId: string) {
     dispatchEventActionId,
     error,
     issueTypeOptions,
+    scriptSubtypeOptions,
+    showScriptSubtypeFilter,
     setPage,
     setWindowDays,
     setSourceFilter,
@@ -284,6 +308,7 @@ export function useReviewWorkbenchData(bookId: string) {
     refreshAll,
     updateStatusFilter,
     updateIssueTypeFilter,
+    updateScriptSubtypeFilter,
     updatePriorityFilter,
     resolveItem,
     resolveItemsInBatch,

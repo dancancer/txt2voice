@@ -13,6 +13,7 @@ import {
   jsonObject,
   mergeTaskData,
 } from "@/lib/processing-task-utils";
+import { SCRIPT_VALIDATION_ISSUE_TYPE } from "@/lib/script-validation-review";
 import { enqueueScriptGenerationJob } from "@/lib/task-queue";
 
 // POST /api/books/[id]/script/generate - 生成朗读台本
@@ -54,6 +55,7 @@ export const POST = withErrorHandler(
     // 允许从稳定状态重跑台本
     const allowedStatuses = [
       "processed",
+      "manual_review_pending",
       "script_generated",
       "completed",
       "completed_with_errors",
@@ -61,6 +63,29 @@ export const POST = withErrorHandler(
     if (!allowedStatuses.includes(book.status)) {
       console.log("=====book.status", book.status);
       throw new ValidationError("请先完成文本处理");
+    }
+
+    if (book.status === "manual_review_pending") {
+      const blockingReviewItem = await prisma.manualReviewItem.findFirst({
+        where: {
+          bookId,
+          status: {
+            in: ["pending", "reprocessing"],
+          },
+          issueType: {
+            not: SCRIPT_VALIDATION_ISSUE_TYPE,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (blockingReviewItem) {
+        throw new ValidationError(
+          "当前仍存在非台本校验复核项，请先完成相关复核后再重跑台本"
+        );
+      }
     }
 
     // 如果指定了起始段落，验证它是否存在

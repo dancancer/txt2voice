@@ -45,6 +45,22 @@ export interface ScriptGenerationOptions {
   preserveOriginalBreaks: boolean;
 }
 
+export interface SegmentFailureDetail {
+  segmentId: string;
+  chapterId: string | null;
+  orderIndex: number;
+  stage: string;
+  errorCode: string;
+  message: string;
+  provider: string | null;
+  retryable: boolean;
+  coverageRatio: number | null;
+  issueCodes: string[];
+  issueMessages: string[];
+  issuePreviews: string[];
+  segmentPreview: string;
+}
+
 export interface ScriptGenerationSummary {
   totalLines: number;
   dialogueCount: number;
@@ -53,6 +69,7 @@ export interface ScriptGenerationSummary {
   processedSegments: number;
   failedSegments: number;
   failedSegmentIds: string[];
+  failedSegmentDetails?: SegmentFailureDetail[];
   characterDistribution: Record<string, number>;
   emotionDistribution: Record<string, number>;
 }

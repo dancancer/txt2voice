@@ -14,6 +14,7 @@ import { saveSegmentScriptToDatabase } from "../storage/persistence";
 import type {
   CharacterCandidate,
   DialogueLine,
+  SegmentFailureDetail,
   ScriptGenerationOptions,
   SegmentProcessingResult,
 } from "../types";
@@ -21,6 +22,89 @@ import type {
 interface LLMClient {
   callLLM(prompt: string, systemPrompt?: string): Promise<string>;
 }
+
+type SegmentFailurePatch = Partial<
+  Omit<
+    SegmentFailureDetail,
+    "segmentId" | "chapterId" | "orderIndex" | "message" | "segmentPreview"
+  >
+>;
+
+interface SegmentWithContext {
+  id: string;
+  chapterId?: string | null;
+  orderIndex?: number;
+  content: string;
+}
+
+const asTrimmedString = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.trim();
+};
+
+const asNumber = (value: unknown): number | null => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return value;
+};
+
+const asStringList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => asTrimmedString(entry))
+    .filter((entry) => entry.length > 0);
+};
+
+const buildSegmentPreview = (content: string): string =>
+  content.replace(/\s+/g, " ").trim().slice(0, 120);
+
+const buildSegmentFailureDetail = (params: {
+  segment: SegmentWithContext;
+  message: string;
+  patch?: SegmentFailurePatch;
+}): SegmentFailureDetail => {
+  const { segment, message, patch } = params;
+  const issueCodes = patch?.issueCodes || [];
+  const issueMessages = patch?.issueMessages || [];
+  const issuePreviews = patch?.issuePreviews || [];
+
+  return {
+    segmentId: segment.id,
+    chapterId: segment.chapterId ?? null,
+    orderIndex:
+      typeof segment.orderIndex === "number" && Number.isFinite(segment.orderIndex)
+        ? segment.orderIndex
+        : -1,
+    stage: patch?.stage || "unknown",
+    errorCode: patch?.errorCode || "UNKNOWN_ERROR",
+    message,
+    provider: patch?.provider || null,
+    retryable: patch?.retryable === true,
+    coverageRatio: asNumber(patch?.coverageRatio),
+    issueCodes,
+    issueMessages,
+    issuePreviews,
+    segmentPreview: buildSegmentPreview(segment.content),
+  };
+};
+
+const throwSegmentError = (params: {
+  segment: SegmentWithContext;
+  message: string;
+  provider: string;
+  patch?: SegmentFailurePatch;
+}): never => {
+  const { segment, message, provider, patch } = params;
+  const error = new TTSError(message, "TTS_SERVICE_DOWN", provider);
+  error.details = buildSegmentFailureDetail({ segment, message, patch });
+  throw error;
+};
 
 const buildCharacterInfoText = (characterProfiles: any[]): string => {
   const characterInfo = characterProfiles
@@ -169,11 +253,11 @@ const resolveRawCharacters = (result: any): any[] => {
 };
 
 const ensureDialogueLengthCap = (params: {
-  segmentId: string;
+  segment: SegmentWithContext;
   dialogueLines: DialogueLine[];
   maxDialogueLength: number;
 }) => {
-  const { segmentId, dialogueLines, maxDialogueLength } = params;
+  const { segment, dialogueLines, maxDialogueLength } = params;
   const oversizedLine = dialogueLines.find(
     (line) => line.text.trim().length > maxDialogueLength
   );
@@ -182,11 +266,21 @@ const ensureDialogueLengthCap = (params: {
     return;
   }
 
-  throw new TTSError(
-    `段落 ${segmentId} 存在超长台词，长度 ${oversizedLine.text.trim().length} 超过上限 ${maxDialogueLength}`,
-    "TTS_SERVICE_DOWN",
-    "script-validator"
-  );
+  throwSegmentError({
+    segment,
+    message: `段落 ${segment.id} 存在超长台词，长度 ${oversizedLine.text.trim().length} 超过上限 ${maxDialogueLength}`,
+    provider: "script-validator",
+    patch: {
+      stage: "dialogue_length",
+      errorCode: "DIALOGUE_TOO_LONG",
+      issueCodes: ["DIALOGUE_TOO_LONG"],
+      issueMessages: [
+        `长度 ${oversizedLine.text.trim().length} 超过上限 ${maxDialogueLength}`,
+      ],
+      issuePreviews: [oversizedLine.text.trim().slice(0, 40)],
+      retryable: false,
+    },
+  });
 };
 
 const buildStagedCharacterMap = (params: {
@@ -253,11 +347,22 @@ const mapDialogueLines = (params: {
       coverageRatio: validation.coverageRatio,
       issues: validation.issues,
     });
-    throw new TTSError(
-      formatSegmentValidationError(validation),
-      "TTS_SERVICE_DOWN",
-      "script-validator"
-    );
+    throwSegmentError({
+      segment,
+      message: formatSegmentValidationError(validation),
+      provider: "script-validator",
+      patch: {
+        stage: "script_validation",
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        coverageRatio: validation.coverageRatio,
+        issueCodes: validation.issues.map((issue) => issue.code),
+        issueMessages: validation.issues.map((issue) => issue.message),
+        issuePreviews: validation.issues
+          .map((issue) => asTrimmedString(issue.preview))
+          .filter((preview) => preview.length > 0),
+        retryable: false,
+      },
+    });
   }
 
   return validation.lines.map((validatedLine, index) => {
@@ -367,7 +472,7 @@ export async function processSegment(params: {
     }).filter((line) => line.text.trim().length > 0);
 
     ensureDialogueLengthCap({
-      segmentId: segment.id,
+      segment,
       dialogueLines,
       maxDialogueLength: options.maxDialogueLength,
     });
@@ -384,11 +489,22 @@ export async function processSegment(params: {
     }
 
     console.error("台本解析失败:", error);
-    throw new TTSError(
+    const parseError = new TTSError(
       "台本生成失败，LLM返回格式错误",
       "TTS_SERVICE_DOWN",
-      "script-generator"
+      "script-generator",
+      true
     );
+    parseError.details = buildSegmentFailureDetail({
+      segment,
+      message: "台本生成失败，LLM返回格式错误",
+      patch: {
+        stage: "llm_parse",
+        errorCode: "LLM_JSON_PARSE_FAILED",
+        retryable: true,
+      },
+    });
+    throw parseError;
   }
 }
 

@@ -5,11 +5,14 @@
 import prisma from "@/lib/prisma";
 import { getScriptGenerator } from "@/lib/script-generator";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
+import type { SegmentFailureDetail } from "@/lib/script-generator/types";
 import {
   jsonObject,
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import { Prisma } from "@/lib/prisma";
+import { resolveScriptValidationSubtype } from "@/lib/script-validation-review";
 
 export interface ScriptGenerationExtraParams {
   startFromSegmentId?: string | null;
@@ -25,6 +28,195 @@ export interface ScriptGenerationRunParams {
   options: Partial<ScriptGenerationOptions>;
   extraParams?: ScriptGenerationExtraParams;
 }
+
+const MANUAL_REVIEW_ISSUE_TYPE = "SCRIPT_VALIDATION";
+const MANUAL_REVIEW_HIGH_PRIORITY_CODES = new Set([
+  "LOW_COVERAGE",
+  "NON_WHITESPACE_GAP",
+  "SOURCE_NOT_FOUND",
+  "MISSING_SOURCE_TEXT",
+]);
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const asString = (value: unknown): string => {
+  if (typeof value !== "string") {
+    return "";
+  }
+  return value.trim();
+};
+
+const asNumber = (value: unknown): number | null => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return value;
+};
+
+const asBoolean = (value: unknown): boolean => value === true;
+
+const asStringList = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((entry) => asString(entry))
+    .filter((entry) => entry.length > 0);
+};
+
+const normalizeSegmentFailureDetail = (value: unknown): SegmentFailureDetail | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const segmentId = asString(record.segmentId);
+  if (!segmentId) {
+    return null;
+  }
+
+  return {
+    segmentId,
+    chapterId: asString(record.chapterId) || null,
+    orderIndex:
+      asNumber(record.orderIndex) !== null ? Number(record.orderIndex) : -1,
+    stage: asString(record.stage) || "unknown",
+    errorCode: asString(record.errorCode) || "UNKNOWN_ERROR",
+    message: asString(record.message) || "未知错误",
+    provider: asString(record.provider) || null,
+    retryable: asBoolean(record.retryable),
+    coverageRatio: asNumber(record.coverageRatio),
+    issueCodes: asStringList(record.issueCodes),
+    issueMessages: asStringList(record.issueMessages),
+    issuePreviews: asStringList(record.issuePreviews),
+    segmentPreview: asString(record.segmentPreview),
+  };
+};
+
+const resolveFailureDetails = (rawValue: unknown): SegmentFailureDetail[] => {
+  if (!Array.isArray(rawValue)) {
+    return [];
+  }
+
+  return rawValue
+    .map((entry) => normalizeSegmentFailureDetail(entry))
+    .filter((entry): entry is SegmentFailureDetail => Boolean(entry));
+};
+
+const pickManualReviewPriority = (detail: SegmentFailureDetail): "high" | "normal" => {
+  if (detail.coverageRatio !== null && detail.coverageRatio < 0.9) {
+    return "high";
+  }
+
+  for (const issueCode of detail.issueCodes) {
+    if (MANUAL_REVIEW_HIGH_PRIORITY_CODES.has(issueCode)) {
+      return "high";
+    }
+  }
+
+  return "normal";
+};
+
+const toInputJson = (value: unknown): Prisma.InputJsonValue =>
+  JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
+
+const syncScriptFailureManualReviewItems = async (params: {
+  taskId: string;
+  bookId: string;
+  failures: SegmentFailureDetail[];
+}) => {
+  const { taskId, bookId, failures } = params;
+  if (failures.length === 0) {
+    return {
+      created: 0,
+      updated: 0,
+      totalPending: 0,
+    };
+  }
+
+  let created = 0;
+  let updated = 0;
+
+  await prisma.$transaction(async (tx) => {
+    for (const failure of failures) {
+      const scriptSubtype = resolveScriptValidationSubtype({
+        errorCode: failure.errorCode,
+        issueCodes: failure.issueCodes,
+      });
+      const issueDetail = {
+        source: "script_generation",
+        taskId,
+        segmentId: failure.segmentId,
+        chapterId: failure.chapterId,
+        orderIndex: failure.orderIndex,
+        stage: failure.stage,
+        errorCode: failure.errorCode,
+        message: failure.message,
+        provider: failure.provider,
+        retryable: failure.retryable,
+        coverageRatio: failure.coverageRatio,
+        issueCodes: failure.issueCodes,
+        issueMessages: failure.issueMessages,
+        issuePreviews: failure.issuePreviews,
+        segmentPreview: failure.segmentPreview,
+        scriptSubtype,
+      };
+      const priority = pickManualReviewPriority(failure);
+
+      const existing = await tx.manualReviewItem.findFirst({
+        where: {
+          bookId,
+          issueType: MANUAL_REVIEW_ISSUE_TYPE,
+          segmentId: failure.segmentId,
+          status: {
+            in: ["pending", "reprocessing"],
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (existing) {
+        await tx.manualReviewItem.update({
+          where: { id: existing.id },
+          data: {
+            status: "pending",
+            priority,
+            issueDetail: toInputJson(issueDetail),
+            resolutionType: null,
+            resolutionNote: null,
+            resolvedAt: null,
+          },
+        });
+        updated += 1;
+        continue;
+      }
+
+      await tx.manualReviewItem.create({
+        data: {
+          bookId,
+          chapterId: failure.chapterId,
+          segmentId: failure.segmentId,
+          issueType: MANUAL_REVIEW_ISSUE_TYPE,
+          priority,
+          status: "pending",
+          issueDetail: toInputJson(issueDetail),
+        },
+      });
+      created += 1;
+    }
+  });
+
+  return {
+    created,
+    updated,
+    totalPending: created + updated,
+  };
+};
 
 /**
  * 执行台本生成任务。
@@ -110,9 +302,25 @@ export async function runScriptGenerationTask({
   const failedSegments = Number(script.summary.failedSegments || 0);
   const totalSegments = Number(script.summary.totalSegments || 0);
   const hasSegmentFailures = failedSegments > 0;
+  const failedSegmentDetails = resolveFailureDetails(
+    script.summary.failedSegmentDetails
+  );
+  const reviewSyncResult = hasSegmentFailures
+    ? await syncScriptFailureManualReviewItems({
+        taskId,
+        bookId,
+        failures: failedSegmentDetails,
+      })
+    : {
+        created: 0,
+        updated: 0,
+        totalPending: 0,
+      };
 
   if (hasSegmentFailures) {
     const failureMessage = `台本生成部分失败：${failedSegments}/${totalSegments} 个段落未生成成功`;
+    const maxFailureDetailCount = 200;
+    const visibleFailureDetails = failedSegmentDetails.slice(0, maxFailureDetailCount);
     const failedTaskData = await mergeTaskData(taskId, {
       message: failureMessage,
       metadata: {
@@ -123,7 +331,18 @@ export async function runScriptGenerationTask({
         totalSegments,
         failedSegments,
         failedSegmentIds: script.summary.failedSegmentIds || [],
+        failedSegmentDetails: visibleFailureDetails,
+        omittedFailureDetails: Math.max(
+          failedSegmentDetails.length - visibleFailureDetails.length,
+          0
+        ),
         isPartialFailure: true,
+        reviewSync: {
+          issueType: MANUAL_REVIEW_ISSUE_TYPE,
+          created: reviewSyncResult.created,
+          updated: reviewSyncResult.updated,
+          pending: reviewSyncResult.totalPending,
+        },
       },
     });
 
@@ -140,13 +359,20 @@ export async function runScriptGenerationTask({
     await prisma.book.update({
       where: { id: bookId },
       data: {
-        status: "processed",
+        status:
+          reviewSyncResult.totalPending > 0
+            ? "manual_review_pending"
+            : "processed",
         metadata: {
           ...jsonObject(book?.metadata),
           scriptGenerationFailedAt: new Date().toISOString(),
           failedSegments,
           totalSegments,
           failedSegmentIds: script.summary.failedSegmentIds || [],
+          scriptFailureIssueType: MANUAL_REVIEW_ISSUE_TYPE,
+          scriptFailureManualReviewPending: reviewSyncResult.totalPending,
+          scriptFailureManualReviewCreated: reviewSyncResult.created,
+          scriptFailureManualReviewUpdated: reviewSyncResult.updated,
         },
       },
     });

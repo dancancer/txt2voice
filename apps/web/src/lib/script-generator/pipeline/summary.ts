@@ -1,13 +1,19 @@
-import type { DialogueLine, ScriptGenerationSummary } from "../types";
+import type {
+  DialogueLine,
+  ScriptGenerationSummary,
+  SegmentFailureDetail,
+} from "../types";
 
 export function calculateScriptSummary(
   dialogueLines: DialogueLine[],
   options?: {
     totalSegments?: number;
     failedSegmentIds?: string[];
+    failedSegmentDetails?: SegmentFailureDetail[];
   }
 ): ScriptGenerationSummary {
   const failedSegmentIds = options?.failedSegmentIds || [];
+  const failedSegmentDetails = options?.failedSegmentDetails || [];
   const totalSegments =
     typeof options?.totalSegments === "number"
       ? options.totalSegments
@@ -21,6 +27,7 @@ export function calculateScriptSummary(
     processedSegments: Math.max(totalSegments - failedSegmentIds.length, 0),
     failedSegments: failedSegmentIds.length,
     failedSegmentIds,
+    failedSegmentDetails,
     characterDistribution: {},
     emotionDistribution: {},
   };

@@ -44,6 +44,7 @@ export interface ManualReviewItem {
   sentenceId: string | null;
   audioFileId: string | null;
   issueType: string;
+  issueSubtype: string | null;
   priority: string;
   status: ManualReviewStatus;
   issueDetail: unknown;
@@ -94,7 +95,7 @@ export interface ReviewBatchResolveResult {
   processedCount: number;
   retryTask: {
     taskId: string;
-    taskType: "AUDIO_GENERATION";
+    taskType: "AUDIO_GENERATION" | "SCRIPT_GENERATION";
     status: string;
   } | null;
 }
@@ -263,6 +264,7 @@ export interface QualitySummary {
 export interface ReviewWorkbenchFilters {
   status: ManualReviewStatusFilter;
   issueType: string;
+  scriptSubtype: string;
   priority: string;
 }
 
