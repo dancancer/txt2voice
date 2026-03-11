@@ -56,6 +56,8 @@ export default function ReviewWorkbenchPage() {
     dispatchEventActionId,
     error,
     issueTypeOptions,
+    scriptSubtypeOptions,
+    showScriptSubtypeFilter,
     setPage,
     setWindowDays,
     setSourceFilter,
@@ -64,6 +66,7 @@ export default function ReviewWorkbenchPage() {
     refreshAll,
     updateStatusFilter,
     updateIssueTypeFilter,
+    updateScriptSubtypeFilter,
     updatePriorityFilter,
     resolveItem,
     resolveItemsInBatch,
@@ -146,10 +149,14 @@ export default function ReviewWorkbenchPage() {
             <ReviewFilterBar
               status={filters.status}
               issueType={filters.issueType}
+              scriptSubtype={filters.scriptSubtype}
               priority={filters.priority}
               issueTypeOptions={issueTypeOptions}
+              scriptSubtypeOptions={scriptSubtypeOptions}
+              showScriptSubtypeFilter={showScriptSubtypeFilter}
               onStatusChange={updateStatusFilter}
               onIssueTypeChange={updateIssueTypeFilter}
+              onScriptSubtypeChange={updateScriptSubtypeFilter}
               onPriorityChange={updatePriorityFilter}
               onRefresh={() => loadReviewData(true)}
               onExport={exportReviewLogs}
