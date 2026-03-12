@@ -16,15 +16,21 @@
 
 ### 2.1 Prompt / Validator
 
-- `待填写`
+- 已收紧段落级 prompt 契约：完整覆盖、禁止改写、禁止重复抽取、强制返回 `sourceText`。
+- 已引入段落级 Script Validator：覆盖率、重复抽取、对白/旁白冲突、边界漂移、超长句、LLM 解析失败都会在落库前被拦截。
+- 已将落库文本优先回退到 `sourceText`，避免 LLM 改写文本直接污染 `script_sentences`。
 
 ### 2.2 Failure Routing / Manual Review
 
-- `待填写`
+- 已将失败段结构化沉淀为 `failedSegmentDetails`，并同步进入 `manual_review_items(issueType=SCRIPT_VALIDATION)`。
+- 已支持 `manual_review_pending` 状态下的台本重跑与失败去重入队，避免重复 pending 项失控堆积。
+- 已形成 `scriptSubtype -> issueDetail -> recommendedAction` 的人工复核主链路，失败段不再是黑盒。
 
 ### 2.3 Review Workbench / Export / Filtering
 
-- `待填写`
+- review workbench 已支持 `SCRIPT_VALIDATION` 子类型筛选、详情展开、完整问题列表、建议动作、推荐动作。
+- CSV 导出已与 review 卡片对齐，能导出 `issueSubtypeLabel`、`recommendedAction`、`scriptSummary`、`scriptIssueMessages`。
+- 过滤条已支持按 `recommendedAction` 筛选，且当前值显示已中文化，减少内部枚举值直接暴露。
 
 ## 3. 真实样本回归
 
@@ -44,34 +50,37 @@
 
 | roadmap 要求 | 当前实现 | 状态 | 证据 | 是否阻塞结项 |
 |---|---|---|---|---|
-| 按引号密度切段 | `待填写` | `待填写` | `待填写` | `待填写` |
-| 按句子数量切段 | `待填写` | `待填写` | `待填写` | `待填写` |
-| 按对白密度切段 | `待填写` | `待填写` | `待填写` | `待填写` |
-| 高风险段更小粒度拆分 | `待填写` | `待填写` | `待填写` | `待填写` |
+| 按引号密度切段 | `resolveTextSegmentationRiskProfile()` 已按 `quoteRatio` 收紧 `preferredMaxSegmentLength / preferredMinSegmentLength` | `已完成` | `apps/web/src/lib/text-segmentation-profile.ts:139-167`，`apps/web/src/lib/text-processor.ts:664-707` | `否` |
+| 按句子数量切段 | `sentenceCount >= 12/18` 会继续收紧分段长度 | `已完成` | `apps/web/src/lib/text-segmentation-profile.ts:157-179`，`apps/web/src/lib/text-processor.ts:664-707` | `否` |
+| 按对白密度切段 | `dialogueLineCount >= 4` 或高 `quoteRatio` 会触发 `dialogue_dense` 风险画像 | `已完成` | `apps/web/src/lib/text-segmentation-profile.ts:133-156` | `否` |
+| 高风险段更小粒度拆分 | 已通过风险画像缩短长度上限，但还没有证明真实样本下足以显著减少 script validation failure | `部分完成` | `apps/web/src/lib/text-processor.ts:664-707` + `uploads/sample.txt` 真实样本 2 次运行均出现 `7/10` failed segments | `是` |
 
 ## 6. 阶段回顾问题
 
 ### 6.1 我们这阶段做的事，是否直接推动了项目目标？
 
-- `待填写`
+- 是。Prompt 契约、Validator 守门、失败段复核路由和 review workbench 强化，直接提升了“原文保真”“错误可见”“人工复核效率”这三条主线。
 
 ### 6.2 哪些是真正有效的？哪些只是缓解症状？
 
-- 真正有效：`待填写`
-- 缓解症状：`待填写`
+- 真正有效：`sourceText` 契约、段落级 Script Validator、失败段结构化入队、SCRIPT_VALIDATION 子类型与推荐动作归一化。
+- 缓解症状：仅靠 review workbench 继续提高信息密度；它能帮助人更快处理失败，但不能替代上游切段和生成稳定性本身。
 
 ### 6.3 当前阶段暴露了哪些新问题？
 
-- `待填写`
+- `limitToSegments` 之前在 runner 层没有单独生效，closeout 真实样本回归中已暴露并修复。
+- 真实样本 `uploads/sample.txt` 在 `limitToSegments=10` 条件下，两次完整运行都稳定出现 `24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION`，说明 validator 护栏有效，但上游分段与生成策略仍不足以让真实样本稳定通过。
+- 当前推荐动作虽然可用，但几乎全部落在 `regenerate`，尚未形成更细粒度动作判断价值。
 
 ### 6.4 剩余规划里，下一阶段最该做哪个块？为什么？
 
-- `待填写`
+- 若严格按 roadmap 结项纪律，Phase 1 还应先补完“真实样本收敛 + 高风险切段收口”这最后一刀，再进入 Phase 2。
+- 原因是当前主要失败仍集中在真实样本台本保真链路，而不是音频稳定性；若此时切到 Phase 2，会把错误地基往后带。
 
 ## 7. 结项判断
 
-- 结论：`可结项 / 不可结项`
-- 依据：`待填写`
+- 结论：`不可结项`
+- 依据：`尽管护栏、失败路由和 review workbench 已基本成型，但 Phase 1 仍缺 1 次完整收敛记录，且真实样本在 limitToSegments=10 条件下仍稳定出现 7/10 failed segments，说明高风险切段与真实生成稳定性还未达到 roadmap 的结项标准。`
 
 ## 8. PR Readiness
 
@@ -79,7 +88,9 @@
 - Phase 1 targeted tests：`2026-03-12 已执行，通过（61 tests / 9 suites）`
 - 真实样本回归记录：`2026-03-12 已执行 2 次完整样本回归，run-3 中断待补完`
 - convergence 记录：`已有 2 次一致结果，仍缺 1 次完整记录`
-- closeout review 是否完整：`待填写`
-- PR readiness：`yes / no`
+- closeout review 是否完整：`部分完整`
+- PR readiness：`no`
 - 缺口列表：
-  - `待填写`
+  - `run-3` 仍缺一次完整收敛记录
+  - 分段策略对真实样本的通过率仍不足，需继续收口
+  - 结项前需要把真实失败片段 A/B 纳入 closeout 样本表
