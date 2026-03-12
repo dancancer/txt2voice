@@ -2,11 +2,15 @@
 // input: 复核工作台 API 返回值
 // output: 页面展示类型与常量
 // pos: 质检复核页面共享类型
+import type { ScriptValidationRecommendedAction } from "@/lib/script-validation-detail";
 import type { BookSloMetricsResult } from "@/lib/slo-metrics/types";
 
 export type ManualReviewStatus = "pending" | "reprocessing" | "resolved" | "rejected";
 export type ManualReviewStatusFilter = ManualReviewStatus | "all";
 export type ManualReviewResolveAction = "approve" | "reject" | "regenerate";
+export type ReviewRecommendedActionFilter =
+  | ScriptValidationRecommendedAction
+  | "all";
 
 export interface ManualReviewSentenceSummary {
   id: string;
@@ -45,6 +49,8 @@ export interface ManualReviewItem {
   audioFileId: string | null;
   issueType: string;
   issueSubtype: string | null;
+  recommendedAction: ScriptValidationRecommendedAction | null;
+  recommendedActionLabel: string;
   priority: string;
   status: ManualReviewStatus;
   issueDetail: unknown;
@@ -265,6 +271,7 @@ export interface ReviewWorkbenchFilters {
   status: ManualReviewStatusFilter;
   issueType: string;
   scriptSubtype: string;
+  recommendedAction: ReviewRecommendedActionFilter;
   priority: string;
 }
 

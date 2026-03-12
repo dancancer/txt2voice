@@ -15,6 +15,12 @@ import {
   enqueueScriptGenerationJob,
 } from "@/lib/task-queue";
 import {
+  buildScriptValidationDetailView,
+  type ScriptValidationRecommendedAction,
+  SCRIPT_VALIDATION_RECOMMENDED_ACTION_OPTIONS,
+  listScriptValidationSubtypesByRecommendedAction,
+} from "@/lib/script-validation-detail";
+import {
   resolveScriptValidationSubtype,
   SCRIPT_VALIDATION_ISSUE_TYPE,
 } from "@/lib/script-validation-review";
@@ -30,6 +36,7 @@ export interface ManualReviewListQuery {
   priority?: string;
   issueType?: string;
   scriptSubtype?: string;
+  recommendedAction?: ScriptValidationRecommendedAction;
   chapterId?: string;
   sentenceId?: string;
 }
@@ -52,6 +59,7 @@ export interface ManualReviewExportQuery {
   priority?: string;
   issueType?: string;
   scriptSubtype?: string;
+  recommendedAction?: ScriptValidationRecommendedAction;
   chapterId?: string;
   sentenceId?: string;
 }
@@ -61,6 +69,7 @@ interface ManualReviewFilterOptions {
   priority?: string;
   issueType?: string;
   scriptSubtype?: string;
+  recommendedAction?: ScriptValidationRecommendedAction;
   chapterId?: string;
   sentenceId?: string;
 }
@@ -85,6 +94,8 @@ interface FormattedManualReviewItem {
   audioFileId: string | null;
   issueType: string;
   issueSubtype: string | null;
+  recommendedAction: ScriptValidationRecommendedAction | null;
+  recommendedActionLabel: string;
   priority: string;
   status: string;
   issueDetail: Prisma.JsonValue;
@@ -148,6 +159,10 @@ const REVIEW_STATUS_SET = new Set<ManualReviewStatus>([
   "resolved",
   "rejected",
 ]);
+
+const RECOMMENDED_ACTION_SET = new Set(
+  SCRIPT_VALIDATION_RECOMMENDED_ACTION_OPTIONS.map((item) => item.value)
+);
 
 const RESOLVE_ACTION_ALIAS: Record<string, ManualReviewResolveAction> = {
   approve: "approve",
@@ -233,6 +248,18 @@ const MANUAL_REVIEW_INCLUDE = {
 } as const;
 
 const formatManualReviewItem = (item: any): FormattedManualReviewItem => {
+  const issueSubtype =
+    item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE
+      ? resolveScriptValidationSubtype(item.issueDetail)
+      : null;
+  const scriptDetail =
+    item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE
+      ? buildScriptValidationDetailView({
+          issueSubtype,
+          issueDetail: item.issueDetail,
+        })
+      : null;
+
   return {
     id: item.id,
     bookId: item.bookId,
@@ -241,10 +268,9 @@ const formatManualReviewItem = (item: any): FormattedManualReviewItem => {
     sentenceId: item.sentenceId,
     audioFileId: item.audioFileId,
     issueType: item.issueType,
-    issueSubtype:
-      item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE
-        ? resolveScriptValidationSubtype(item.issueDetail)
-        : null,
+    issueSubtype,
+    recommendedAction: scriptDetail?.recommendedAction || null,
+    recommendedActionLabel: scriptDetail?.recommendedActionLabel || "",
     priority: item.priority,
     status: item.status,
     issueDetail: item.issueDetail,
@@ -295,6 +321,7 @@ const buildListWhere = (
   const where: Prisma.ManualReviewItemWhereInput = {
     bookId,
   };
+  const andClauses: Prisma.ManualReviewItemWhereInput[] = [];
 
   if (query.status) {
     where.status = query.status;
@@ -306,10 +333,31 @@ const buildListWhere = (
     where.issueType = query.issueType;
   }
   if (query.issueType === SCRIPT_VALIDATION_ISSUE_TYPE && query.scriptSubtype) {
-    where.issueDetail = {
-      path: ["scriptSubtype"],
-      equals: query.scriptSubtype,
-    } as Prisma.JsonFilter;
+    andClauses.push({
+      issueDetail: {
+        path: ["scriptSubtype"],
+        equals: query.scriptSubtype,
+      } as Prisma.JsonFilter,
+    });
+  }
+  if (query.issueType === SCRIPT_VALIDATION_ISSUE_TYPE && query.recommendedAction) {
+    const subtypes = listScriptValidationSubtypesByRecommendedAction(
+      query.recommendedAction
+    );
+    if (subtypes.length === 0) {
+      andClauses.push({
+        id: "__recommended_action_no_match__",
+      });
+    } else {
+      andClauses.push({
+        OR: subtypes.map((subtype) => ({
+          issueDetail: {
+            path: ["scriptSubtype"],
+            equals: subtype,
+          } as Prisma.JsonFilter,
+        })),
+      });
+    }
   }
   if (query.chapterId) {
     where.chapterId = query.chapterId;
@@ -317,8 +365,26 @@ const buildListWhere = (
   if (query.sentenceId) {
     where.sentenceId = query.sentenceId;
   }
+  if (andClauses.length > 0) {
+    where.AND = andClauses;
+  }
 
   return where;
+};
+
+const parseRecommendedActionFilter = (
+  value: unknown
+): ScriptValidationRecommendedAction | undefined => {
+  const actionInput = asString(value)?.toLowerCase();
+  if (!actionInput || actionInput === "all") {
+    return undefined;
+  }
+  if (RECOMMENDED_ACTION_SET.has(actionInput as ScriptValidationRecommendedAction)) {
+    return actionInput as ScriptValidationRecommendedAction;
+  }
+  throw new ValidationError(
+    "recommendedAction 仅支持 approve/reject/regenerate/all"
+  );
 };
 
 export const parseManualReviewQuery = (
@@ -350,6 +416,9 @@ export const parseManualReviewQuery = (
     priority: asString(searchParams.get("priority")),
     issueType: asString(searchParams.get("issueType")),
     scriptSubtype: asString(searchParams.get("scriptSubtype")),
+    recommendedAction: parseRecommendedActionFilter(
+      searchParams.get("recommendedAction")
+    ),
     chapterId: asString(searchParams.get("chapterId")),
     sentenceId: asString(searchParams.get("sentenceId")),
   };
@@ -438,6 +507,9 @@ export const parseManualReviewExportQuery = (
     priority: asString(searchParams.get("priority")),
     issueType: asString(searchParams.get("issueType")),
     scriptSubtype: asString(searchParams.get("scriptSubtype")),
+    recommendedAction: parseRecommendedActionFilter(
+      searchParams.get("recommendedAction")
+    ),
     chapterId: asString(searchParams.get("chapterId")),
     sentenceId: asString(searchParams.get("sentenceId")),
   };
@@ -632,12 +704,16 @@ export const toManualReviewCsv = (items: FormattedManualReviewItem[]): string =>
     "status",
     "issueType",
     "issueSubtype",
+    "issueSubtypeLabel",
     "priority",
     "chapterId",
     "sentenceId",
     "audioFileId",
     "score",
     "verdict",
+    "recommendedAction",
+    "scriptSummary",
+    "scriptIssueMessages",
     "resolutionType",
     "resolutionNote",
     "assignedTo",
@@ -651,17 +727,28 @@ export const toManualReviewCsv = (items: FormattedManualReviewItem[]): string =>
     headers.join(","),
     ...items.map((item) => {
       const score = getItemScore(item);
+      const scriptDetail =
+        item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE
+          ? buildScriptValidationDetailView({
+              issueSubtype: item.issueSubtype,
+              issueDetail: item.issueDetail,
+            })
+          : null;
       return [
         toExportCell(item.id),
         toExportCell(item.status),
         toExportCell(item.issueType),
         toExportCell(item.issueSubtype),
+        toExportCell(scriptDetail?.subtypeLabel || ""),
         toExportCell(item.priority),
         toExportCell(item.chapterId),
         toExportCell(item.sentenceId),
         toExportCell(item.audioFileId),
         toExportCell(score !== null ? score.toFixed(2) : ""),
         toExportCell(item.latestQualityCheck?.verdict || item.audio?.qualityVerdict || ""),
+        toExportCell(scriptDetail?.recommendedActionLabel || ""),
+        toExportCell(scriptDetail?.summary || ""),
+        toExportCell((scriptDetail?.issueMessages || []).join(" | ")),
         toExportCell(item.resolutionType),
         toExportCell(item.resolutionNote),
         toExportCell(item.assignedTo),

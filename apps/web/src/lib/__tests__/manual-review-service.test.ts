@@ -47,6 +47,7 @@ import {
   resolveManualReviewItem,
   toManualReviewCsv,
 } from "@/lib/manual-review-service";
+import { SCRIPT_VALIDATION_ISSUE_TYPE } from "@/lib/script-validation-review";
 
 const mockCount = (prisma as any).manualReviewItem.count as jest.Mock;
 const mockFindMany = (prisma as any).manualReviewItem.findMany as jest.Mock;
@@ -574,7 +575,16 @@ describe("manual-review-service", () => {
   it("should build manual review csv payload", () => {
     const csv = toManualReviewCsv([
       {
-        ...baseItem(),
+        ...baseItem({
+          issueType: SCRIPT_VALIDATION_ISSUE_TYPE,
+          issueSubtype: "COVERAGE",
+          issueDetail: {
+            issueMessages: ["原文覆盖率过低", "尾部存在未覆盖内容"],
+            issuePreviews: ["第二段原文"],
+            segmentPreview: "第二段原文，有校验问题",
+            coverageRatio: 0.82,
+          },
+        }),
         sentence: {
           id: "sentence-1",
           text: "第一句台词",
@@ -586,8 +596,13 @@ describe("manual-review-service", () => {
     ]);
 
     expect(csv).toContain("itemId,status,issueType");
+    expect(csv).toContain("issueSubtype,issueSubtypeLabel,priority");
+    expect(csv).toContain("verdict,recommendedAction,scriptSummary,scriptIssueMessages,resolutionType");
     expect(csv).toContain("review-1");
     expect(csv).toContain("第一句台词");
+    expect(csv).toContain("覆盖率不足");
+    expect(csv).toContain("重生");
+    expect(csv).toContain("原文覆盖率过低 | 尾部存在未覆盖内容");
   });
 
   it("should fail regenerate when item has no sentenceId", async () => {

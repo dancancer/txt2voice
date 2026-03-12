@@ -17,7 +17,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Download, Loader2, RefreshCcw } from "lucide-react";
-import type { ManualReviewStatusFilter, ReviewPagination } from "../models/types";
+import type {
+  ManualReviewStatusFilter,
+  ReviewPagination,
+  ReviewRecommendedActionFilter,
+} from "../models/types";
 
 const toIssueLabel = (issueType: string): string => {
   const normalized = issueType.trim().toUpperCase();
@@ -46,13 +50,17 @@ interface ReviewFilterBarProps {
   status: ManualReviewStatusFilter;
   issueType: string;
   scriptSubtype: string;
+  recommendedAction: ReviewRecommendedActionFilter;
   priority: string;
   issueTypeOptions: string[];
   scriptSubtypeOptions: Array<{ value: string; label: string }>;
+  recommendedActionOptions: Array<{ value: string; label: string }>;
   showScriptSubtypeFilter: boolean;
+  showRecommendedActionFilter: boolean;
   onStatusChange: (value: ManualReviewStatusFilter) => void;
   onIssueTypeChange: (value: string) => void;
   onScriptSubtypeChange: (value: string) => void;
+  onRecommendedActionChange: (value: ReviewRecommendedActionFilter) => void;
   onPriorityChange: (value: string) => void;
   onRefresh: () => void;
   onExport: () => void;
@@ -63,13 +71,17 @@ export function ReviewFilterBar({
   status,
   issueType,
   scriptSubtype,
+  recommendedAction,
   priority,
   issueTypeOptions,
   scriptSubtypeOptions,
+  recommendedActionOptions,
   showScriptSubtypeFilter,
+  showRecommendedActionFilter,
   onStatusChange,
   onIssueTypeChange,
   onScriptSubtypeChange,
+  onRecommendedActionChange,
   onPriorityChange,
   onRefresh,
   onExport,
@@ -78,7 +90,7 @@ export function ReviewFilterBar({
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardContent className="p-4 !pt-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-6">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
           <Select value={status} onValueChange={(value) => onStatusChange(value as ManualReviewStatusFilter)}>
             <SelectTrigger className="min-h-11 bg-white">
               <SelectValue placeholder="状态" />
@@ -116,6 +128,29 @@ export function ReviewFilterBar({
                 {scriptSubtypeOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {getScriptValidationSubtypeLabel(option.value)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <div className="hidden md:block" />
+          )}
+
+          {showRecommendedActionFilter ? (
+            <Select
+              value={recommendedAction}
+              onValueChange={(value) =>
+                onRecommendedActionChange(value as ReviewRecommendedActionFilter)
+              }
+            >
+              <SelectTrigger className="min-h-11 bg-white">
+                <SelectValue placeholder="推荐动作" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">全部推荐动作</SelectItem>
+                {recommendedActionOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
                   </SelectItem>
                 ))}
               </SelectContent>
