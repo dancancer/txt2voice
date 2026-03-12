@@ -61,7 +61,7 @@
 
 | 样本 | 来源 | 目标问题 | 运行次数 | 结果 | 备注 |
 |---|---|---|---:|---|---|
-| `uploads/sample.txt` | 本地统一测试书 | 漏段 / 重复对白 / 边界漂移 | 2 | `部分通过` | `两次完整运行均为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；第三次运行已开始，待补完` |
+| `uploads/sample.txt` | 本地统一测试书 | 漏段 / 重复对白 / 边界漂移 | 3 | `已执行` | `3 次完整运行均为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；失败模式稳定但尚未通过 closeout` |
 | `short-dialogue.txt` | 固定回归样本 | 对白抽取 | 0 | `待执行` | `待填写` |
 | `multi-role-scene.txt` | 固定回归样本 | 多角色 / 对白边界 | 0 | `待执行` | `待填写` |
 | `long-narrative.txt` | 固定回归样本 | 长段截断 / 覆盖率 | 0 | `待执行` | `待填写` |

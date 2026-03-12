@@ -36,7 +36,7 @@
 
 | 样本 | 来源 | 问题类型 | 运行次数 | 结果 | 备注 |
 |---|---|---|---:|---|---|
-| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 2 | `部分通过` | `两次完整运行均得到 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；第三次运行在 7/10 时中断，待补完` |
+| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 3 | `已执行` | `3 次运行均收敛到 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；说明当前失败模式稳定但尚未收口` |
 
 ## 4. 多次运行收敛性记录
 
@@ -44,7 +44,7 @@
 |---|---|---:|---:|---:|---|---|
 | `run-1` | `uploads/sample.txt(limitToSegments=10)` | 24 | 7 | 7 | `partial_failure` | `book=28d07d9d-38a4-465c-82e6-063d42430152，book.status=manual_review_pending` |
 | `run-2` | `uploads/sample.txt(limitToSegments=10)` | 24 | 7 | 7 | `partial_failure` | `book=0d8b31fc-e2de-4d91-81e0-f97209bdab4e，结果与 run-1 一致；验证了 limitToSegments 修复后可稳定止于 10 段` |
-| `run-3` | `uploads/sample.txt(limitToSegments=10)` | 17 | 0 | 0 | `interrupted` | `book=15427cc4-5ee9-491b-8c31-cf200acfb701，运行到 7/10 时手动中断，待补完第三次完整收敛记录` |
+| `run-3` | `uploads/sample.txt(limitToSegments=10)` | 24 | 7 | 7 | `partial_failure` | `book=61aa922c-b3bb-45ae-a065-67bfef3169b9，最终也收敛到与 run-1/run-2 相同结果；首个复核项主 subtype=BOUNDARY_DRIFT` |
 
 ## 5. 分段策略对照 roadmap
 
@@ -80,17 +80,17 @@
 ## 7. 结项判断
 
 - 结论：`不可结项`
-- 依据：`尽管护栏、失败路由和 review workbench 已基本成型，但 Phase 1 仍缺 1 次完整收敛记录，且真实样本在 limitToSegments=10 条件下仍稳定出现 7/10 failed segments，说明高风险切段与真实生成稳定性还未达到 roadmap 的结项标准。`
+- 依据：`尽管护栏、失败路由和 review workbench 已基本成型，且 3 次真实样本运行已经证明失败模式可稳定复现，但真实样本在 limitToSegments=10 条件下仍稳定出现 7/10 failed segments，说明高风险切段与真实生成稳定性还未达到 roadmap 的结项标准。`
 
 ## 8. PR Readiness
 
 - `pnpm --filter web test:regression`：`2026-03-12 已执行，通过（11 tests / 3 suites）`
 - Phase 1 targeted tests：`2026-03-12 已执行，通过（61 tests / 9 suites）`
-- 真实样本回归记录：`2026-03-12 已执行 2 次完整样本回归，run-3 中断待补完`
-- convergence 记录：`已有 2 次一致结果，仍缺 1 次完整记录`
+- 真实样本回归记录：`2026-03-13 已完成 3 次 limitToSegments=10 的真实样本回归，结果一致`
+- convergence 记录：`已完成 3 次，结果一致（24 lines / 7 failed segments / 7 pending review）`
 - closeout review 是否完整：`部分完整`
 - PR readiness：`no`
 - 缺口列表：
-  - `run-3` 仍缺一次完整收敛记录
   - 分段策略对真实样本的通过率仍不足，需继续收口
   - 结项前需要把真实失败片段 A/B 纳入 closeout 样本表
+  - 需要把当前 3 次一致失败模式沉淀为正式结论或新增修复任务
