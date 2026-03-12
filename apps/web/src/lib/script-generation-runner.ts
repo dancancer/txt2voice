@@ -252,6 +252,7 @@ export async function runScriptGenerationTask({
     );
     await updateTaskProgress(taskId, 70, "段落台本生成完成");
   } else if (
+    extraParams.limitToSegments ||
     extraParams.startFromSegmentId ||
     (extraParams.startFromOrderIndex !== null &&
       extraParams.startFromOrderIndex !== undefined)

@@ -195,4 +195,42 @@ describe("script-generation-runner", () => {
       }),
     });
   });
+
+  it("should honor limitToSegments without requiring startFromSegmentId", async () => {
+    const generateScript = jest.fn();
+    const generatePartialScript = jest.fn().mockResolvedValue({
+      ...createFailedScript(),
+      summary: {
+        ...createFailedScript().summary,
+        totalSegments: 2,
+      },
+    });
+
+    mockGetScriptGenerator.mockReturnValue({
+      generateScript,
+      generatePartialScript,
+      regenerateSegmentScript: jest.fn(),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-limit",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        limitToSegments: 2,
+      },
+    });
+
+    expect(generateScript).not.toHaveBeenCalled();
+    expect(generatePartialScript).toHaveBeenCalledWith(
+      "book-1",
+      {},
+      {
+        startFromSegmentId: undefined,
+        startFromOrderIndex: undefined,
+        limitToSegments: 2,
+      },
+      expect.any(Function)
+    );
+  });
 });
