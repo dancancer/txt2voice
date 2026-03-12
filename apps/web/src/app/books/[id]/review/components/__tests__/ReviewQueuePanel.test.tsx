@@ -11,9 +11,9 @@ describe("ReviewFilterBar", () => {
       <ReviewFilterBar
         status="pending"
         issueType="SCRIPT_VALIDATION"
-        scriptSubtype="all"
+        scriptSubtype="COVERAGE"
         recommendedAction="regenerate"
-        priority="all"
+        priority="high"
         issueTypeOptions={["SCRIPT_VALIDATION"]}
         scriptSubtypeOptions={[{ value: "COVERAGE", label: "覆盖率不足" }]}
         recommendedActionOptions={[
@@ -33,7 +33,10 @@ describe("ReviewFilterBar", () => {
       />
     );
 
-    expect(html).toContain("grid-cols-1 gap-3 md:grid-cols-7");
-    expect(html).toContain("regenerate");
+    expect(html).toContain("待复核");
+    expect(html).toContain("台本校验");
+    expect(html).toContain("覆盖率不足");
+    expect(html).toContain("重生");
+    expect(html).toContain("高优先级");
   });
 });

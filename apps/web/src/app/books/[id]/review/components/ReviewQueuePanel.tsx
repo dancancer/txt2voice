@@ -14,7 +14,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Download, Loader2, RefreshCcw } from "lucide-react";
 import type {
@@ -22,6 +21,29 @@ import type {
   ReviewPagination,
   ReviewRecommendedActionFilter,
 } from "../models/types";
+
+const REVIEW_STATUS_LABELS: Record<ManualReviewStatusFilter, string> = {
+  pending: "待复核",
+  reprocessing: "重生中",
+  resolved: "已通过",
+  rejected: "已驳回",
+  all: "全部状态",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  all: "全部优先级",
+  high: "高优先级",
+  normal: "普通优先级",
+  low: "低优先级",
+};
+
+const findOptionLabel = (
+  options: Array<{ value: string; label: string }>,
+  value: string,
+  fallback: string
+) => {
+  return options.find((option) => option.value === value)?.label || fallback;
+};
 
 const toIssueLabel = (issueType: string): string => {
   const normalized = issueType.trim().toUpperCase();
@@ -87,13 +109,29 @@ export function ReviewFilterBar({
   onExport,
   refreshing,
 }: ReviewFilterBarProps) {
+  const statusLabel = REVIEW_STATUS_LABELS[status] || "状态";
+  const issueTypeLabel = issueType === "all" ? "全部问题类型" : toIssueLabel(issueType);
+  const scriptSubtypeLabel =
+    scriptSubtype === "all"
+      ? "全部脚本问题"
+      : findOptionLabel(scriptSubtypeOptions, scriptSubtype, scriptSubtype);
+  const recommendedActionLabel =
+    recommendedAction === "all"
+      ? "全部推荐动作"
+      : findOptionLabel(
+          recommendedActionOptions,
+          recommendedAction,
+          recommendedAction
+        );
+  const priorityLabel = PRIORITY_LABELS[priority] || priority;
+
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardContent className="p-4 !pt-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
           <Select value={status} onValueChange={(value) => onStatusChange(value as ManualReviewStatusFilter)}>
             <SelectTrigger className="min-h-11 bg-white">
-              <SelectValue placeholder="状态" />
+              <span className="block truncate">{statusLabel}</span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="pending">待复核</SelectItem>
@@ -106,7 +144,7 @@ export function ReviewFilterBar({
 
           <Select value={issueType} onValueChange={onIssueTypeChange}>
             <SelectTrigger className="min-h-11 bg-white">
-              <SelectValue placeholder="问题类型" />
+              <span className="block truncate">{issueTypeLabel}</span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部问题类型</SelectItem>
@@ -121,7 +159,7 @@ export function ReviewFilterBar({
           {showScriptSubtypeFilter ? (
             <Select value={scriptSubtype} onValueChange={onScriptSubtypeChange}>
               <SelectTrigger className="min-h-11 bg-white">
-                <SelectValue placeholder="脚本问题子类型" />
+                <span className="block truncate">{scriptSubtypeLabel}</span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部脚本问题</SelectItem>
@@ -144,7 +182,7 @@ export function ReviewFilterBar({
               }
             >
               <SelectTrigger className="min-h-11 bg-white">
-                <SelectValue placeholder="推荐动作" />
+                <span className="block truncate">{recommendedActionLabel}</span>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">全部推荐动作</SelectItem>
@@ -161,7 +199,7 @@ export function ReviewFilterBar({
 
           <Select value={priority} onValueChange={onPriorityChange}>
             <SelectTrigger className="min-h-11 bg-white">
-              <SelectValue placeholder="优先级" />
+              <span className="block truncate">{priorityLabel}</span>
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部优先级</SelectItem>
