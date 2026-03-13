@@ -7,6 +7,11 @@ import {
 } from "../storage/character-utils";
 import { parseLLMJsonResult } from "./json-utils";
 import {
+  refineFailedSegment,
+  shouldRefineSegmentFailure,
+  type RefinedSegmentSlice,
+} from "./refinement/failed-segment-refinement";
+import {
   formatSegmentValidationError,
   validateSegmentScript,
 } from "./segment-script-validator";
@@ -63,6 +68,8 @@ const asStringList = (value: unknown): string[] => {
 
 const buildSegmentPreview = (content: string): string =>
   content.replace(/\s+/g, " ").trim().slice(0, 120);
+
+const MAX_REFINEMENT_DEPTH = 2;
 
 const buildSegmentFailureDetail = (params: {
   segment: SegmentWithContext;
@@ -141,6 +148,54 @@ const buildCharacterInfoText = (characterProfiles: any[]): string => {
         `   重要程度: ${char.importance}\n`
     )
     .join("\n");
+};
+
+const remapRefinedDialogueLines = (params: {
+  parentSegment: SegmentWithContext;
+  refinedSegments: RefinedSegmentSlice[];
+  refinedResults: SegmentProcessingResult[];
+}): SegmentProcessingResult => {
+  const { parentSegment, refinedSegments, refinedResults } = params;
+  const dialogueLines: DialogueLine[] = [];
+  const characterCandidates: CharacterCandidate[] = [];
+
+  refinedResults.forEach((result, resultIndex) => {
+    const refinedSegment = refinedSegments[resultIndex];
+    characterCandidates.push(...result.characterCandidates);
+
+    result.dialogueLines.forEach((line) => {
+      const ttsParameters =
+        line.ttsParameters && typeof line.ttsParameters === "object"
+          ? { ...line.ttsParameters }
+          : {};
+      const sourceStart =
+        typeof ttsParameters.sourceStart === "number"
+          ? ttsParameters.sourceStart + refinedSegment.offsetStart
+          : refinedSegment.offsetStart;
+      const sourceEnd =
+        typeof ttsParameters.sourceEnd === "number"
+          ? ttsParameters.sourceEnd + refinedSegment.offsetStart
+          : refinedSegment.offsetEnd;
+
+      dialogueLines.push({
+        ...line,
+        id: `${parentSegment.id}_${dialogueLines.length}`,
+        segmentId: parentSegment.id,
+        chapterId: parentSegment.chapterId ?? null,
+        orderInSegment: dialogueLines.length,
+        ttsParameters: {
+          ...ttsParameters,
+          sourceStart,
+          sourceEnd,
+        },
+      });
+    });
+  });
+
+  return {
+    dialogueLines,
+    characterCandidates,
+  };
 };
 
 const buildSystemPrompt = (
@@ -508,6 +563,100 @@ export async function processSegment(params: {
   }
 }
 
+const processSegmentWithRefinement = async (params: {
+  llmService: LLMClient;
+  segment: any;
+  characterMap: Map<string, string>;
+  characterProfiles: any[];
+  options: ScriptGenerationOptions;
+  refinementDepth?: number;
+}): Promise<SegmentProcessingResult> => {
+  const {
+    llmService,
+    segment,
+    characterMap,
+    characterProfiles,
+    options,
+    refinementDepth = 0,
+  } = params;
+
+  try {
+    return await processSegment({
+      llmService,
+      segment,
+      characterMap,
+      characterProfiles,
+      options,
+    });
+  } catch (error) {
+    if (!(error instanceof TTSError) || refinementDepth >= MAX_REFINEMENT_DEPTH) {
+      throw error;
+    }
+
+    const failureRecord =
+      error.details && typeof error.details === "object" && !Array.isArray(error.details)
+        ? (error.details as Record<string, unknown>)
+        : null;
+
+    const issueCodes = asStringList(failureRecord?.issueCodes);
+    const coverageRatio = asNumber(failureRecord?.coverageRatio);
+
+    if (
+      !shouldRefineSegmentFailure({
+        errorCode: asTrimmedString(failureRecord?.errorCode),
+        issueCodes,
+        coverageRatio,
+      })
+    ) {
+      throw error;
+    }
+
+    const refinedSegments = refineFailedSegment({
+      segment: {
+        id: segment.id,
+        chapterId: segment.chapterId ?? null,
+        orderIndex: segment.orderIndex,
+        content: segment.content,
+      },
+      failure: {
+        errorCode: asTrimmedString(failureRecord?.errorCode),
+        issueCodes,
+        coverageRatio,
+      },
+    });
+
+    if (refinedSegments.length <= 1) {
+      throw error;
+    }
+
+    const stagedCharacterMap = new Map(characterMap);
+    const refinedResults: SegmentProcessingResult[] = [];
+
+    for (const refinedSegment of refinedSegments) {
+      const refinedResult = await processSegmentWithRefinement({
+        llmService,
+        segment: {
+          id: refinedSegment.id,
+          chapterId: refinedSegment.chapterId,
+          orderIndex: refinedSegment.orderIndex,
+          content: refinedSegment.content,
+        },
+        characterMap: stagedCharacterMap,
+        characterProfiles,
+        options,
+        refinementDepth: refinementDepth + 1,
+      });
+      refinedResults.push(refinedResult);
+    }
+
+    return remapRefinedDialogueLines({
+      parentSegment: segment,
+      refinedSegments,
+      refinedResults,
+    });
+  }
+};
+
 export async function processSegmentAndSave(params: {
   llmService: LLMClient;
   segment: any;
@@ -519,7 +668,7 @@ export async function processSegmentAndSave(params: {
   const { llmService, segment, characterMap, characterProfiles, options, bookId } =
     params;
 
-  const result = await processSegment({
+  const result = await processSegmentWithRefinement({
     llmService,
     segment,
     characterMap,
