@@ -25,7 +25,8 @@ describe("failed-segment-refinement", () => {
     });
 
     expect(refined.map((item) => item.content)).toEqual([
-      '张三说：“你好。”',
+      "张三说：",
+      '“你好。”',
       "闵弘芳皱起眉头：",
       '“属下近日听得风响。”',
     ]);
@@ -50,5 +51,27 @@ describe("failed-segment-refinement", () => {
         issueCodes: ["DIALOGUE_TOO_LONG"],
       })
     ).toBe(false);
+  });
+
+  it("should keep punctuated quoted speech intact when splitting by sentence boundaries", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-quoted",
+        chapterId: "chapter-1",
+        orderIndex: 0,
+        content:
+          '“宁大哥，宁大爷！行行好，您嗦的那皮儿能扔碗里不？”宁尘眼也不睁，脸上挂起笑：“瞧您说的！您耿老大都发话了，我能下这面子吗。”',
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      '“宁大哥，宁大爷！行行好，您嗦的那皮儿能扔碗里不？”',
+      "宁尘眼也不睁，脸上挂起笑：",
+      "“瞧您说的！您耿老大都发话了，我能下这面子吗。”",
+    ]);
   });
 });

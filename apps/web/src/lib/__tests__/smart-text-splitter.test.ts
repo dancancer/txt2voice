@@ -66,6 +66,26 @@ describe('SmartTextSplitter', () => {
       const forcedSegments = segments.filter(s => s.metadata?.breakReason === 'forced')
       expect(forcedSegments.length).toBeLessThan(segments.length)
     })
+
+    it('应该避免在引号对白内部的标点处分割', () => {
+      const text =
+        '“宁大哥，宁大爷！行行好，您嗦的那皮儿能扔碗里不？”宁尘眼也不睁，脸上挂起笑：“瞧您说的！您耿老大都发话了，我能下这面子吗。”'
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 10,
+        maxLength: 15,
+        minLength: 5,
+      })
+
+      const hasBrokenQuotedSegment = segments.some((segment) => {
+        const content = segment.content.trim()
+        const openCount = (content.match(/[“「『]/g) || []).length
+        const closeCount = (content.match(/[”」』]/g) || []).length
+        return openCount !== closeCount
+      })
+
+      expect(hasBrokenQuotedSegment).toBe(false)
+    })
   })
 
   describe('长度控制', () => {

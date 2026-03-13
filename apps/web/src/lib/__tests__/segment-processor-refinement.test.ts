@@ -63,7 +63,21 @@ describe("segment processor refinement", () => {
             dialogues: [
               {
                 id: "line-child-1",
-                sourceText: '张三说：“你好。”',
+                sourceText: "张三说：",
+                text: "张三说：",
+                speaker: "旁白",
+                tone: "中性",
+              },
+            ],
+            characters: [],
+          })
+        )
+        .mockResolvedValueOnce(
+          JSON.stringify({
+            dialogues: [
+              {
+                id: "line-child-2",
+                sourceText: '“你好。”',
                 text: "你好。",
                 speaker: "张三",
                 tone: "平静",
@@ -76,7 +90,7 @@ describe("segment processor refinement", () => {
           JSON.stringify({
             dialogues: [
               {
-                id: "line-child-2",
+                id: "line-child-3",
                 sourceText: "闵弘芳皱起眉头：",
                 text: "闵弘芳皱起眉头：",
                 speaker: "旁白",
@@ -90,7 +104,7 @@ describe("segment processor refinement", () => {
           JSON.stringify({
             dialogues: [
               {
-                id: "line-child-3",
+                id: "line-child-4",
                 sourceText: '“属下近日听得风响。”',
                 text: "属下近日听得风响。",
                 speaker: "闵弘芳",
@@ -116,33 +130,46 @@ describe("segment processor refinement", () => {
       bookId: "book-1",
     });
 
-    expect(llmService.callLLM).toHaveBeenCalledTimes(4);
-    expect(result.dialogueLines).toHaveLength(3);
+    expect(llmService.callLLM).toHaveBeenCalledTimes(5);
+    expect(result.dialogueLines).toHaveLength(4);
     expect(result.dialogueLines[0]).toMatchObject({
       segmentId: "segment-refine-1",
-      text: "你好。",
-      rawSpeaker: "张三",
+      text: "张三说：",
+      rawSpeaker: "旁白",
       orderInSegment: 0,
     });
     expect(result.dialogueLines[1]).toMatchObject({
       segmentId: "segment-refine-1",
-      text: "闵弘芳皱起眉头：",
-      rawSpeaker: "旁白",
+      text: "你好。",
+      rawSpeaker: "张三",
       orderInSegment: 1,
     });
     expect(result.dialogueLines[2]).toMatchObject({
       segmentId: "segment-refine-1",
-      text: "属下近日听得风响。",
-      rawSpeaker: "闵弘芳",
+      text: "闵弘芳皱起眉头：",
+      rawSpeaker: "旁白",
       orderInSegment: 2,
     });
+    expect(result.dialogueLines[3]).toMatchObject({
+      segmentId: "segment-refine-1",
+      text: "属下近日听得风响。",
+      rawSpeaker: "闵弘芳",
+      orderInSegment: 3,
+    });
     expect(result.dialogueLines[0].ttsParameters).toMatchObject({
-      sourceText: '张三说：“你好。”',
+      sourceText: "张三说：",
       sourceStart: 0,
+    });
+    expect(result.dialogueLines[1].ttsParameters).toMatchObject({
+      sourceText: '“你好。”',
+      sourceStart: 4,
     });
     expect(
       result.dialogueLines[2].ttsParameters?.sourceStart
     ).toBeGreaterThanOrEqual(result.dialogueLines[1].ttsParameters?.sourceEnd || 0);
+    expect(
+      result.dialogueLines[3].ttsParameters?.sourceStart
+    ).toBeGreaterThanOrEqual(result.dialogueLines[2].ttsParameters?.sourceEnd || 0);
 
     expect(saveSegmentScriptToDatabase).toHaveBeenCalledTimes(1);
     expect(saveSegmentScriptToDatabase).toHaveBeenCalledWith(
@@ -150,6 +177,10 @@ describe("segment processor refinement", () => {
         bookId: "book-1",
         segmentId: "segment-refine-1",
         dialogueLines: expect.arrayContaining([
+          expect.objectContaining({
+            text: "张三说：",
+            segmentId: "segment-refine-1",
+          }),
           expect.objectContaining({ text: "你好。", segmentId: "segment-refine-1" }),
           expect.objectContaining({
             text: "闵弘芳皱起眉头：",

@@ -82,4 +82,29 @@ describe("text processor script correctness safeguards", () => {
     expect(firstSegmentMetadata.segmentationTargetMaxLength).toBeLessThan(1200);
     expect(result.segmentRecords.length).toBeGreaterThan(1);
   });
+
+  it("should avoid producing orphaned quoted tails in segmented records", () => {
+    const dialogueBlock = [
+      '“宁大哥，宁大爷！行行好，您嗦的那皮儿能扔碗里不？”',
+      '宁尘眼也不睁，脸上挂起笑：“瞧您说的！您耿老大都发话了，我能下这面子吗。”',
+      '耿魄也就比宁尘大个三两岁，一句耿老大给他叫迷糊了。',
+    ].join("");
+
+    const content = `第一章 开始\n\n${dialogueBlock.repeat(6)}`;
+
+    const result = createChapterSegmentRecords("book-quote-safe", content, {
+      maxSegmentLength: 120,
+      minSegmentLength: 40,
+      preserveFormatting: true,
+    });
+
+    const hasOrphanedTail = result.segmentRecords.some((segment) => {
+      const trimmed = segment.content.trim();
+      const openCount = (trimmed.match(/[“「『]/g) || []).length;
+      const closeCount = (trimmed.match(/[”」』]/g) || []).length;
+      return openCount !== closeCount;
+    });
+
+    expect(hasOrphanedTail).toBe(false);
+  });
 });

@@ -55,6 +55,10 @@ const DIALOGUE_QUOTE_PAIRS: Array<{ open: string; close: string }> = [
   { open: "'", close: "'" },
 ];
 
+const OPEN_TO_CLOSE = new Map(
+  DIALOGUE_QUOTE_PAIRS.map((pair) => [pair.open, pair.close])
+);
+
 interface QuoteSpan {
   start: number;
   end: number;
@@ -82,9 +86,31 @@ const trimSlice = (content: string, start: number, end: number) => {
 const splitBySentenceBoundaries = (content: string) => {
   const slices: Array<{ start: number; end: number; content: string }> = [];
   let cursor = 0;
+  const quoteStack: string[] = [];
 
   for (let index = 0; index < content.length; index += 1) {
-    if (!SENTENCE_BOUNDARY_CHARS.has(content[index])) {
+    const current = content[index];
+    const matchingClose = OPEN_TO_CLOSE.get(current);
+
+    if (matchingClose) {
+      if (matchingClose === current) {
+        if (quoteStack[quoteStack.length - 1] === current) {
+          quoteStack.pop();
+        } else {
+          quoteStack.push(current);
+        }
+      } else {
+        quoteStack.push(matchingClose);
+      }
+      continue;
+    }
+
+    if (quoteStack[quoteStack.length - 1] === current) {
+      quoteStack.pop();
+      continue;
+    }
+
+    if (quoteStack.length > 0 || !SENTENCE_BOUNDARY_CHARS.has(current)) {
       continue;
     }
 
