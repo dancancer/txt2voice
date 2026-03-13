@@ -80,7 +80,7 @@
 ## 7. 结项判断
 
 - 结论：`不可结项`
-- 依据：`尽管护栏、失败路由和 review workbench 已基本成型，且 3 次真实样本运行已经证明失败模式可稳定复现，但真实样本在 limitToSegments=10 条件下仍稳定出现 7/10 failed segments，说明高风险切段与真实生成稳定性还未达到 roadmap 的结项标准。`
+- 依据：`尽管护栏、失败路由和 review workbench 已基本成型，且 3 次真实样本运行已经证明失败模式可稳定复现，但真实样本在 limitToSegments=10 条件下仍稳定出现 7/10 failed segments。Round 11 已补 quote-safe segmentation，但基于最新代码的实时样本日志仍显示复杂“动作语 + 引号对白”段会继续失败，因此高风险切段与真实生成稳定性仍未达到 roadmap 的结项标准。`
 
 ## 8. PR Readiness
 
@@ -93,4 +93,5 @@
 - 缺口列表：
   - 分段策略对真实样本的通过率仍不足，需继续收口
   - 结项前需要把真实失败片段 A/B 纳入 closeout 样本表
-  - 需要把当前 3 次一致失败模式沉淀为正式结论或新增修复任务
+  - Round 11 的 quote-safe segmentation 仍需补一轮完整量化验证结果
+  - 当前剩余失败主要集中在“动作语 + 引号正文”混排段，需继续收口
