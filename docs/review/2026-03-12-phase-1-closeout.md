@@ -36,7 +36,7 @@
 
 | 样本 | 来源 | 问题类型 | 运行次数 | 结果 | 备注 |
 |---|---|---|---:|---|---|
-| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 5 | `已执行` | `旧基线 3 次运行稳定为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；2026-03-16 最新代码下两次复跑都压到 1 个失败段，但句子总数仍在 70/75 间波动` |
+| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 6 | `已执行` | `旧基线 3 次运行稳定为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；2026-03-16 最新代码下两次复跑压到 1 个失败段；随后一轮完整复跑达到 79 lines / 0 failed segments，但同轮暴露了“成功重跑后旧 SCRIPT_VALIDATION review 未自动 resolved”的 runner 清理缺口，已补修复并通过单段真实回归验证` |
 
 ## 4. 多次运行收敛性记录
 
@@ -47,6 +47,7 @@
 | `run-3` | `uploads/sample.txt(limitToSegments=10)` | 24 | 7 | 7 | `partial_failure` | `book=61aa922c-b3bb-45ae-a065-67bfef3169b9，最终也收敛到与 run-1/run-2 相同结果；首个复核项主 subtype=BOUNDARY_DRIFT` |
 | `run-4` | `uploads/sample.txt(limitToSegments=10)` | 70 | 1 | 1 | `partial_failure` | `book=87f2142e-c7d0-4788-a3d3-386696c1580d，最新代码下只剩 1 个 SCRIPT_VALIDATION 失败段，主 subtype 仍为 BOUNDARY_DRIFT` |
 | `run-5` | `uploads/sample.txt(limitToSegments=10)` | 75 | 1 | 1 | `partial_failure` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，第二次复跑仍只剩 1 个失败段；主 subtype 仍为 BOUNDARY_DRIFT，但句子总数从 70 波动到 75` |
+| `run-6` | `uploads/sample.txt(limitToSegments=10)` | 79 | 0 | 1 | `completed*` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，task=785da8c6-fb88-4137-b992-721b1ba87c16；quote refinement 后首次完整复跑已无 failed segments，但旧 SCRIPT_VALIDATION review item 仍残留为 pending，暴露成功路径未清理 review 的 runner 缺口` |
 
 ## 5. 分段策略对照 roadmap
 
@@ -74,6 +75,7 @@
 - 真实样本 `uploads/sample.txt` 的旧基线已经 3 次稳定收敛到 `24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION`；最新代码下 2 次复跑把失败段压到 `1/1`，说明问题已从 runner/粗粒度切段层，下沉到少数高风险 quoted report / attributed dialogue 组合。
 - `70/75` 的句子数波动已定位到 `orderIndex=1`：两次运行使用的是同一段原文，但 LLM 对“多句旁白 + 句尾引语”的拆分粒度不同；当前差异表现为 narration granularity 漂移，而不是漏内容或重复抽取。
 - 当前剩余 `BOUNDARY_DRIFT` 的直接根因已经定位：`“是。” + 归属语 + 报表引语` 会在 refinement 中把后续报表引语从归属语上拆掉，导致 `“陵州纳灵石……` 这类纯引号片段失去上下文；`2026-03-16` 已补失败测试并修复该规则，实时复跑中 `orderIndex=3` 已从 `0` 句恢复到 `9` 句，但整轮 closeout 新基线尚未跑完。
+- 同一轮完整复跑进一步暴露出 runner 成功路径没有自动清理旧 `SCRIPT_VALIDATION` review item：`task=785da8c6-fb88-4137-b992-721b1ba87c16` 已完成且 `failedSegments=0`，但旧 pending review 仍残留；`2026-03-16` 已补 runner 单测并修复为成功后自动 `auto_resolved`，随后单段真实回归 `task=b9000337-538f-4907-ac72-baca43c9a00f` 已验证 pending review 从 `1 -> 0`。
 - 当前推荐动作虽然可用，但几乎全部落在 `regenerate`，尚未形成更细粒度动作判断价值。
 
 ### 6.4 剩余规划里，下一阶段最该做哪个块？为什么？
@@ -84,18 +86,19 @@
 ## 7. 结项判断
 
 - 结论：`不可结项`
-- 依据：`70/75` 的波动原因现在已经明确为 `orderIndex=1` 的 narration granularity 差异，不再是“未知漂移”；但 `2026-03-16` 这轮针对 `BOUNDARY_DRIFT` 的最新修复还没有形成一轮完整的真实样本新基线，当前实时复跑尚未结束，因此还缺“最新代码 -> 完整复跑 -> 最终 failed/pending/totalLines”这一段 closeout 证据链，仍不应宣布结项。`
+- 依据：`2026-03-16` 最新代码已经首次跑出 `79 lines / 0 failed segments`，并且历史 `orderIndex=3` 失败段已被打通；但这轮结果先暴露了 runner 成功路径遗留 review 未清理的问题，虽然后续已用单测 + 单段真实回归补上该缺口，closeout 仍然缺少“修复后的新 worker / 新 runner 下，再完成至少 1 轮整本真实样本复跑并重复验证”的最终证据。`
 
 ## 8. PR Readiness
 
 - `pnpm --filter web test:regression`：`2026-03-12 已执行，通过（11 tests / 3 suites）`
-- Phase 1 targeted tests：`2026-03-12 已执行，通过（61 tests / 9 suites）`
+- Phase 1 targeted tests：`2026-03-16 已补跑通过：failed-segment-refinement / segment-processor-refinement / segment-script-validator / script-generation-runner`
+- `pnpm --filter web typecheck`：`2026-03-16 已执行，通过`
 - 真实样本回归记录：`旧基线已完成 3 次一致回归；2026-03-16 最新代码下已完成 2 次新基线回归`
-- convergence 记录：`旧基线已完成 3 次一致记录；最新代码已完成 2 次复跑，failed segments / pending review 稳定降到 1/1，但 totalLines 仍有 70/75 波动`
+- convergence 记录：`旧基线已完成 3 次一致记录；最新代码已完成 2 次 1/1 复跑，并已出现 1 次 79/0 完整复跑；但 79/0 当轮先暴露了 runner review 清理缺口，因此还需要在修复后的新 worker 下补至少 1 次整本复跑`
 - closeout review 是否完整：`部分完整`
 - PR readiness：`no`
 - 缺口列表：
-  - 需要用 `2026-03-16` 最新修复完成至少 1 轮真实样本复跑，并记录最终 `failed segments / pending review / totalLines`
+  - 需要在修复后的新 worker / 新 runner 下，再完成至少 1 轮整本真实样本复跑，并记录最终 `failed segments / pending review / totalLines`
   - 需要决定 `orderIndex=1` 的 narration granularity 漂移是可以接受的语义等价差异，还是要继续做 canonical split 稳定句子数
   - 结项前需要把真实失败片段 A/B 纳入 closeout 样本表
-  - 需要确认 `“是。” + 归属语 + 报表引语` 修复后，历史 `BOUNDARY_DRIFT` 是否真正消失，还是只是把波动转移到别的高风险段
+  - 需要确认 `79/0` 是否可以重复；若不能重复，需要把新增高风险段（如 run-6 中运行期暴露的 `orderIndex=7/9` 类引用对白段）纳入下一轮收口样本

@@ -218,6 +218,46 @@ const syncScriptFailureManualReviewItems = async (params: {
   };
 };
 
+const resolveSuccessfulScriptValidationManualReviewItems = async (params: {
+  taskId: string;
+  bookId: string;
+  processedSegmentIds: string[];
+  failedSegmentIds: string[];
+}) => {
+  const { taskId, bookId, processedSegmentIds, failedSegmentIds } = params;
+  const failedSegmentIdSet = new Set(failedSegmentIds);
+  const successfulSegmentIds = processedSegmentIds.filter(
+    (segmentId) => segmentId && !failedSegmentIdSet.has(segmentId)
+  );
+
+  if (successfulSegmentIds.length === 0) {
+    return { resolved: 0 };
+  }
+
+  const result = await prisma.manualReviewItem.updateMany({
+    where: {
+      bookId,
+      issueType: MANUAL_REVIEW_ISSUE_TYPE,
+      segmentId: {
+        in: successfulSegmentIds,
+      },
+      status: {
+        in: ["pending", "reprocessing"],
+      },
+    },
+    data: {
+      status: "resolved",
+      resolutionType: "auto_resolved",
+      resolutionNote: `script_generation_success:task=${taskId}`,
+      resolvedAt: new Date(),
+    },
+  });
+
+  return {
+    resolved: typeof result.count === "number" ? result.count : 0,
+  };
+};
+
 /**
  * 执行台本生成任务。
  * 注意：异常交由队列层决定是否重试和最终失败落库。
@@ -303,9 +343,21 @@ export async function runScriptGenerationTask({
   const failedSegments = Number(script.summary.failedSegments || 0);
   const totalSegments = Number(script.summary.totalSegments || 0);
   const hasSegmentFailures = failedSegments > 0;
+  const failedSegmentIds = asStringList(script.summary.failedSegmentIds);
+  const processedSegmentIds = Array.isArray(script.segments)
+    ? script.segments
+        .map((segment: { segmentId?: unknown }) => asString(segment?.segmentId))
+        .filter((segmentId: string) => segmentId.length > 0)
+    : [];
   const failedSegmentDetails = resolveFailureDetails(
     script.summary.failedSegmentDetails
   );
+  const resolvedReviewResult = await resolveSuccessfulScriptValidationManualReviewItems({
+    taskId,
+    bookId,
+    processedSegmentIds,
+    failedSegmentIds,
+  });
   const reviewSyncResult = hasSegmentFailures
     ? await syncScriptFailureManualReviewItems({
         taskId,
@@ -331,7 +383,7 @@ export async function runScriptGenerationTask({
         segmentCount: script.segments.length,
         totalSegments,
         failedSegments,
-        failedSegmentIds: script.summary.failedSegmentIds || [],
+        failedSegmentIds,
         failedSegmentDetails: visibleFailureDetails,
         omittedFailureDetails: Math.max(
           failedSegmentDetails.length - visibleFailureDetails.length,
@@ -369,11 +421,12 @@ export async function runScriptGenerationTask({
           scriptGenerationFailedAt: new Date().toISOString(),
           failedSegments,
           totalSegments,
-          failedSegmentIds: script.summary.failedSegmentIds || [],
+          failedSegmentIds,
           scriptFailureIssueType: MANUAL_REVIEW_ISSUE_TYPE,
           scriptFailureManualReviewPending: reviewSyncResult.totalPending,
           scriptFailureManualReviewCreated: reviewSyncResult.created,
           scriptFailureManualReviewUpdated: reviewSyncResult.updated,
+          scriptFailureManualReviewResolved: resolvedReviewResult.resolved,
         },
       },
     });
@@ -398,6 +451,7 @@ export async function runScriptGenerationTask({
         Boolean(extraParams.startFromSegmentId) ||
         Boolean(extraParams.regenerateSegments),
       regeneratedSegments: extraParams.segmentIds?.length || 0,
+      autoResolvedScriptReviewItems: resolvedReviewResult.resolved,
     },
   });
 

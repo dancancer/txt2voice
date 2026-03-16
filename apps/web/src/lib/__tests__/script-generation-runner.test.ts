@@ -20,6 +20,7 @@ jest.mock("@/lib/prisma", () => ({
       findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn(),
     },
   },
 }));
@@ -108,6 +109,7 @@ describe("script-generation-runner", () => {
     mockPrisma.manualReviewItem.findFirst.mockResolvedValue(null);
     mockPrisma.manualReviewItem.create.mockResolvedValue({ id: "review-1" });
     mockPrisma.manualReviewItem.update.mockResolvedValue({});
+    mockPrisma.manualReviewItem.updateMany.mockResolvedValue({ count: 0 });
   });
 
   it("should create script validation manual review item and mark book as manual_review_pending", async () => {
@@ -232,5 +234,75 @@ describe("script-generation-runner", () => {
       },
       expect.any(Function)
     );
+  });
+
+  it("should resolve existing script validation review items after successful partial rerun", async () => {
+    const generatePartialScript = jest.fn().mockResolvedValue({
+      dialogueLines: [
+        {
+          id: "line-1",
+          segmentId: "seg-2",
+          chapterId: "chapter-1",
+          orderInSegment: 0,
+          text: "修复后的台词",
+          isNarration: true,
+          characterName: "旁白",
+          tone: "中性",
+        },
+      ],
+      summary: {
+        totalLines: 1,
+        dialogueCount: 0,
+        narrationCount: 1,
+        totalSegments: 1,
+        processedSegments: 1,
+        failedSegments: 0,
+        failedSegmentIds: [],
+        failedSegmentDetails: [],
+        characterDistribution: {},
+        emotionDistribution: {},
+      },
+      segments: [
+        {
+          segmentId: "seg-2",
+          lineCount: 1,
+          characters: ["旁白"],
+        },
+      ],
+    });
+
+    mockGetScriptGenerator.mockReturnValue({
+      generateScript: jest.fn(),
+      generatePartialScript,
+      regenerateSegmentScript: jest.fn(),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-success",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        limitToSegments: 1,
+      },
+    });
+
+    expect(mockPrisma.manualReviewItem.updateMany).toHaveBeenCalledWith({
+      where: {
+        bookId: "book-1",
+        issueType: "SCRIPT_VALIDATION",
+        segmentId: {
+          in: ["seg-2"],
+        },
+        status: {
+          in: ["pending", "reprocessing"],
+        },
+      },
+      data: expect.objectContaining({
+        status: "resolved",
+        resolutionType: "auto_resolved",
+        resolutionNote: expect.stringContaining("task-success"),
+        resolvedAt: expect.any(Date),
+      }),
+    });
   });
 });
