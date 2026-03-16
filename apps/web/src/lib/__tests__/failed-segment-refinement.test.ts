@@ -138,4 +138,26 @@ describe("failed-segment-refinement", () => {
       "这边厢游响停云。",
     ]);
   });
+
+  it("should split leading acknowledgement before merging attribution with report quotes", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-report-intro",
+        chapterId: "chapter-1",
+        orderIndex: 4,
+        content:
+          "“是。”闵弘芳从储物戒中取出宗门呈报，一字一句念起来。“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”“丹药堂新产丹药四百枚……”这边厢游响停云。",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "“是。”",
+      "闵弘芳从储物戒中取出宗门呈报，一字一句念起来。“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”“丹药堂新产丹药四百枚……”",
+      "这边厢游响停云。",
+    ]);
+  });
 });

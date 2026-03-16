@@ -71,7 +71,9 @@
 ### 6.3 当前阶段暴露了哪些新问题？
 
 - `limitToSegments` 之前在 runner 层没有单独生效，closeout 真实样本回归中已暴露并修复。
-- 真实样本 `uploads/sample.txt` 在 `limitToSegments=10` 条件下，两次完整运行都稳定出现 `24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION`，说明 validator 护栏有效，但上游分段与生成策略仍不足以让真实样本稳定通过。
+- 真实样本 `uploads/sample.txt` 的旧基线已经 3 次稳定收敛到 `24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION`；最新代码下 2 次复跑把失败段压到 `1/1`，说明问题已从 runner/粗粒度切段层，下沉到少数高风险 quoted report / attributed dialogue 组合。
+- `70/75` 的句子数波动已定位到 `orderIndex=1`：两次运行使用的是同一段原文，但 LLM 对“多句旁白 + 句尾引语”的拆分粒度不同；当前差异表现为 narration granularity 漂移，而不是漏内容或重复抽取。
+- 当前剩余 `BOUNDARY_DRIFT` 的直接根因已经定位：`“是。” + 归属语 + 报表引语` 会在 refinement 中把后续报表引语从归属语上拆掉，导致 `“陵州纳灵石……` 这类纯引号片段失去上下文；`2026-03-16` 已补失败测试并修复该规则，实时复跑中 `orderIndex=3` 已从 `0` 句恢复到 `9` 句，但整轮 closeout 新基线尚未跑完。
 - 当前推荐动作虽然可用，但几乎全部落在 `regenerate`，尚未形成更细粒度动作判断价值。
 
 ### 6.4 剩余规划里，下一阶段最该做哪个块？为什么？
@@ -82,7 +84,7 @@
 ## 7. 结项判断
 
 - 结论：`不可结项`
-- 依据：`尽管最新代码下已经连续两次把失败段从 7 压到 1，说明 Phase 1 修复方向正确，但最新基线的句子总数仍在 70/75 间波动，说明“失败段数量收敛”和“句子数完全收敛”还不是同一件事；在波动原因被解释或继续收敛之前，仍不应宣布结项。`
+- 依据：`70/75` 的波动原因现在已经明确为 `orderIndex=1` 的 narration granularity 差异，不再是“未知漂移”；但 `2026-03-16` 这轮针对 `BOUNDARY_DRIFT` 的最新修复还没有形成一轮完整的真实样本新基线，当前实时复跑尚未结束，因此还缺“最新代码 -> 完整复跑 -> 最终 failed/pending/totalLines”这一段 closeout 证据链，仍不应宣布结项。`
 
 ## 8. PR Readiness
 
@@ -93,6 +95,7 @@
 - closeout review 是否完整：`部分完整`
 - PR readiness：`no`
 - 缺口列表：
-  - 需要解释或继续压低最新基线中 `totalLines` 的 70/75 波动
+  - 需要用 `2026-03-16` 最新修复完成至少 1 轮真实样本复跑，并记录最终 `failed segments / pending review / totalLines`
+  - 需要决定 `orderIndex=1` 的 narration granularity 漂移是可以接受的语义等价差异，还是要继续做 canonical split 稳定句子数
   - 结项前需要把真实失败片段 A/B 纳入 closeout 样本表
-  - 当前剩余失败已收敛到 1 个 `BOUNDARY_DRIFT` 段，需判断是否还要继续收口还是可接受地转入人工复核
+  - 需要确认 `“是。” + 归属语 + 报表引语` 修复后，历史 `BOUNDARY_DRIFT` 是否真正消失，还是只是把波动转移到别的高风险段

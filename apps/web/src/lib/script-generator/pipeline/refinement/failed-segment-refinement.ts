@@ -315,6 +315,48 @@ const splitPureQuotedSlice = (slice: {
   return pieces.length > 1 ? pieces : [slice];
 };
 
+const splitLeadingQuotedAttributionSlice = (slice: {
+  start: number;
+  end: number;
+  content: string;
+}) => {
+  const spans = findQuotedSpans(slice.content);
+  if (spans.length !== 1 || spans[0].start !== 0) {
+    return [slice];
+  }
+
+  const [span] = spans;
+  const trimmedLength = slice.content.trim().length;
+  if (span.end >= trimmedLength) {
+    return [slice];
+  }
+
+  const leadingQuote = trimSlice(slice.content, span.start, span.end);
+  const trailingAttribution = trimSlice(slice.content, span.end, slice.content.length);
+
+  if (
+    leadingQuote.content.length === 0 ||
+    trailingAttribution.content.length === 0 ||
+    PUNCTUATION_ONLY_PATTERN.test(trailingAttribution.content) ||
+    !isAttributionFragment(trailingAttribution.content)
+  ) {
+    return [slice];
+  }
+
+  return [
+    {
+      start: slice.start + leadingQuote.start,
+      end: slice.start + leadingQuote.end,
+      content: leadingQuote.content,
+    },
+    {
+      start: slice.start + trailingAttribution.start,
+      end: slice.start + trailingAttribution.end,
+      content: trailingAttribution.content,
+    },
+  ];
+};
+
 const mergeAdjacentNarrationSlices = (
   slices: Array<{ start: number; end: number; content: string }>
 ) => {
@@ -350,7 +392,12 @@ const splitQuotedSentence = (slice: { start: number; end: number; content: strin
   }
 
   if (shouldKeepQuotedSentenceAsWhole(slice.content, spans)) {
-    return splitPureQuotedSlice(slice);
+    const pureQuotedSlices = splitPureQuotedSlice(slice);
+    if (pureQuotedSlices.length > 1 || pureQuotedSlices[0].content !== slice.content) {
+      return pureQuotedSlices;
+    }
+
+    return splitLeadingQuotedAttributionSlice(slice);
   }
 
   const pieces: Array<{ start: number; end: number; content: string }> = [];
