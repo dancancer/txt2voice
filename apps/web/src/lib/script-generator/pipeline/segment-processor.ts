@@ -13,6 +13,7 @@ import {
 } from "./refinement/failed-segment-refinement";
 import {
   formatSegmentValidationError,
+  resolveScriptLineText,
   validateSegmentScript,
 } from "./segment-script-validator";
 import { saveSegmentScriptToDatabase } from "../storage/persistence";
@@ -68,6 +69,326 @@ const asStringList = (value: unknown): string[] => {
 
 const buildSegmentPreview = (content: string): string =>
   content.replace(/\s+/g, " ").trim().slice(0, 120);
+
+const SENTENCE_BOUNDARY_CHARS = new Set([
+  "。",
+  "！",
+  "？",
+  "；",
+  "!",
+  "?",
+  "…",
+]);
+
+const CLOSING_QUOTE_CHARS = new Set(['"', "”", "」", "』", "’"]);
+const ATTRIBUTION_TOKEN_PATTERN =
+  /(说道|说着|说完|说|问道|问|回答|答道|答|应道|应|回应|回道|回|喊道|喊|叫道|叫|吼道|吼|嚷道|嚷|嘀咕|嘟囔|喃喃|低声说|轻声说|低声道|轻声道|笑道|哭道|提醒|解释|告诉|补充|反问|脱口而出|承认|念起|念起来|念道|念|开口道|开口说|开口)/;
+const GENERIC_DAO_PATTERN = /[^，。！？；：,:]{0,12}道(?:[：:,，。\s]|$)/;
+const DISPLAY_TEXT_PATTERN =
+  /(写着|写道|写有|写明|标着|标明|贴着|贴有|印着|印有|显示着|显示|注明|题着)/;
+const PUNCTUATION_ONLY_PATTERN = /^[，。！？；：,:、…—\-\s]+$/;
+const COLON_ATTRIBUTION_PATTERN = /[：:]\s*$/;
+
+const DIALOGUE_QUOTE_PAIRS: Array<{ open: string; close: string }> = [
+  { open: "“", close: "”" },
+  { open: '"', close: '"' },
+  { open: "「", close: "」" },
+  { open: "『", close: "』" },
+  { open: "‘", close: "’" },
+  { open: "'", close: "'" },
+];
+
+const OPEN_TO_CLOSE = new Map(
+  DIALOGUE_QUOTE_PAIRS.map((pair) => [pair.open, pair.close])
+);
+
+interface QuoteSpan {
+  start: number;
+  end: number;
+}
+
+interface CanonicalSlice {
+  start: number;
+  end: number;
+  content: string;
+}
+
+const trimSlice = (content: string, start: number, end: number): CanonicalSlice => {
+  let nextStart = start;
+  let nextEnd = end;
+
+  while (nextStart < nextEnd && /\s/.test(content[nextStart])) {
+    nextStart += 1;
+  }
+
+  while (nextEnd > nextStart && /\s/.test(content[nextEnd - 1])) {
+    nextEnd -= 1;
+  }
+
+  return {
+    start: nextStart,
+    end: nextEnd,
+    content: content.slice(nextStart, nextEnd),
+  };
+};
+
+const splitBySentenceBoundaries = (content: string): CanonicalSlice[] => {
+  const slices: CanonicalSlice[] = [];
+  let cursor = 0;
+  const quoteStack: string[] = [];
+
+  for (let index = 0; index < content.length; index += 1) {
+    const current = content[index];
+    const matchingClose = OPEN_TO_CLOSE.get(current);
+
+    if (matchingClose) {
+      if (matchingClose === current) {
+        if (quoteStack[quoteStack.length - 1] === current) {
+          quoteStack.pop();
+        } else {
+          quoteStack.push(current);
+        }
+      } else {
+        quoteStack.push(matchingClose);
+      }
+      continue;
+    }
+
+    if (quoteStack[quoteStack.length - 1] === current) {
+      quoteStack.pop();
+      continue;
+    }
+
+    if (quoteStack.length > 0 || !SENTENCE_BOUNDARY_CHARS.has(current)) {
+      continue;
+    }
+
+    let end = index + 1;
+    while (end < content.length && CLOSING_QUOTE_CHARS.has(content[end])) {
+      end += 1;
+    }
+
+    const slice = trimSlice(content, cursor, end);
+    if (slice.content.length > 0) {
+      slices.push(slice);
+    }
+    cursor = end;
+  }
+
+  const trailing = trimSlice(content, cursor, content.length);
+  if (trailing.content.length > 0) {
+    slices.push(trailing);
+  }
+
+  return slices.length > 0 ? slices : [trimSlice(content, 0, content.length)];
+};
+
+const findQuotedSpans = (content: string): QuoteSpan[] => {
+  const spans: QuoteSpan[] = [];
+  let cursor = 0;
+
+  while (cursor < content.length) {
+    let bestSpan: QuoteSpan | null = null;
+
+    for (const { open, close } of DIALOGUE_QUOTE_PAIRS) {
+      const start = content.indexOf(open, cursor);
+      if (start < 0) {
+        continue;
+      }
+
+      const closeIndex = content.indexOf(close, start + open.length);
+      if (closeIndex < 0) {
+        continue;
+      }
+
+      const candidate = {
+        start,
+        end: closeIndex + close.length,
+      };
+
+      if (!bestSpan || candidate.start < bestSpan.start) {
+        bestSpan = candidate;
+      }
+    }
+
+    if (!bestSpan) {
+      break;
+    }
+
+    spans.push(bestSpan);
+    cursor = bestSpan.end;
+  }
+
+  return spans;
+};
+
+const isAttributionFragment = (value: string): boolean => {
+  const normalized = value.trim();
+  if (!normalized || DISPLAY_TEXT_PATTERN.test(normalized)) {
+    return false;
+  }
+
+  return (
+    ATTRIBUTION_TOKEN_PATTERN.test(normalized) ||
+    GENERIC_DAO_PATTERN.test(normalized) ||
+    COLON_ATTRIBUTION_PATTERN.test(normalized) ||
+    PUNCTUATION_ONLY_PATTERN.test(normalized)
+  );
+};
+
+const buildNarrationVariants = (params: {
+  line: DialogueLine;
+  sourceText: string;
+  baseStart: number;
+}): DialogueLine[] => {
+  const { line, sourceText, baseStart } = params;
+  const slices = splitBySentenceBoundaries(sourceText).filter(
+    (slice) => slice.content.length > 0
+  );
+
+  return slices.map((slice, index) => ({
+    ...line,
+    id: `${line.id}::narration-${index + 1}`,
+    characterName: "旁白",
+    rawSpeaker: "旁白",
+    roleType: "narration",
+    isNarration: true,
+    text: slice.content,
+    ttsParameters: {
+      ...(line.ttsParameters || {}),
+      originalSpeaker: "旁白",
+      sourceText: slice.content,
+      sourceStart: baseStart + slice.start,
+      sourceEnd: baseStart + slice.end,
+    },
+  }));
+};
+
+const splitAttributedDialogueLine = (line: DialogueLine): DialogueLine[] | null => {
+  const ttsParameters =
+    line.ttsParameters && typeof line.ttsParameters === "object"
+      ? line.ttsParameters
+      : {};
+  const sourceText = asTrimmedString(ttsParameters.sourceText);
+  const baseStart =
+    typeof ttsParameters.sourceStart === "number" ? ttsParameters.sourceStart : 0;
+
+  if (!sourceText || line.rawSpeaker === "旁白") {
+    return null;
+  }
+
+  const spans = findQuotedSpans(sourceText);
+  if (spans.length === 0) {
+    return null;
+  }
+
+  const fragments: CanonicalSlice[] = [];
+  let cursor = 0;
+
+  for (const span of spans) {
+    const fragment = trimSlice(sourceText, cursor, span.start);
+    if (fragment.content.length > 0) {
+      fragments.push(fragment);
+    }
+    cursor = span.end;
+  }
+
+  const trailingFragment = trimSlice(sourceText, cursor, sourceText.length);
+  if (trailingFragment.content.length > 0) {
+    fragments.push(trailingFragment);
+  }
+
+  if (
+    fragments.length === 0 ||
+    fragments.some((fragment) => !isAttributionFragment(fragment.content))
+  ) {
+    return null;
+  }
+
+  const variants: DialogueLine[] = [];
+  cursor = 0;
+  let fragmentIndex = 0;
+  let quoteIndex = 0;
+
+  for (const span of spans) {
+    const fragment = trimSlice(sourceText, cursor, span.start);
+    if (fragment.content.length > 0 && !PUNCTUATION_ONLY_PATTERN.test(fragment.content)) {
+      variants.push(
+        ...buildNarrationVariants({
+          line,
+          sourceText: fragment.content,
+          baseStart: baseStart + fragment.start,
+        }).map((variant) => ({
+          ...variant,
+          id: `${line.id}::fragment-${fragmentIndex++}`,
+        }))
+      );
+    }
+
+    const quote = trimSlice(sourceText, span.start, span.end);
+    if (quote.content.length > 0) {
+      variants.push({
+        ...line,
+        id: `${line.id}::dialogue-${quoteIndex++}`,
+        text: resolveScriptLineText({
+          sourceText: quote.content,
+          speaker: line.rawSpeaker || line.characterName || "未知",
+        }),
+        ttsParameters: {
+          ...ttsParameters,
+          sourceText: quote.content,
+          sourceStart: baseStart + quote.start,
+          sourceEnd: baseStart + quote.end,
+        },
+      });
+    }
+
+    cursor = span.end;
+  }
+
+  const trailing = trimSlice(sourceText, cursor, sourceText.length);
+  if (trailing.content.length > 0 && !PUNCTUATION_ONLY_PATTERN.test(trailing.content)) {
+    variants.push(
+      ...buildNarrationVariants({
+        line,
+        sourceText: trailing.content,
+        baseStart: baseStart + trailing.start,
+      }).map((variant) => ({
+        ...variant,
+        id: `${line.id}::fragment-${fragmentIndex++}`,
+      }))
+    );
+  }
+
+  return variants.length > 0 ? variants : null;
+};
+
+const canonicalizeDialogueLines = (dialogueLines: DialogueLine[]): DialogueLine[] => {
+  const expanded = dialogueLines.flatMap((line) => {
+    const ttsParameters =
+      line.ttsParameters && typeof line.ttsParameters === "object"
+        ? line.ttsParameters
+        : {};
+    const sourceText = asTrimmedString(ttsParameters.sourceText);
+    const baseStart =
+      typeof ttsParameters.sourceStart === "number" ? ttsParameters.sourceStart : 0;
+
+    if (line.rawSpeaker === "旁白" && sourceText) {
+      return buildNarrationVariants({
+        line,
+        sourceText,
+        baseStart,
+      });
+    }
+
+    return splitAttributedDialogueLine(line) || [line];
+  });
+
+  return expanded.map((line, index) => ({
+    ...line,
+    orderInSegment: index,
+  }));
+};
 
 const MAX_REFINEMENT_DEPTH = 2;
 
@@ -420,7 +741,7 @@ const mapDialogueLines = (params: {
     });
   }
 
-  return validation.lines.map((validatedLine, index) => {
+  const mappedLines: DialogueLine[] = validation.lines.map((validatedLine, index) => {
     const sentence = scriptSentences[index] || {};
     let characterName = validatedLine.speaker || "未知";
 
@@ -490,6 +811,8 @@ const mapDialogueLines = (params: {
       },
     };
   });
+
+  return canonicalizeDialogueLines(mappedLines);
 };
 
 export async function processSegment(params: {
