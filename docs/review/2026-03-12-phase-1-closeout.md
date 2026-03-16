@@ -36,7 +36,7 @@
 
 | 样本 | 来源 | 问题类型 | 运行次数 | 结果 | 备注 |
 |---|---|---|---:|---|---|
-| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 7 | `已执行` | `旧基线 3 次运行稳定为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；2026-03-16 最新代码下两次复跑压到 1 个失败段；随后一轮完整复跑达到 79 lines / 0 failed segments，但同轮暴露了“成功重跑后旧 SCRIPT_VALIDATION review 未自动 resolved”的 runner 清理缺口；修复 runner 后再次整本复跑达到 84 lines / 0 failed / 0 pending，说明 review 清理链路已补齐，但 totalLines 仍未收敛` |
+| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 8 | `已执行` | `旧基线 3 次运行稳定为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；2026-03-16 最新代码下两次复跑压到 1 个失败段；随后两轮完整复跑先后达到 79 lines / 0 failed / 1 pending、84 lines / 0 failed / 0 pending；本轮新增 validator tightening 后再次整本复跑落到 76 lines / 0 failed / 0 pending，说明失败链路已清，但 totalLines 仍持续漂移` |
 
 ## 4. 多次运行收敛性记录
 
@@ -49,6 +49,7 @@
 | `run-5` | `uploads/sample.txt(limitToSegments=10)` | 75 | 1 | 1 | `partial_failure` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，第二次复跑仍只剩 1 个失败段；主 subtype 仍为 BOUNDARY_DRIFT，但句子总数从 70 波动到 75` |
 | `run-6` | `uploads/sample.txt(limitToSegments=10)` | 79 | 0 | 1 | `completed*` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，task=785da8c6-fb88-4137-b992-721b1ba87c16；quote refinement 后首次完整复跑已无 failed segments，但旧 SCRIPT_VALIDATION review item 仍残留为 pending，暴露成功路径未清理 review 的 runner 缺口` |
 | `run-7` | `uploads/sample.txt(limitToSegments=10)` | 84 | 0 | 0 | `completed` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，task=7b18cf90-cbab-4a77-8fbe-680b214a309b；修复 runner review 清理后再次整本复跑，pending review 归零，但 totalLines 从 79 继续漂到 84；orderIndex 1 从 3 漂到 8` |
+| `run-8` | `uploads/sample.txt(limitToSegments=10)` | 76 | 0 | 0 | `completed` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，task=51676eb3-8ebe-496e-ae25-c43f72552c20；新增“旁白挟带带归属语对白” validator tightening 后再次整本复跑，failed/pending 继续维持 0/0，但 totalLines 进一步漂到 76；orderIndex 1/5/7/9 分别落到 4/7/7/8` |
 
 ## 5. 分段策略对照 roadmap
 
@@ -78,6 +79,7 @@
 - 当前剩余 `BOUNDARY_DRIFT` 的直接根因已经定位：`“是。” + 归属语 + 报表引语` 会在 refinement 中把后续报表引语从归属语上拆掉，导致 `“陵州纳灵石……` 这类纯引号片段失去上下文；`2026-03-16` 已补失败测试并修复该规则，实时复跑中 `orderIndex=3` 已从 `0` 句恢复到 `9` 句，但整轮 closeout 新基线尚未跑完。
 - 同一轮完整复跑进一步暴露出 runner 成功路径没有自动清理旧 `SCRIPT_VALIDATION` review item：`task=785da8c6-fb88-4137-b992-721b1ba87c16` 已完成且 `failedSegments=0`，但旧 pending review 仍残留；`2026-03-16` 已补 runner 单测并修复为成功后自动 `auto_resolved`，随后单段真实回归 `task=b9000337-538f-4907-ac72-baca43c9a00f` 已验证 pending review 从 `1 -> 0`。
 - 最新整本复跑 `task=7b18cf90-cbab-4a77-8fbe-680b214a309b` 已证明：即使 `failed segments / pending review` 都归零，`totalLines` 仍会从 `79` 漂到 `84`；而且这轮运行中 `orderIndex=1/3/5/7/9` 都曾在主路径触发 validator，再由 refinement 兜底，说明真正未收口的是“句子粒度 canonicalization”，不是 review 路由或失败段清理。
+- 最新实验 `task=51676eb3-8ebe-496e-ae25-c43f72552c20` 继续证明：仅靠把部分 mixed narration/quote 情况更早打进 validator，并不能让 `totalLines` 收敛；新代码把整本结果从 `84` 又拉回 `76`，但 `failed/pending` 仍然是 `0/0`。这说明当前系统已经具备“靠 validator + refinement 清零失败段”的能力，却仍缺少一个稳定的句子级 canonicalization 层。
 - 当前推荐动作虽然可用，但几乎全部落在 `regenerate`，尚未形成更细粒度动作判断价值。
 
 ### 6.4 剩余规划里，下一阶段最该做哪个块？为什么？
@@ -88,19 +90,19 @@
 ## 7. 结项判断
 
 - 结论：`不可结项`
-- 依据：`修复后的新 worker / 新 runner` 下已经补出一轮完整真实样本复跑，结果是 `84 lines / 0 failed / 0 pending`；这证明失败段与 review 清理链路基本打通，但也同时证明 `totalLines` 仍未收敛，且多处高风险段依旧依赖 refinement 才能通过 validator。Phase 1 现在的 blocker 已从“还有失败段”收缩为“句子级 canonical split 仍不稳定”，所以仍不可结项。`
+- 依据：`修复后的新 worker / 新 runner` 下现在已经连续出现 `79 / 0 / 1`、`84 / 0 / 0`、`76 / 0 / 0` 三个完整真实样本结果；失败段与 review 清理链路已经基本打通，但 `totalLines` 非但没有收敛，反而继续在更大的区间内漂移。Phase 1 当前唯一硬 blocker 已经非常明确：缺少稳定的句子级 canonicalization。`
 
 ## 8. PR Readiness
 
 - `pnpm --filter web test:regression`：`2026-03-12 已执行，通过（11 tests / 3 suites）`
 - Phase 1 targeted tests：`2026-03-16 已补跑通过：failed-segment-refinement / segment-processor-refinement / segment-script-validator / script-generation-runner`
 - `pnpm --filter web typecheck`：`2026-03-16 已执行，通过`
-- 真实样本回归记录：`旧基线已完成 3 次一致回归；2026-03-16 最新代码下已完成 2 次 1/1 复跑 + 2 次 0 failed 完整复跑`
-- convergence 记录：`旧基线已完成 3 次一致记录；最新代码已出现 79/0/1 和 84/0/0 两个完整复跑结果，failed/pending 已归零，但 totalLines 仍持续漂移`
+- 真实样本回归记录：`旧基线已完成 3 次一致回归；2026-03-16 最新代码下已完成 2 次 1/1 复跑 + 3 次 0 failed 完整复跑`
+- convergence 记录：`旧基线已完成 3 次一致记录；最新代码已出现 79/0/1、84/0/0、76/0/0 三个完整复跑结果，failed/pending 已归零，但 totalLines 仍持续漂移`
 - closeout review 是否完整：`部分完整`
 - PR readiness：`no`
 - 缺口列表：
-  - 需要把 `orderIndex=1/5/7/9` 这类“attributed dialogue + quoted continuation + trailing narration”模式固化成测试夹具
-  - 需要决定 `79 -> 84` 这类无失败情况下的句子粒度漂移，是否必须通过 canonical split 归一
+  - 需要把 `orderIndex=1/5/7/9` 这类“attributed dialogue + quoted continuation + trailing narration”模式固化成更完整的测试夹具
+  - 需要决定 `79 -> 84 -> 76` 这类无失败情况下的句子粒度漂移，是否必须通过 canonical split 归一
   - 结项前需要把真实失败片段 A/B 纳入 closeout 样本表
   - 需要确认 refinement 是否应该继续兜底更多模式，还是上移到更稳定的 pre-LLM split / post-LLM canonicalization

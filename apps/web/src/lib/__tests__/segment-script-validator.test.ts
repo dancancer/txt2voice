@@ -207,4 +207,20 @@ describe("segment script validator", () => {
     expect(result.valid).toBe(false);
     expect(result.issues.map((issue) => issue.code)).toContain('QUOTED_NARRATION');
   });
+
+  it("should reject narration that keeps attributed speech mixed with scene action", () => {
+    const result = validateSegmentScript({
+      segmentContent: '她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”',
+      scriptSentences: [
+        {
+          sourceText: '她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”',
+          text: '她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”',
+          speaker: '旁白',
+        },
+      ],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('QUOTED_NARRATION');
+  });
 });

@@ -55,6 +55,7 @@ const ATTRIBUTION_TOKEN_PATTERN =
 const DISPLAY_TEXT_PATTERN =
   /(写着|写道|写有|写明|标着|标明|贴着|贴有|印着|印有|显示着|显示|注明|题着)/;
 const GENERIC_DAO_PATTERN = /[^，。！？；：,:]{0,12}道(?:[：:,，。\s]|$)/;
+const COLON_ATTRIBUTION_PATTERN = /[：:]\s*$/;
 const DIALOGUE_QUOTE_PAIRS: Array<{ open: string; close: string }> = [
   { open: '“', close: '”' },
   { open: '"', close: '"' },
@@ -156,6 +157,14 @@ const looksLikeGenericDaoAttribution = (value: string): boolean => {
   return GENERIC_DAO_PATTERN.test(value.trim());
 };
 
+const looksLikeColonAttribution = (value: string): boolean => {
+  if (!value || DISPLAY_TEXT_PATTERN.test(value)) {
+    return false;
+  }
+
+  return COLON_ATTRIBUTION_PATTERN.test(value.trim());
+};
+
 const isAttributedDialogueSpan = (sourceText: string, span: QuotedSpan): boolean => {
   const prefix = sourceText.slice(0, span.start).trim();
   const suffix = sourceText.slice(span.end).trim();
@@ -171,6 +180,8 @@ const isAttributedDialogueSpan = (sourceText: string, span: QuotedSpan): boolean
   return (
     ATTRIBUTION_TOKEN_PATTERN.test(prefix) ||
     ATTRIBUTION_TOKEN_PATTERN.test(suffix) ||
+    looksLikeColonAttribution(prefix) ||
+    looksLikeColonAttribution(suffix) ||
     looksLikeGenericDaoAttribution(prefix) ||
     looksLikeGenericDaoAttribution(suffix)
   );
@@ -217,6 +228,7 @@ const isAttributedDialogueSequence = (
 
     if (
       ATTRIBUTION_TOKEN_PATTERN.test(fragment) ||
+      looksLikeColonAttribution(fragment) ||
       looksLikeGenericDaoAttribution(fragment)
     ) {
       hasAttribution = true;
@@ -231,6 +243,19 @@ const isAttributedDialogueSequence = (
   }
 
   return hasAttribution;
+};
+
+const isAttributedDialogueQuotedText = (sourceText: string): boolean => {
+  const spans = findQuotedSpans(sourceText);
+  if (spans.length === 0) {
+    return false;
+  }
+
+  if (spans.length === 1) {
+    return isAttributedDialogueSpan(sourceText, spans[0]);
+  }
+
+  return isAttributedDialogueSequence(sourceText, spans);
 };
 
 const resolveDialogueText = (sourceText: string): string => {
@@ -354,7 +379,11 @@ export function validateSegmentScript(params: {
       return;
     }
 
-    if (speaker === "旁白" && isLikelySpeechQuotedText(sourceText)) {
+    if (
+      speaker === "旁白" &&
+      (isLikelySpeechQuotedText(sourceText) ||
+        isAttributedDialogueQuotedText(sourceText))
+    ) {
       issues.push(
         buildIssue(
           "QUOTED_NARRATION",

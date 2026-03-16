@@ -51,6 +51,13 @@ describe("failed-segment-refinement", () => {
         issueCodes: ["DIALOGUE_TOO_LONG"],
       })
     ).toBe(false);
+
+    expect(
+      shouldRefineSegmentFailure({
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["QUOTED_NARRATION"],
+      })
+    ).toBe(true);
   });
 
   it("should keep punctuated quoted speech intact when splitting by sentence boundaries", () => {
@@ -158,6 +165,29 @@ describe("failed-segment-refinement", () => {
       "“是。”",
       "闵弘芳从储物戒中取出宗门呈报，一字一句念起来。“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”“丹药堂新产丹药四百枚……”",
       "这边厢游响停云。",
+    ]);
+  });
+
+  it("should split long narration from trailing quotes with explicit speaker labels", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-tail-quote",
+        chapterId: "chapter-1",
+        orderIndex: 5,
+        content:
+          "宁尘那嘴就跟抹着迷魂药一样，也不知和人家说些啥，总能大事化小小事化了。真要打也敢打，打完了巡查堂一来，保准让他编个天花乱坠，对头们讨不得半分好处。赶上他又会来事儿，三五回下来跟巡查堂几个内门弟子混得那叫一个热乎。念着他的好，灵宝堂的外门弟子也没法儿说三道四。不就是搓两件衣服么！搓！搓还不行吗！宁尘嗑完最后一颗瓜子儿，打么打么手，起来伸了个懒腰。“耿老大，搓完衣服记得抻平整儿了再晾，昂！”耿魄：“你他娘……”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["QUOTED_NARRATION", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "宁尘那嘴就跟抹着迷魂药一样，也不知和人家说些啥，总能大事化小小事化了。真要打也敢打，打完了巡查堂一来，保准让他编个天花乱坠，对头们讨不得半分好处。赶上他又会来事儿，三五回下来跟巡查堂几个内门弟子混得那叫一个热乎。念着他的好，灵宝堂的外门弟子也没法儿说三道四。不就是搓两件衣服么！搓！搓还不行吗！宁尘嗑完最后一颗瓜子儿，打么打么手，起来伸了个懒腰。",
+      "“耿老大，搓完衣服记得抻平整儿了再晾，昂！”",
+      "耿魄：",
+      "“你他娘……”",
     ]);
   });
 });
