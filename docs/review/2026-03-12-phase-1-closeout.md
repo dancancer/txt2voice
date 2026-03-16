@@ -36,7 +36,7 @@
 
 | 样本 | 来源 | 问题类型 | 运行次数 | 结果 | 备注 |
 |---|---|---|---:|---|---|
-| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 4 | `进行中` | `旧基线 3 次运行稳定为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；2026-03-16 最新代码下首轮已压到 70 lines / 1 failed segment / 1 pending review，第二轮复跑仍在执行中` |
+| `uploads/sample.txt` | 本地统一测试书 | `真实样本回归（limitToSegments=10）` | 5 | `已执行` | `旧基线 3 次运行稳定为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；2026-03-16 最新代码下两次复跑都压到 1 个失败段，但句子总数仍在 70/75 间波动` |
 
 ## 4. 多次运行收敛性记录
 
@@ -46,7 +46,7 @@
 | `run-2` | `uploads/sample.txt(limitToSegments=10)` | 24 | 7 | 7 | `partial_failure` | `book=0d8b31fc-e2de-4d91-81e0-f97209bdab4e，结果与 run-1 一致；验证了 limitToSegments 修复后可稳定止于 10 段` |
 | `run-3` | `uploads/sample.txt(limitToSegments=10)` | 24 | 7 | 7 | `partial_failure` | `book=61aa922c-b3bb-45ae-a065-67bfef3169b9，最终也收敛到与 run-1/run-2 相同结果；首个复核项主 subtype=BOUNDARY_DRIFT` |
 | `run-4` | `uploads/sample.txt(limitToSegments=10)` | 70 | 1 | 1 | `partial_failure` | `book=87f2142e-c7d0-4788-a3d3-386696c1580d，最新代码下只剩 1 个 SCRIPT_VALIDATION 失败段，主 subtype 仍为 BOUNDARY_DRIFT` |
-| `run-5` | `uploads/sample.txt(limitToSegments=10)` | `进行中` | `进行中` | `进行中` | `processing` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，等待最新代码下第二次复跑完成` |
+| `run-5` | `uploads/sample.txt(limitToSegments=10)` | 75 | 1 | 1 | `partial_failure` | `book=30c38043-d8e5-4388-9db4-c57b58161c98，第二次复跑仍只剩 1 个失败段；主 subtype 仍为 BOUNDARY_DRIFT，但句子总数从 70 波动到 75` |
 
 ## 5. 分段策略对照 roadmap
 
@@ -82,17 +82,17 @@
 ## 7. 结项判断
 
 - 结论：`不可结项`
-- 依据：`尽管最新代码下的首轮真实样本已经把失败段从 7 压到 1，说明 Phase 1 修复方向正确，但新基线尚未形成重复性证据；在至少再完成 1 次完整复跑并确认同级别结果之前，仍不应宣布结项。`
+- 依据：`尽管最新代码下已经连续两次把失败段从 7 压到 1，说明 Phase 1 修复方向正确，但最新基线的句子总数仍在 70/75 间波动，说明“失败段数量收敛”和“句子数完全收敛”还不是同一件事；在波动原因被解释或继续收敛之前，仍不应宣布结项。`
 
 ## 8. PR Readiness
 
 - `pnpm --filter web test:regression`：`2026-03-12 已执行，通过（11 tests / 3 suites）`
 - Phase 1 targeted tests：`2026-03-12 已执行，通过（61 tests / 9 suites）`
-- 真实样本回归记录：`旧基线已完成 3 次一致回归；2026-03-16 最新代码下已完成 1 次新基线回归，另 1 次仍在运行`
-- convergence 记录：`旧基线已完成 3 次一致记录；最新代码出现显著改善（70 lines / 1 failed segment / 1 pending review），但仍需至少再完成 1 次复跑确认是否形成新收敛基线`
+- 真实样本回归记录：`旧基线已完成 3 次一致回归；2026-03-16 最新代码下已完成 2 次新基线回归`
+- convergence 记录：`旧基线已完成 3 次一致记录；最新代码已完成 2 次复跑，failed segments / pending review 稳定降到 1/1，但 totalLines 仍有 70/75 波动`
 - closeout review 是否完整：`部分完整`
 - PR readiness：`no`
 - 缺口列表：
-  - 需要完成 `run-5` 并确认最新代码下的第二次复跑结果
+  - 需要解释或继续压低最新基线中 `totalLines` 的 70/75 波动
   - 结项前需要把真实失败片段 A/B 纳入 closeout 样本表
   - 当前剩余失败已收敛到 1 个 `BOUNDARY_DRIFT` 段，需判断是否还要继续收口还是可接受地转入人工复核
