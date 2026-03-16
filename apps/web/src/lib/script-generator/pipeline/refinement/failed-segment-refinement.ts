@@ -40,7 +40,7 @@ const SENTENCE_BOUNDARY_CHARS = new Set([
 
 const CLOSING_QUOTE_CHARS = new Set(['"', "”", "」", "』", "’"]);
 const ATTRIBUTION_TOKEN_PATTERN =
-  /(说道|说着|说完|说|问道|问|回答|答道|答|应道|应|回应|回道|回|喊道|喊|叫道|叫|吼道|吼|嚷道|嚷|嘀咕|嘟囔|喃喃|低声说|轻声说|低声道|轻声道|笑道|哭道|提醒|解释|告诉|补充|反问|脱口而出|承认)/;
+  /(说道|说着|说完|说|问道|问|回答|答道|答|应道|应|回应|回道|回|喊道|喊|叫道|叫|吼道|吼|嚷道|嚷|嘀咕|嘟囔|喃喃|低声说|轻声说|低声道|轻声道|笑道|哭道|提醒|解释|告诉|补充|反问|脱口而出|承认|念起|念起来|念道|念)/;
 const GENERIC_DAO_PATTERN = /[^，。！？；：,:]{0,12}道(?:[：:,，。\s]|$)/;
 const DISPLAY_TEXT_PATTERN =
   /(写着|写道|写有|写明|标着|标明|贴着|贴有|印着|印有|显示着|显示|注明|题着)/;
@@ -390,6 +390,59 @@ const splitQuotedSentence = (slice: { start: number; end: number; content: strin
   return pieces.length > 0 ? pieces : [slice];
 };
 
+const isPureQuotedSlice = (content: string) => {
+  const trimmed = content.trim();
+  const spans = findQuotedSpans(trimmed);
+  return spans.length === 1 && spans[0].start === 0 && spans[0].end === trimmed.length;
+};
+
+const mergeAttributedQuoteRuns = (
+  slices: Array<{ start: number; end: number; content: string }>
+) => {
+  const merged: Array<{ start: number; end: number; content: string }> = [];
+
+  for (let index = 0; index < slices.length; index += 1) {
+    const current = slices[index];
+    if (
+      !QUOTE_CHAR_PATTERN.test(current.content) &&
+      isAttributionFragment(current.content)
+    ) {
+      let combinedContent = current.content;
+      let end = current.end;
+      let mergedAnyQuote = false;
+      let quoteRunLength = 0;
+
+      while (
+        index + 1 < slices.length &&
+        isPureQuotedSlice(slices[index + 1].content)
+      ) {
+        index += 1;
+        combinedContent += slices[index].content;
+        end = slices[index].end;
+        mergedAnyQuote = true;
+        quoteRunLength += 1;
+      }
+
+      if (mergedAnyQuote && quoteRunLength >= 2) {
+        merged.push({
+          start: current.start,
+          end,
+          content: combinedContent,
+        });
+        continue;
+      }
+
+      if (mergedAnyQuote) {
+        index -= quoteRunLength;
+      }
+    }
+
+    merged.push({ ...current });
+  }
+
+  return merged;
+};
+
 export const shouldRefineSegmentFailure = (failure: {
   errorCode?: string;
   issueCodes?: string[];
@@ -425,8 +478,10 @@ export const refineFailedSegment = (
   }
 
   const bySentence = splitBySentenceBoundaries(segment.content);
-  const rawSlices = mergeAdjacentNarrationSlices(
-    bySentence.flatMap((slice) => splitQuotedSentence(slice))
+  const rawSlices = mergeAttributedQuoteRuns(
+    mergeAdjacentNarrationSlices(
+      bySentence.flatMap((slice) => splitQuotedSentence(slice))
+    )
   );
   const fallbackSlices =
     rawSlices.length > 1 ? rawSlices : splitByQuoteBoundaries(segment.content);

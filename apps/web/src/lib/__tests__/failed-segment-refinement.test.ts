@@ -117,4 +117,25 @@ describe("failed-segment-refinement", () => {
       "本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”",
     ]);
   });
+
+  it("should merge attribution narration with following quoted report spans", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-report",
+        chapterId: "chapter-1",
+        orderIndex: 3,
+        content:
+          "闵弘芳从储物戒中取出宗门呈报，一字一句念起来。“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”“丹药堂新产丹药四百枚……”这边厢游响停云。",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "闵弘芳从储物戒中取出宗门呈报，一字一句念起来。“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”“丹药堂新产丹药四百枚……”",
+      "这边厢游响停云。",
+    ]);
+  });
 });
