@@ -4,7 +4,8 @@
 // pos: 路由页面入口
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { BookList } from "@/components/BookList";
 import { BookUpload } from "@/components/BookUpload";
@@ -20,9 +21,26 @@ import {
 export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const shouldOpenUpload = searchParams.get("create") === "1";
+
+  useEffect(() => {
+    if (shouldOpenUpload) {
+      setUploadDialogOpen(true);
+    }
+  }, [shouldOpenUpload]);
+
+  const closeUploadDialog = () => {
+    setUploadDialogOpen(false);
+
+    if (shouldOpenUpload) {
+      router.replace("/", { scroll: false });
+    }
+  };
 
   const handleUploadSuccess = () => {
-    setUploadDialogOpen(false);
+    closeUploadDialog();
     setRefreshKey((prev) => prev + 1);
   };
 
@@ -39,7 +57,17 @@ export default function Home() {
                 上传文本后系统会自动处理章节与段落，随后可进入章节详情生成台本和音频。
               </p>
             </div>
-            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <Dialog
+              open={uploadDialogOpen}
+              onOpenChange={(open) => {
+                if (open) {
+                  setUploadDialogOpen(true);
+                  return;
+                }
+
+                closeUploadDialog();
+              }}
+            >
               <Button
                 type="button"
                 className="min-h-11 min-w-11 bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500"
@@ -57,7 +85,7 @@ export default function Home() {
                 </DialogHeader>
                 <BookUpload
                   onSuccess={handleUploadSuccess}
-                  onCancel={() => setUploadDialogOpen(false)}
+                  onCancel={closeUploadDialog}
                 />
               </DialogContent>
             </Dialog>
