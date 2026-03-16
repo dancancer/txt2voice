@@ -74,4 +74,47 @@ describe("failed-segment-refinement", () => {
       "“瞧您说的！您耿老大都发话了，我能下这面子吗。”",
     ]);
   });
+
+  it("should split narration plus attributed dialogue into semantic retry slices", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-scene",
+        chapterId: "chapter-1",
+        orderIndex: 1,
+        content:
+          "她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”闵弘芳又一拍手，侍女们便快步消失在了侧门之外。女子手指一勾，两道真气如臂使指，卷来指肚大小小一尾细烹银鱼。",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "她往殿中黄金大榻一靠，抬手轻挥：",
+      "“人多心乱，都撤了吧。”",
+      "闵弘芳又一拍手，侍女们便快步消失在了侧门之外。女子手指一勾，两道真气如臂使指，卷来指肚大小小一尾细烹银鱼。",
+    ]);
+  });
+
+  it("should split long multi-sentence quoted spans into smaller retry slices", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-long-quote",
+        chapterId: "chapter-1",
+        orderIndex: 2,
+        content:
+          "“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。",
+      "本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”",
+    ]);
+  });
 });

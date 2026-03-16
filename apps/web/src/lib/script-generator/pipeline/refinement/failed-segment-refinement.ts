@@ -64,6 +64,8 @@ interface QuoteSpan {
   end: number;
 }
 
+const QUOTE_CHAR_PATTERN = /[“”「」『』‘’"']/;
+
 const trimSlice = (content: string, start: number, end: number) => {
   let nextStart = start;
   let nextEnd = end;
@@ -263,10 +265,92 @@ const shouldKeepQuotedSentenceAsWhole = (content: string, spans: QuoteSpan[]) =>
   return hasAttribution;
 };
 
+const splitPureQuotedSlice = (slice: {
+  start: number;
+  end: number;
+  content: string;
+}) => {
+  const spans = findQuotedSpans(slice.content);
+  if (spans.length !== 1) {
+    return [slice];
+  }
+
+  const [span] = spans;
+  if (span.start !== 0 || span.end !== slice.content.trim().length) {
+    return [slice];
+  }
+
+  const body = slice.content.slice(span.start + 1, span.end - 1);
+  const boundaries: number[] = [];
+
+  for (let index = 0; index < body.length; index += 1) {
+    if (SENTENCE_BOUNDARY_CHARS.has(body[index])) {
+      boundaries.push(index + 1);
+    }
+  }
+
+  if (boundaries.length <= 1) {
+    return [slice];
+  }
+
+  const pieces: Array<{ start: number; end: number; content: string }> = [];
+  let cursor = 0;
+
+  boundaries.forEach((boundary, boundaryIndex) => {
+    const isFirst = boundaryIndex === 0;
+    const isLast = boundaryIndex === boundaries.length - 1;
+    const localStart = isFirst ? span.start : span.start + 1 + cursor;
+    const localEnd = isLast ? span.end : span.start + 1 + boundary;
+    const trimmed = trimSlice(slice.content, localStart, localEnd);
+    if (trimmed.content.length > 0) {
+      pieces.push({
+        start: slice.start + trimmed.start,
+        end: slice.start + trimmed.end,
+        content: trimmed.content,
+      });
+    }
+    cursor = boundary;
+  });
+
+  return pieces.length > 1 ? pieces : [slice];
+};
+
+const mergeAdjacentNarrationSlices = (
+  slices: Array<{ start: number; end: number; content: string }>
+) => {
+  const merged: Array<{ start: number; end: number; content: string }> = [];
+
+  for (const slice of slices) {
+    const last = merged[merged.length - 1];
+    if (
+      last &&
+      !QUOTE_CHAR_PATTERN.test(last.content) &&
+      !QUOTE_CHAR_PATTERN.test(slice.content)
+    ) {
+      const combined = trimSlice(
+        `${last.content}${slice.content}`,
+        0,
+        `${last.content}${slice.content}`.length
+      );
+      last.content = combined.content;
+      last.end = slice.end;
+      continue;
+    }
+
+    merged.push({ ...slice });
+  }
+
+  return merged;
+};
+
 const splitQuotedSentence = (slice: { start: number; end: number; content: string }) => {
   const spans = findQuotedSpans(slice.content);
-  if (spans.length === 0 || shouldKeepQuotedSentenceAsWhole(slice.content, spans)) {
+  if (spans.length === 0) {
     return [slice];
+  }
+
+  if (shouldKeepQuotedSentenceAsWhole(slice.content, spans)) {
+    return splitPureQuotedSlice(slice);
   }
 
   const pieces: Array<{ start: number; end: number; content: string }> = [];
@@ -341,8 +425,9 @@ export const refineFailedSegment = (
   }
 
   const bySentence = splitBySentenceBoundaries(segment.content);
-  const rawSlices = bySentence
-    .flatMap((slice) => splitQuotedSentence(slice));
+  const rawSlices = mergeAdjacentNarrationSlices(
+    bySentence.flatMap((slice) => splitQuotedSentence(slice))
+  );
   const fallbackSlices =
     rawSlices.length > 1 ? rawSlices : splitByQuoteBoundaries(segment.content);
 
