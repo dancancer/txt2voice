@@ -149,4 +149,43 @@ describe("segment processor canonicalization", () => {
       ["耿魄", "你他娘……"],
     ]);
   });
+
+  it("should not treat ASCII apostrophes inside English narration as quote markers", async () => {
+    const llmService = {
+      callLLM: jest.fn().mockResolvedValue(
+        JSON.stringify({
+          dialogues: [
+            {
+              id: "line-1",
+              sourceText: "I'm here! It's done? We'll leave when John's ready!",
+              text: "I'm here! It's done? We'll leave when John's ready!",
+              speaker: "旁白",
+              tone: "中性",
+            },
+          ],
+          characters: [],
+        })
+      ),
+    };
+
+    const result = await processSegmentAndSave({
+      llmService,
+      segment: {
+        id: "segment-canonical-3",
+        chapterId: "chapter-1",
+        orderIndex: 10,
+        content: "I'm here! It's done? We'll leave when John's ready!",
+      },
+      characterMap: new Map<string, string>(),
+      characterProfiles: [],
+      options,
+      bookId: "book-1",
+    });
+
+    expect(result.dialogueLines.map((line) => line.text)).toEqual([
+      "I'm here!",
+      "It's done?",
+      "We'll leave when John's ready!",
+    ]);
+  });
 });

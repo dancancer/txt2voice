@@ -1,5 +1,10 @@
 import { TTSError } from "@/lib/error-handler";
 import {
+  DIALOGUE_CLOSING_QUOTE_CHARS,
+  DIALOGUE_QUOTE_PAIRS,
+  updateDialogueQuoteStack,
+} from "@/lib/dialogue-quote-tracker";
+import {
   addCharacterToMap,
   normalizeCharacterCandidates,
   resolveCandidateCanonicalName,
@@ -80,7 +85,6 @@ const SENTENCE_BOUNDARY_CHARS = new Set([
   "…",
 ]);
 
-const CLOSING_QUOTE_CHARS = new Set(['"', "”", "」", "』", "’"]);
 const ATTRIBUTION_TOKEN_PATTERN =
   /(说道|说着|说完|说|问道|问|回答|答道|答|应道|应|回应|回道|回|喊道|喊|叫道|叫|吼道|吼|嚷道|嚷|嘀咕|嘟囔|喃喃|低声说|轻声说|低声道|轻声道|笑道|哭道|提醒|解释|告诉|补充|反问|脱口而出|承认|念起|念起来|念道|念|开口道|开口说|开口)/;
 const GENERIC_DAO_PATTERN = /[^，。！？；：,:]{0,12}道(?:[：:,，。\s]|$)/;
@@ -88,19 +92,6 @@ const DISPLAY_TEXT_PATTERN =
   /(写着|写道|写有|写明|标着|标明|贴着|贴有|印着|印有|显示着|显示|注明|题着)/;
 const PUNCTUATION_ONLY_PATTERN = /^[，。！？；：,:、…—\-\s]+$/;
 const COLON_ATTRIBUTION_PATTERN = /[：:]\s*$/;
-
-const DIALOGUE_QUOTE_PAIRS: Array<{ open: string; close: string }> = [
-  { open: "“", close: "”" },
-  { open: '"', close: '"' },
-  { open: "「", close: "」" },
-  { open: "『", close: "』" },
-  { open: "‘", close: "’" },
-  { open: "'", close: "'" },
-];
-
-const OPEN_TO_CLOSE = new Map(
-  DIALOGUE_QUOTE_PAIRS.map((pair) => [pair.open, pair.close])
-);
 
 interface QuoteSpan {
   start: number;
@@ -139,32 +130,15 @@ const splitBySentenceBoundaries = (content: string): CanonicalSlice[] => {
 
   for (let index = 0; index < content.length; index += 1) {
     const current = content[index];
-    const matchingClose = OPEN_TO_CLOSE.get(current);
+    const wasInsideQuote = quoteStack.length > 0;
+    updateDialogueQuoteStack(quoteStack, current);
 
-    if (matchingClose) {
-      if (matchingClose === current) {
-        if (quoteStack[quoteStack.length - 1] === current) {
-          quoteStack.pop();
-        } else {
-          quoteStack.push(current);
-        }
-      } else {
-        quoteStack.push(matchingClose);
-      }
-      continue;
-    }
-
-    if (quoteStack[quoteStack.length - 1] === current) {
-      quoteStack.pop();
-      continue;
-    }
-
-    if (quoteStack.length > 0 || !SENTENCE_BOUNDARY_CHARS.has(current)) {
+    if (wasInsideQuote || quoteStack.length > 0 || !SENTENCE_BOUNDARY_CHARS.has(current)) {
       continue;
     }
 
     let end = index + 1;
-    while (end < content.length && CLOSING_QUOTE_CHARS.has(content[end])) {
+    while (end < content.length && DIALOGUE_CLOSING_QUOTE_CHARS.has(content[end])) {
       end += 1;
     }
 

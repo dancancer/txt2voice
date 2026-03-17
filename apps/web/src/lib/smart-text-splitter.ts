@@ -12,6 +12,7 @@
  */
 
 import { CONFIG } from './constants'
+import { buildInsideDialogueQuoteMap, updateDialogueQuoteStack } from './dialogue-quote-tracker'
 import { logger } from './logger'
 
 export interface SmartSplitterOptions {
@@ -47,17 +48,7 @@ interface SegmentPlan {
   end: number
 }
 
-const QUOTE_PAIRS: Array<{ open: string; close: string }> = [
-  { open: '“', close: '”' },
-  { open: '「', close: '」' },
-  { open: '『', close: '』' },
-  { open: '‘', close: '’' },
-  { open: '"', close: '"' },
-  { open: "'", close: "'" },
-]
-
-const OPEN_QUOTE_MAP = new Map(QUOTE_PAIRS.map((pair) => [pair.open, pair.close]))
-const CLOSING_QUOTE_PATTERN = /["'”’））》」】]/
+const CLOSING_QUOTE_PATTERN = /["”’））》」】]/
 
 /**
  * 智能文本分段器类
@@ -164,36 +155,11 @@ export class SmartTextSplitter {
   }
 
   private updateQuoteStack(quoteStack: string[], char: string) {
-    const matchingClose = OPEN_QUOTE_MAP.get(char)
-    if (matchingClose) {
-      if (matchingClose === char) {
-        if (quoteStack[quoteStack.length - 1] === char) {
-          quoteStack.pop()
-        } else {
-          quoteStack.push(char)
-        }
-        return
-      }
-
-      quoteStack.push(matchingClose)
-      return
-    }
-
-    if (quoteStack[quoteStack.length - 1] === char) {
-      quoteStack.pop()
-    }
+    updateDialogueQuoteStack(quoteStack, char)
   }
 
   private buildInsideQuoteMap(text: string): boolean[] {
-    const insideQuote = new Array(text.length).fill(false)
-    const quoteStack: string[] = []
-
-    for (let index = 0; index < text.length; index++) {
-      insideQuote[index] = quoteStack.length > 0
-      this.updateQuoteStack(quoteStack, text[index])
-    }
-
-    return insideQuote
+    return buildInsideDialogueQuoteMap(text)
   }
 
   /**

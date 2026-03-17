@@ -149,6 +149,22 @@ const isPureQuotedText = (value: string): boolean => {
   return span.start === 0 && span.end === trimmed.length;
 };
 
+const isBoundaryQuoteFragment = (value: string): boolean => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  const hasLeadingQuote = DIALOGUE_OPENING_QUOTES.test(trimmed);
+  const hasTrailingQuote = DIALOGUE_CLOSING_QUOTES.test(trimmed);
+
+  if (hasLeadingQuote === hasTrailingQuote) {
+    return false;
+  }
+
+  return findQuotedSpans(trimmed).length === 0;
+};
+
 const looksLikeGenericDaoAttribution = (value: string): boolean => {
   if (!value || DISPLAY_TEXT_PATTERN.test(value)) {
     return false;
@@ -265,6 +281,9 @@ const resolveDialogueText = (sourceText: string): string => {
 
   const spans = findQuotedSpans(sourceText);
   if (spans.length === 0) {
+    if (isBoundaryQuoteFragment(sourceText)) {
+      return stripBoundaryQuotes(sourceText);
+    }
     return sourceText.trim();
   }
 
@@ -382,7 +401,8 @@ export function validateSegmentScript(params: {
     if (
       speaker === "旁白" &&
       (isLikelySpeechQuotedText(sourceText) ||
-        isAttributedDialogueQuotedText(sourceText))
+        isAttributedDialogueQuotedText(sourceText) ||
+        isBoundaryQuoteFragment(sourceText))
     ) {
       issues.push(
         buildIssue(

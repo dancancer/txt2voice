@@ -154,6 +154,22 @@ describe('SmartTextSplitter', () => {
 
       expect(hasBrokenQuotedSegment).toBe(false)
     })
+
+    it('应该忽略英文缩写里的 apostrophe，不把它当作对白引号', () => {
+      const text = "I'm here. It's done. We'll leave when John's ready."
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 10,
+        maxLength: 20,
+        minLength: 5,
+      })
+
+      expect(segments.map((segment) => segment.content)).toEqual([
+        "I'm here.",
+        "It's done.",
+        "We'll leave when John's ready.",
+      ])
+    })
   })
 
   describe('长度控制', () => {

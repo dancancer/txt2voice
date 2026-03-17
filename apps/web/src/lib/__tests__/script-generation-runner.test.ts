@@ -237,6 +237,14 @@ describe("script-generation-runner", () => {
   });
 
   it("should resolve existing script validation review items after successful partial rerun", async () => {
+    mockPrisma.book.findUnique.mockResolvedValueOnce({
+      id: "book-1",
+      metadata: {
+        failedSegmentIds: ["seg-9"],
+        failedSegments: 1,
+      },
+    });
+
     const generatePartialScript = jest.fn().mockResolvedValue({
       dialogueLines: [
         {
@@ -302,6 +310,246 @@ describe("script-generation-runner", () => {
         resolutionType: "auto_resolved",
         resolutionNote: expect.stringContaining("task-success"),
         resolvedAt: expect.any(Date),
+      }),
+    });
+
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        status: "manual_review_pending",
+        metadata: expect.objectContaining({
+          failedSegmentIds: ["seg-9"],
+          failedSegments: 1,
+        }),
+      }),
+    });
+  });
+
+  it("should keep manual_review_pending after targeted rerun when other failed segments remain", async () => {
+    mockPrisma.book.findUnique.mockResolvedValueOnce({
+      id: "book-1",
+      status: "manual_review_pending",
+      metadata: {
+        failedSegmentIds: ["seg-9"],
+        failedSegments: 1,
+        totalScriptLines: 120,
+        dialogueCount: 80,
+        narrationCount: 40,
+        totalSegments: 20,
+      },
+    });
+
+    const generatePartialScript = jest.fn().mockResolvedValue({
+      dialogueLines: [
+        {
+          id: "line-1",
+          segmentId: "seg-2",
+          chapterId: "chapter-1",
+          orderInSegment: 0,
+          text: "修复后的台词",
+          isNarration: true,
+          characterName: "旁白",
+          tone: "中性",
+        },
+      ],
+      summary: {
+        totalLines: 1,
+        dialogueCount: 0,
+        narrationCount: 1,
+        totalSegments: 1,
+        processedSegments: 1,
+        failedSegments: 0,
+        failedSegmentIds: [],
+        failedSegmentDetails: [],
+        characterDistribution: {},
+        emotionDistribution: {},
+      },
+      segments: [
+        {
+          segmentId: "seg-2",
+          lineCount: 1,
+          characters: ["旁白"],
+        },
+      ],
+    });
+
+    mockGetScriptGenerator.mockReturnValue({
+      generateScript: jest.fn(),
+      generatePartialScript,
+      regenerateSegmentScript: jest.fn(),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-targeted-success",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        startFromSegmentId: "seg-2",
+        startFromOrderIndex: 1,
+      },
+    });
+
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        status: "manual_review_pending",
+        metadata: expect.objectContaining({
+          failedSegmentIds: ["seg-9"],
+          failedSegments: 1,
+        }),
+      }),
+    });
+  });
+
+  it("should preserve full-book counters after targeted partial rerun", async () => {
+    mockPrisma.book.findUnique.mockResolvedValueOnce({
+      id: "book-1",
+      status: "script_generated",
+      metadata: {
+        failedSegmentIds: [],
+        failedSegments: 0,
+        totalScriptLines: 120,
+        dialogueCount: 80,
+        narrationCount: 40,
+        totalSegments: 20,
+      },
+    });
+
+    const generatePartialScript = jest.fn().mockResolvedValue({
+      dialogueLines: [
+        {
+          id: "line-1",
+          segmentId: "seg-2",
+          chapterId: "chapter-1",
+          orderInSegment: 0,
+          text: "修复后的台词",
+          isNarration: true,
+          characterName: "旁白",
+          tone: "中性",
+        },
+      ],
+      summary: {
+        totalLines: 1,
+        dialogueCount: 0,
+        narrationCount: 1,
+        totalSegments: 1,
+        processedSegments: 1,
+        failedSegments: 0,
+        failedSegmentIds: [],
+        failedSegmentDetails: [],
+        characterDistribution: {},
+        emotionDistribution: {},
+      },
+      segments: [
+        {
+          segmentId: "seg-2",
+          lineCount: 1,
+          characters: ["旁白"],
+        },
+      ],
+    });
+
+    mockGetScriptGenerator.mockReturnValue({
+      generateScript: jest.fn(),
+      generatePartialScript,
+      regenerateSegmentScript: jest.fn(),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-partial-counters",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        startFromSegmentId: "seg-2",
+        startFromOrderIndex: 1,
+      },
+    });
+
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        status: "script_generated",
+        metadata: expect.objectContaining({
+          totalScriptLines: 120,
+          dialogueCount: 80,
+          narrationCount: 40,
+          totalSegments: 20,
+          failedSegments: 0,
+          failedSegmentIds: [],
+        }),
+      }),
+    });
+  });
+
+  it("should keep processed status after first incremental generation from a clean book", async () => {
+    mockPrisma.book.findUnique.mockResolvedValueOnce({
+      id: "book-1",
+      status: "processed",
+      metadata: {
+        failedSegmentIds: [],
+        failedSegments: 0,
+        totalSegments: 20,
+      },
+    });
+
+    const generatePartialScript = jest.fn().mockResolvedValue({
+      dialogueLines: [
+        {
+          id: "line-1",
+          segmentId: "seg-2",
+          chapterId: "chapter-1",
+          orderInSegment: 0,
+          text: "修复后的台词",
+          isNarration: true,
+          characterName: "旁白",
+          tone: "中性",
+        },
+      ],
+      summary: {
+        totalLines: 1,
+        dialogueCount: 0,
+        narrationCount: 1,
+        totalSegments: 1,
+        processedSegments: 1,
+        failedSegments: 0,
+        failedSegmentIds: [],
+        failedSegmentDetails: [],
+        characterDistribution: {},
+        emotionDistribution: {},
+      },
+      segments: [
+        {
+          segmentId: "seg-2",
+          lineCount: 1,
+          characters: ["旁白"],
+        },
+      ],
+    });
+
+    mockGetScriptGenerator.mockReturnValue({
+      generateScript: jest.fn(),
+      generatePartialScript,
+      regenerateSegmentScript: jest.fn(),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-first-incremental",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        startFromSegmentId: "seg-2",
+        startFromOrderIndex: 1,
+      },
+    });
+
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        status: "processed",
+        metadata: expect.objectContaining({
+          failedSegments: 0,
+          failedSegmentIds: [],
+        }),
       }),
     });
   });

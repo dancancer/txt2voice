@@ -190,4 +190,21 @@ describe("failed-segment-refinement", () => {
       "“你他娘……”",
     ]);
   });
+
+  it("should not treat ASCII apostrophes inside English words as quote boundaries", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-english",
+        chapterId: "chapter-1",
+        orderIndex: 6,
+        content: "I'm here. It's done. We'll leave when John's ready.",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined).toEqual([]);
+  });
 });
