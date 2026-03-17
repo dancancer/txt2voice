@@ -45,3 +45,31 @@
 
 - lint 仅有 baseline-browser-mapping 数据版本提示，不影响功能正确性。
 - 持久队列与 worker 已进入主链路，详细实现见 `docs/plan/state-machine-v2.md` 与队列代码实现。
+
+## G. Phase 1 Closeout 样本清单（待执行）
+
+### G.1 样本来源
+
+- 真实样本书：`uploads/sample.txt`
+- 固定回归样本：
+  - `apps/web/src/test-fixtures/regression/short-dialogue.txt`
+  - `apps/web/src/test-fixtures/regression/multi-role-scene.txt`
+  - `apps/web/src/test-fixtures/regression/long-narrative.txt`
+- 真实失败片段：`待补充（建议从最近一轮 SCRIPT_VALIDATION issueDetail / failedSegmentDetails 中选 1-2 组）`
+
+### G.2 Closeout 执行记录
+
+| 样本 | 来源 | 目标问题 | 运行次数 | 结果 | 备注 |
+|---|---|---|---:|---|---|
+| `uploads/sample.txt` | 本地统一测试书 | 漏段 / 重复对白 / 边界漂移 | 3 | `已执行` | `3 次完整运行均为 24 lines / 7 failed segments / 7 pending SCRIPT_VALIDATION；失败模式稳定但尚未通过 closeout` |
+| `short-dialogue.txt` | 固定回归样本 | 对白抽取 | 0 | `待执行` | `待填写` |
+| `multi-role-scene.txt` | 固定回归样本 | 多角色 / 对白边界 | 0 | `待执行` | `待填写` |
+| `long-narrative.txt` | 固定回归样本 | 长段截断 / 覆盖率 | 0 | `待执行` | `待填写` |
+| `真实失败片段 A` | 历史 issueDetail | `待填写` | 0 | `待执行` | `待填写` |
+
+### G.3 Closeout 判定规则
+
+- 至少 1 个真实样本书 + 1 组真实失败片段被纳入 Phase 1 closeout。
+- 每个样本至少记录一次结果摘要；收敛性样本需在 `docs/plan/2026-03-12-phase-1-convergence-runbook.md` 中按多次运行补全。
+- 若样本仍出现明显漏段、重复对白或对白/旁白边界错误，必须先回到 Phase 1 修复，再讨论结项。
+

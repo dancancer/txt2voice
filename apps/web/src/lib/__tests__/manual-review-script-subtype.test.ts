@@ -26,6 +26,7 @@ jest.mock("@/lib/processing-task-utils", () => ({
 }));
 
 import prisma from "@/lib/prisma";
+import { listScriptValidationSubtypesByRecommendedAction } from "@/lib/script-validation-detail";
 import {
   listManualReviewItems,
   parseManualReviewQuery,
@@ -76,6 +77,19 @@ describe("manual-review-script-subtype", () => {
     });
   });
 
+  it("should parse recommendedAction from query string", () => {
+    const query = parseManualReviewQuery(
+      new URLSearchParams(
+        "issueType=SCRIPT_VALIDATION&recommendedAction=regenerate"
+      )
+    );
+
+    expect(query).toMatchObject({
+      issueType: "SCRIPT_VALIDATION",
+      recommendedAction: "regenerate",
+    });
+  });
+
   it("should filter script validation items by issueDetail.scriptSubtype", async () => {
     mockCount
       .mockResolvedValueOnce(1)
@@ -99,15 +113,63 @@ describe("manual-review-script-subtype", () => {
         bookId: "book-1",
         status: "pending",
         issueType: "SCRIPT_VALIDATION",
-        issueDetail: {
-          path: ["scriptSubtype"],
-          equals: "COVERAGE",
-        },
+        AND: [
+          {
+            issueDetail: {
+              path: ["scriptSubtype"],
+              equals: "COVERAGE",
+            },
+          },
+        ],
       },
     });
     expect(result.data[0]).toMatchObject({
       issueType: "SCRIPT_VALIDATION",
       issueSubtype: "COVERAGE",
+    });
+  });
+
+  it("should filter script validation items by recommendedAction", async () => {
+    mockCount
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    mockFindMany.mockResolvedValueOnce([baseItem()]);
+
+    const result = await listManualReviewItems("book-1", {
+      page: 1,
+      limit: 20,
+      offset: 0,
+      status: "pending",
+      issueType: "SCRIPT_VALIDATION",
+      recommendedAction: "regenerate",
+    } as any);
+
+    expect(mockCount).toHaveBeenNthCalledWith(1, {
+      where: {
+        bookId: "book-1",
+        status: "pending",
+        issueType: "SCRIPT_VALIDATION",
+        AND: [
+          {
+            OR: listScriptValidationSubtypesByRecommendedAction("regenerate").map(
+              (subtype) => ({
+                issueDetail: {
+                  path: ["scriptSubtype"],
+                  equals: subtype,
+                },
+              })
+            ),
+          },
+        ],
+      },
+    });
+    expect(result.data[0]).toMatchObject({
+      issueType: "SCRIPT_VALIDATION",
+      issueSubtype: "COVERAGE",
+      recommendedAction: "regenerate",
     });
   });
 });

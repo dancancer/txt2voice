@@ -6,7 +6,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Mic, ListTodo, Sparkles } from "lucide-react";
+import { BookOpen, Mic, ListTodo, Sparkles, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface NavigationProps {
@@ -76,7 +77,19 @@ export function Header() {
               <p className="text-sm text-gray-600">智能文本转语音平台</p>
             </div>
           </Link>
-          <Navigation className="hidden md:flex" />
+          <div className="flex items-center gap-3">
+            <Navigation className="hidden md:flex" />
+            <Button
+              asChild
+              size="sm"
+              className="bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500"
+            >
+              <Link href="/?create=1" aria-label="上传书籍">
+                <Plus className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">上传书籍</span>
+              </Link>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

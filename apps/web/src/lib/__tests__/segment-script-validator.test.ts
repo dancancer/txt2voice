@@ -73,6 +73,81 @@ describe("segment script validator", () => {
     });
   });
 
+  it("should accept refined leading quote fragments as dialogue text", () => {
+    const result = validateSegmentScript({
+      segmentContent: '“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+      scriptSentences: [
+        {
+          sourceText: '“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+          text: '本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+          speaker: '龙雅歌',
+        },
+      ],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(
+      resolveScriptLineText({
+        sourceText: '“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+        speaker: '龙雅歌',
+      })
+    ).toBe('本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。');
+  });
+
+  it("should accept refined trailing quote fragments as dialogue text", () => {
+    const result = validateSegmentScript({
+      segmentContent: '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+      scriptSentences: [
+        {
+          sourceText: '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+          text: '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。',
+          speaker: '龙雅歌',
+        },
+      ],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(
+      resolveScriptLineText({
+        sourceText: '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+        speaker: '龙雅歌',
+      })
+    ).toBe('本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。');
+  });
+
+  it("should reject narration on refined boundary quote fragments", () => {
+    const leadingResult = validateSegmentScript({
+      segmentContent: '“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+      scriptSentences: [
+        {
+          sourceText: '“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+          text: '“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+          speaker: '旁白',
+        },
+      ],
+    });
+
+    const trailingResult = validateSegmentScript({
+      segmentContent: '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+      scriptSentences: [
+        {
+          sourceText: '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+          text: '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+          speaker: '旁白',
+        },
+      ],
+    });
+
+    expect(leadingResult.valid).toBe(false);
+    expect(leadingResult.issues.map((issue) => issue.code)).toContain(
+      'QUOTED_NARRATION'
+    );
+    expect(trailingResult.valid).toBe(false);
+    expect(trailingResult.issues.map((issue) => issue.code)).toContain(
+      'QUOTED_NARRATION'
+    );
+  });
+
   it("should reject display-text spans that only keep the quoted body", () => {
     const result = validateSegmentScript({
       segmentContent: '广告牌上写着“营业中”。',
@@ -199,6 +274,22 @@ describe("segment script validator", () => {
         {
           sourceText: '“好的。”',
           text: '“好的。”',
+          speaker: '旁白',
+        },
+      ],
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.issues.map((issue) => issue.code)).toContain('QUOTED_NARRATION');
+  });
+
+  it("should reject narration that keeps attributed speech mixed with scene action", () => {
+    const result = validateSegmentScript({
+      segmentContent: '她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”',
+      scriptSentences: [
+        {
+          sourceText: '她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”',
+          text: '她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”',
           speaker: '旁白',
         },
       ],

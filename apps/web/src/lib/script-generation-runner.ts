@@ -106,6 +106,88 @@ const resolveFailureDetails = (rawValue: unknown): SegmentFailureDetail[] => {
     .filter((entry): entry is SegmentFailureDetail => Boolean(entry));
 };
 
+const isSampleScriptGenerationRun = (
+  extraParams: ScriptGenerationExtraParams
+): boolean =>
+  typeof extraParams.limitToSegments === "number" &&
+  extraParams.limitToSegments > 0 &&
+  !extraParams.regenerateSegments &&
+  !extraParams.startFromSegmentId &&
+  (extraParams.startFromOrderIndex === null ||
+    extraParams.startFromOrderIndex === undefined);
+
+const isPartialScriptGenerationRun = (
+  extraParams: ScriptGenerationExtraParams
+): boolean =>
+  Boolean(extraParams.regenerateSegments) ||
+  Boolean(extraParams.startFromSegmentId) ||
+  (extraParams.startFromOrderIndex !== null &&
+    extraParams.startFromOrderIndex !== undefined) ||
+  isSampleScriptGenerationRun(extraParams);
+
+const mergeOutstandingFailedSegmentIds = (params: {
+  bookMetadata: Record<string, unknown>;
+  processedSegmentIds: string[];
+  failedSegmentIds: string[];
+  isPartialRun: boolean;
+}): string[] => {
+  const { bookMetadata, processedSegmentIds, failedSegmentIds, isPartialRun } = params;
+
+  if (!isPartialRun) {
+    return failedSegmentIds;
+  }
+
+  const processedSegmentIdSet = new Set(processedSegmentIds);
+  const previousFailedSegmentIds = asStringList(bookMetadata.failedSegmentIds);
+
+  return Array.from(
+    new Set([
+      ...previousFailedSegmentIds.filter((segmentId) => !processedSegmentIdSet.has(segmentId)),
+      ...failedSegmentIds,
+    ])
+  );
+};
+
+const resolveBookStatusAfterSampleRun = (
+  previousStatus: string,
+  outstandingFailedSegments: number
+): string => {
+  if (outstandingFailedSegments > 0) {
+    return "manual_review_pending";
+  }
+
+  if (previousStatus === "manual_review_pending" || previousStatus === "script_generated") {
+    return "script_generated";
+  }
+
+  return previousStatus || "script_generated";
+};
+
+const resolveBookStatusAfterPartialRun = (params: {
+  previousStatus: string;
+  outstandingFailedSegments: number;
+  isSampleRun: boolean;
+}): string => {
+  const { previousStatus, outstandingFailedSegments, isSampleRun } = params;
+
+  if (isSampleRun) {
+    return resolveBookStatusAfterSampleRun(
+      previousStatus,
+      outstandingFailedSegments
+    );
+  }
+
+  if (outstandingFailedSegments > 0) {
+    return "manual_review_pending";
+  }
+
+  if (previousStatus === "processed") {
+    return "processed";
+  }
+
+  return "script_generated";
+};
+
 const pickManualReviewPriority = (detail: SegmentFailureDetail): "high" | "normal" => {
   if (detail.coverageRatio !== null && detail.coverageRatio < 0.9) {
     return "high";
@@ -218,6 +300,46 @@ const syncScriptFailureManualReviewItems = async (params: {
   };
 };
 
+const resolveSuccessfulScriptValidationManualReviewItems = async (params: {
+  taskId: string;
+  bookId: string;
+  processedSegmentIds: string[];
+  failedSegmentIds: string[];
+}) => {
+  const { taskId, bookId, processedSegmentIds, failedSegmentIds } = params;
+  const failedSegmentIdSet = new Set(failedSegmentIds);
+  const successfulSegmentIds = processedSegmentIds.filter(
+    (segmentId) => segmentId && !failedSegmentIdSet.has(segmentId)
+  );
+
+  if (successfulSegmentIds.length === 0) {
+    return { resolved: 0 };
+  }
+
+  const result = await prisma.manualReviewItem.updateMany({
+    where: {
+      bookId,
+      issueType: MANUAL_REVIEW_ISSUE_TYPE,
+      segmentId: {
+        in: successfulSegmentIds,
+      },
+      status: {
+        in: ["pending", "reprocessing"],
+      },
+    },
+    data: {
+      status: "resolved",
+      resolutionType: "auto_resolved",
+      resolutionNote: `script_generation_success:task=${taskId}`,
+      resolvedAt: new Date(),
+    },
+  });
+
+  return {
+    resolved: typeof result.count === "number" ? result.count : 0,
+  };
+};
+
 /**
  * 执行台本生成任务。
  * 注意：异常交由队列层决定是否重试和最终失败落库。
@@ -228,6 +350,9 @@ export async function runScriptGenerationTask({
   options,
   extraParams = {},
 }: ScriptGenerationRunParams): Promise<void> {
+  const isSampleRun = isSampleScriptGenerationRun(extraParams);
+  const isPartialRun = isPartialScriptGenerationRun(extraParams);
+
   await updateTaskProgress(taskId, 10, "准备生成台本");
 
   const scriptGenerator = getScriptGenerator();
@@ -252,6 +377,7 @@ export async function runScriptGenerationTask({
     );
     await updateTaskProgress(taskId, 70, "段落台本生成完成");
   } else if (
+    extraParams.limitToSegments ||
     extraParams.startFromSegmentId ||
     (extraParams.startFromOrderIndex !== null &&
       extraParams.startFromOrderIndex !== undefined)
@@ -298,13 +424,35 @@ export async function runScriptGenerationTask({
   const book = await prisma.book.findUnique({
     where: { id: bookId },
   });
+  const bookMetadata = jsonObject(book?.metadata);
+  const previousBookStatus =
+    typeof book?.status === "string" ? book.status : "";
 
   const failedSegments = Number(script.summary.failedSegments || 0);
   const totalSegments = Number(script.summary.totalSegments || 0);
   const hasSegmentFailures = failedSegments > 0;
+  const failedSegmentIds = asStringList(script.summary.failedSegmentIds);
+  const processedSegmentIds = Array.isArray(script.segments)
+    ? script.segments
+        .map((segment: { segmentId?: unknown }) => asString(segment?.segmentId))
+        .filter((segmentId: string) => segmentId.length > 0)
+    : [];
   const failedSegmentDetails = resolveFailureDetails(
     script.summary.failedSegmentDetails
   );
+  const outstandingFailedSegmentIds = mergeOutstandingFailedSegmentIds({
+    bookMetadata,
+    processedSegmentIds,
+    failedSegmentIds,
+    isPartialRun,
+  });
+  const outstandingFailedSegments = outstandingFailedSegmentIds.length;
+  const resolvedReviewResult = await resolveSuccessfulScriptValidationManualReviewItems({
+    taskId,
+    bookId,
+    processedSegmentIds,
+    failedSegmentIds,
+  });
   const reviewSyncResult = hasSegmentFailures
     ? await syncScriptFailureManualReviewItems({
         taskId,
@@ -330,7 +478,7 @@ export async function runScriptGenerationTask({
         segmentCount: script.segments.length,
         totalSegments,
         failedSegments,
-        failedSegmentIds: script.summary.failedSegmentIds || [],
+        failedSegmentIds: outstandingFailedSegmentIds,
         failedSegmentDetails: visibleFailureDetails,
         omittedFailureDetails: Math.max(
           failedSegmentDetails.length - visibleFailureDetails.length,
@@ -360,19 +508,23 @@ export async function runScriptGenerationTask({
       where: { id: bookId },
       data: {
         status:
-          reviewSyncResult.totalPending > 0
+          outstandingFailedSegments > 0
             ? "manual_review_pending"
             : "processed",
         metadata: {
-          ...jsonObject(book?.metadata),
+          ...bookMetadata,
           scriptGenerationFailedAt: new Date().toISOString(),
-          failedSegments,
-          totalSegments,
-          failedSegmentIds: script.summary.failedSegmentIds || [],
+          failedSegments: outstandingFailedSegments,
+          totalSegments:
+            isPartialRun && typeof book?.totalSegments === "number" && book.totalSegments > 0
+              ? book.totalSegments
+              : totalSegments,
+          failedSegmentIds: outstandingFailedSegmentIds,
           scriptFailureIssueType: MANUAL_REVIEW_ISSUE_TYPE,
           scriptFailureManualReviewPending: reviewSyncResult.totalPending,
           scriptFailureManualReviewCreated: reviewSyncResult.created,
           scriptFailureManualReviewUpdated: reviewSyncResult.updated,
+          scriptFailureManualReviewResolved: resolvedReviewResult.resolved,
         },
       },
     });
@@ -384,7 +536,7 @@ export async function runScriptGenerationTask({
   const taskData = await mergeTaskData(taskId, {
     message: extraParams.regenerateSegments
       ? "段落重新生成完成"
-      : extraParams.startFromSegmentId
+      : isPartialRun
       ? "增量台本生成完成"
       : "台本生成完成",
     metadata: {
@@ -393,10 +545,9 @@ export async function runScriptGenerationTask({
       narrationCount: script.summary.narrationCount,
       characterCount: Object.keys(script.summary.characterDistribution).length,
       segmentCount: script.segments.length,
-      isPartial:
-        Boolean(extraParams.startFromSegmentId) ||
-        Boolean(extraParams.regenerateSegments),
+      isPartial: isPartialRun,
       regeneratedSegments: extraParams.segmentIds?.length || 0,
+      autoResolvedScriptReviewItems: resolvedReviewResult.resolved,
     },
   });
 
@@ -412,16 +563,26 @@ export async function runScriptGenerationTask({
   await prisma.book.update({
     where: { id: bookId },
     data: {
-      status: "script_generated",
+      status: isPartialRun
+        ? resolveBookStatusAfterPartialRun({
+            previousStatus: previousBookStatus,
+            outstandingFailedSegments,
+            isSampleRun,
+          })
+        : "script_generated",
       metadata: {
-        ...jsonObject(book?.metadata),
-        scriptGeneratedAt: new Date().toISOString(),
-        totalScriptLines: script.summary.totalLines,
-        dialogueCount: script.summary.dialogueCount,
-        narrationCount: script.summary.narrationCount,
-        totalSegments: script.summary.totalSegments,
-        failedSegments: 0,
-        failedSegmentIds: [],
+        ...bookMetadata,
+        ...(isPartialRun
+          ? {}
+          : {
+              scriptGeneratedAt: new Date().toISOString(),
+              totalScriptLines: script.summary.totalLines,
+              dialogueCount: script.summary.dialogueCount,
+              narrationCount: script.summary.narrationCount,
+              totalSegments: script.summary.totalSegments,
+            }),
+        failedSegments: outstandingFailedSegments,
+        failedSegmentIds: outstandingFailedSegmentIds,
       },
     },
   });

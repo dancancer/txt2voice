@@ -12,6 +12,7 @@
  */
 
 import { CONFIG } from './constants'
+import { buildInsideDialogueQuoteMap, updateDialogueQuoteStack } from './dialogue-quote-tracker'
 import { logger } from './logger'
 
 export interface SmartSplitterOptions {
@@ -46,6 +47,8 @@ interface SegmentPlan {
   start: number
   end: number
 }
+
+const CLOSING_QUOTE_PATTERN = /["”’））》」】]/
 
 /**
  * 智能文本分段器类
@@ -149,6 +152,14 @@ export class SmartTextSplitter {
     clean = clean.replace(/([。！？；，])\s+/g, '$1')
 
     return clean.trim()
+  }
+
+  private updateQuoteStack(quoteStack: string[], char: string) {
+    updateDialogueQuoteStack(quoteStack, char)
+  }
+
+  private buildInsideQuoteMap(text: string): boolean[] {
+    return buildInsideDialogueQuoteMap(text)
   }
 
   /**
@@ -480,6 +491,8 @@ export class SmartTextSplitter {
     let buffer = ''
     let sentenceStart = 0
     let capturing = false
+    const quoteStack: string[] = []
+    let pendingQuotedTerminator = false
 
     for (let i = 0; i < text.length; i++) {
       const char = text[i]
@@ -491,13 +504,27 @@ export class SmartTextSplitter {
 
       buffer += char
 
-      if (this.isSentenceTerminator(char)) {
+      const wasInsideQuote = quoteStack.length > 0
+      this.updateQuoteStack(quoteStack, char)
+      const closedQuotedTerminator =
+        pendingQuotedTerminator &&
+        wasInsideQuote &&
+        quoteStack.length === 0 &&
+        CLOSING_QUOTE_PATTERN.test(char)
+
+      if (this.isSentenceTerminator(char) && quoteStack.length > 0) {
+        pendingQuotedTerminator = true
+        continue
+      }
+
+      if (this.isSentenceTerminator(char) || closedQuotedTerminator) {
         while (i + 1 < text.length && this.isSentenceTerminator(text[i + 1])) {
           buffer += text[++i]
         }
 
-        while (i + 1 < text.length && /["'”’））》」】]/.test(text[i + 1])) {
+        while (i + 1 < text.length && CLOSING_QUOTE_PATTERN.test(text[i + 1])) {
           buffer += text[++i]
+          this.updateQuoteStack(quoteStack, text[i])
         }
 
         const sentenceText = buffer.trim()
@@ -511,6 +538,7 @@ export class SmartTextSplitter {
 
         buffer = ''
         capturing = false
+        pendingQuotedTerminator = false
       }
     }
 
@@ -528,20 +556,36 @@ export class SmartTextSplitter {
   private splitIntoSentences(text: string): string[] {
     const sentences: string[] = []
     let buffer = ''
+    const quoteStack: string[] = []
+    let pendingQuotedTerminator = false
 
     for (let i = 0; i < text.length; i++) {
       const char = text[i]
       buffer += char
 
-      if (this.isSentenceTerminator(char)) {
+      const wasInsideQuote = quoteStack.length > 0
+      this.updateQuoteStack(quoteStack, char)
+      const closedQuotedTerminator =
+        pendingQuotedTerminator &&
+        wasInsideQuote &&
+        quoteStack.length === 0 &&
+        CLOSING_QUOTE_PATTERN.test(char)
+
+      if (this.isSentenceTerminator(char) && quoteStack.length > 0) {
+        pendingQuotedTerminator = true
+        continue
+      }
+
+      if (this.isSentenceTerminator(char) || closedQuotedTerminator) {
         // 向前收集连续的结束符，避免拆分例如？！或……
         while (i + 1 < text.length && this.isSentenceTerminator(text[i + 1])) {
           buffer += text[++i]
         }
 
         // 包含紧随其后的引号或括号
-        while (i + 1 < text.length && /["'”’））》」】]/.test(text[i + 1])) {
+        while (i + 1 < text.length && CLOSING_QUOTE_PATTERN.test(text[i + 1])) {
           buffer += text[++i]
+          this.updateQuoteStack(quoteStack, text[i])
         }
 
         const sentence = buffer.trim()
@@ -549,6 +593,7 @@ export class SmartTextSplitter {
           sentences.push(sentence)
         }
         buffer = ''
+        pendingQuotedTerminator = false
       }
     }
 
@@ -569,6 +614,7 @@ export class SmartTextSplitter {
   private forceSplitLongText(text: string, startOrder: number): TextSegment[] {
     const segments: TextSegment[] = []
     let currentPosition = 0
+    const insideQuote = this.buildInsideQuoteMap(text)
 
     while (currentPosition < text.length) {
       let endPosition = Math.min(currentPosition + this.maxLength, text.length)
@@ -580,6 +626,9 @@ export class SmartTextSplitter {
 
         // 从endPosition向前寻找最近的标点符号
         for (let i = endPosition; i > currentPosition + this.minLength; i--) {
+          if (insideQuote[i]) {
+            continue
+          }
           if (punctuationRegex.test(text[i])) {
             bestBreakPoint = i + 1
             break

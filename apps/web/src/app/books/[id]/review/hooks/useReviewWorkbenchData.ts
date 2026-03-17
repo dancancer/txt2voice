@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { booksApi } from "@/lib/api";
+import { SCRIPT_VALIDATION_RECOMMENDED_ACTION_OPTIONS } from "@/lib/script-validation-detail";
 import {
   SCRIPT_VALIDATION_ISSUE_TYPE,
   SCRIPT_VALIDATION_SUBTYPE_OPTIONS,
@@ -15,6 +16,7 @@ import type {
   DispatchAlertEvent,
   DispatchAlertEventListResponse,
   ManualReviewItem,
+  ReviewRecommendedActionFilter,
   ManualReviewStatusFilter,
   ReviewListResponse,
   ReviewPagination,
@@ -63,6 +65,7 @@ export function useReviewWorkbenchData(bookId: string) {
     status: "pending",
     issueType: "all",
     scriptSubtype: "all",
+    recommendedAction: "all",
     priority: "all",
   });
   const [page, setPage] = useState(1);
@@ -85,8 +88,11 @@ export function useReviewWorkbenchData(bookId: string) {
   }, [items]);
 
   const showScriptSubtypeFilter = filters.issueType === SCRIPT_VALIDATION_ISSUE_TYPE;
+  const showRecommendedActionFilter =
+    filters.issueType === SCRIPT_VALIDATION_ISSUE_TYPE;
 
   const scriptSubtypeOptions = SCRIPT_VALIDATION_SUBTYPE_OPTIONS;
+  const recommendedActionOptions = SCRIPT_VALIDATION_RECOMMENDED_ACTION_OPTIONS;
 
   const loadBookTitle = useCallback(async () => {
     try {
@@ -116,9 +122,21 @@ export function useReviewWorkbenchData(bookId: string) {
       if (showScriptSubtypeFilter && filters.scriptSubtype !== "all") {
         params.set("scriptSubtype", filters.scriptSubtype);
       }
+      if (showRecommendedActionFilter && filters.recommendedAction !== "all") {
+        params.set("recommendedAction", filters.recommendedAction);
+      }
       return params;
     },
-    [filters.issueType, filters.priority, filters.scriptSubtype, filters.status, page, showScriptSubtypeFilter]
+    [
+      filters.issueType,
+      filters.priority,
+      filters.recommendedAction,
+      filters.scriptSubtype,
+      filters.status,
+      page,
+      showRecommendedActionFilter,
+      showScriptSubtypeFilter,
+    ]
   );
 
   const loadReviewData = useCallback(
@@ -265,6 +283,10 @@ export function useReviewWorkbenchData(bookId: string) {
       issueType,
       scriptSubtype:
         issueType === SCRIPT_VALIDATION_ISSUE_TYPE ? prev.scriptSubtype : "all",
+      recommendedAction:
+        issueType === SCRIPT_VALIDATION_ISSUE_TYPE
+          ? prev.recommendedAction
+          : "all",
     }));
   }, []);
 
@@ -272,6 +294,14 @@ export function useReviewWorkbenchData(bookId: string) {
     setPage(1);
     setFilters((prev) => ({ ...prev, scriptSubtype }));
   }, []);
+
+  const updateRecommendedActionFilter = useCallback(
+    (recommendedAction: ReviewRecommendedActionFilter) => {
+      setPage(1);
+      setFilters((prev) => ({ ...prev, recommendedAction }));
+    },
+    []
+  );
 
   const updatePriorityFilter = useCallback((priority: string) => {
     setPage(1);
@@ -298,7 +328,9 @@ export function useReviewWorkbenchData(bookId: string) {
     dispatchEventActionId,
     error,
     issueTypeOptions,
+    recommendedActionOptions,
     scriptSubtypeOptions,
+    showRecommendedActionFilter,
     showScriptSubtypeFilter,
     setPage,
     setWindowDays,
@@ -308,6 +340,7 @@ export function useReviewWorkbenchData(bookId: string) {
     refreshAll,
     updateStatusFilter,
     updateIssueTypeFilter,
+    updateRecommendedActionFilter,
     updateScriptSubtypeFilter,
     updatePriorityFilter,
     resolveItem,

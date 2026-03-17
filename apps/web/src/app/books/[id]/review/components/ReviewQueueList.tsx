@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
 // input: 复核项列表/处置回调
-// output: 人工复核队列卡片与批量操作
+// output: 人工复核队列卡片、脚本失败详情与批量操作
 // pos: 质检复核页面子组件
 
 import { useMemo, useState } from "react";
@@ -75,6 +75,37 @@ const toIssueLabel = (issueType: string): string => {
     return "台本校验";
   }
   return normalized;
+};
+
+const toActionLabel = (action: ManualReviewResolveAction, recommendedAction: string | null) => {
+  if (action !== recommendedAction) {
+    if (action === "approve") {
+      return "通过";
+    }
+    if (action === "reject") {
+      return "驳回";
+    }
+    return "重生";
+  }
+
+  if (action === "approve") {
+    return "通过（推荐）";
+  }
+  if (action === "reject") {
+    return "驳回（推荐）";
+  }
+  return "重生（推荐）";
+};
+
+const toRecommendedActionClassName = (
+  action: ManualReviewResolveAction,
+  recommendedAction: string | null
+) => {
+  if (action !== recommendedAction) {
+    return "";
+  }
+
+  return "ring-2 ring-amber-300 ring-offset-2";
 };
 
 interface ReviewQueueListProps {
@@ -280,10 +311,27 @@ export function ReviewQueueList({
                       {scriptDetail.errorCode ? <span>errorCode: {scriptDetail.errorCode}</span> : null}
                       {scriptDetail.coverageLabel ? <span>coverage: {scriptDetail.coverageLabel}</span> : null}
                     </div>
+                    {scriptDetail.issueMessages.length > 0 ? (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium tracking-wide text-slate-500">
+                          完整问题列表
+                        </p>
+                        <div className="space-y-2">
+                          {scriptDetail.issueMessages.map((message) => (
+                            <p
+                              key={message}
+                              className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700"
+                            >
+                              {message}
+                            </p>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                     {scriptDetail.issueCodes.length > 0 ? (
                       <div className="space-y-1">
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          issue codes
+                          问题代码
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {scriptDetail.issueCodes.map((code) => (
@@ -297,7 +345,7 @@ export function ReviewQueueList({
                     {scriptDetail.issuePreviews.length > 0 ? (
                       <div className="space-y-1">
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          issue previews
+                          问题原文预览
                         </p>
                         <div className="space-y-2">
                           {scriptDetail.issuePreviews.map((preview) => (
@@ -311,10 +359,27 @@ export function ReviewQueueList({
                         </div>
                       </div>
                     ) : null}
+                    {scriptDetail.actionHints.length > 0 ? (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium tracking-wide text-slate-500">
+                          建议动作
+                        </p>
+                        <ol className="space-y-2">
+                          {scriptDetail.actionHints.map((hint) => (
+                            <li
+                              key={hint}
+                              className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700"
+                            >
+                              {hint}
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+                    ) : null}
                     {scriptDetail.segmentPreview ? (
                       <div className="space-y-1">
                         <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          segment preview
+                          段落原文预览
                         </p>
                         <p className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700">
                           {scriptDetail.segmentPreview}
@@ -333,33 +398,47 @@ export function ReviewQueueList({
                   </audio>
                 </div>
               ) : null}
+              {scriptDetail?.recommendedActionLabel ? (
+                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                  推荐动作：{scriptDetail.recommendedActionLabel}
+                </div>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="min-h-10"
+                  className={`min-h-10 ${toRecommendedActionClassName(
+                    "approve",
+                    scriptDetail?.recommendedAction || null
+                  )}`}
                   disabled={!canResolve || actionPending || batchActionLoading}
                   onClick={() => onResolve(item, "approve")}
                 >
                   <CheckCircle2 className="mr-1 h-4 w-4" />
-                  通过
+                  {toActionLabel("approve", scriptDetail?.recommendedAction || null)}
                 </Button>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="min-h-10"
+                  className={`min-h-10 ${toRecommendedActionClassName(
+                    "reject",
+                    scriptDetail?.recommendedAction || null
+                  )}`}
                   disabled={!canResolve || actionPending || batchActionLoading}
                   onClick={() => onResolve(item, "reject")}
                 >
                   <XCircle className="mr-1 h-4 w-4" />
-                  驳回
+                  {toActionLabel("reject", scriptDetail?.recommendedAction || null)}
                 </Button>
                 <Button
                   type="button"
                   size="sm"
-                  className="min-h-10"
+                  className={`min-h-10 ${toRecommendedActionClassName(
+                    "regenerate",
+                    scriptDetail?.recommendedAction || null
+                  )}`}
                   disabled={!canResolve || actionPending || batchActionLoading}
                   onClick={() => onResolve(item, "regenerate")}
                 >
@@ -368,7 +447,7 @@ export function ReviewQueueList({
                   ) : (
                     <RotateCcw className="mr-1 h-4 w-4" />
                   )}
-                  重生
+                  {toActionLabel("regenerate", scriptDetail?.recommendedAction || null)}
                 </Button>
               </div>
             </CardContent>

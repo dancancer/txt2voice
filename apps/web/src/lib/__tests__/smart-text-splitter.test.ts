@@ -66,6 +66,110 @@ describe('SmartTextSplitter', () => {
       const forcedSegments = segments.filter(s => s.metadata?.breakReason === 'forced')
       expect(forcedSegments.length).toBeLessThan(segments.length)
     })
+
+    it('应该避免在引号对白内部的标点处分割', () => {
+      const text =
+        '“宁大哥，宁大爷！行行好，您嗦的那皮儿能扔碗里不？”宁尘眼也不睁，脸上挂起笑：“瞧您说的！您耿老大都发话了，我能下这面子吗。”'
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 10,
+        maxLength: 15,
+        minLength: 5,
+      })
+
+      const hasBrokenQuotedSegment = segments.some((segment) => {
+        const content = segment.content.trim()
+        const openCount = (content.match(/[“「『]/g) || []).length
+        const closeCount = (content.match(/[”」』]/g) || []).length
+        return openCount !== closeCount
+      })
+
+      expect(hasBrokenQuotedSegment).toBe(false)
+    })
+
+    it('应该在 forced split 场景下避免产出引号不平衡段', () => {
+      const text = [
+        '前文铺垫让段落迅速逼近上限。',
+        '“本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+        '“宗主切莫自扰，我宗所据陵允二州，地广人稀，难免有个疏漏。前代宗主传下的诏言总不会有错，时机一到便会拨云见日……”',
+        '“天天就这么一套说辞，烦不烦，烦不烦。”龙宗主捂着脑袋嗔起来，“把这个月呈报念完，你也赶紧用饭去吧。”',
+        '后文继续推进，让整段长度足以进入 forced split 分支。',
+      ].join('')
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 100,
+        maxLength: 120,
+        minLength: 40,
+      })
+
+      const hasBrokenQuotedSegment = segments.some((segment) => {
+        const content = segment.content.trim()
+        const openCount = (content.match(/[“「『]/g) || []).length
+        const closeCount = (content.match(/[”」』]/g) || []).length
+        return openCount !== closeCount
+      })
+
+      expect(hasBrokenQuotedSegment).toBe(false)
+    })
+
+    it('应该在回退范围内没有安全断点时向前找到引号闭合后的切点', () => {
+      const text = `前文铺垫${'甲'.repeat(30)}“${'乙'.repeat(125)}。”后文收束。`
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 100,
+        maxLength: 120,
+        minLength: 40,
+      })
+
+      const hasBrokenQuotedSegment = segments.some((segment) => {
+        const content = segment.content.trim()
+        const openCount = (content.match(/[“「『]/g) || []).length
+        const closeCount = (content.match(/[”」』]/g) || []).length
+        return openCount !== closeCount
+      })
+
+      expect(hasBrokenQuotedSegment).toBe(false)
+    })
+
+    it('应该避免把跨多句的同一组引号对白拆成残缺两段', () => {
+      const text = [
+        '前文铺垫。',
+        '“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。',
+        '本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”',
+        '后文收束。',
+      ].join('')
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 100,
+        maxLength: 120,
+        minLength: 40,
+      })
+
+      const hasBrokenQuotedSegment = segments.some((segment) => {
+        const content = segment.content.trim()
+        const openCount = (content.match(/[“「『]/g) || []).length
+        const closeCount = (content.match(/[”」』]/g) || []).length
+        return openCount !== closeCount
+      })
+
+      expect(hasBrokenQuotedSegment).toBe(false)
+    })
+
+    it('应该忽略英文缩写里的 apostrophe，不把它当作对白引号', () => {
+      const text = "I'm here. It's done. We'll leave when John's ready."
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 10,
+        maxLength: 20,
+        minLength: 5,
+      })
+
+      expect(segments.map((segment) => segment.content)).toEqual([
+        "I'm here.",
+        "It's done.",
+        "We'll leave when John's ready.",
+      ])
+    })
   })
 
   describe('长度控制', () => {
