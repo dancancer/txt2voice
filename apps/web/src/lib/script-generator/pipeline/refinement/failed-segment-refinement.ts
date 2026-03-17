@@ -334,6 +334,7 @@ const splitLeadingQuotedAttributionSlice = (slice: {
 };
 
 const mergeAdjacentNarrationSlices = (
+  sourceContent: string,
   slices: Array<{ start: number; end: number; content: string }>
 ) => {
   const merged: Array<{ start: number; end: number; content: string }> = [];
@@ -345,12 +346,7 @@ const mergeAdjacentNarrationSlices = (
       !QUOTE_CHAR_PATTERN.test(last.content) &&
       !QUOTE_CHAR_PATTERN.test(slice.content)
     ) {
-      const combined = trimSlice(
-        `${last.content}${slice.content}`,
-        0,
-        `${last.content}${slice.content}`.length
-      );
-      last.content = combined.content;
+      last.content = sourceContent.slice(last.start, slice.end);
       last.end = slice.end;
       continue;
     }
@@ -503,6 +499,7 @@ export const refineFailedSegment = (
   const bySentence = splitBySentenceBoundaries(segment.content);
   const rawSlices = mergeAttributedQuoteRuns(
     mergeAdjacentNarrationSlices(
+      segment.content,
       bySentence.flatMap((slice) => splitQuotedSentence(slice))
     )
   );

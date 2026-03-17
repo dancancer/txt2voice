@@ -168,6 +168,27 @@ describe("failed-segment-refinement", () => {
     ]);
   });
 
+  it("should preserve original whitespace when merging adjacent narration slices", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-whitespace",
+        chapterId: "chapter-1",
+        orderIndex: 5,
+        content: "前文。\n\n后文。“你好。”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"],
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual(["前文。\n\n后文。", "“你好。”"]);
+    expect(refined[0]).toMatchObject({
+      offsetStart: 0,
+      offsetEnd: 8,
+    });
+  });
+
   it("should split long narration from trailing quotes with explicit speaker labels", () => {
     const refined = refineFailedSegment({
       segment: {
