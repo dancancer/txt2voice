@@ -3,9 +3,13 @@ import type { QueueTaskType } from "@/lib/task-queue/replay-payload";
 import type { DeadLetterInput } from "@/lib/task-queue/worker-state";
 import {
   AUDIO_QUEUE_NAME,
+  AUDIO_SYNTHESIS_JOB_OPTIONS,
+  AUDIO_SYNTHESIS_QUEUE_NAME,
   AUTO_PIPELINE_QUEUE_NAME,
   DEAD_LETTER_JOB_OPTIONS,
   DEAD_LETTER_QUEUE_NAME,
+  LLM_JOB_OPTIONS,
+  LLM_QUEUE_NAME,
   QUALITY_QUEUE_NAME,
   SIGNAL_SYNC_QUEUE_NAME,
   RUNNING_STATES,
@@ -13,9 +17,11 @@ import {
 } from "./constants";
 import type {
   AudioGenerationJobData,
+  AudioSynthesisJobData,
   AutoPipelineJobData,
   DeadLetterJobData,
   JobRuntimeState,
+  LLMExecutionJobData,
   QualityCheckJobData,
   QualitySignalSyncJobData,
   QueueAddResult,
@@ -30,9 +36,11 @@ declare global {
 export const queueState: TaskQueueState = globalThis.__txt2voiceTaskQueueState ?? {
   scriptQueue: null,
   audioQueue: null,
+  audioSynthesisQueue: null,
   qualityQueue: null,
   signalSyncQueue: null,
   autoPipelineQueue: null,
+  llmQueue: null,
   deadLetterQueue: null,
   workerStarted: false,
   recovering: false,
@@ -106,6 +114,18 @@ export function getAudioQueue(): Bull.Queue<AudioGenerationJobData> {
   return queueState.audioQueue;
 }
 
+export function getAudioSynthesisQueue(): Bull.Queue<AudioSynthesisJobData> {
+  if (!queueState.audioSynthesisQueue) {
+    queueState.audioSynthesisQueue = createQueue<AudioSynthesisJobData>(
+      AUDIO_SYNTHESIS_QUEUE_NAME,
+      {
+        defaultJobOptions: AUDIO_SYNTHESIS_JOB_OPTIONS,
+      }
+    );
+  }
+  return queueState.audioSynthesisQueue;
+}
+
 export function getQualityQueue(): Bull.Queue<QualityCheckJobData> {
   if (!queueState.qualityQueue) {
     queueState.qualityQueue = createQueue<QualityCheckJobData>(QUALITY_QUEUE_NAME);
@@ -127,6 +147,15 @@ export function getAutoPipelineQueue(): Bull.Queue<AutoPipelineJobData> {
     );
   }
   return queueState.autoPipelineQueue;
+}
+
+export function getLLMQueue(): Bull.Queue<LLMExecutionJobData> {
+  if (!queueState.llmQueue) {
+    queueState.llmQueue = createQueue<LLMExecutionJobData>(LLM_QUEUE_NAME, {
+      defaultJobOptions: LLM_JOB_OPTIONS,
+    });
+  }
+  return queueState.llmQueue;
 }
 
 export function getDeadLetterQueue(): Bull.Queue<DeadLetterJobData> {

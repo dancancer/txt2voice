@@ -267,7 +267,12 @@ export class SmartTextSplitter {
         const length = this.measureLength(segmentContent)
         const isLast = end === sentences.length - 1
 
-        if (!isLast && length > this.maxLength) {
+        const lastSegmentHardLimit = Math.max(
+          this.maxLength * 3,
+          this.maxLength + this.tolerance * 2,
+        )
+
+        if ((!isLast && length > this.maxLength) || (isLast && length > lastSegmentHardLimit)) {
           break
         }
 
@@ -304,7 +309,12 @@ export class SmartTextSplitter {
   /**
    * 处理超长内容
    */
-  private processOversizedContent(content: string, startOrder: number, allowFlexibleFinalSegment = false): TextSegment[] {
+  private processOversizedContent(
+    content: string,
+    startOrder: number,
+    allowFlexibleFinalSegment = false,
+    skipBalance = false
+  ): TextSegment[] {
     const segments: TextSegment[] = []
 
     // 首先尝试按句子分割
@@ -389,7 +399,7 @@ export class SmartTextSplitter {
       }
     }
 
-    return this.balanceSegmentLengths(segments)
+    return skipBalance ? segments : this.balanceSegmentLengths(segments)
   }
 
   /**
@@ -436,7 +446,7 @@ export class SmartTextSplitter {
         const reachedEnd = lastConsumedIndex === segments.length - 1
 
         if (consumedSegments > 1) {
-          if (combinedEffectiveLength <= this.maxLength && !reachedEnd) {
+          if (combinedEffectiveLength <= this.maxLength) {
             const mergedSegment: TextSegment = {
               content: combinedContent,
               length: calculateSmartLength(combinedContent),
@@ -455,7 +465,8 @@ export class SmartTextSplitter {
             const rebalancedSegments = this.processOversizedContent(
               combinedContent,
               currentSegment.order,
-              reachedEnd
+              reachedEnd,
+              true
             )
 
             if (rebalancedSegments.length > 0) {

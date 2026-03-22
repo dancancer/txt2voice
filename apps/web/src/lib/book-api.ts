@@ -336,6 +336,7 @@ export async function createScriptSentence(
     text: string;
     rawSpeaker?: string | null;
     tone?: string;
+    roleType?: string;
     strength?: number;
     pauseAfter?: number;
     ttsParameters?: any;

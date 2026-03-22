@@ -6,6 +6,8 @@
  * 智能文本分段器测试
  */
 
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { SmartTextSplitter, splitTextSmartly, calculateSmartLength, validateSegmentQuality } from '../smart-text-splitter'
 
 describe('SmartTextSplitter', () => {
@@ -153,6 +155,71 @@ describe('SmartTextSplitter', () => {
       })
 
       expect(hasBrokenQuotedSegment).toBe(false)
+    })
+
+    it('应该避免把脏引号后的剩余正文吞成一个超长 final segment', () => {
+      const text = Array.from(
+        { length: 40 },
+        () => '“我，我没事……“ 大块头说道。'
+      ).join(' ')
+
+      const segments = splitTextSmartly(text, {
+        targetLength: 80,
+        maxLength: 120,
+        minLength: 40,
+      })
+
+      const maxEffectiveLength = Math.max(
+        ...segments.map((segment) =>
+          Math.max(segment.length, segment.content.trim().length)
+        )
+      )
+
+      expect(segments.length).toBeGreaterThan(3)
+      expect(maxEffectiveLength).toBeLessThanOrEqual(120)
+      expect(
+        segments.some(
+          (segment) =>
+            segment.metadata?.breakReason === 'final_segment' &&
+            Math.max(segment.length, segment.content.trim().length) > 120
+        )
+      ).toBe(false)
+    })
+
+    it('应该避免在超长脏引号文本上触发递归栈溢出', () => {
+      const block = [
+        '“我，我没事……“ 大块头说道。',
+        '“没事没事，冉冰副官不小心压我身上了，哈哈……“ 旁白继续描述。',
+        '“怎么这么不小心，你好歹也是个副官了。“ 马克皱着眉。',
+        '冉冰红着脸低下头，心里乱成一团。',
+      ].join(' ')
+      const text = Array.from({ length: 220 }, () => block).join(' ')
+
+      expect(() =>
+        splitTextSmartly(text, {
+          targetLength: 280,
+          maxLength: 360,
+          minLength: 200,
+        })
+      ).not.toThrow()
+    })
+
+    it('应该能稳定切分真实脏引号样本而不是栈溢出', () => {
+      const text = readFileSync(
+        join(
+          process.cwd(),
+          'src/test-fixtures/regression/malformed-quote-long-tail.txt'
+        ),
+        'utf8'
+      )
+
+      expect(() =>
+        splitTextSmartly(text, {
+          targetLength: 280,
+          maxLength: 360,
+          minLength: 200,
+        })
+      ).not.toThrow()
     })
 
     it('应该忽略英文缩写里的 apostrophe，不把它当作对白引号', () => {

@@ -29,4 +29,22 @@ describe("dialogue quote tracker", () => {
     updateDialogueQuoteStack(quoteStack, '"');
     expect(quoteStack).toEqual([]);
   });
+
+  it("should treat repeated Chinese opening quote as malformed closing quote when already inside dialogue", () => {
+    const quoteStack: string[] = [];
+
+    updateDialogueQuoteStack(quoteStack, "“");
+    expect(quoteStack).toEqual(["”"]);
+
+    updateDialogueQuoteStack(quoteStack, "“");
+    expect(quoteStack).toEqual([]);
+  });
+
+  it("should stop marking narration as inside quote after malformed Chinese closing quote", () => {
+    const text = "“我，我没事……“ 大块头说道。";
+    const insideQuote = buildInsideDialogueQuoteMap(text);
+
+    expect(insideQuote[text.indexOf("我")]).toBe(true);
+    expect(insideQuote[text.indexOf("大")]).toBe(false);
+  });
 });

@@ -51,6 +51,8 @@ const GENERIC_DAO_PATTERN = /[^，。！？；：,:]{0,12}道(?:[：:,，。\s]|
 const DISPLAY_TEXT_PATTERN =
   /(写着|写道|写有|写明|标着|标明|贴着|贴有|印着|印有|显示着|显示|注明|题着)/;
 const PUNCTUATION_ONLY_PATTERN = /^[，。！？；：,:、…—\-\s]+$/;
+const REPORT_READING_PATTERN =
+  /(一字一句念起来|一字一句念起|照着.*念|念起宗门呈报|取出宗门呈报|宣读|朗读|念了小半个时辰|念了半天|念道)/;
 
 interface QuoteSpan {
   start: number;
@@ -58,6 +60,8 @@ interface QuoteSpan {
 }
 
 const QUOTE_CHAR_PATTERN = /[“”「」『』‘’"']/;
+const LEADING_QUOTE_PATTERN = /^\s*[“「『‘"']/;
+const LEADING_AND_TRAILING_QUOTE_PATTERN = /^\s*[“「『‘"']([\s\S]*?)[”」』’"']\s*$/;
 
 const trimSlice = (content: string, start: number, end: number) => {
   let nextStart = start;
@@ -207,6 +211,39 @@ const isAttributionFragment = (value: string) => {
     GENERIC_DAO_PATTERN.test(value) ||
     PUNCTUATION_ONLY_PATTERN.test(value)
   );
+};
+
+const hasAttributionContext = (value: string) => {
+  if (!value || DISPLAY_TEXT_PATTERN.test(value)) {
+    return false;
+  }
+
+  return (
+    ATTRIBUTION_TOKEN_PATTERN.test(value) ||
+    GENERIC_DAO_PATTERN.test(value)
+  );
+};
+
+const hasReportReadingContext = (value: string) => {
+  if (!value || DISPLAY_TEXT_PATTERN.test(value)) {
+    return false;
+  }
+
+  return REPORT_READING_PATTERN.test(value);
+};
+
+const stripOuterQuotes = (value: string) => {
+  const matched = value.match(LEADING_AND_TRAILING_QUOTE_PATTERN);
+  return matched ? matched[1].trim() : value.trim();
+};
+
+const isLikelyReportQuoteSlice = (value: string) => {
+  if (!isPureQuotedSlice(value)) {
+    return false;
+  }
+
+  const body = stripOuterQuotes(value);
+  return body.length >= 10;
 };
 
 const shouldKeepQuotedSentenceAsWhole = (content: string, spans: QuoteSpan[]) => {
@@ -409,11 +446,11 @@ const splitQuotedSentence = (slice: { start: number; end: number; content: strin
   return pieces.length > 0 ? pieces : [slice];
 };
 
-const isPureQuotedSlice = (content: string) => {
+function isPureQuotedSlice(content: string) {
   const trimmed = content.trim();
   const spans = findQuotedSpans(trimmed);
   return spans.length === 1 && spans[0].start === 0 && spans[0].end === trimmed.length;
-};
+}
 
 const mergeAttributedQuoteRuns = (
   slices: Array<{ start: number; end: number; content: string }>
@@ -462,6 +499,102 @@ const mergeAttributedQuoteRuns = (
   return merged;
 };
 
+const mergeAttributedContextSlices = (
+  sourceContent: string,
+  slices: Array<{ start: number; end: number; content: string }>
+) => {
+  const merged: Array<{ start: number; end: number; content: string }> = [];
+
+  for (let index = 0; index < slices.length; index += 1) {
+    const current = { ...slices[index] };
+    const next = slices[index + 1];
+
+    if (!next) {
+      merged.push(current);
+      continue;
+    }
+
+    if (
+      hasReportReadingContext(current.content) &&
+      LEADING_QUOTE_PATTERN.test(next.content) &&
+      (
+        hasReportReadingContext(next.content) ||
+        findQuotedSpans(next.content).length >= 2 ||
+        isLikelyReportQuoteSlice(next.content)
+      )
+    ) {
+      current.end = next.end;
+      current.content = sourceContent.slice(current.start, current.end);
+      index += 1;
+
+      while (index + 1 < slices.length) {
+        const following = slices[index + 1];
+        if (
+          !(
+            (LEADING_QUOTE_PATTERN.test(following.content) &&
+              (hasReportReadingContext(following.content) ||
+                findQuotedSpans(following.content).length >= 2 ||
+                isLikelyReportQuoteSlice(following.content))) ||
+            (hasReportReadingContext(following.content) &&
+              QUOTE_CHAR_PATTERN.test(following.content))
+          )
+        ) {
+          break;
+        }
+
+        index += 1;
+        current.end = following.end;
+        current.content = sourceContent.slice(current.start, current.end);
+      }
+    }
+
+    merged.push(current);
+  }
+
+  return merged;
+};
+
+const mergeReportContinuationRuns = (
+  sourceContent: string,
+  slices: Array<{ start: number; end: number; content: string }>
+) => {
+  const merged: Array<{ start: number; end: number; content: string }> = [];
+
+  for (let index = 0; index < slices.length; index += 1) {
+    const current = { ...slices[index] };
+
+    if (
+      !(
+        hasReportReadingContext(current.content) &&
+        QUOTE_CHAR_PATTERN.test(current.content)
+      )
+    ) {
+      merged.push(current);
+      continue;
+    }
+
+    while (index + 1 < slices.length) {
+      const following = slices[index + 1];
+      const shouldMergeFollowing =
+        isLikelyReportQuoteSlice(following.content) ||
+        (hasReportReadingContext(following.content) &&
+          QUOTE_CHAR_PATTERN.test(following.content));
+
+      if (!shouldMergeFollowing) {
+        break;
+      }
+
+      index += 1;
+      current.end = following.end;
+      current.content = sourceContent.slice(current.start, current.end);
+    }
+
+    merged.push(current);
+  }
+
+  return merged;
+};
+
 export const shouldRefineSegmentFailure = (failure: {
   errorCode?: string;
   issueCodes?: string[];
@@ -497,14 +630,20 @@ export const refineFailedSegment = (
   }
 
   const bySentence = splitBySentenceBoundaries(segment.content);
-  const rawSlices = mergeAttributedQuoteRuns(
-    mergeAdjacentNarrationSlices(
-      segment.content,
-      bySentence.flatMap((slice) => splitQuotedSentence(slice))
+  const rawSlices = mergeAttributedContextSlices(
+    segment.content,
+    mergeAttributedQuoteRuns(
+      mergeAdjacentNarrationSlices(
+        segment.content,
+        bySentence.flatMap((slice) => splitQuotedSentence(slice))
+      )
     )
   );
+  const normalizedSlices = mergeReportContinuationRuns(segment.content, rawSlices);
   const fallbackSlices =
-    rawSlices.length > 1 ? rawSlices : splitByQuoteBoundaries(segment.content);
+    normalizedSlices.length > 1
+      ? normalizedSlices
+      : splitByQuoteBoundaries(segment.content);
 
   if (fallbackSlices.length <= 1) {
     return [];

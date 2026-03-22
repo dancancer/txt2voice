@@ -29,6 +29,11 @@ export const updateDialogueQuoteStack = (
       return;
     }
 
+    if (quoteStack[quoteStack.length - 1] === matchingClose) {
+      quoteStack.pop();
+      return;
+    }
+
     quoteStack.push(matchingClose);
     return;
   }

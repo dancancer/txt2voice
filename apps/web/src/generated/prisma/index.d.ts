@@ -6548,6 +6548,8 @@ export namespace Prisma {
     id: string | null
     bookId: string | null
     canonicalName: string | null
+    isSystemRole: boolean | null
+    systemRoleType: string | null
     genderHint: string | null
     ageHint: number | null
     emotionBaseline: string | null
@@ -6562,6 +6564,8 @@ export namespace Prisma {
     id: string | null
     bookId: string | null
     canonicalName: string | null
+    isSystemRole: boolean | null
+    systemRoleType: string | null
     genderHint: string | null
     ageHint: number | null
     emotionBaseline: string | null
@@ -6576,6 +6580,8 @@ export namespace Prisma {
     id: number
     bookId: number
     canonicalName: number
+    isSystemRole: number
+    systemRoleType: number
     characteristics: number
     voicePreferences: number
     emotionProfile: number
@@ -6607,6 +6613,8 @@ export namespace Prisma {
     id?: true
     bookId?: true
     canonicalName?: true
+    isSystemRole?: true
+    systemRoleType?: true
     genderHint?: true
     ageHint?: true
     emotionBaseline?: true
@@ -6621,6 +6629,8 @@ export namespace Prisma {
     id?: true
     bookId?: true
     canonicalName?: true
+    isSystemRole?: true
+    systemRoleType?: true
     genderHint?: true
     ageHint?: true
     emotionBaseline?: true
@@ -6635,6 +6645,8 @@ export namespace Prisma {
     id?: true
     bookId?: true
     canonicalName?: true
+    isSystemRole?: true
+    systemRoleType?: true
     characteristics?: true
     voicePreferences?: true
     emotionProfile?: true
@@ -6739,6 +6751,8 @@ export namespace Prisma {
     id: string
     bookId: string
     canonicalName: string
+    isSystemRole: boolean
+    systemRoleType: string | null
     characteristics: JsonValue
     voicePreferences: JsonValue
     emotionProfile: JsonValue
@@ -6775,6 +6789,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6800,6 +6816,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6818,6 +6836,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6836,6 +6856,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6849,7 +6871,7 @@ export namespace Prisma {
     quotes?: boolean
   }
 
-  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "createdAt" | "updatedAt" | "mentions" | "quotes", ExtArgs["result"]["characterProfile"]>
+  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "isSystemRole" | "systemRoleType" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "createdAt" | "updatedAt" | "mentions" | "quotes", ExtArgs["result"]["characterProfile"]>
   export type CharacterProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aliases?: boolean | CharacterProfile$aliasesArgs<ExtArgs>
     mergeAuditsSource?: boolean | CharacterProfile$mergeAuditsSourceArgs<ExtArgs>
@@ -6882,6 +6904,8 @@ export namespace Prisma {
       id: string
       bookId: string
       canonicalName: string
+      isSystemRole: boolean
+      systemRoleType: string | null
       characteristics: Prisma.JsonValue
       voicePreferences: Prisma.JsonValue
       emotionProfile: Prisma.JsonValue
@@ -7326,6 +7350,8 @@ export namespace Prisma {
     readonly id: FieldRef<"CharacterProfile", 'String'>
     readonly bookId: FieldRef<"CharacterProfile", 'String'>
     readonly canonicalName: FieldRef<"CharacterProfile", 'String'>
+    readonly isSystemRole: FieldRef<"CharacterProfile", 'Boolean'>
+    readonly systemRoleType: FieldRef<"CharacterProfile", 'String'>
     readonly characteristics: FieldRef<"CharacterProfile", 'Json'>
     readonly voicePreferences: FieldRef<"CharacterProfile", 'Json'>
     readonly emotionProfile: FieldRef<"CharacterProfile", 'Json'>
@@ -32089,6 +32115,8 @@ export namespace Prisma {
     id: 'id',
     bookId: 'bookId',
     canonicalName: 'canonicalName',
+    isSystemRole: 'isSystemRole',
+    systemRoleType: 'systemRoleType',
     characteristics: 'characteristics',
     voicePreferences: 'voicePreferences',
     emotionProfile: 'emotionProfile',
@@ -32946,6 +32974,8 @@ export namespace Prisma {
     id?: StringFilter<"CharacterProfile"> | string
     bookId?: StringFilter<"CharacterProfile"> | string
     canonicalName?: StringFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableFilter<"CharacterProfile"> | string | null
     characteristics?: JsonFilter<"CharacterProfile">
     voicePreferences?: JsonFilter<"CharacterProfile">
     emotionProfile?: JsonFilter<"CharacterProfile">
@@ -32970,6 +33000,8 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrderInput | SortOrder
     characteristics?: SortOrder
     voicePreferences?: SortOrder
     emotionProfile?: SortOrder
@@ -32992,11 +33024,14 @@ export namespace Prisma {
 
   export type CharacterProfileWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    bookId_systemRoleType?: CharacterProfileBookIdSystemRoleTypeCompoundUniqueInput
     AND?: CharacterProfileWhereInput | CharacterProfileWhereInput[]
     OR?: CharacterProfileWhereInput[]
     NOT?: CharacterProfileWhereInput | CharacterProfileWhereInput[]
     bookId?: StringFilter<"CharacterProfile"> | string
     canonicalName?: StringFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableFilter<"CharacterProfile"> | string | null
     characteristics?: JsonFilter<"CharacterProfile">
     voicePreferences?: JsonFilter<"CharacterProfile">
     emotionProfile?: JsonFilter<"CharacterProfile">
@@ -33015,12 +33050,14 @@ export namespace Prisma {
     voiceBindings?: CharacterVoiceBindingListRelationFilter
     speakerBindings?: CharacterSpeakerBindingListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
-  }, "id">
+  }, "id" | "bookId_systemRoleType">
 
   export type CharacterProfileOrderByWithAggregationInput = {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrderInput | SortOrder
     characteristics?: SortOrder
     voicePreferences?: SortOrder
     emotionProfile?: SortOrder
@@ -33046,6 +33083,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"CharacterProfile"> | string
     bookId?: StringWithAggregatesFilter<"CharacterProfile"> | string
     canonicalName?: StringWithAggregatesFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolWithAggregatesFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableWithAggregatesFilter<"CharacterProfile"> | string | null
     characteristics?: JsonWithAggregatesFilter<"CharacterProfile">
     voicePreferences?: JsonWithAggregatesFilter<"CharacterProfile">
     emotionProfile?: JsonWithAggregatesFilter<"CharacterProfile">
@@ -35483,6 +35522,8 @@ export namespace Prisma {
   export type CharacterProfileCreateInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35507,6 +35548,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35529,6 +35572,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35553,6 +35598,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35576,6 +35623,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35592,6 +35641,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35609,6 +35660,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -38498,10 +38551,17 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type CharacterProfileBookIdSystemRoleTypeCompoundUniqueInput = {
+    bookId: string
+    systemRoleType: string
+  }
+
   export type CharacterProfileCountOrderByAggregateInput = {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrder
     characteristics?: SortOrder
     voicePreferences?: SortOrder
     emotionProfile?: SortOrder
@@ -38525,6 +38585,8 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrder
     genderHint?: SortOrder
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
@@ -38539,6 +38601,8 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrder
     genderHint?: SortOrder
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
@@ -43189,6 +43253,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutBookInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -43211,6 +43277,8 @@ export namespace Prisma {
   export type CharacterProfileUncheckedCreateWithoutBookInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -43852,6 +43920,8 @@ export namespace Prisma {
     id?: StringFilter<"CharacterProfile"> | string
     bookId?: StringFilter<"CharacterProfile"> | string
     canonicalName?: StringFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableFilter<"CharacterProfile"> | string | null
     characteristics?: JsonFilter<"CharacterProfile">
     voicePreferences?: JsonFilter<"CharacterProfile">
     emotionProfile?: JsonFilter<"CharacterProfile">
@@ -45385,6 +45455,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutAliasesInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45408,6 +45480,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45445,6 +45519,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutAliasesInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45468,6 +45544,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45615,6 +45693,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutVoiceBindingsInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45638,6 +45718,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45716,6 +45798,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutVoiceBindingsInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45739,6 +45823,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -46734,6 +46820,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutScriptSentencesInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -46757,6 +46845,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -47033,6 +47123,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutScriptSentencesInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -47056,6 +47148,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48032,6 +48126,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutMergeAuditsSourceInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48055,6 +48151,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48081,6 +48179,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutMergeAuditsTargetInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48104,6 +48204,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48218,6 +48320,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutMergeAuditsSourceInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48241,6 +48345,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48273,6 +48379,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutMergeAuditsTargetInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48296,6 +48404,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48662,6 +48772,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutSpeakerBindingsInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48685,6 +48797,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48768,6 +48882,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutSpeakerBindingsInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48791,6 +48907,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52415,6 +52533,8 @@ export namespace Prisma {
   export type CharacterProfileCreateManyBookInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52724,6 +52844,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52746,6 +52868,8 @@ export namespace Prisma {
   export type CharacterProfileUncheckedUpdateWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52768,6 +52892,8 @@ export namespace Prisma {
   export type CharacterProfileUncheckedUpdateManyWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue

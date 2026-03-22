@@ -125,6 +125,9 @@ export const POST = withErrorHandler(
           : "开始生成朗读台本",
         regenerateSegments,
         limitToSegments: typeof limitToSegments === "number" ? limitToSegments : null,
+        metadata: {
+          previousBookStatus: book.status,
+        },
       };
 
       if (startFromSegmentId) {

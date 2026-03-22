@@ -1,3 +1,4 @@
+import type Bull from "bull";
 import prisma from "@/lib/prisma";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import {
@@ -8,7 +9,9 @@ import {
 } from "@/lib/task-queue/dedupe";
 import {
   AUDIO_JOB_OPTIONS,
+  AUDIO_SYNTHESIS_JOB_OPTIONS,
   AUDIO_QUEUE_NAME,
+  LLM_JOB_OPTIONS,
   QUALITY_JOB_OPTIONS,
   QUALITY_QUEUE_NAME,
   SIGNAL_SYNC_JOB_OPTIONS,
@@ -19,6 +22,8 @@ import {
 import {
   addOrReuseJob,
   getAudioQueue,
+  getAudioSynthesisQueue,
+  getLLMQueue,
   getQualityQueue,
   getScriptQueue,
   getSignalSyncQueue,
@@ -26,6 +31,8 @@ import {
 import type {
   AutoPipelineQueueInput,
   AudioGenerationQueueInput,
+  AudioSynthesisQueueInput,
+  LLMExecutionQueueInput,
   QualityCheckQueueInput,
   QualitySignalSyncQueueInput,
   QueueControlOptions,
@@ -56,6 +63,15 @@ const normalizeAudioInput = (
   options: input.options || {},
 });
 
+const normalizeAudioSynthesisInput = (
+  input: AudioSynthesisQueueInput
+): AudioSynthesisQueueInput => ({
+  requestId: input.requestId,
+  request: input.request,
+  options: input.options || {},
+  metadata: input.metadata || {},
+});
+
 const normalizeQualityInput = (
   input: QualityCheckQueueInput
 ): QualityCheckQueueInput => ({
@@ -76,6 +92,17 @@ const normalizeSignalSyncInput = (
   audioFileIds: input.audioFileIds || [],
   forceResync: Boolean(input.forceResync),
   signalModelRuntime: input.signalModelRuntime || {},
+});
+
+const normalizeLLMInput = (
+  input: LLMExecutionQueueInput
+): LLMExecutionQueueInput => ({
+  requestId: input.requestId,
+  provider: input.provider,
+  prompt: input.prompt,
+  systemPrompt: input.systemPrompt,
+  metadata: input.metadata || {},
+  requestOptions: input.requestOptions || {},
 });
 
 export async function enqueueScriptGenerationJob(
@@ -316,4 +343,60 @@ export async function enqueueAutoPipelineJob(
 ): Promise<{ jobId: string; dedupeKey: string; reused: boolean; state: string }> {
   await ensureTaskWorkerStarted();
   return enqueueAutoPipelineJobInternal(input, control);
+}
+
+export async function enqueueLLMExecutionJob(
+  input: LLMExecutionQueueInput
+): Promise<{
+  jobId: string;
+  job: Bull.Job;
+}> {
+  await ensureTaskWorkerStarted();
+
+  const normalizedInput = normalizeLLMInput(input);
+  const queue = getLLMQueue();
+  const job = await queue.add(
+    {
+      ...normalizedInput,
+      metadata: normalizedInput.metadata || {},
+      requestOptions: normalizedInput.requestOptions || {},
+    },
+    {
+      ...LLM_JOB_OPTIONS,
+      jobId: normalizedInput.requestId,
+    }
+  );
+
+  return {
+    jobId: String(job.id),
+    job,
+  };
+}
+
+export async function enqueueAudioSynthesisJob(
+  input: AudioSynthesisQueueInput
+): Promise<{
+  jobId: string;
+  job: Bull.Job;
+}> {
+  await ensureTaskWorkerStarted();
+
+  const normalizedInput = normalizeAudioSynthesisInput(input);
+  const queue = getAudioSynthesisQueue();
+  const job = await queue.add(
+    {
+      ...normalizedInput,
+      options: normalizedInput.options || {},
+      metadata: normalizedInput.metadata || {},
+    },
+    {
+      ...AUDIO_SYNTHESIS_JOB_OPTIONS,
+      jobId: normalizedInput.requestId,
+    }
+  );
+
+  return {
+    jobId: String(job.id),
+    job,
+  };
 }

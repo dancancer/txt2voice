@@ -168,6 +168,36 @@ describe("failed-segment-refinement", () => {
     ]);
   });
 
+  it("should keep ongoing report quotes merged inside the real failure segment", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-report-continuation",
+        chapterId: "chapter-1",
+        orderIndex: 6,
+        content:
+          "“宗主何事忧烦？”\n　　“昨晚喝多了……”\n　　闵弘芳忍了半天才没让嘴撇起来：“凭宗主浩然气机，几樽仙酿下去怕也是醉不倒的。”\n　　龙雅歌纤手扶额，视线落在空阔的大殿尽头：“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”\n　　“宗主切莫自扰，我宗所据陵允二州，地广人稀，难免有个疏漏。前代宗主传下的诏言总不会有错，时机一到便会拨云见日……”\n　　“天天就这么一套说辞，烦不烦，烦不烦。”龙宗主捂着脑袋嗔起来，“把这个月呈报念完，你也赶紧用饭去吧。”\n　　“是。”闵弘芳从储物戒中取出宗门呈报，一字一句念起来。\n　　“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”\n　　“丹药堂新产丹药四百枚……”\n　　这边厢游响停云，那边厢心不在焉，闵弘芳念了小半个时辰，龙雅歌一桌子菜都扫净了。\n　　“外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……”\n　　“另有药圃走水两次，经查是外门弟子中有人故意所为。巡查堂报，尚未擒获疑凶，还需时日……”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP", "LOW_COVERAGE"],
+      },
+    });
+
+    const contents = refined.map((item) => item.content);
+    const mergedReportSlice = contents.find(
+      (item) =>
+        item.includes("一字一句念起来") &&
+        item.includes("外门弟子斗殴两起") &&
+        item.includes("另有药圃走水两次")
+    );
+
+    expect(mergedReportSlice).toBeDefined();
+    expect(contents).not.toContain("“丹药堂新产丹药四百枚……”");
+    expect(contents).not.toContain(
+      "“外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……”"
+    );
+  });
+
   it("should preserve original whitespace when merging adjacent narration slices", () => {
     const refined = refineFailedSegment({
       segment: {

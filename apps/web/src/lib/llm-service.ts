@@ -3,6 +3,11 @@
 // output: 工具/服务导出
 // pos: 共享业务库
 import { TTSError } from "./error-handler";
+import { runLLMRequest } from "./llm-runtime";
+import type {
+  LLMExecutionJobResult,
+  LLMExecutionRequestOptions,
+} from "./task-queue";
 import OpenAI from "openai";
 
 export interface LLMProvider {
@@ -10,6 +15,155 @@ export interface LLMProvider {
   apiKey: string;
   baseURL?: string;
   model: string;
+}
+
+export interface ExecuteProviderLLMCallInput {
+  provider: LLMProvider;
+  prompt: string;
+  systemPrompt?: string;
+  requestOptions?: LLMExecutionRequestOptions;
+}
+
+export type LLMExecutionEvent =
+  | {
+      status: "submitted";
+      provider: string;
+      model: string;
+    }
+  | ({
+      status: "completed";
+    } & LLMExecutionJobResult)
+  | {
+      status: "failed";
+      provider: string;
+      retryable: boolean;
+      attempt: number;
+      retriesUsed: number;
+      message: string;
+    };
+
+export type LLMExecutionObserver = (event: LLMExecutionEvent) => void;
+
+const DEFAULT_REQUEST_OPTIONS: Required<
+  Pick<LLMExecutionRequestOptions, "temperature" | "maxTokens">
+> = {
+  temperature: 0.3,
+  maxTokens: 8000,
+};
+
+const buildOpenAIConfig = (provider: LLMProvider) => {
+  const openaiConfig: Record<string, unknown> = {
+    apiKey: provider.apiKey,
+  };
+
+  if (provider.baseURL && provider.baseURL !== "https://api.openai.com/v1") {
+    openaiConfig.baseURL = provider.baseURL.includes("deepseek.com")
+      ? "https://api.deepseek.com/v1"
+      : provider.baseURL;
+  }
+
+  return openaiConfig;
+};
+
+const normalizeUsage = (
+  usage: unknown
+): Record<string, unknown> | null => {
+  if (!usage || typeof usage !== "object" || Array.isArray(usage)) {
+    return null;
+  }
+
+  return JSON.parse(JSON.stringify(usage)) as Record<string, unknown>;
+};
+
+const toRetryableServiceError = (
+  error: unknown,
+  providerName: string
+): never => {
+  console.error("OpenAI SDK错误:", error);
+
+  if (error instanceof OpenAI.RateLimitError) {
+    throw new TTSError(
+      "LLM API调用频率超限，请稍后重试",
+      "TTS_SERVICE_DOWN",
+      providerName,
+      true
+    );
+  }
+
+  if (error instanceof OpenAI.AuthenticationError) {
+    throw new TTSError(
+      "LLM API认证失败，请检查API密钥",
+      "TTS_SERVICE_DOWN",
+      providerName
+    );
+  }
+
+  if (error instanceof OpenAI.APIError) {
+    throw new TTSError(
+      `LLM API调用失败: ${error.message}`,
+      "TTS_SERVICE_DOWN",
+      providerName,
+      typeof (error as { status?: number }).status === "number" &&
+        (error as { status?: number }).status! >= 500
+    );
+  }
+
+  throw new TTSError(
+    "LLM服务连接失败",
+    "TTS_SERVICE_DOWN",
+    providerName,
+    true
+  );
+};
+
+export async function executeProviderLLMCall(
+  input: ExecuteProviderLLMCallInput
+): Promise<LLMExecutionJobResult> {
+  const { provider, prompt, systemPrompt, requestOptions = {} } = input;
+  const client = new OpenAI(buildOpenAIConfig(provider));
+  const startedAt = Date.now();
+  const messages = [
+    ...(systemPrompt
+      ? [{ role: "system" as const, content: systemPrompt }]
+      : []),
+    { role: "user" as const, content: prompt },
+  ];
+
+  try {
+    console.log(`LLM API调用: ${provider.name} - ${client.baseURL}`);
+    console.log(`使用模型: ${provider.model}`);
+
+    const response = await client.chat.completions.create({
+      model: provider.model,
+      messages,
+      temperature:
+        typeof requestOptions.temperature === "number"
+          ? requestOptions.temperature
+          : DEFAULT_REQUEST_OPTIONS.temperature,
+      max_tokens:
+        typeof requestOptions.maxTokens === "number"
+          ? requestOptions.maxTokens
+          : DEFAULT_REQUEST_OPTIONS.maxTokens,
+      ...(provider.name === "custom" && { stream: false }),
+    });
+
+    console.log("LLM API完成", {
+      model: response.model,
+      finishReason: response.choices[0]?.finish_reason || null,
+      completionTokens: response.usage?.completion_tokens || null,
+    });
+
+    return {
+      content: response.choices[0]?.message?.content || "",
+      model: response.model || provider.model,
+      provider: provider.name,
+      latencyMs: Date.now() - startedAt,
+      attempt: 1,
+      usage: normalizeUsage(response.usage),
+    };
+  } catch (error) {
+    return toRetryableServiceError(error, provider.name);
+  }
 }
 
 export interface CharacterInfo {
@@ -63,27 +217,12 @@ export interface ScriptAnalysisResult {
  * LLM服务类
  */
 export class LLMService {
-  private openai: OpenAI;
-  private model: string;
+  private provider: LLMProvider;
   private providerName: string;
+  private executionObserver: LLMExecutionObserver | null = null;
 
   constructor(provider: LLMProvider) {
-    // 根据provider配置OpenAI客户端
-    const openaiConfig: any = {
-      apiKey: provider.apiKey,
-    };
-
-    // 设置自定义baseURL（用于DeepSeek等兼容OpenAI API的服务）
-    if (provider.baseURL && provider.baseURL !== "https://api.openai.com/v1") {
-      if (provider.baseURL.includes("deepseek.com")) {
-        openaiConfig.baseURL = "https://api.deepseek.com/v1";
-      } else {
-        openaiConfig.baseURL = provider.baseURL;
-      }
-    }
-
-    this.openai = new OpenAI(openaiConfig);
-    this.model = provider.model;
+    this.provider = provider;
     this.providerName = provider.name;
   }
 
@@ -91,76 +230,59 @@ export class LLMService {
    * 公共的LLM调用方法
    */
   async callLLM(prompt: string, systemPrompt?: string): Promise<string> {
-    return this.callLLMPrivate(prompt, systemPrompt);
-  }
-
-  /**
-   * 调用LLM API
-   */
-  async callLLMPrivate(prompt: string, systemPrompt?: string): Promise<string> {
-    const messages = [
-      ...(systemPrompt
-        ? [{ role: "system" as const, content: systemPrompt }]
-        : []),
-      { role: "user" as const, content: prompt },
-    ];
+    this.executionObserver?.({
+      status: "submitted",
+      provider: this.providerName,
+      model: this.provider.model,
+    });
 
     try {
-      console.log(`LLM API调用: ${this.providerName} - ${this.openai.baseURL}`);
-      console.log(`使用模型: ${this.model}`);
-
-      const response = await this.openai.chat.completions.create({
-        model: this.model,
-        messages: messages,
-        temperature: 0.3,
-        max_tokens: 8000,
-        // DeepSeek等兼容API的特殊参数
-        ...(this.providerName === "custom" && { stream: false }),
+      const result = await runLLMRequest({
+        provider: this.provider,
+        prompt,
+        systemPrompt,
+        metadata: {
+          source: "llm_service",
+          provider: this.providerName,
+        },
+        requestOptions: DEFAULT_REQUEST_OPTIONS,
       });
 
-      console.log("LLM API完成", {
-        model: response.model,
-        finishReason: response.choices[0]?.finish_reason || null,
-        completionTokens: response.usage?.completion_tokens || null,
+      this.executionObserver?.({
+        status: "completed",
+        ...result,
       });
-      return response.choices[0]?.message?.content || "";
-    } catch (error: any) {
-      console.error("OpenAI SDK错误:", error);
 
-      // 处理OpenAI SDK错误
-      if (error instanceof OpenAI.APIError) {
-        throw new TTSError(
-          `LLM API调用失败: ${error.message}`,
-          "TTS_SERVICE_DOWN",
-          this.providerName
-        );
-      }
+      return result.content;
+    } catch (error) {
+      const details =
+        error instanceof TTSError &&
+        error.details &&
+        typeof error.details === "object" &&
+        !Array.isArray(error.details)
+          ? (error.details as Record<string, unknown>)
+          : {};
+      const attempt =
+        typeof details.attempt === "number" ? Number(details.attempt) : 1;
+      const retriesUsed =
+        typeof details.retriesUsed === "number"
+          ? Number(details.retriesUsed)
+          : Math.max(attempt - 1, 0);
 
-      if (error instanceof OpenAI.RateLimitError) {
-        throw new TTSError(
-          "LLM API调用频率超限，请稍后重试",
-          "TTS_SERVICE_DOWN",
-          this.providerName,
-          true
-        );
-      }
-
-      if (error instanceof OpenAI.AuthenticationError) {
-        throw new TTSError(
-          "LLM API认证失败，请检查API密钥",
-          "TTS_SERVICE_DOWN",
-          this.providerName
-        );
-      }
-
-      // 其他错误
-      throw new TTSError(
-        "LLM服务连接失败",
-        "TTS_SERVICE_DOWN",
-        this.providerName,
-        true
-      );
+      this.executionObserver?.({
+        status: "failed",
+        provider: this.providerName,
+        retryable: error instanceof TTSError ? error.retryable : true,
+        attempt,
+        retriesUsed,
+        message: error instanceof Error ? error.message : "LLM request failed",
+      });
+      throw error;
     }
+  }
+
+  setExecutionObserver(observer: LLMExecutionObserver | null): void {
+    this.executionObserver = observer;
   }
 
   /**

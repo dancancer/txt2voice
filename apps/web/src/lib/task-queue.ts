@@ -5,6 +5,14 @@
 export type {
   AutoPipelineQueueInput,
   AudioGenerationQueueInput,
+  AudioSynthesisJobData,
+  AudioSynthesisJobResult,
+  AudioSynthesisQueueInput,
+  LLMExecutionJobData,
+  LLMExecutionJobResult,
+  LLMExecutionQueueInput,
+  LLMExecutionRequestOptions,
+  LLMProviderSnapshot,
   QualityCheckQueueInput,
   QualitySignalSyncQueueInput,
   QueueControlOptions,
@@ -17,6 +25,8 @@ export type {
 export {
   enqueueAutoPipelineJob,
   enqueueAudioGenerationJob,
+  enqueueAudioSynthesisJob,
+  enqueueLLMExecutionJob,
   enqueueQualityCheckJob,
   enqueueQualitySignalSyncJob,
   enqueueScriptGenerationJob,
@@ -24,4 +34,6 @@ export {
 export { getTaskQueueHealth } from "@/lib/task-queue/ops/health";
 export { recoverStalledProcessingTasks } from "@/lib/task-queue/ops/recovery";
 export { replayProcessingTask } from "@/lib/task-queue/ops/replay";
+export { runLLMExecutionJob } from "@/lib/task-queue/ops/llm-execute";
+export { runAudioSynthesisJob } from "@/lib/task-queue/ops/audio-synthesis-execute";
 export { ensureTaskWorkerStarted } from "@/lib/task-queue/ops/worker";

@@ -14,6 +14,7 @@ jest.mock("@/lib/prisma", () => ({
       update: jest.fn(),
     },
     processingTask: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
     manualReviewItem: {
@@ -46,6 +47,7 @@ const mockPrisma = prisma as any;
 const mockGetScriptGenerator = getScriptGenerator as jest.MockedFunction<
   typeof getScriptGenerator
 >;
+const mockTaskFindUnique = mockPrisma.processingTask.findUnique as jest.Mock;
 
 const createFailedScript = () => ({
   dialogueLines: [
@@ -103,6 +105,7 @@ describe("script-generation-runner", () => {
 
     mockPrisma.$transaction.mockImplementation(async (callback: any) => callback(mockPrisma));
     mockPrisma.book.findUnique.mockResolvedValue({ id: "book-1", metadata: {} });
+    mockTaskFindUnique.mockResolvedValue({ taskData: {} });
     mockPrisma.book.update.mockResolvedValue({});
     mockPrisma.processingTask.update.mockResolvedValue({});
     mockPrisma.scriptSentence.deleteMany.mockResolvedValue({ count: 0 });
@@ -549,6 +552,176 @@ describe("script-generation-runner", () => {
         metadata: expect.objectContaining({
           failedSegments: 0,
           failedSegmentIds: [],
+        }),
+      }),
+    });
+  });
+
+  it("should restore previous stable status after sample run instead of leaving generating_script", async () => {
+    mockTaskFindUnique.mockResolvedValueOnce({
+      taskData: {
+        metadata: {
+          previousBookStatus: "processed",
+        },
+      },
+    });
+    mockPrisma.book.findUnique.mockResolvedValueOnce({
+      id: "book-1",
+      status: "generating_script",
+      metadata: {
+        failedSegmentIds: [],
+        failedSegments: 0,
+      },
+    });
+
+    const generatePartialScript = jest.fn().mockResolvedValue({
+      dialogueLines: [
+        {
+          id: "line-1",
+          segmentId: "seg-2",
+          chapterId: "chapter-1",
+          orderInSegment: 0,
+          text: "样本台词",
+          isNarration: true,
+          characterName: "旁白",
+          tone: "中性",
+        },
+      ],
+      summary: {
+        totalLines: 1,
+        dialogueCount: 0,
+        narrationCount: 1,
+        totalSegments: 1,
+        processedSegments: 1,
+        failedSegments: 0,
+        failedSegmentIds: [],
+        failedSegmentDetails: [],
+        characterDistribution: {},
+        emotionDistribution: {},
+      },
+      segments: [
+        {
+          segmentId: "seg-2",
+          lineCount: 1,
+          characters: ["旁白"],
+        },
+      ],
+    });
+
+    mockGetScriptGenerator.mockReturnValue({
+      generateScript: jest.fn(),
+      generatePartialScript,
+      regenerateSegmentScript: jest.fn(),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-sample-status",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        limitToSegments: 1,
+      },
+    });
+
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        status: "processed",
+      }),
+    });
+  });
+
+  it("should attach aggregated llm job metrics to successful task metadata", async () => {
+    mockGetScriptGenerator.mockImplementation(() => {
+      let executionObserver: ((event: Record<string, unknown>) => void) | null = null;
+
+      return {
+        setExecutionObserver: (observer: typeof executionObserver) => {
+          executionObserver = observer;
+        },
+        generateScript: jest.fn().mockImplementation(async () => {
+          executionObserver?.({
+            status: "submitted",
+            provider: "openai",
+          });
+          executionObserver?.({
+            status: "completed",
+            provider: "openai",
+            model: "gpt-test",
+            latencyMs: 120,
+            waitMs: 30,
+            retriesUsed: 1,
+            attempt: 2,
+          });
+
+          return {
+            dialogueLines: [
+              {
+                id: "line-1",
+                segmentId: "seg-1",
+                chapterId: "chapter-1",
+                orderInSegment: 0,
+                text: "成功台词",
+                isNarration: true,
+                characterName: "旁白",
+                tone: "中性",
+              },
+            ],
+            summary: {
+              totalLines: 1,
+              dialogueCount: 0,
+              narrationCount: 1,
+              totalSegments: 1,
+              processedSegments: 1,
+              failedSegments: 0,
+              failedSegmentIds: [],
+              failedSegmentDetails: [],
+              characterDistribution: {},
+              emotionDistribution: {},
+            },
+            segments: [
+              {
+                segmentId: "seg-1",
+                lineCount: 1,
+                characters: ["旁白"],
+              },
+            ],
+          };
+        }),
+        generatePartialScript: jest.fn(),
+        regenerateSegmentScript: jest.fn(),
+      } as any;
+    });
+
+    await runScriptGenerationTask({
+      taskId: "task-llm-metrics",
+      bookId: "book-1",
+      options: {},
+    });
+
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
+      where: { id: "task-llm-metrics" },
+      data: expect.objectContaining({
+        status: "completed",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            llmMetrics: expect.objectContaining({
+              submitted: 1,
+              completed: 1,
+              failed: 0,
+              retried: 1,
+              averageLatencyMs: 120,
+              averageWaitMs: 30,
+              providers: [
+                expect.objectContaining({
+                  provider: "openai",
+                  completed: 1,
+                  failed: 0,
+                  retried: 1,
+                }),
+              ],
+            }),
+          }),
         }),
       }),
     });

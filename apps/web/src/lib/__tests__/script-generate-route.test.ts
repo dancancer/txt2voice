@@ -135,7 +135,17 @@ describe("POST /api/books/[id]/script/generate", () => {
       taskId: "script-task-1",
       bookStatus: "generating_script",
     });
-    expect(mockCreateTask).toHaveBeenCalled();
+    expect(mockCreateTask).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookId: "book-1",
+        taskType: "SCRIPT_GENERATION",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            previousBookStatus: "manual_review_pending",
+          }),
+        }),
+      }),
+    });
     expect(mockEnqueueScript).toHaveBeenCalled();
   });
 });

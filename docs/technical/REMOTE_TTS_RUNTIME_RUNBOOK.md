@@ -23,6 +23,8 @@
   - `http://192.168.88.9:8012` -> VoxCPM
 - 队列命名空间：`txt2voice:3001`
 - Worker 运行方式：由 `txt2voice-web` 进程内联启动，不再保留独立 `txt2voice-worker`
+- 异步能力约束：LLM / TTS / 质检 / 后续新增异步链路，统一走 Bull job 模型，禁止再新增“函数内直接长耗时出网 + 手写重试”的旁路实现
+- 子队列约束：音频父任务仍走 `audio-generation`，句子级 TTS 执行改走 `audio-synthesis`
 - 宿主机端口避让：
   - PostgreSQL: `15432`
   - Redis: `16379`
@@ -35,6 +37,8 @@
 TASK_QUEUE_NAMESPACE=txt2voice:3001
 LLM_API_KEY=<有效值>
 LLM_MODEL=deepseek-chat
+LLM_MAX_CONCURRENCY=8
+AUDIO_SYNTHESIS_MAX_CONCURRENCY=6
 INDEXTTS_TIMEOUT=300000
 COSYVOICE_TIMEOUT=300000
 VOXCPM_TIMEOUT=300000
@@ -96,6 +100,25 @@ bash scripts/deploy-remote-web.sh
 
 ## 最重要的运行约束
 
+### 0. 所有重耗时异步能力统一走 job 模型
+
+从这一版开始，以下能力都必须遵守同一套约束：
+
+- 进入共享 Bull 队列
+- 并发由 worker concurrency 控制
+- 失败重试由 job options 控制
+- 超限任务进入 waiting 队列，而不是业务层直接报错
+
+当前已经在这条路上的能力包括：
+
+- 台本生成
+- 音频生成
+- 句子级 TTS 子 job
+- 质检/信号同步
+- LLM 调用
+
+后续如果新增远端推理、批量转换、模型评测之类的异步链路，也必须复用这套 job 模型，避免出现第二套不可观测、不可重试、不可限流的执行路径。
+
 ### 1. qwen35 不能和 TTS 长期共机抢 GPU
 
 这次的根因不是路由逻辑，而是显存争用。
@@ -129,6 +152,7 @@ ssh 192.168.88.9 'ps -ef | grep qwen35 | grep -v grep || true'
 - 不同代码版本同时消费队列
 - 旧环境变量和新 Web 配置不一致
 - 任务落到错误 worker 上，看起来像“接口成功、结果异常”
+- `audio-generation` 父任务和 `audio-synthesis` 子 job 由不同版本代码混合消费
 
 清理命令：
 

@@ -82,6 +82,8 @@ model CharacterProfile {
   id                String                    @id @default(uuid())
   bookId            String
   canonicalName     String
+  isSystemRole      Boolean                   @default(false)
+  systemRoleType    String?
   characteristics   Json                      @default("{}")
   voicePreferences  Json                      @default("{}")
   emotionProfile    Json                      @default("{}")
@@ -103,6 +105,7 @@ model CharacterProfile {
 
   @@index([bookId])
   @@index([bookId, isActive])
+  @@unique([bookId, systemRoleType])
   @@map("character_profiles")
 }
 

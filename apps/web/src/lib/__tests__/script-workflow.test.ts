@@ -43,7 +43,7 @@ describe("script-workflow", () => {
   });
 
   it("should carry structured segment failure details from TTSError", async () => {
-    const processSegmentAndSave = jest.fn(async ({ segment }: any) => {
+    const processSegment = jest.fn(async ({ segment }: any) => {
       if (segment.id === "seg-2") {
         const error = new TTSError(
           "段落台本校验失败：原文覆盖率过低",
@@ -77,6 +77,7 @@ describe("script-workflow", () => {
         characterCandidates: [],
       };
     });
+    const persistSegmentResult = jest.fn(async () => {});
 
     const result = await generateScriptByBook({
       bookId: "book-1",
@@ -88,7 +89,8 @@ describe("script-workflow", () => {
         maxDialogueLength: 180,
         preserveOriginalBreaks: true,
       },
-      processSegmentAndSave,
+      processSegment,
+      persistSegmentResult,
     });
 
     expect(result.summary.failedSegments).toBe(1);
@@ -106,7 +108,7 @@ describe("script-workflow", () => {
   });
 
   it("should fallback to unknown failure detail for generic error", async () => {
-    const processSegmentAndSave = jest.fn(async ({ segment }: any) => {
+    const processSegment = jest.fn(async ({ segment }: any) => {
       if (segment.id === "seg-2") {
         throw new Error("mock crash");
       }
@@ -126,6 +128,7 @@ describe("script-workflow", () => {
         characterCandidates: [],
       };
     });
+    const persistSegmentResult = jest.fn(async () => {});
 
     const result = await generateScriptByBook({
       bookId: "book-1",
@@ -137,7 +140,8 @@ describe("script-workflow", () => {
         maxDialogueLength: 180,
         preserveOriginalBreaks: true,
       },
-      processSegmentAndSave,
+      processSegment,
+      persistSegmentResult,
     });
 
     expect(result.summary.failedSegments).toBe(1);
@@ -151,7 +155,7 @@ describe("script-workflow", () => {
   });
 
   it("should return failure summary when every segment fails", async () => {
-    const processSegmentAndSave = jest.fn(async ({ segment }: any) => {
+    const processSegment = jest.fn(async ({ segment }: any) => {
       const error = new TTSError(
         `段落 ${segment.id} 台本校验失败`,
         "TTS_SERVICE_DOWN",
@@ -168,6 +172,7 @@ describe("script-workflow", () => {
       };
       throw error;
     });
+    const persistSegmentResult = jest.fn(async () => {});
 
     const result = await generateScriptByBook({
       bookId: "book-1",
@@ -179,7 +184,8 @@ describe("script-workflow", () => {
         maxDialogueLength: 180,
         preserveOriginalBreaks: true,
       },
-      processSegmentAndSave,
+      processSegment,
+      persistSegmentResult,
     });
 
     expect(result.dialogueLines).toEqual([]);

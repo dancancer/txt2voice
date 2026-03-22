@@ -1,6 +1,11 @@
 import prisma, { Prisma } from "@/lib/prisma";
 import { addCharacterToMap } from "./character-utils";
 import type { DialogueLine, GeneratedScript } from "../types";
+import {
+  ensureNarrationCharacter,
+  isNarrationSpeaker,
+  NARRATION_CHARACTER_NAME,
+} from "@/lib/narration-character";
 
 interface CharacterProfileLike {
   id?: string;
@@ -40,8 +45,13 @@ export const normalizeEmotionLabel = (tone?: string | null): string => {
 
 const resolveRoleType = (line: DialogueLine): string => {
   const speaker = (line.characterName || line.rawSpeaker || "").trim();
-  return line.isNarration || speaker === "旁白" ? "narration" : "dialogue";
+  return line.isNarration || isNarrationSpeaker(speaker) ? "narration" : "dialogue";
 };
+
+const isNarrationLine = (line: DialogueLine): boolean =>
+  resolveRoleType(line) === "narration" ||
+  isNarrationSpeaker(line.characterName) ||
+  isNarrationSpeaker(line.rawSpeaker);
 
 const resolveEmotionIntensity = (strength?: number): number | null => {
   if (typeof strength !== "number" || Number.isNaN(strength)) {
@@ -117,7 +127,9 @@ const buildSentenceData = (
     segmentId: line.segmentId,
     chapterId: line.chapterId ?? null,
     characterId,
-    rawSpeaker: line.rawSpeaker || line.characterName || null,
+    rawSpeaker: isNarrationLine(line)
+      ? NARRATION_CHARACTER_NAME
+      : line.rawSpeaker || line.characterName || null,
     text: line.text,
     tone: line.tone,
     roleType,
@@ -150,6 +162,10 @@ export async function saveSegmentScriptToDatabase(params: {
     params;
 
   await prisma.$transaction(async (tx) => {
+    const narrationCharacter = dialogueLines.some(isNarrationLine)
+      ? await ensureNarrationCharacter(bookId, tx)
+      : null;
+
     await tx.scriptSentence.deleteMany({
       where: {
         bookId,
@@ -158,11 +174,11 @@ export async function saveSegmentScriptToDatabase(params: {
     });
 
     for (const line of dialogueLines) {
-      let character = characterProfiles.find(
-        (char) => char.canonicalName === line.characterName
-      );
+      let character = isNarrationLine(line)
+        ? narrationCharacter
+        : characterProfiles.find((char) => char.canonicalName === line.characterName);
 
-      if (!character && line.characterName && line.characterName !== "旁白") {
+      if (!character && line.characterName && !isNarrationLine(line)) {
         const newCharacter = await tx.characterProfile.create({
           data: {
             bookId,
@@ -196,7 +212,7 @@ export async function saveSegmentScriptToDatabase(params: {
       let characterId: string | null = null;
       if (character?.id) {
         characterId = character.id;
-      } else if (line.characterName !== "旁白") {
+      } else if (!isNarrationLine(line)) {
         console.warn(`未找到角色: ${line.characterName}`);
       }
 
@@ -211,8 +227,17 @@ const resolveCharacterId = async (params: {
   tx: any;
   bookId: string;
   line: DialogueLine;
+  narrationCharacterId?: string | null;
 }): Promise<string | null> => {
-  const { tx, bookId, line } = params;
+  const { tx, bookId, line, narrationCharacterId } = params;
+
+  if (isNarrationLine(line)) {
+    if (narrationCharacterId) {
+      return narrationCharacterId;
+    }
+    const narrationCharacter = await ensureNarrationCharacter(bookId, tx);
+    return narrationCharacter.id;
+  }
 
   const character = await tx.characterProfile.findFirst({
     where: {
@@ -226,7 +251,7 @@ const resolveCharacterId = async (params: {
     return character.id;
   }
 
-  if (line.characterName !== "旁白") {
+  if (!isNarrationLine(line)) {
     console.warn(`未找到角色: ${line.characterName}`);
   }
 
@@ -238,6 +263,9 @@ export async function savePartialScriptToDatabase(
   script: GeneratedScript
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    const narrationCharacter = script.dialogueLines.some(isNarrationLine)
+      ? await ensureNarrationCharacter(bookId, tx)
+      : null;
     const segmentIds = script.segments.map((seg) => seg.segmentId);
 
     await tx.scriptSentence.deleteMany({
@@ -248,7 +276,12 @@ export async function savePartialScriptToDatabase(
     });
 
     for (const line of script.dialogueLines) {
-      const characterId = await resolveCharacterId({ tx, bookId, line });
+      const characterId = await resolveCharacterId({
+        tx,
+        bookId,
+        line,
+        narrationCharacterId: narrationCharacter?.id ?? null,
+      });
       await tx.scriptSentence.create({
         data: buildSentenceData(bookId, line, characterId),
       });
@@ -273,12 +306,20 @@ export async function saveScriptToDatabase(
   script: GeneratedScript
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    const narrationCharacter = script.dialogueLines.some(isNarrationLine)
+      ? await ensureNarrationCharacter(bookId, tx)
+      : null;
     await tx.scriptSentence.deleteMany({
       where: { bookId },
     });
 
     for (const line of script.dialogueLines) {
-      const characterId = await resolveCharacterId({ tx, bookId, line });
+      const characterId = await resolveCharacterId({
+        tx,
+        bookId,
+        line,
+        narrationCharacterId: narrationCharacter?.id ?? null,
+      });
       await tx.scriptSentence.create({
         data: buildSentenceData(bookId, line, characterId),
       });

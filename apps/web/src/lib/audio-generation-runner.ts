@@ -281,6 +281,144 @@ interface RouterDecisionSummary {
   }>;
 }
 
+interface AudioChildJobProviderMetrics {
+  provider: string;
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  averageWaitMs: number;
+  averageLatencyMs: number;
+}
+
+interface AudioChildJobMetrics {
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  averageWaitMs: number;
+  averageLatencyMs: number;
+  providers: AudioChildJobProviderMetrics[];
+}
+
+const resolveAudioChildJobProvider = (
+  result: Record<string, unknown>,
+  fallbackProvider?: string | null
+): string => {
+  const directProvider =
+    typeof result.provider === "string" && result.provider.trim().length > 0
+      ? result.provider.trim().toLowerCase()
+      : null;
+  if (directProvider) {
+    return directProvider;
+  }
+
+  const metadataProvider = extractRouterDecisionField(result.metadata, "selectedEngine");
+  if (metadataProvider) {
+    return metadataProvider.toLowerCase();
+  }
+
+  if (typeof fallbackProvider === "string" && fallbackProvider.trim().length > 0) {
+    return fallbackProvider.trim().toLowerCase();
+  }
+
+  return "unknown";
+};
+
+const summarizeAudioChildJobs = (
+  results: any[],
+  fallbackProvider?: string | null
+): AudioChildJobMetrics => {
+  const providerMap = new Map<
+    string,
+    {
+      submitted: number;
+      completed: number;
+      failed: number;
+      retried: number;
+      totalWaitMs: number;
+      totalLatencyMs: number;
+      observedCount: number;
+    }
+  >();
+
+  let completed = 0;
+  let failed = 0;
+  let retried = 0;
+  let totalWaitMs = 0;
+  let totalLatencyMs = 0;
+  let observedCount = 0;
+
+  for (const result of results) {
+    const provider = resolveAudioChildJobProvider(result || {}, fallbackProvider);
+    const bucket = providerMap.get(provider) || {
+      submitted: 0,
+      completed: 0,
+      failed: 0,
+      retried: 0,
+      totalWaitMs: 0,
+      totalLatencyMs: 0,
+      observedCount: 0,
+    };
+
+    bucket.submitted += 1;
+    const resultRetries =
+      typeof result?.retriesUsed === "number" ? Math.max(result.retriesUsed, 0) : 0;
+    retried += resultRetries;
+    bucket.retried += resultRetries;
+
+    const waitMs = typeof result?.waitMs === "number" ? Math.max(result.waitMs, 0) : 0;
+    const latencyMs =
+      typeof result?.totalElapsedMs === "number"
+        ? Math.max(result.totalElapsedMs, 0)
+        : 0;
+
+    totalWaitMs += waitMs;
+    totalLatencyMs += latencyMs;
+    observedCount += 1;
+    bucket.totalWaitMs += waitMs;
+    bucket.totalLatencyMs += latencyMs;
+    bucket.observedCount += 1;
+
+    if (result?.success === true) {
+      completed += 1;
+      bucket.completed += 1;
+    } else {
+      failed += 1;
+      bucket.failed += 1;
+    }
+
+    providerMap.set(provider, bucket);
+  }
+
+  return {
+    submitted: results.length,
+    completed,
+    failed,
+    retried,
+    averageWaitMs: observedCount > 0 ? Math.round(totalWaitMs / observedCount) : 0,
+    averageLatencyMs:
+      observedCount > 0 ? Math.round(totalLatencyMs / observedCount) : 0,
+    providers: Array.from(providerMap.entries())
+      .map(([provider, bucket]) => ({
+        provider,
+        submitted: bucket.submitted,
+        completed: bucket.completed,
+        failed: bucket.failed,
+        retried: bucket.retried,
+        averageWaitMs:
+          bucket.observedCount > 0
+            ? Math.round(bucket.totalWaitMs / bucket.observedCount)
+            : 0,
+        averageLatencyMs:
+          bucket.observedCount > 0
+            ? Math.round(bucket.totalLatencyMs / bucket.observedCount)
+            : 0,
+      }))
+      .sort((left, right) => left.provider.localeCompare(right.provider)),
+  };
+};
+
 const summarizeRouterDecisions = (results: any[]): RouterDecisionSummary => {
   const engineMap = new Map<
     string,
@@ -838,12 +976,14 @@ export async function runAudioGenerationTask({
 
   let results: any[] = [];
   let totalSentences = 0;
+  let audioReliability: Record<string, unknown> | null = null;
 
   if (type === "book") {
     await updateTaskProgress(taskId, 20, "开始生成整书音频");
     const result = await audioGenerator.generateBookAudio(bookId, options);
     results = result.results;
     totalSentences = result.total;
+    audioReliability = asRecord((result as { reliability?: unknown }).reliability);
   } else if (type === "chapter" && chapterId) {
     await updateTaskProgress(taskId, 20, "开始生成章节音频");
     const result = await audioGenerator.generateChapterAudio(
@@ -853,6 +993,7 @@ export async function runAudioGenerationTask({
     );
     results = result.results;
     totalSentences = result.total;
+    audioReliability = asRecord((result as { reliability?: unknown }).reliability);
   } else if (type === "batch" && scriptSentenceIds) {
     await updateTaskProgress(taskId, 20, "开始批量生成音频");
     const requests: AudioGenerationRequest[] = scriptSentenceIds.map((id) => ({
@@ -860,7 +1001,16 @@ export async function runAudioGenerationTask({
       voiceProfileId,
       outputFormat: "mp3",
     }));
-    results = await audioGenerator.generateBatchAudio(requests, options);
+    if (typeof (audioGenerator as any).generateBatchAudioWithReliability === "function") {
+      const summary = await (audioGenerator as any).generateBatchAudioWithReliability(
+        requests,
+        options
+      );
+      results = Array.isArray(summary?.results) ? summary.results : [];
+      audioReliability = asRecord(summary?.reliability);
+    } else {
+      results = await audioGenerator.generateBatchAudio(requests, options);
+    }
     totalSentences = requests.length;
   } else if (type === "single" && scriptSentenceIds && scriptSentenceIds.length > 0) {
     await updateTaskProgress(taskId, 20, "开始生成单个音频");
@@ -881,6 +1031,10 @@ export async function runAudioGenerationTask({
   const successCount = results.filter((r) => r.success).length;
   const failedCount = results.filter((r) => !r.success).length;
   const routerDecisionSummary = summarizeRouterDecisions(results);
+  const audioChildJobMetrics = summarizeAudioChildJobs(
+    results,
+    typeof options.provider === "string" ? options.provider : null
+  );
 
   let mergeResult = null;
   if (autoMerge && successCount > 0) {
@@ -925,6 +1079,8 @@ export async function runAudioGenerationTask({
       provider: options.provider || null,
       routerPolicyVersion: options.routerPolicyVersion || null,
       enableRouterDebug: options.enableRouterDebug === true,
+      audioReliability,
+      audioChildJobMetrics,
       totalSentences,
       successCount,
       failedCount,

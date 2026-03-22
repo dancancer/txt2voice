@@ -9,6 +9,11 @@ import { writeFile, mkdir } from 'fs/promises'
 import { join } from 'path'
 import { getBookAudioDir } from './storage-path'
 import {
+  AudioRetryPass,
+  buildAudioRetryPass,
+  buildNextAudioRetryPass,
+} from './audio-retry-plan'
+import {
   AudioRouteCandidate,
   AudioRouteContext,
   AudioRouteEngineHealth,
@@ -53,6 +58,34 @@ export interface AudioGenerationResult {
   metadata?: Record<string, any>
 }
 
+export interface AudioReliabilityPassSummary {
+  passName: 'pass-1' | 'pass-2' | 'pass-3'
+  requestCount: number
+  successCount: number
+  failedCount: number
+  concurrency: number
+  durationMs: number
+}
+
+export interface AudioReliabilityProviderFailure {
+  provider: string
+  failed: number
+}
+
+export interface AudioReliabilitySummary {
+  policyProvider: string
+  firstPassSuccessRate: number
+  retryRounds: number
+  averageDurationMs: number
+  providerFailures: AudioReliabilityProviderFailure[]
+  passSummaries: AudioReliabilityPassSummary[]
+}
+
+export interface AudioBatchGenerationSummary {
+  results: AudioGenerationResult[]
+  reliability: AudioReliabilitySummary
+}
+
 const asRecord = (value: Prisma.JsonValue | null | undefined): Record<string, any> | undefined =>
   value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, any>) : undefined
 
@@ -79,6 +112,9 @@ const ENGINE_HEALTH_CACHE_TTL_MS = 60 * 1000
 const ENGINE_HEALTH_WINDOW_MS = 24 * 60 * 60 * 1000
 const engineHealthCache = new Map<string, EngineHealthCacheValue>()
 
+const isRetryableAudioError = (error: unknown): error is TTSError =>
+  error instanceof TTSError && error.retryable === true
+
 /**
  * 音频生成器类
  */
@@ -96,6 +132,23 @@ export class AudioGenerator {
    * 生成单个台词的音频
    */
   async generateSingleAudio(
+    request: AudioGenerationRequest,
+    options: AudioGenerationOptions = {}
+  ): Promise<AudioGenerationResult> {
+    const { runAudioSynthesisRequest } = await import('./audio-synthesis-runtime')
+    return runAudioSynthesisRequest({
+      request,
+      options,
+      metadata: {
+        source: 'audio_generator',
+      },
+    })
+  }
+
+  /**
+   * 句子级音频合成执行器（供子 job worker 使用）
+   */
+  async executeAudioSynthesis(
     request: AudioGenerationRequest,
     options: AudioGenerationOptions = {}
   ): Promise<AudioGenerationResult> {
@@ -313,6 +366,10 @@ export class AudioGenerator {
         }
       }
 
+      if (isRetryableAudioError(lastError)) {
+        throw lastError
+      }
+
       return {
         success: false,
         error: lastError instanceof Error ? lastError.message : '音频生成失败：全部路由候选均失败',
@@ -343,6 +400,9 @@ export class AudioGenerator {
           console.warn('写入失败合成尝试记录失败:', persistError)
         }
       }
+      if (isRetryableAudioError(error)) {
+        throw error
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -356,6 +416,105 @@ export class AudioGenerator {
   async generateBatchAudio(
     requests: AudioGenerationRequest[],
     options: AudioGenerationOptions = {}
+  ): Promise<AudioGenerationResult[]> {
+    const summary = await this.generateBatchAudioWithReliability(requests, options)
+    return summary.results
+  }
+
+  async generateBatchAudioWithReliability(
+    requests: AudioGenerationRequest[],
+    options: AudioGenerationOptions = {}
+  ): Promise<AudioBatchGenerationSummary> {
+    const getRequestId = (request: AudioGenerationRequest) => request.scriptSentenceId
+    const finalOptions = { ...this.defaultOptions, ...options }
+    const finalResults = new Map<string, AudioGenerationResult>()
+    const attemptedResults: AudioGenerationResult[] = []
+    const passSummaries: AudioReliabilityPassSummary[] = []
+
+    if (requests.length === 0) {
+      return {
+        results: [],
+        reliability: {
+          policyProvider:
+            typeof finalOptions.provider === 'string' && finalOptions.provider.trim()
+              ? finalOptions.provider.trim().toLowerCase()
+              : 'mixed',
+          firstPassSuccessRate: 0,
+          retryRounds: 0,
+          averageDurationMs: 0,
+          providerFailures: [],
+          passSummaries: []
+        }
+      }
+    }
+
+    let pass: AudioRetryPass<AudioGenerationRequest> | null = buildAudioRetryPass({
+      provider: finalOptions.provider,
+      passName: 'pass-1',
+      requests,
+      getRequestId
+    })
+
+    while (pass) {
+      const passStartedAt = Date.now()
+      const passResults = await this.runBatchPass(pass.requests, {
+        ...finalOptions,
+        batchSize: pass.concurrency,
+        retryDelay: pass.cooldownMs
+      })
+
+      attemptedResults.push(...passResults)
+      pass.requests.forEach((request, index) => {
+        finalResults.set(getRequestId(request), passResults[index] || {
+          success: false,
+          error: 'Unknown error'
+        })
+      })
+
+      const successCount = passResults.filter(result => result.success).length
+      passSummaries.push({
+        passName: pass.passName,
+        requestCount: pass.requests.length,
+        successCount,
+        failedCount: pass.requests.length - successCount,
+        concurrency: pass.concurrency,
+        durationMs: Date.now() - passStartedAt
+      })
+
+      pass = buildNextAudioRetryPass({
+        provider: finalOptions.provider,
+        previousPass: pass,
+        results: passResults,
+        getRequestId
+      })
+    }
+
+    const orderedResults = requests.map(request =>
+      finalResults.get(getRequestId(request)) || {
+        success: false,
+        error: 'Unknown error'
+      }
+    )
+
+    return {
+      results: orderedResults,
+      reliability: {
+        policyProvider:
+          typeof finalOptions.provider === 'string' && finalOptions.provider.trim()
+            ? finalOptions.provider.trim().toLowerCase()
+            : 'mixed',
+        firstPassSuccessRate: this.calculateFirstPassSuccessRate(passSummaries),
+        retryRounds: Math.max(0, passSummaries.length - 1),
+        averageDurationMs: this.calculateAverageDurationMs(orderedResults),
+        providerFailures: this.summarizeProviderFailures(attemptedResults, finalOptions.provider),
+        passSummaries
+      }
+    }
+  }
+
+  private async runBatchPass(
+    requests: AudioGenerationRequest[],
+    options: AudioGenerationOptions
   ): Promise<AudioGenerationResult[]> {
     const finalOptions = { ...this.defaultOptions, ...options }
     const results: AudioGenerationResult[] = []
@@ -398,7 +557,13 @@ export class AudioGenerator {
     bookId: string,
     chapterId: string,
     options: AudioGenerationOptions = {}
-  ): Promise<{ total: number; success: number; failed: number; results: AudioGenerationResult[] }> {
+  ): Promise<{
+    total: number
+    success: number
+    failed: number
+    results: AudioGenerationResult[]
+    reliability: AudioReliabilitySummary
+  }> {
     // 获取章节的所有台词
     const scriptSentences = await prisma.scriptSentence.findMany({
       where: {
@@ -440,7 +605,8 @@ export class AudioGenerator {
     }))
 
     // 批量生成
-    const results = await this.generateBatchAudio(requests, options)
+    const batchSummary = await this.generateBatchAudioWithReliability(requests, options)
+    const { results, reliability } = batchSummary
 
     const success = results.filter(r => r.success).length
     const failed = results.filter(r => !r.success).length
@@ -449,7 +615,8 @@ export class AudioGenerator {
       total: results.length,
       success,
       failed,
-      results
+      results,
+      reliability
     }
   }
 
@@ -459,7 +626,13 @@ export class AudioGenerator {
   async generateBookAudio(
     bookId: string,
     options: AudioGenerationOptions = {}
-  ): Promise<{ total: number; success: number; failed: number; results: AudioGenerationResult[] }> {
+  ): Promise<{
+    total: number
+    success: number
+    failed: number
+    results: AudioGenerationResult[]
+    reliability: AudioReliabilitySummary
+  }> {
     // 获取书籍的所有台词
     const scriptSentences = await prisma.scriptSentence.findMany({
       where: { bookId },
@@ -497,7 +670,8 @@ export class AudioGenerator {
     }))
 
     // 批量生成
-    const results = await this.generateBatchAudio(requests, options)
+    const batchSummary = await this.generateBatchAudioWithReliability(requests, options)
+    const { results, reliability } = batchSummary
 
     const success = results.filter(r => r.success).length
     const failed = results.filter(r => !r.success).length
@@ -506,7 +680,8 @@ export class AudioGenerator {
       total: results.length,
       success,
       failed,
-      results
+      results,
+      reliability
     }
   }
 
@@ -1443,6 +1618,68 @@ export class AudioGenerator {
 
     // 重新生成
     return this.generateBatchAudio(requests, options)
+  }
+
+  private calculateFirstPassSuccessRate(
+    passSummaries: AudioReliabilityPassSummary[]
+  ): number {
+    const firstPass = passSummaries[0]
+    if (!firstPass || firstPass.requestCount === 0) {
+      return 0
+    }
+
+    return Number((firstPass.successCount / firstPass.requestCount).toFixed(4))
+  }
+
+  private calculateAverageDurationMs(results: AudioGenerationResult[]): number {
+    const completed = results.filter(
+      (result): result is AudioGenerationResult & { duration: number } =>
+        result.success === true && typeof result.duration === 'number' && result.duration >= 0
+    )
+
+    if (completed.length === 0) {
+      return 0
+    }
+
+    const totalDurationMs = completed.reduce(
+      (sum, result) => sum + Math.round(result.duration * 1000),
+      0
+    )
+
+    return Math.round(totalDurationMs / completed.length)
+  }
+
+  private summarizeProviderFailures(
+    results: AudioGenerationResult[],
+    fallbackProvider?: string
+  ): AudioReliabilityProviderFailure[] {
+    const providerFailures = new Map<string, number>()
+
+    for (const result of results) {
+      if (result.success) {
+        continue
+      }
+
+      const metadata = result.metadata
+      const routerDecision =
+        metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+          ? asRecord((metadata as Record<string, unknown>).routerDecision as Prisma.JsonValue)
+          : undefined
+      const provider =
+        (typeof routerDecision?.selectedEngine === 'string' &&
+          routerDecision.selectedEngine.trim().toLowerCase()) ||
+        (typeof fallbackProvider === 'string' && fallbackProvider.trim().toLowerCase()) ||
+        'unknown'
+
+      providerFailures.set(provider, (providerFailures.get(provider) || 0) + 1)
+    }
+
+    return Array.from(providerFailures.entries())
+      .map(([provider, failed]) => ({
+        provider,
+        failed
+      }))
+      .sort((left, right) => right.failed - left.failed)
   }
 }
 

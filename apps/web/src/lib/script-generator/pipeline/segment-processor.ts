@@ -962,20 +962,50 @@ export async function processSegmentAndSave(params: {
   options: ScriptGenerationOptions;
   bookId: string;
 }): Promise<SegmentProcessingResult> {
-  const { llmService, segment, characterMap, characterProfiles, options, bookId } =
-    params;
+  const { bookId, segment, characterMap, characterProfiles } = params;
+  const result = await inferSegment(params);
 
-  const result = await processSegmentWithRefinement({
+  await persistSegmentResult({
+    bookId,
+    segmentId: segment.id,
+    result,
+    characterMap,
+    characterProfiles,
+  });
+
+  return result;
+}
+
+export async function inferSegment(params: {
+  llmService: LLMClient;
+  segment: any;
+  characterMap: Map<string, string>;
+  characterProfiles: any[];
+  options: ScriptGenerationOptions;
+}): Promise<SegmentProcessingResult> {
+  const { llmService, segment, characterMap, characterProfiles, options } = params;
+
+  return processSegmentWithRefinement({
     llmService,
     segment,
     characterMap,
     characterProfiles,
     options,
   });
+}
+
+export async function persistSegmentResult(params: {
+  bookId: string;
+  segmentId: string;
+  result: SegmentProcessingResult;
+  characterMap: Map<string, string>;
+  characterProfiles: any[];
+}): Promise<void> {
+  const { bookId, segmentId, result, characterMap, characterProfiles } = params;
 
   if (result.dialogueLines.length === 0) {
     throw new TTSError(
-      `段落 ${segment.id} 未生成有效台词`,
+      `段落 ${segmentId} 未生成有效台词`,
       "TTS_SERVICE_DOWN",
       "script-generator"
     );
@@ -992,11 +1022,9 @@ export async function processSegmentAndSave(params: {
 
   await saveSegmentScriptToDatabase({
     bookId,
-    segmentId: segment.id,
+    segmentId,
     dialogueLines: result.dialogueLines,
     characterProfiles,
     characterMap,
   });
-
-  return result;
 }

@@ -10,6 +10,7 @@ import {
   parsePaginationParams,
   createPaginationResult,
 } from "@/lib/pagination";
+import { NARRATION_CHARACTER_NAME } from "@/lib/narration-character";
 
 // GET /api/books/[id]/characters - 获取书籍角色列表（分页）
 export const GET = withErrorHandler(
@@ -43,9 +44,6 @@ export const GET = withErrorHandler(
         },
       ];
     }
-
-
-
     // 获取所有角色列表（获取所有数据，然后在内存中全局排序）
     const characters = await prisma.characterProfile.findMany({
       where,
@@ -135,11 +133,8 @@ export const GET = withErrorHandler(
       return a.canonicalName.localeCompare(b.canonicalName);
     });
 
-    // 分页
-    const sortedCharacters = charactersWithParsedData.slice(offset, offset + limit);
-
     // 格式化返回数据
-    const formattedCharacters = sortedCharacters.map((character) => ({
+    const formattedCharacters = charactersWithParsedData.map((character) => ({
       id: character.id,
       canonicalName: character.canonicalName,
       characteristics: character.characteristics,
@@ -147,6 +142,8 @@ export const GET = withErrorHandler(
       ageHint: character.ageHint,
       emotionBaseline: character.emotionBaseline,
       isActive: character.isActive,
+      isSystemRole: character.isSystemRole,
+      systemRoleType: character.systemRoleType,
       mentions: character.parsedMentions,
       quotes: character.parsedQuotes,
       aliases: character.aliases,
@@ -168,9 +165,11 @@ export const GET = withErrorHandler(
       updatedAt: character.updatedAt,
     }));
 
+    const pagedCharacters = formattedCharacters.slice(offset, offset + limit);
+
     const result = createPaginationResult(
-      formattedCharacters,
-      characters.length,
+      pagedCharacters,
+      formattedCharacters.length,
       page,
       limit
     );
@@ -210,6 +209,10 @@ export const POST = withErrorHandler(
     const normalizedName = canonicalName.trim();
     if (!normalizedName) {
       throw new ValidationError("角色名称不能为空");
+    }
+
+    if (normalizedName === NARRATION_CHARACTER_NAME) {
+      throw new ValidationError("旁白系统角色由系统维护，不能手动创建");
     }
 
     // 检查书籍是否存在

@@ -163,6 +163,8 @@ exports.Prisma.CharacterProfileScalarFieldEnum = {
   id: 'id',
   bookId: 'bookId',
   canonicalName: 'canonicalName',
+  isSystemRole: 'isSystemRole',
+  systemRoleType: 'systemRoleType',
   characteristics: 'characteristics',
   voicePreferences: 'voicePreferences',
   emotionProfile: 'emotionProfile',

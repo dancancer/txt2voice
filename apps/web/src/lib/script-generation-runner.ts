@@ -4,6 +4,7 @@
 // pos: 任务执行器
 import prisma from "@/lib/prisma";
 import { getScriptGenerator } from "@/lib/script-generator";
+import type { LLMExecutionEvent } from "@/lib/llm-service";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { SegmentFailureDetail } from "@/lib/script-generator/types";
 import {
@@ -37,6 +38,26 @@ const MANUAL_REVIEW_HIGH_PRIORITY_CODES = new Set([
   "MISSING_SOURCE_TEXT",
 ]);
 
+interface ScriptGenerationLLMProviderMetrics {
+  provider: string;
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  averageLatencyMs: number;
+  averageWaitMs: number;
+}
+
+interface ScriptGenerationLLMMetrics {
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  averageLatencyMs: number;
+  averageWaitMs: number;
+  providers: ScriptGenerationLLMProviderMetrics[];
+}
+
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -65,6 +86,107 @@ const asStringList = (value: unknown): string[] => {
   return value
     .map((entry) => asString(entry))
     .filter((entry) => entry.length > 0);
+};
+
+const createLLMMetricsCollector = () => {
+  const providerBuckets = new Map<
+    string,
+    {
+      submitted: number;
+      completed: number;
+      failed: number;
+      retried: number;
+      totalLatencyMs: number;
+      totalWaitMs: number;
+    }
+  >();
+  let submitted = 0;
+  let completed = 0;
+  let failed = 0;
+  let retried = 0;
+  let totalLatencyMs = 0;
+  let totalWaitMs = 0;
+
+  const getBucket = (provider: string) => {
+    const key = provider.trim() || "unknown";
+    const existing = providerBuckets.get(key);
+    if (existing) {
+      return existing;
+    }
+
+    const created = {
+      submitted: 0,
+      completed: 0,
+      failed: 0,
+      retried: 0,
+      totalLatencyMs: 0,
+      totalWaitMs: 0,
+    };
+    providerBuckets.set(key, created);
+    return created;
+  };
+
+  return {
+    observe(event: LLMExecutionEvent) {
+      const bucket = getBucket(event.provider);
+      if (event.status === "submitted") {
+        submitted += 1;
+        bucket.submitted += 1;
+        return;
+      }
+
+      const retriesUsed =
+        typeof event.retriesUsed === "number"
+          ? Math.max(event.retriesUsed, 0)
+          : typeof event.attempt === "number"
+            ? Math.max(event.attempt - 1, 0)
+            : 0;
+
+      retried += retriesUsed;
+      bucket.retried += retriesUsed;
+
+      if (event.status === "completed") {
+        completed += 1;
+        bucket.completed += 1;
+        totalLatencyMs += event.latencyMs;
+        bucket.totalLatencyMs += event.latencyMs;
+        totalWaitMs += event.waitMs || 0;
+        bucket.totalWaitMs += event.waitMs || 0;
+        return;
+      }
+
+      failed += 1;
+      bucket.failed += 1;
+    },
+
+    snapshot(): ScriptGenerationLLMMetrics {
+      return {
+        submitted,
+        completed,
+        failed,
+        retried,
+        averageLatencyMs: completed > 0 ? Math.round(totalLatencyMs / completed) : 0,
+        averageWaitMs: completed > 0 ? Math.round(totalWaitMs / completed) : 0,
+        providers: Array.from(providerBuckets.entries())
+          .map(([provider, bucket]) => ({
+            provider,
+            submitted: bucket.submitted,
+            completed: bucket.completed,
+            failed: bucket.failed,
+            retried: bucket.retried,
+            averageLatencyMs:
+              bucket.completed > 0
+                ? Math.round(bucket.totalLatencyMs / bucket.completed)
+                : 0,
+            averageWaitMs:
+              bucket.completed > 0
+                ? Math.round(bucket.totalWaitMs / bucket.completed)
+                : 0,
+          }))
+          .sort((left, right) => left.provider.localeCompare(right.provider)),
+      };
+    },
+  };
 };
 
 const normalizeSegmentFailureDetail = (value: unknown): SegmentFailureDetail | null => {
@@ -352,11 +474,30 @@ export async function runScriptGenerationTask({
 }: ScriptGenerationRunParams): Promise<void> {
   const isSampleRun = isSampleScriptGenerationRun(extraParams);
   const isPartialRun = isPartialScriptGenerationRun(extraParams);
+  const taskSnapshot = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: {
+      taskData: true,
+    },
+  });
+  const taskMetadata = asRecord(asRecord(taskSnapshot?.taskData)?.metadata);
+  const previousBookStatusFromTask = asString(taskMetadata?.previousBookStatus);
 
   await updateTaskProgress(taskId, 10, "准备生成台本");
 
   const scriptGenerator = getScriptGenerator();
+  const llmMetricsCollector = createLLMMetricsCollector();
   let script: any;
+
+  if (typeof (scriptGenerator as { setExecutionObserver?: unknown }).setExecutionObserver === "function") {
+    (
+      scriptGenerator as {
+        setExecutionObserver: (observer: ((event: LLMExecutionEvent) => void) | null) => void;
+      }
+    ).setExecutionObserver((event) => {
+      llmMetricsCollector.observe(event);
+    });
+  }
 
   await updateTaskProgress(taskId, 30, "开始分析文本");
 
@@ -426,7 +567,8 @@ export async function runScriptGenerationTask({
   });
   const bookMetadata = jsonObject(book?.metadata);
   const previousBookStatus =
-    typeof book?.status === "string" ? book.status : "";
+    previousBookStatusFromTask ||
+    (typeof book?.status === "string" ? book.status : "");
 
   const failedSegments = Number(script.summary.failedSegments || 0);
   const totalSegments = Number(script.summary.totalSegments || 0);
@@ -464,6 +606,7 @@ export async function runScriptGenerationTask({
         updated: 0,
         totalPending: 0,
       };
+  const llmMetrics = llmMetricsCollector.snapshot();
 
   if (hasSegmentFailures) {
     const failureMessage = `台本生成部分失败：${failedSegments}/${totalSegments} 个段落未生成成功`;
@@ -491,6 +634,11 @@ export async function runScriptGenerationTask({
           updated: reviewSyncResult.updated,
           pending: reviewSyncResult.totalPending,
         },
+        ...(llmMetrics.submitted > 0
+          ? {
+              llmMetrics,
+            }
+          : {}),
       },
     });
 
@@ -548,6 +696,11 @@ export async function runScriptGenerationTask({
       isPartial: isPartialRun,
       regeneratedSegments: extraParams.segmentIds?.length || 0,
       autoResolvedScriptReviewItems: resolvedReviewResult.resolved,
+      ...(llmMetrics.submitted > 0
+        ? {
+            llmMetrics,
+          }
+        : {}),
     },
   });
 

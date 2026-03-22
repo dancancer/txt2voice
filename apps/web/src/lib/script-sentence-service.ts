@@ -15,6 +15,12 @@ import {
   normalizeScriptUpdatePayload,
   parseScriptSentenceFilters,
 } from "@/lib/script-sentence-contract";
+import {
+  ensureNarrationCharacter,
+  isNarrationSpeaker,
+  NARRATION_CHARACTER_NAME,
+  NARRATION_SYSTEM_ROLE_TYPE,
+} from "@/lib/narration-character";
 
 const scriptSentenceInclude = {
   character: {
@@ -65,6 +71,63 @@ const toJsonValue = (value: unknown): Prisma.InputJsonValue | undefined =>
 
 const toStringValue = (value: unknown): string | undefined =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+
+const isNarrationRoleType = (value: unknown): boolean =>
+  typeof value === "string" && value.trim().toLowerCase() === NARRATION_SYSTEM_ROLE_TYPE;
+
+async function resolveSentenceAssignment(params: {
+  bookId: string;
+  characterId?: string | null;
+  rawSpeaker?: string | null;
+  roleType?: string;
+}) {
+  const { bookId, characterId, rawSpeaker, roleType } = params;
+  const wantsNarration = isNarrationRoleType(roleType) || isNarrationSpeaker(rawSpeaker);
+
+  if (wantsNarration) {
+    const narrationCharacter = await ensureNarrationCharacter(bookId);
+    return {
+      characterId: narrationCharacter.id,
+      rawSpeaker: NARRATION_CHARACTER_NAME,
+      roleType: NARRATION_SYSTEM_ROLE_TYPE,
+    };
+  }
+
+  if (!characterId) {
+    return {
+      characterId,
+      rawSpeaker,
+      roleType,
+    };
+  }
+
+  const character = await prisma.characterProfile.findFirst({
+    where: { id: characterId, bookId },
+    select: {
+      id: true,
+      isSystemRole: true,
+      systemRoleType: true,
+    },
+  });
+
+  if (!character) {
+    throw new ValidationError("角色不存在");
+  }
+
+  if (character.isSystemRole && character.systemRoleType === NARRATION_SYSTEM_ROLE_TYPE) {
+    return {
+      characterId: character.id,
+      rawSpeaker: NARRATION_CHARACTER_NAME,
+      roleType: NARRATION_SYSTEM_ROLE_TYPE,
+    };
+  }
+
+  return {
+    characterId: character.id,
+    rawSpeaker,
+    roleType,
+  };
+}
 
 async function ensureBookExists(bookId: string): Promise<void> {
   const book = await prisma.book.findUnique({
@@ -200,24 +263,31 @@ export async function createBookScriptSentence(bookId: string, body: unknown) {
     orderInSegment = (maxOrder?.orderInSegment || 0) + 1;
   }
 
+  const resolvedAssignment = await resolveSentenceAssignment({
+    bookId,
+    characterId,
+    rawSpeaker:
+      payload.rawSpeaker === null
+        ? null
+        : typeof payload.rawSpeaker === "string"
+        ? payload.rawSpeaker
+        : undefined,
+    roleType: toStringValue(payload.roleType),
+  });
+
   const created = await prisma.scriptSentence.create({
     data: {
       bookId,
       segmentId,
       chapterId: segment.chapterId,
-      characterId,
+      characterId: resolvedAssignment.characterId,
       text: rawText,
-      rawSpeaker:
-        payload.rawSpeaker === null
-          ? null
-          : typeof payload.rawSpeaker === "string"
-          ? payload.rawSpeaker
-          : undefined,
+      rawSpeaker: resolvedAssignment.rawSpeaker,
       tone:
         typeof payload.tone === "string"
           ? payload.tone
           : undefined,
-      roleType: toStringValue(payload.roleType),
+      roleType: resolvedAssignment.roleType,
       emotionLabel: toStringValue(payload.emotionLabel),
       emotionIntensity:
         typeof payload.emotionIntensity === "number" &&
@@ -263,26 +333,42 @@ export async function updateBookScriptSentences(bookId: string, body: unknown) {
   }
 
   const updates = scripts.map((item) =>
-    prisma.scriptSentence.update({
-      where: { id: item.id },
-      data: {
-        characterId: item.characterId,
-        text: item.text,
-        rawSpeaker: item.rawSpeaker,
-        tone: item.tone,
-        roleType: item.roleType,
-        emotionLabel: item.emotionLabel,
-        emotionIntensity: item.emotionIntensity,
-        engineHint: item.engineHint,
-        priority: item.priority,
-        prosody: toJsonValue(item.prosody),
-        strength: item.strength,
-        pauseAfter: item.pauseAfter,
-        ttsParameters: toJsonValue(item.ttsParameters),
-        orderInSegment: item.orderInSegment,
-      },
-      include: scriptSentenceInclude,
-    })
+    (async () => {
+      const shouldNormalizeAssignment =
+        item.characterId !== undefined ||
+        item.rawSpeaker !== undefined ||
+        item.roleType !== undefined;
+
+      const resolvedAssignment = shouldNormalizeAssignment
+        ? await resolveSentenceAssignment({
+            bookId,
+            characterId: item.characterId,
+            rawSpeaker: item.rawSpeaker,
+            roleType: item.roleType,
+          })
+        : null;
+
+      return prisma.scriptSentence.update({
+        where: { id: item.id },
+        data: {
+          characterId: resolvedAssignment?.characterId ?? item.characterId,
+          text: item.text,
+          rawSpeaker: resolvedAssignment?.rawSpeaker ?? item.rawSpeaker,
+          tone: item.tone,
+          roleType: resolvedAssignment?.roleType ?? item.roleType,
+          emotionLabel: item.emotionLabel,
+          emotionIntensity: item.emotionIntensity,
+          engineHint: item.engineHint,
+          priority: item.priority,
+          prosody: toJsonValue(item.prosody),
+          strength: item.strength,
+          pauseAfter: item.pauseAfter,
+          ttsParameters: toJsonValue(item.ttsParameters),
+          orderInSegment: item.orderInSegment,
+        },
+        include: scriptSentenceInclude,
+      });
+    })()
   );
 
   const updated = await Promise.all(updates);

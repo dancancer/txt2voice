@@ -99,15 +99,13 @@ describe("segment processor", () => {
       options,
     });
 
-    expect(result.dialogueLines).toHaveLength(1);
-    expect(result.dialogueLines[0]).toMatchObject({
-      text: '你好。',
-      rawSpeaker: '张三',
-      characterName: '张三',
-    });
-    expect(result.dialogueLines[0].ttsParameters).toMatchObject({
-      sourceText: '张三说：“你好。”',
-      sourceStart: 0,
+    expect(result.dialogueLines.map((line) => [line.rawSpeaker, line.text])).toEqual([
+      ['旁白', '张三说：'],
+      ['张三', '你好。'],
+    ]);
+    expect(result.dialogueLines[1].ttsParameters).toMatchObject({
+      sourceText: '“你好。”',
+      sourceStart: 4,
       sourceEnd: 9,
     });
   });
@@ -178,14 +176,16 @@ describe("segment processor", () => {
       options,
     });
 
-    expect(result.dialogueLines).toHaveLength(1);
-    expect(result.dialogueLines[0]).toMatchObject({
-      text: '你好，我是测试角色。',
-      rawSpeaker: '张三',
-      characterName: '张三',
-    });
+    expect(result.dialogueLines.map((line) => [line.rawSpeaker, line.text])).toEqual([
+      ['张三', '你好，'],
+      ['旁白', '他说，'],
+      ['张三', '我是测试角色。'],
+    ]);
     expect(result.dialogueLines[0].ttsParameters).toMatchObject({
-      sourceText: '"你好，"他说，"我是测试角色。"',
+      sourceText: '"你好，"',
+    });
+    expect(result.dialogueLines[2].ttsParameters).toMatchObject({
+      sourceText: '"我是测试角色。"',
     });
   });
 

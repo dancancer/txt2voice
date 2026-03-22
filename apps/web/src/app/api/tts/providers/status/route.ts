@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { CosyVoiceService } from "@/lib/cosyvoice-service";
 import { withErrorHandler } from "@/lib/error-handler";
 import { IndexTTSService } from "@/lib/indextts-service";
+import { probeTtsProviderRuntime } from "@/lib/tts-runtime-probe";
 import { VoxCPMService } from "@/lib/voxcpm-service";
 
 type ProviderKey = "indextts" | "cosyvoice" | "voxcpm";
@@ -15,6 +16,10 @@ type ProviderStatus = {
   configuredFromEnv: boolean;
   supportsSpeakerManagement: boolean;
   defaultMode?: string;
+  probeHealthy?: boolean;
+  probeMessage?: string;
+  probeLatencyMs?: number;
+  probeCheckedAt?: string;
 };
 
 const PROVIDER_CONFIG: Record<
@@ -47,6 +52,7 @@ const PROVIDER_CONFIG: Record<
 };
 
 const HEALTH_CHECK_TIMEOUT_MS = 5000;
+const RUNTIME_PROBE_TIMEOUT_MS = 15000;
 
 const readErrorMessage = (error: unknown): string => {
   const raw =
@@ -94,7 +100,10 @@ const checkProviderHealth = async (
   }
 };
 
-export const GET = withErrorHandler(async (_request: NextRequest) => {
+export const GET = withErrorHandler(async (request: NextRequest) => {
+  const { searchParams } = new URL(request.url);
+  const probeRequested = searchParams.get("probe") === "true";
+
   const statuses = await Promise.all(
     (Object.keys(PROVIDER_CONFIG) as ProviderKey[]).map(async (provider) => {
       const config = PROVIDER_CONFIG[provider];
@@ -114,6 +123,18 @@ export const GET = withErrorHandler(async (_request: NextRequest) => {
 
       if (provider === "cosyvoice") {
         status.defaultMode = process.env.COSYVOICE_DEFAULT_MODE || "cross_lingual";
+      }
+
+      if (probeRequested) {
+        const probe = await probeTtsProviderRuntime({
+          provider,
+          endpoint,
+          timeoutMs: RUNTIME_PROBE_TIMEOUT_MS,
+        });
+        status.probeHealthy = probe.healthy;
+        status.probeMessage = probe.message;
+        status.probeLatencyMs = probe.latencyMs;
+        status.probeCheckedAt = probe.checkedAt;
       }
 
       return status;
