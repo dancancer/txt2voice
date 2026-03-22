@@ -852,8 +852,20 @@ export const resolveManualReviewItem = async ({
       data: { status: "generating_script" },
     });
 
+    const updated = await prisma.manualReviewItem.update({
+      where: { id: itemId },
+      data: {
+        status: "reprocessing",
+        resolutionType: "regenerate",
+        resolutionNote: buildRegenerateNote(payload.note, task.id),
+        assignedTo: payload.assignedTo ?? item.assignedTo,
+        resolvedAt: null,
+      },
+      include: MANUAL_REVIEW_INCLUDE,
+    });
+
     return {
-      item: formatManualReviewItem(item),
+      item: formatManualReviewItem(updated),
       retryTask: {
         taskId: task.id,
         taskType: "SCRIPT_GENERATION",
@@ -1067,10 +1079,26 @@ export const resolveManualReviewItemsInBatch = async ({
       data: { status: "generating_script" },
     });
 
+    const updatedItems: FormattedManualReviewItem[] = [];
+    for (const item of orderedItems) {
+      const updated = await prisma.manualReviewItem.update({
+        where: { id: item.id },
+        data: {
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+          resolutionNote: buildBatchRegenerateNote(payload.note, task.id),
+          assignedTo: payload.assignedTo ?? item.assignedTo,
+          resolvedAt: null,
+        },
+        include: MANUAL_REVIEW_INCLUDE,
+      });
+      updatedItems.push(formatManualReviewItem(updated));
+    }
+
     return {
       action: payload.action,
-      processedCount: orderedItems.length,
-      items: orderedItems.map((item) => formatManualReviewItem(item)),
+      processedCount: updatedItems.length,
+      items: updatedItems,
       retryTask: {
         taskId: task.id,
         taskType: "SCRIPT_GENERATION",

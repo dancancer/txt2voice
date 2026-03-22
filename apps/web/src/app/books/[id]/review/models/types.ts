@@ -4,6 +4,7 @@
 // pos: 质检复核页面共享类型
 import type { ScriptValidationRecommendedAction } from "@/lib/script-validation-detail";
 import type { BookSloMetricsResult } from "@/lib/slo-metrics/types";
+import type { ProcessingTaskStatus } from "@/lib/view-models/tasks";
 
 export type ManualReviewStatus = "pending" | "reprocessing" | "resolved" | "rejected";
 export type ManualReviewStatusFilter = ManualReviewStatus | "all";
@@ -109,6 +110,44 @@ export interface ReviewBatchResolveResult {
 export interface ReviewBatchResolveResponse {
   success: boolean;
   data: ReviewBatchResolveResult;
+  error?: {
+    message?: string;
+  };
+}
+
+export type ReviewRegenerateTaskSource = "manual_review" | "manual_review_batch";
+
+export interface ReviewRegenerateTask {
+  id: string;
+  taskType: string;
+  status: ProcessingTaskStatus;
+  progress: number;
+  message: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt: string | null;
+  source: ReviewRegenerateTaskSource;
+  targetCount: number;
+}
+
+export interface ReviewTaskListResponse {
+  success: boolean;
+  data: Array<{
+    id: string;
+    bookId: string;
+    bookTitle?: string | null;
+    taskType: string;
+    status: ProcessingTaskStatus;
+    progress: number;
+    message?: string | null;
+    metadata?: Record<string, unknown> | null;
+    errorMessage?: string | null;
+    createdAt: string;
+    updatedAt: string;
+    completedAt?: string | null;
+  }>;
+  pagination?: ReviewPagination;
   error?: {
     message?: string;
   };

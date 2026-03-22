@@ -16,11 +16,13 @@ import type {
   DispatchAlertEvent,
   DispatchAlertEventListResponse,
   ManualReviewItem,
+  ReviewRegenerateTask,
   ReviewRecommendedActionFilter,
   ManualReviewStatusFilter,
   ReviewListResponse,
   ReviewPagination,
   ReviewSummary,
+  ReviewTaskListResponse,
   ReviewWorkbenchFilters,
 } from "../models/types";
 import { REVIEW_PAGE_LIMIT } from "../models/types";
@@ -50,6 +52,55 @@ const DEFAULT_DISPATCH_EVENT_SUMMARY = {
   totalCount: 0,
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+};
+
+const asStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+};
+
+const toRegenerateTask = (
+  task: NonNullable<ReviewTaskListResponse["data"]>[number]
+): ReviewRegenerateTask | null => {
+  const metadata = isRecord(task.metadata) ? task.metadata : null;
+  const source =
+    metadata?.source === "manual_review" || metadata?.source === "manual_review_batch"
+      ? metadata.source
+      : null;
+
+  if (!source) {
+    return null;
+  }
+
+  const selectedReviewItemIds = asStringArray(metadata?.selectedReviewItemIds);
+  const segmentIds = asStringArray(metadata?.segmentIds);
+  const scriptSentenceIds = asStringArray(metadata?.scriptSentenceIds);
+  const targetCount =
+    selectedReviewItemIds.length ||
+    segmentIds.length ||
+    scriptSentenceIds.length ||
+    1;
+
+  return {
+    id: task.id,
+    taskType: task.taskType,
+    status: task.status,
+    progress: task.progress || 0,
+    message: task.message || null,
+    errorMessage: task.errorMessage || null,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    completedAt: task.completedAt || null,
+    source,
+    targetCount,
+  };
+};
+
 export function useReviewWorkbenchData(bookId: string) {
   const [bookTitle, setBookTitle] = useState("质检复核工作台");
   const [items, setItems] = useState<ManualReviewItem[]>([]);
@@ -57,6 +108,9 @@ export function useReviewWorkbenchData(bookId: string) {
   const [summary, setSummary] = useState<ReviewSummary>(DEFAULT_SUMMARY);
   const [sloMetrics, setSloMetrics] = useState<BookSloMetricsResponse["data"] | null>(null);
   const [dispatchEvents, setDispatchEvents] = useState<DispatchAlertEvent[]>([]);
+  const [recentRegenerateTasks, setRecentRegenerateTasks] = useState<
+    ReviewRegenerateTask[]
+  >([]);
   const [dispatchEventSummary, setDispatchEventSummary] = useState(
     DEFAULT_DISPATCH_EVENT_SUMMARY
   );
@@ -74,6 +128,7 @@ export function useReviewWorkbenchData(bookId: string) {
 
   const [reviewLoading, setReviewLoading] = useState(true);
   const [sloLoading, setSloLoading] = useState(true);
+  const [taskLoading, setTaskLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -234,6 +289,46 @@ export function useReviewWorkbenchData(bookId: string) {
     [bookId, sourceFilter, windowDays]
   );
 
+  const loadRegenerateTasks = useCallback(
+    async (showLoading = true) => {
+      if (showLoading) {
+        setTaskLoading(true);
+      }
+
+      try {
+        const params = new URLSearchParams({
+          bookId,
+          limit: "20",
+        });
+        const response = await fetch(`/api/tasks?${params.toString()}`, {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as ReviewTaskListResponse;
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error?.message || "加载重生任务失败");
+        }
+
+        const tasks = (payload.data || [])
+          .map((task) => toRegenerateTask(task))
+          .filter((task): task is ReviewRegenerateTask => Boolean(task))
+          .slice(0, 6);
+
+        setRecentRegenerateTasks(tasks);
+      } catch (loadError) {
+        console.error("Failed to load regenerate tasks:", loadError);
+        if (showLoading) {
+          toast.error(loadError instanceof Error ? loadError.message : "加载重生任务失败");
+        }
+      } finally {
+        if (showLoading) {
+          setTaskLoading(false);
+        }
+      }
+    },
+    [bookId]
+  );
+
   useEffect(() => {
     loadBookTitle();
   }, [loadBookTitle]);
@@ -246,11 +341,36 @@ export function useReviewWorkbenchData(bookId: string) {
     loadSloData();
   }, [loadSloData]);
 
+  useEffect(() => {
+    loadRegenerateTasks();
+  }, [loadRegenerateTasks]);
+
+  const hasProcessingRegenerateTask = useMemo(
+    () => recentRegenerateTasks.some((task) => task.status === "processing"),
+    [recentRegenerateTasks]
+  );
+
+  useEffect(() => {
+    if (!hasProcessingRegenerateTask) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void Promise.all([loadReviewData(false), loadRegenerateTasks(false)]);
+    }, 5000);
+
+    return () => window.clearInterval(timer);
+  }, [hasProcessingRegenerateTask, loadRegenerateTasks, loadReviewData]);
+
   const refreshAll = useCallback(async () => {
     setRefreshing(true);
-    await Promise.all([loadReviewData(false), loadSloData(false)]);
+    await Promise.all([
+      loadReviewData(false),
+      loadSloData(false),
+      loadRegenerateTasks(false),
+    ]);
     setRefreshing(false);
-  }, [loadReviewData, loadSloData]);
+  }, [loadRegenerateTasks, loadReviewData, loadSloData]);
 
   const {
     actionLoadingItemId,
@@ -264,7 +384,11 @@ export function useReviewWorkbenchData(bookId: string) {
     bookId,
     buildReviewParams,
     refreshAfterReviewMutation: async () => {
-      await Promise.all([loadReviewData(false), loadSloData(false)]);
+      await Promise.all([
+        loadReviewData(false),
+        loadSloData(false),
+        loadRegenerateTasks(false),
+      ]);
     },
     refreshSloOnly: async () => {
       await loadSloData(false);
@@ -316,12 +440,14 @@ export function useReviewWorkbenchData(bookId: string) {
     sloMetrics,
     dispatchEvents,
     dispatchEventSummary,
+    recentRegenerateTasks,
     filters,
     page,
     windowDays,
     sourceFilter,
     reviewLoading,
     sloLoading,
+    taskLoading,
     refreshing,
     actionLoadingItemId,
     batchActionLoading,
@@ -337,6 +463,7 @@ export function useReviewWorkbenchData(bookId: string) {
     setSourceFilter,
     loadReviewData,
     loadSloData,
+    loadRegenerateTasks,
     refreshAll,
     updateStatusFilter,
     updateIssueTypeFilter,

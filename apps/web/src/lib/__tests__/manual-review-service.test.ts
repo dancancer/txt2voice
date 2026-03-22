@@ -312,6 +312,23 @@ describe("manual-review-service", () => {
       reused: false,
       state: "waiting",
     });
+    mockUpdate.mockResolvedValueOnce(
+      baseItem({
+        id: "review-script-1",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-1",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+        status: "reprocessing",
+        resolutionType: "regenerate",
+        resolutionNote: "retry_task:task-script-retry-1",
+      })
+    );
 
     const result = await resolveManualReviewItem({
       bookId: "book-1",
@@ -356,7 +373,18 @@ describe("manual-review-service", () => {
       status: "processing",
     });
     expect(result.item.id).toBe("review-script-1");
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(result.item.status).toBe("reprocessing");
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "review-script-1" },
+      data: {
+        status: "reprocessing",
+        resolutionType: "regenerate",
+        resolutionNote: "retry_task:task-script-retry-1",
+        assignedTo: "qa-1",
+        resolvedAt: null,
+      },
+      include: expect.anything(),
+    });
   });
 
   it("should batch approve manual review items", async () => {
@@ -506,6 +534,41 @@ describe("manual-review-service", () => {
       reused: false,
       state: "waiting",
     });
+    mockUpdate
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-script-21",
+          issueType: "SCRIPT_VALIDATION",
+          sentenceId: null,
+          audioFileId: null,
+          qcResultId: null,
+          attemptId: null,
+          segmentId: "segment-script-21",
+          scriptSentence: null,
+          audioFile: null,
+          qualityCheckResult: null,
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+          resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        })
+      )
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-script-22",
+          issueType: "SCRIPT_VALIDATION",
+          sentenceId: null,
+          audioFileId: null,
+          qcResultId: null,
+          attemptId: null,
+          segmentId: "segment-script-22",
+          scriptSentence: null,
+          audioFile: null,
+          qualityCheckResult: null,
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+          resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        })
+      );
 
     const result = await resolveManualReviewItemsInBatch({
       bookId: "book-1",
@@ -548,7 +611,32 @@ describe("manual-review-service", () => {
       status: "processing",
     });
     expect(result.processedCount).toBe(2);
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(result.items.map((item) => item.status)).toEqual([
+      "reprocessing",
+      "reprocessing",
+    ]);
+    expect(mockUpdate).toHaveBeenNthCalledWith(1, {
+      where: { id: "review-script-21" },
+      data: {
+        status: "reprocessing",
+        resolutionType: "batch_regenerate",
+        resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        assignedTo: null,
+        resolvedAt: null,
+      },
+      include: expect.anything(),
+    });
+    expect(mockUpdate).toHaveBeenNthCalledWith(2, {
+      where: { id: "review-script-22" },
+      data: {
+        status: "reprocessing",
+        resolutionType: "batch_regenerate",
+        resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        assignedTo: null,
+        resolvedAt: null,
+      },
+      include: expect.anything(),
+    });
   });
 
   it("should reject batch regenerate when any item is missing sentenceId", async () => {

@@ -23,6 +23,7 @@ import {
   ReviewPaginationBar,
   ReviewQueueList,
 } from "./components/ReviewQueuePanel";
+import { ReviewRegenerateTaskList } from "./components/ReviewRegenerateTaskList";
 import {
   ReviewWindowIndicator,
   SloCardSection,
@@ -44,12 +45,14 @@ export default function ReviewWorkbenchPage() {
     sloMetrics,
     dispatchEvents,
     dispatchEventSummary,
+    recentRegenerateTasks,
     filters,
     page,
     windowDays,
     sourceFilter,
     reviewLoading,
     sloLoading,
+    taskLoading,
     refreshing,
     actionLoadingItemId,
     batchActionLoading,
@@ -149,6 +152,10 @@ export default function ReviewWorkbenchPage() {
 
           <TabsContent value="queue" className="mt-4 space-y-4">
             <SloCardSection sloMetrics={sloMetrics} />
+            <ReviewRegenerateTaskList
+              tasks={recentRegenerateTasks}
+              loading={taskLoading}
+            />
             <ReviewFilterBar
               status={filters.status}
               issueType={filters.issueType}
