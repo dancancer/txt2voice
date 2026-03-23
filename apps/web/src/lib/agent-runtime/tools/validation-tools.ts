@@ -28,32 +28,38 @@ export interface CheckScriptCoverageResult {
   uncoveredChars: number;
 }
 
-const findNextMatchStart = (params: {
+const findBestCoverageMatchStart = (params: {
   source: string;
   fragment: string;
   coveredMask: boolean[];
 }): number => {
   const { source, fragment, coveredMask } = params;
   let startIndex = source.indexOf(fragment);
+  let bestStart = -1;
+  let maxNewCoverage = 0;
 
   while (startIndex >= 0) {
-    let hasUncoveredChar = false;
+    let newCoverage = 0;
 
     for (let index = startIndex; index < startIndex + fragment.length; index += 1) {
       if (!coveredMask[index]) {
-        hasUncoveredChar = true;
-        break;
+        newCoverage += 1;
       }
     }
 
-    if (hasUncoveredChar) {
-      return startIndex;
+    const shouldReplaceBest =
+      newCoverage > maxNewCoverage ||
+      (newCoverage === maxNewCoverage && newCoverage > 0 && (bestStart < 0 || startIndex < bestStart));
+
+    if (shouldReplaceBest) {
+      bestStart = startIndex;
+      maxNewCoverage = newCoverage;
     }
 
     startIndex = source.indexOf(fragment, startIndex + 1);
   }
 
-  return -1;
+  return bestStart;
 };
 
 export const validateStructuredOutput = (
@@ -91,7 +97,7 @@ export const checkScriptCoverage = (
       continue;
     }
 
-    const startIndex = findNextMatchStart({
+    const startIndex = findBestCoverageMatchStart({
       source: normalizedSource,
       fragment: normalizedFragment,
       coveredMask,

@@ -61,6 +61,17 @@ describe("tool contracts", () => {
       coverageRatio: 1,
       uncoveredChars: 0,
     });
+
+    const overlappingCoverage = checkScriptCoverage({
+      sourceText: "aaaa",
+      scriptFragments: ["aa", "aa"],
+    });
+
+    expect(overlappingCoverage).toEqual({
+      valid: true,
+      coverageRatio: 1,
+      uncoveredChars: 0,
+    });
   });
 
   it("marks commit and memory-save tools as side-effect tools", () => {
