@@ -1,0 +1,6 @@
+id = "character-discovery"
+version = "1"
+role = "discover_character_identities"
+compatibleWorkflowStages = ["character_discovery"]
+allowedSkills = ["character-extraction"]
+allowedTools = ["load-book-context"]
