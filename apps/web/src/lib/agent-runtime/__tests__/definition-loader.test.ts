@@ -243,4 +243,26 @@ describe("definition loader", () => {
       });
     }
   });
+
+  it("raises an authoring error when agent.toml is missing", () => {
+    const rootDir = createFixtureRoot();
+
+    fs.rmSync(path.join(rootDir, "agents/character-discovery/agent.toml"));
+
+    expect(() => loadAgentDefinition(rootDir, "character-discovery")).toThrow(
+      DefinitionRegistryError
+    );
+
+    try {
+      loadAgentDefinition(rootDir, "character-discovery");
+    } catch (error) {
+      expect(error).toBeInstanceOf(DefinitionRegistryError);
+      expect((error as DefinitionRegistryError).code).toBe("AUTHORING_ERROR");
+      expect((error as DefinitionRegistryError).details).toMatchObject({
+        definitionType: "agent",
+        definitionId: "character-discovery",
+        missingFile: "agent.toml",
+      });
+    }
+  });
 });

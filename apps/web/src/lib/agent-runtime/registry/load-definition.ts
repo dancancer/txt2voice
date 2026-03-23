@@ -92,6 +92,29 @@ const parseSimpleToml = (params: {
 
 const readTextFile = (filePath: string) => fs.readFileSync(filePath, "utf8");
 
+const assertDefinitionFile = (params: {
+  exists: boolean;
+  definitionType: "agent" | "skill" | "workflow";
+  definitionId: string;
+  filename: string;
+}) => {
+  const { exists, definitionType, definitionId, filename } = params;
+
+  if (exists) {
+    return;
+  }
+
+  throw new DefinitionRegistryError(
+    "AUTHORING_ERROR",
+    `Missing ${filename} for ${definitionType} definition ${definitionId}`,
+    {
+      definitionType,
+      definitionId,
+      missingFile: filename,
+    }
+  );
+};
+
 const loadDefinitionFiles = (params: {
   rootDir: string;
   groupDir: "agents" | "skills" | "workflows";
@@ -111,6 +134,13 @@ const loadDefinitionFiles = (params: {
   const baseDir = path.join(rootDir, groupDir, definitionId);
   const tomlPath = path.join(baseDir, tomlFilename);
   const markdownPath = path.join(baseDir, markdownFilename);
+
+  assertDefinitionFile({
+    exists: fs.existsSync(tomlPath),
+    definitionType,
+    definitionId,
+    filename: tomlFilename,
+  });
 
   assertDefinitionMarkdown({
     exists: fs.existsSync(markdownPath),
