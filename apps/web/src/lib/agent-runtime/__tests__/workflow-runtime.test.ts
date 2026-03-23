@@ -285,4 +285,50 @@ describe("workflow runtime skeleton", () => {
       "Workflow stage mismatch: expected [prepare, generate], received [prepare, publish]"
     );
   });
+
+  it("does not route trace sink failure through resolveFailure after agent execution", async () => {
+    let nextId = 0;
+    let resolveFailureCallCount = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-trace-failure",
+      version: "1",
+      kind: "workflow",
+      stages: ["generate"],
+    };
+
+    await expect(
+      runWorkflow({
+        workflow,
+        stages: [
+          {
+            id: "generate",
+            agent: {
+              id: "generate-agent",
+              execute: async () => ({
+                status: "completed",
+                output: { lines: 10 },
+              }),
+              resolveFailure: () => {
+                resolveFailureCallCount += 1;
+
+                return "retrying";
+              },
+            },
+          },
+        ],
+        adapters: {
+          createId: () => `id-${nextId++}`,
+          createWorkflowRun: async () => undefined,
+          createStageRun: async () => undefined,
+          appendTrace: async (event) => {
+            if (event.kind === "agent.completed") {
+              throw new Error("trace sink unavailable");
+            }
+          },
+        },
+      })
+    ).rejects.toThrow("trace sink unavailable");
+
+    expect(resolveFailureCallCount).toBe(0);
+  });
 });

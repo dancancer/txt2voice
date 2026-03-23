@@ -2,7 +2,8 @@ import type { TraceDependencies } from "./write-trace";
 import { writeTrace } from "./write-trace";
 
 export type AgentRetryDirective = "retrying" | "repairing";
-export type AgentRunStatus = "completed" | "failed" | AgentRetryDirective;
+export type AgentFailureStatus = "failed" | AgentRetryDirective;
+export type AgentRunStatus = "completed" | AgentFailureStatus;
 
 type AgentExecutorSuccess = {
   status: "completed";
@@ -34,7 +35,7 @@ export type FailureResolver = (context: {
   workflowRunId: string;
   stageRunId: string;
   stageId: string;
-}) => AgentRunStatus;
+}) => AgentFailureStatus;
 
 export interface RuntimeAgentDefinition {
   id: string;
@@ -59,7 +60,7 @@ export interface RunAgentResult {
 
 const resolveFailureStatus = (
   result: AgentExecutorFailure
-): AgentRunStatus => result.retryDirective ?? "failed";
+): AgentFailureStatus => result.retryDirective ?? "failed";
 
 const asErrorMessage = (value: unknown): string => {
   if (value instanceof Error) {
@@ -86,37 +87,15 @@ export const runAgent = async (input: RunAgentInput): Promise<RunAgentResult> =>
     },
   });
 
+  let execution: AgentExecutorResult;
+
   try {
-    const execution = await input.agent.execute({
+    execution = await input.agent.execute({
       workflowRunId: input.workflowRunId,
       stageRunId: input.stageRunId,
       stageId: input.stageId,
       entryPayload: input.entryPayload,
     });
-    const status =
-      execution.status === "completed"
-        ? "completed"
-        : resolveFailureStatus(execution);
-    const result: RunAgentResult = {
-      agentId: input.agent.id,
-      status,
-      output: execution.output,
-      error: execution.status === "failed" ? execution.error : undefined,
-    };
-
-    await writeTrace({
-      ...input,
-      kind: `agent.${result.status}`,
-      workflowRunId: input.workflowRunId,
-      stageRunId: input.stageRunId,
-      status: result.status,
-      payload: {
-        agentId: result.agentId,
-        error: result.error,
-      },
-    });
-
-    return result;
   } catch (error) {
     const status =
       input.agent.resolveFailure?.({
@@ -145,4 +124,27 @@ export const runAgent = async (input: RunAgentInput): Promise<RunAgentResult> =>
       error: message,
     };
   }
+
+  const status =
+    execution.status === "completed" ? "completed" : resolveFailureStatus(execution);
+  const result: RunAgentResult = {
+    agentId: input.agent.id,
+    status,
+    output: execution.output,
+    error: execution.status === "failed" ? execution.error : undefined,
+  };
+
+  await writeTrace({
+    ...input,
+    kind: `agent.${result.status}`,
+    workflowRunId: input.workflowRunId,
+    stageRunId: input.stageRunId,
+    status: result.status,
+    payload: {
+      agentId: result.agentId,
+      error: result.error,
+    },
+  });
+
+  return result;
 };
