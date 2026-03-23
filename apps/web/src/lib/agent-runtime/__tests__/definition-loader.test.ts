@@ -210,4 +210,37 @@ describe("definition loader", () => {
       });
     }
   });
+
+  it("preserves definition context when toml contains unsupported values", () => {
+    const rootDir = createFixtureRoot();
+
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        "kind = 1",
+        'compatibleAgents = ["character-discovery"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+      ].join("\n")
+    );
+
+    expect(() => loadSkillDefinition(rootDir, "character-extraction")).toThrow(
+      DefinitionRegistryError
+    );
+
+    try {
+      loadSkillDefinition(rootDir, "character-extraction");
+    } catch (error) {
+      expect(error).toBeInstanceOf(DefinitionRegistryError);
+      expect((error as DefinitionRegistryError).code).toBe("VALIDATION_ERROR");
+      expect((error as DefinitionRegistryError).details).toMatchObject({
+        definitionType: "skill",
+        definitionId: "character-extraction",
+      });
+    }
+  });
 });

@@ -33,7 +33,12 @@ const parseStringArray = (rawValue: string) => {
     .filter((entry) => entry.length > 0);
 };
 
-const parseTomlValue = (rawValue: string): string | string[] => {
+const parseTomlValue = (params: {
+  rawValue: string;
+  definitionType: "agent" | "skill" | "workflow";
+  definitionId: string;
+}): string | string[] => {
+  const { rawValue, definitionType, definitionId } = params;
   const value = rawValue.trim();
 
   if (value.startsWith("[") && value.endsWith("]")) {
@@ -48,13 +53,18 @@ const parseTomlValue = (rawValue: string): string | string[] => {
     "VALIDATION_ERROR",
     `Unsupported TOML value: ${rawValue}`,
     {
-      definitionType: "workflow",
-      definitionId: "unknown",
+      definitionType,
+      definitionId,
     }
   );
 };
 
-const parseSimpleToml = (content: string) => {
+const parseSimpleToml = (params: {
+  content: string;
+  definitionType: "agent" | "skill" | "workflow";
+  definitionId: string;
+}) => {
+  const { content, definitionType, definitionId } = params;
   const result: Record<string, unknown> = {};
 
   for (const rawLine of content.split("\n")) {
@@ -70,7 +80,11 @@ const parseSimpleToml = (content: string) => {
 
     const key = line.slice(0, separatorIndex).trim();
     const value = line.slice(separatorIndex + 1).trim();
-    result[key] = parseTomlValue(value);
+    result[key] = parseTomlValue({
+      rawValue: value,
+      definitionType,
+      definitionId,
+    });
   }
 
   return result;
@@ -107,7 +121,11 @@ const loadDefinitionFiles = (params: {
 
   return {
     definitionId,
-    toml: parseSimpleToml(readTextFile(tomlPath)),
+    toml: parseSimpleToml({
+      content: readTextFile(tomlPath),
+      definitionType,
+      definitionId,
+    }),
     markdown: readTextFile(markdownPath),
   };
 };
