@@ -1,3 +1,5 @@
+import fs from "fs";
+import os from "os";
 import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
@@ -82,6 +84,59 @@ describe("character discovery stage", () => {
     expect(call.prompt).toContain("aliasCount:1");
     expect(call.prompt).toContain("assertedCount:1");
     expect(call.prompt).toContain("inferredCount:1");
+  });
+
+  it("uses skill definition from the same skillDir source", async () => {
+    const fixtureRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "character-discovery-stage-")
+    );
+    const fixtureSkillDir = path.join(fixtureRoot, "skills/character-extraction");
+
+    fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureSkillDir, "skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        'kind = "analysis"',
+        'compatibleAgents = ["other-agent"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+      ].join("\n"),
+      "utf8"
+    );
+    fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
+    fs.writeFileSync(
+      path.join(fixtureSkillDir, "prompts/system.md"),
+      "return json",
+      "utf8"
+    );
+    fs.writeFileSync(
+      path.join(fixtureSkillDir, "prompts/user.md"),
+      "{{segment_text}}",
+      "utf8"
+    );
+
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    await expect(
+      runCharacterDiscoveryStage({
+        workflowRunId: "wf-skill-source",
+        segmentText: "宁采臣抬头。",
+        skillDir: fixtureSkillDir,
+        adapter,
+      })
+    ).rejects.toThrow("is not compatible with character-discovery-agent");
+    expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
   it("returns minimal character memory draft with separated evidence buckets", async () => {

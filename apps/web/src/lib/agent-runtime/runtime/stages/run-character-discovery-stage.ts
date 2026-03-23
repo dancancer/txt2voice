@@ -52,6 +52,8 @@ export type RunCharacterDiscoveryStageResult =
 const createRuntimeId = () =>
   `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+const defaultCharacterExtractionSkillId = "character-extraction";
+
 const resolveWorkspaceRoot = (workspaceRoot?: string): string => {
   if (workspaceRoot) {
     return workspaceRoot;
@@ -88,6 +90,45 @@ const loadCharacterExtractionPrompts = (skillDir: string) => ({
   systemPrompt: readRequiredFile(path.join(skillDir, "prompts/system.md")),
   userPrompt: readRequiredFile(path.join(skillDir, "prompts/user.md")),
 });
+
+interface CharacterExtractionSkillSource {
+  workspaceRoot: string;
+  skillId: string;
+  skillDir: string;
+}
+
+const resolveCharacterExtractionSkillSource = (params: {
+  workspaceRoot?: string;
+  skillDir?: string;
+}): CharacterExtractionSkillSource => {
+  if (params.skillDir) {
+    const resolvedSkillDir = path.resolve(params.skillDir);
+    const skillsDir = path.dirname(resolvedSkillDir);
+
+    if (path.basename(skillsDir) !== "skills") {
+      throw new Error(
+        `skillDir must target <workspace>/skills/<skill-id>: ${params.skillDir}`
+      );
+    }
+
+    return {
+      workspaceRoot: path.dirname(skillsDir),
+      skillId: path.basename(resolvedSkillDir),
+      skillDir: resolvedSkillDir,
+    };
+  }
+
+  const workspaceRoot = resolveWorkspaceRoot(params.workspaceRoot);
+  return {
+    workspaceRoot,
+    skillId: defaultCharacterExtractionSkillId,
+    skillDir: path.join(
+      workspaceRoot,
+      "skills",
+      defaultCharacterExtractionSkillId
+    ),
+  };
+};
 
 const emptyDraft: MemoryPatch = {
   canonicalIdentities: [],
@@ -132,6 +173,7 @@ const resolveAdapter = async (adapter?: LLMAdapter): Promise<LLMAdapter> => {
 };
 
 const assertSkillCompatibleWithAgent = (
+  skillId: string,
   compatibleAgents: string[],
   agentId: string
 ) => {
@@ -139,21 +181,24 @@ const assertSkillCompatibleWithAgent = (
     return;
   }
 
-  throw new Error(
-    `Skill character-extraction is not compatible with ${agentId}`
-  );
+  throw new Error(`Skill ${skillId} is not compatible with ${agentId}`);
 };
 
 export const runCharacterDiscoveryStage = async (
   input: RunCharacterDiscoveryStageInput
 ): Promise<RunCharacterDiscoveryStageResult> => {
   const runtimeAgentId = "character-discovery-agent";
-  const workspaceRoot = resolveWorkspaceRoot(input.workspaceRoot);
-  const skillDir =
-    input.skillDir ?? path.join(workspaceRoot, "skills/character-extraction");
-  const skill = loadSkillDefinition(workspaceRoot, "character-extraction");
-  assertSkillCompatibleWithAgent(skill.definition.compatibleAgents, runtimeAgentId);
-  const prompts = loadCharacterExtractionPrompts(skillDir);
+  const skillSource = resolveCharacterExtractionSkillSource({
+    workspaceRoot: input.workspaceRoot,
+    skillDir: input.skillDir,
+  });
+  const skill = loadSkillDefinition(skillSource.workspaceRoot, skillSource.skillId);
+  assertSkillCompatibleWithAgent(
+    skill.definition.id,
+    skill.definition.compatibleAgents,
+    runtimeAgentId
+  );
+  const prompts = loadCharacterExtractionPrompts(skillSource.skillDir);
   const context = buildAgentContext({
     agentId: runtimeAgentId,
     segmentText: input.segmentText,

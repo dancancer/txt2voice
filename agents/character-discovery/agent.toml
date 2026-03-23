@@ -1,4 +1,4 @@
-id = "character-discovery"
+id = "character-discovery-agent"
 version = "1"
 role = "discover_character_identities"
 compatibleWorkflowStages = ["character_discovery"]
