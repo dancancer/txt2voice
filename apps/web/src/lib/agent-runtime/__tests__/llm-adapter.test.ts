@@ -1,3 +1,5 @@
+export {};
+
 const runLLMRequest = jest.fn();
 const getConfiguredLLMProvider = jest.fn();
 
@@ -28,6 +30,7 @@ describe("agent runtime llm adapter", () => {
       model: "gpt-4.1-mini",
       latencyMs: 42,
       attempt: 1,
+      waitMs: 11,
       usage: {
         prompt_tokens: 5,
         completion_tokens: 9,
@@ -57,19 +60,17 @@ describe("agent runtime llm adapter", () => {
         metadata: { source: "agent_runtime" },
       })
     );
-    expect(result).toEqual(
-      expect.objectContaining({
-        content: "hello runtime",
-        provider: "openai",
-        model: "gpt-4.1-mini",
-        latencyMs: 42,
-        usage: {
-          prompt_tokens: 5,
-          completion_tokens: 9,
-          total_tokens: 14,
-        },
-      })
-    );
+    expect(result).toEqual({
+      content: "hello runtime",
+      provider: "openai",
+      model: "gpt-4.1-mini",
+      latencyMs: 42,
+      usage: {
+        prompt_tokens: 5,
+        completion_tokens: 9,
+        total_tokens: 14,
+      },
+    });
   });
 
   it("allows overriding provider and normalizes missing usage to null", async () => {
@@ -85,6 +86,7 @@ describe("agent runtime llm adapter", () => {
       model: "deepseek-chat",
       latencyMs: 7,
       attempt: 1,
+      queueJobId: "job-1",
       usage: undefined,
     } as any);
 
@@ -105,6 +107,12 @@ describe("agent runtime llm adapter", () => {
         requestOptions: { temperature: 0.2, maxTokens: 256 },
       })
     );
-    expect(result.usage).toBeNull();
+    expect(result).toEqual({
+      content: "override",
+      provider: "custom",
+      model: "deepseek-chat",
+      latencyMs: 7,
+      usage: null,
+    });
   });
 });

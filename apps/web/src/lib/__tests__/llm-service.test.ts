@@ -1,3 +1,5 @@
+export {};
+
 const runLLMRequest = jest.fn();
 const createMock = jest.fn();
 
@@ -31,8 +33,15 @@ jest.mock("openai", () => {
 });
 
 describe("llm-service", () => {
+  const originalEnv = process.env;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env = { ...originalEnv };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
   });
 
   it("should route callLLM through runtime instead of direct sdk calls", async () => {
@@ -88,5 +97,42 @@ describe("llm-service", () => {
       code: "TTS_SERVICE_DOWN",
       retryable: true,
     });
+  });
+
+  it("should resolve configured provider with expected env priority", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+
+    process.env.OPENAI_API_KEY = "openai-fallback-key";
+    process.env.OPENAI_BASE_URL = "https://fallback.base.url/v1";
+    process.env.LLM_PROVIDER = "custom";
+    process.env.LLM_API_KEY = "llm-priority-key";
+    process.env.LLM_BASE_URL = "https://llm.base.url/v1";
+    process.env.LLM_MODEL = "deepseek-chat";
+
+    expect(getConfiguredLLMProvider()).toEqual({
+      name: "custom",
+      apiKey: "llm-priority-key",
+      baseURL: "https://llm.base.url/v1",
+      model: "deepseek-chat",
+    });
+  });
+
+  it("should throw TTSError when api key is missing", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+    const { TTSError } = await import("@/lib/error-handler");
+
+    delete process.env.LLM_API_KEY;
+    delete process.env.OPENAI_API_KEY;
+
+    try {
+      getConfiguredLLMProvider();
+      throw new Error("expected getConfiguredLLMProvider to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TTSError);
+      expect(error).toMatchObject({
+        message: "LLM服务未配置，请设置API密钥",
+        code: "TTS_SERVICE_DOWN",
+      });
+    }
   });
 });

@@ -20,13 +20,6 @@ export interface LLMAdapterResponse {
   model: string;
   latencyMs: number;
   usage: Record<string, unknown> | null;
-  attempt: number;
-  waitMs?: number;
-  totalElapsedMs?: number;
-  retriesUsed?: number;
-  queueJobId?: string;
-  startedAt?: string | null;
-  finishedAt?: string | null;
 }
 
 export interface LLMAdapter {
@@ -34,14 +27,19 @@ export interface LLMAdapter {
 }
 
 interface LLMAdapterDeps {
-  runRequest: (request: LLMRuntimeRequest) => Promise<LLMAdapterResponse>;
+  runRequest: (
+    request: LLMRuntimeRequest
+  ) => Promise<Awaited<ReturnType<typeof runLLMRequest>>>;
   getProvider: () => LLMProvider;
 }
 
 const toAdapterResponse = (
   result: Awaited<ReturnType<typeof runLLMRequest>>
 ): LLMAdapterResponse => ({
-  ...result,
+  content: result.content,
+  provider: result.provider,
+  model: result.model,
+  latencyMs: result.latencyMs,
   usage: result.usage ?? null,
 });
 
