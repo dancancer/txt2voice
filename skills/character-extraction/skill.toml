@@ -1,7 +1,7 @@
 id = "character-extraction"
 version = "1"
 kind = "analysis"
-compatibleAgents = ["character-discovery"]
+compatibleAgents = ["character-discovery-agent"]
 inputSchemaRef = "character-input"
 outputSchemaRef = "character-output"
 contextRequirements = ["segment", "character_memory_summary"]

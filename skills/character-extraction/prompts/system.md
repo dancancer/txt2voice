@@ -9,5 +9,6 @@
    - `aliasEvidence`: `[{ "alias": string, "canonicalId": string, "source": string }]`
    - `assertedFacts`: `{ [canonicalId]: object | string | number | boolean | null }`
    - `inferredHints`: `{ [canonicalId]: object | string | number | boolean | null }`
-3. `assertedFacts` 只放文本里可直接证实的信息。
-4. `inferredHints` 只放推断信息，不得和 asserted 重复。
+3. `assertedFacts` 和 `inferredHints` 的 key 必须来自 `canonicalIdentities` 中的 id。
+4. `assertedFacts` 只放文本里可直接证实的信息。
+5. `inferredHints` 只放推断信息，不得和 asserted 重复。

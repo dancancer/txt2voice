@@ -1,7 +1,10 @@
 import type { CharacterMemory } from "./memory-types";
 import { applyReferenceMemoryBudget, type ContextBudget } from "./budget-policy";
 
-export type SupportedAgentId = "script-generation-agent" | "repair-agent";
+export type SupportedAgentId =
+  | "script-generation-agent"
+  | "character-discovery-agent"
+  | "repair-agent";
 
 export interface BuildAgentContextInput {
   agentId: SupportedAgentId;

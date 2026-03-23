@@ -33,11 +33,21 @@ export interface CharacterDiscoveryArtifact {
   characterMemoryDraft: MemoryPatch;
 }
 
-export interface RunCharacterDiscoveryStageResult {
+interface RunCharacterDiscoveryStageCompletedResult {
   stageRunId: string;
-  status: "completed" | "failed" | "retrying" | "repairing";
+  status: "completed";
   artifact: CharacterDiscoveryArtifact;
 }
+
+interface RunCharacterDiscoveryStageNonCompletedResult {
+  stageRunId: string;
+  status: "failed" | "retrying" | "repairing";
+  error?: string;
+}
+
+export type RunCharacterDiscoveryStageResult =
+  | RunCharacterDiscoveryStageCompletedResult
+  | RunCharacterDiscoveryStageNonCompletedResult;
 
 const createRuntimeId = () =>
   `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -121,16 +131,31 @@ const resolveAdapter = async (adapter?: LLMAdapter): Promise<LLMAdapter> => {
   return createDefaultLLMAdapter();
 };
 
+const assertSkillCompatibleWithAgent = (
+  compatibleAgents: string[],
+  agentId: string
+) => {
+  if (compatibleAgents.includes(agentId)) {
+    return;
+  }
+
+  throw new Error(
+    `Skill character-extraction is not compatible with ${agentId}`
+  );
+};
+
 export const runCharacterDiscoveryStage = async (
   input: RunCharacterDiscoveryStageInput
 ): Promise<RunCharacterDiscoveryStageResult> => {
+  const runtimeAgentId = "character-discovery-agent";
   const workspaceRoot = resolveWorkspaceRoot(input.workspaceRoot);
   const skillDir =
     input.skillDir ?? path.join(workspaceRoot, "skills/character-extraction");
   const skill = loadSkillDefinition(workspaceRoot, "character-extraction");
+  assertSkillCompatibleWithAgent(skill.definition.compatibleAgents, runtimeAgentId);
   const prompts = loadCharacterExtractionPrompts(skillDir);
   const context = buildAgentContext({
-    agentId: "script-generation-agent",
+    agentId: runtimeAgentId,
     segmentText: input.segmentText,
     fullBookText: input.fullBookText,
     characterMemory: input.characterMemory,
@@ -149,7 +174,7 @@ export const runCharacterDiscoveryStage = async (
     stage: {
       id: "character_discovery",
       agent: {
-        id: "character-discovery-agent",
+        id: runtimeAgentId,
         execute: async () => {
           const result = await agent.execute({
             segmentText:
@@ -178,11 +203,19 @@ export const runCharacterDiscoveryStage = async (
     updateStageRun: input.updateStageRun,
   });
 
+  if (stageResult.status !== "completed") {
+    return {
+      stageRunId: stageResult.id,
+      status: stageResult.status,
+      error: stageResult.agent.error,
+    };
+  }
+
   const memoryDraft = toMemoryPatch(stageResult.agent.output?.characterMemoryDraft);
 
   return {
     stageRunId: stageResult.id,
-    status: stageResult.status,
+    status: "completed",
     artifact: {
       kind: "character-memory-draft",
       skillId: skill.definition.id as "character-extraction",

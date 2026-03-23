@@ -27,6 +27,13 @@ interface CharacterDiscoveryAgentDeps {
   adapter: LLMAdapter;
 }
 
+interface CanonicalIdentityIndex {
+  canonicalIdentities: CharacterCanonicalIdentity[];
+  canonicalIdByName: Map<string, string>;
+  canonicalIdByInputId: Map<string, string>;
+  canonicalIdSet: Set<string>;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
@@ -49,14 +56,19 @@ const toCanonicalId = (name: string, index: number): string => {
   return slug ? `char-${slug}` : `char-${index + 1}`;
 };
 
-const normalizeCanonicalIdentities = (
-  value: unknown
-): CharacterCanonicalIdentity[] => {
+const buildCanonicalIdentityIndex = (value: unknown): CanonicalIdentityIndex => {
   if (!Array.isArray(value)) {
-    return [];
+    return {
+      canonicalIdentities: [],
+      canonicalIdByName: new Map(),
+      canonicalIdByInputId: new Map(),
+      canonicalIdSet: new Set(),
+    };
   }
 
-  const normalized = new Map<string, CharacterCanonicalIdentity>();
+  const canonicalIdByName = new Map<string, string>();
+  const canonicalIdByInputId = new Map<string, string>();
+  const canonicalIdentities: CharacterCanonicalIdentity[] = [];
 
   for (const [index, item] of value.entries()) {
     if (!isRecord(item)) {
@@ -68,16 +80,62 @@ const normalizeCanonicalIdentities = (
       continue;
     }
 
-    const id = asText(item.id) ?? toCanonicalId(name, index);
-    normalized.set(id, { id, name });
+    const existingId = canonicalIdByName.get(name);
+    const inputId = asText(item.id);
+
+    if (existingId) {
+      if (inputId) {
+        canonicalIdByInputId.set(inputId, existingId);
+      }
+      continue;
+    }
+
+    const canonicalId = inputId ?? toCanonicalId(name, index);
+    canonicalIdByName.set(name, canonicalId);
+    canonicalIdByInputId.set(canonicalId, canonicalId);
+    if (inputId) {
+      canonicalIdByInputId.set(inputId, canonicalId);
+    }
+    canonicalIdentities.push({ id: canonicalId, name });
   }
 
-  return [...normalized.values()];
+  return {
+    canonicalIdentities,
+    canonicalIdByName,
+    canonicalIdByInputId,
+    canonicalIdSet: new Set(canonicalIdentities.map((item) => item.id)),
+  };
+};
+
+const resolveCanonicalId = (
+  rawKey: string,
+  index: CanonicalIdentityIndex
+): string | null => {
+  const key = rawKey.trim();
+  if (!key) {
+    return null;
+  }
+
+  const byName = index.canonicalIdByName.get(key);
+  if (byName) {
+    return byName;
+  }
+
+  const byInputId = index.canonicalIdByInputId.get(key);
+  if (byInputId) {
+    return byInputId;
+  }
+
+  if (index.canonicalIdSet.has(key)) {
+    return key;
+  }
+
+  return null;
 };
 
 const normalizeAliasEvidence = (
   value: unknown,
-  canonicalIdByName: Map<string, string>
+  index: CanonicalIdentityIndex
 ): CharacterAliasEvidence[] => {
   if (!Array.isArray(value)) {
     return [];
@@ -97,16 +155,14 @@ const normalizeAliasEvidence = (
     }
 
     const canonicalId =
-      asText(item.canonicalId) ??
-      canonicalIdByName.get(asText(item.canonicalName) ?? "") ??
-      null;
+      resolveCanonicalId(asText(item.canonicalId) ?? "", index) ??
+      resolveCanonicalId(asText(item.canonicalName) ?? "", index);
     if (!canonicalId) {
       continue;
     }
 
     const source = asText(item.source) ?? "llm";
     const key = `${alias}::${canonicalId}::${source}`;
-
     if (dedupe.has(key)) {
       continue;
     }
@@ -120,7 +176,7 @@ const normalizeAliasEvidence = (
 
 const normalizeFactBucket = (
   value: unknown,
-  canonicalIdByName: Map<string, string>
+  index: CanonicalIdentityIndex
 ): Record<string, unknown> => {
   if (!isRecord(value)) {
     return {};
@@ -129,12 +185,11 @@ const normalizeFactBucket = (
   const normalized: Record<string, unknown> = {};
 
   for (const [rawKey, rawValue] of Object.entries(value)) {
-    const key = rawKey.trim();
-    if (!key) {
+    const canonicalId = resolveCanonicalId(rawKey, index);
+    if (!canonicalId) {
       continue;
     }
 
-    const canonicalId = canonicalIdByName.get(key) ?? key;
     normalized[canonicalId] = rawValue;
   }
 
@@ -178,21 +233,13 @@ const extractJsonPayload = (content: string): Record<string, unknown> => {
 
 const mapResponseToMemoryPatch = (content: string): MemoryPatch => {
   const payload = extractJsonPayload(content);
-  const canonicalIdentities = normalizeCanonicalIdentities(
-    payload.canonicalIdentities
-  );
-  const canonicalIdByName = new Map(
-    canonicalIdentities.map((identity) => [identity.name, identity.id])
-  );
+  const identityIndex = buildCanonicalIdentityIndex(payload.canonicalIdentities);
 
   return {
-    canonicalIdentities,
-    aliasEvidence: normalizeAliasEvidence(
-      payload.aliasEvidence,
-      canonicalIdByName
-    ),
-    assertedFacts: normalizeFactBucket(payload.assertedFacts, canonicalIdByName),
-    inferredHints: normalizeFactBucket(payload.inferredHints, canonicalIdByName),
+    canonicalIdentities: identityIndex.canonicalIdentities,
+    aliasEvidence: normalizeAliasEvidence(payload.aliasEvidence, identityIndex),
+    assertedFacts: normalizeFactBucket(payload.assertedFacts, identityIndex),
+    inferredHints: normalizeFactBucket(payload.inferredHints, identityIndex),
   };
 };
 
