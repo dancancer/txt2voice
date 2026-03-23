@@ -94,4 +94,23 @@ describe("context builder", () => {
     );
     expect(context.executionContext.remainingReferenceChars).toBeGreaterThanOrEqual(0);
   });
+
+  it("surfaces explicit over-budget state when input alone exceeds budget", () => {
+    const overBudgetSegment = "segment::" + "z".repeat(300);
+
+    const context = buildAgentContext({
+      agentId: "script-generation-agent",
+      segmentText: overBudgetSegment,
+      fullBookText: "book::" + "k".repeat(600),
+      characterMemory: createMemory(),
+      budget: {
+        maxContextChars: 100,
+        reservedOutputChars: 40,
+      },
+    });
+
+    expect(context.inputContext.segmentText).toBe(overBudgetSegment);
+    expect(context.executionContext.remainingReferenceChars).toBe(0);
+    expect(context.executionContext.inputOverBudget).toBe(true);
+  });
 });

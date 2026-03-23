@@ -30,6 +30,7 @@ export interface AgentExecutionContext {
     reservedOutputChars: number;
     inputContextChars: number;
     remainingReferenceChars: number;
+    inputOverBudget: boolean;
   };
 }
 
@@ -91,6 +92,7 @@ export const buildAgentContext = (
       reservedOutputChars: input.budget.reservedOutputChars,
       inputContextChars,
       remainingReferenceChars: budgetResult.remainingReferenceChars,
+      inputOverBudget: budgetResult.inputOverBudget,
     },
   };
 };

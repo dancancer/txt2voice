@@ -12,6 +12,7 @@ export interface ReferenceBudgetInput {
 export interface ReferenceBudgetResult {
   remainingReferenceChars: number;
   trimmedReferenceMemory: string;
+  inputOverBudget: boolean;
 }
 
 const clampNonNegative = (value: number): number =>
@@ -24,13 +25,16 @@ export const applyReferenceMemoryBudget = (
   const maxContextChars = clampNonNegative(budget.maxContextChars);
   const reservedOutputChars = clampNonNegative(budget.reservedOutputChars);
   const safeInputChars = clampNonNegative(inputContextChars);
+  const inputBudgetLimit = Math.max(maxContextChars - reservedOutputChars, 0);
+  const inputOverBudget = safeInputChars > inputBudgetLimit;
   const remainingReferenceChars = Math.max(
-    maxContextChars - reservedOutputChars - safeInputChars,
+    inputBudgetLimit - safeInputChars,
     0
   );
 
   return {
     remainingReferenceChars,
     trimmedReferenceMemory: referenceCandidate.slice(0, remainingReferenceChars),
+    inputOverBudget,
   };
 };
