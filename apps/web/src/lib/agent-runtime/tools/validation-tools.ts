@@ -28,6 +28,34 @@ export interface CheckScriptCoverageResult {
   uncoveredChars: number;
 }
 
+const findNextMatchStart = (params: {
+  source: string;
+  fragment: string;
+  coveredMask: boolean[];
+}): number => {
+  const { source, fragment, coveredMask } = params;
+  let startIndex = source.indexOf(fragment);
+
+  while (startIndex >= 0) {
+    let hasUncoveredChar = false;
+
+    for (let index = startIndex; index < startIndex + fragment.length; index += 1) {
+      if (!coveredMask[index]) {
+        hasUncoveredChar = true;
+        break;
+      }
+    }
+
+    if (hasUncoveredChar) {
+      return startIndex;
+    }
+
+    startIndex = source.indexOf(fragment, startIndex + 1);
+  }
+
+  return -1;
+};
+
 export const validateStructuredOutput = (
   input: ValidateStructuredOutputInput
 ): ValidateStructuredOutputResult => {
@@ -63,7 +91,11 @@ export const checkScriptCoverage = (
       continue;
     }
 
-    const startIndex = normalizedSource.indexOf(normalizedFragment);
+    const startIndex = findNextMatchStart({
+      source: normalizedSource,
+      fragment: normalizedFragment,
+      coveredMask,
+    });
     if (startIndex < 0) {
       continue;
     }

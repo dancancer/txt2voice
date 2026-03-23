@@ -1,9 +1,9 @@
+import type { ToolContract as ProtocolToolContract } from "../protocol";
+
 export type RuntimeToolKind = "io" | "validation" | "task";
 
-export interface RuntimeToolContract {
-  name: string;
+export interface RuntimeToolContract extends ProtocolToolContract {
   kind: RuntimeToolKind;
-  sideEffect: boolean;
   inputSchemaRef?: string;
   outputSchemaRef?: string;
 }

@@ -50,10 +50,22 @@ describe("tool contracts", () => {
       coverageRatio: 0.8,
       uncoveredChars: 1,
     });
+
+    const repeatedCoverage = checkScriptCoverage({
+      sourceText: "abab",
+      scriptFragments: ["ab", "ab"],
+    });
+
+    expect(repeatedCoverage).toEqual({
+      valid: true,
+      coverageRatio: 1,
+      uncoveredChars: 0,
+    });
   });
 
   it("marks commit and memory-save tools as side-effect tools", () => {
     expect(COMMIT_SCRIPT_SENTENCES_TOOL.sideEffect).toBe(true);
     expect(SAVE_CHARACTER_MEMORY_TOOL.sideEffect).toBe(true);
+    expect(SAVE_CHARACTER_MEMORY_TOOL.kind).toBe("io");
   });
 });
