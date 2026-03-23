@@ -37,6 +37,22 @@ export interface RunWorkflowResult {
   stages: RunStageResult[];
 }
 
+const assertStageIdsMatch = (
+  workflowStages: string[],
+  runtimeStages: RuntimeStageDefinition[]
+) => {
+  const runtimeStageIds = runtimeStages.map((stage) => stage.id);
+  const match =
+    workflowStages.length === runtimeStageIds.length &&
+    workflowStages.every((stageId, index) => stageId === runtimeStageIds[index]);
+
+  if (!match) {
+    throw new Error(
+      `Workflow stage mismatch: expected [${workflowStages.join(", ")}], received [${runtimeStageIds.join(", ")}]`
+    );
+  }
+};
+
 const getWorkflowStatus = (stages: RunStageResult[]): WorkflowTerminalStatus => {
   const pending = stages.find((item) => item.status !== "completed");
 
@@ -50,6 +66,8 @@ const getWorkflowStatus = (stages: RunStageResult[]): WorkflowTerminalStatus => 
 export const runWorkflow = async (
   input: RunWorkflowInput
 ): Promise<RunWorkflowResult> => {
+  assertStageIdsMatch(input.workflow.stages, input.stages);
+
   const workflowRun: WorkflowRunRecord = {
     id: input.adapters.createId(),
     workflowId: input.workflow.id,
@@ -82,6 +100,10 @@ export const runWorkflow = async (
     });
 
     stageResults.push(stageResult);
+
+    if (stageResult.status !== "completed") {
+      break;
+    }
   }
 
   const status = getWorkflowStatus(stageResults);

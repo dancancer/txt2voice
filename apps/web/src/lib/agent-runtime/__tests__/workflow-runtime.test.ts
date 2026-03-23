@@ -183,4 +183,106 @@ describe("workflow runtime skeleton", () => {
 
     expect(result.stages[0]?.agent.status).toBe("repairing");
   });
+
+  it.each(["retrying", "repairing"] as const)(
+    "stops executing next stages after blocking status: %s",
+    async (blockingStatus) => {
+      const executedStages: string[] = [];
+      let nextId = 0;
+      const workflow: WorkflowDefinition = {
+        id: `wf-stop-${blockingStatus}`,
+        version: "1",
+        kind: "workflow",
+        stages: ["stage-a", "stage-b"],
+      };
+
+      const result = await runWorkflow({
+        workflow,
+        stages: [
+          {
+            id: "stage-a",
+            agent: {
+              id: "agent-a",
+              execute: async () => {
+                executedStages.push("stage-a");
+
+                return {
+                  status: "failed",
+                  retryDirective: blockingStatus,
+                };
+              },
+            },
+          },
+          {
+            id: "stage-b",
+            agent: {
+              id: "agent-b",
+              execute: async () => {
+                executedStages.push("stage-b");
+
+                return {
+                  status: "completed",
+                  output: { shouldNotRun: true },
+                };
+              },
+            },
+          },
+        ],
+        adapters: {
+          createId: () => `id-${nextId++}`,
+          createWorkflowRun: async () => undefined,
+          createStageRun: async () => undefined,
+          appendTrace: async () => undefined,
+        },
+      });
+
+      expect(executedStages).toEqual(["stage-a"]);
+      expect(result.stages).toHaveLength(1);
+      expect(result.status).toBe(blockingStatus);
+    }
+  );
+
+  it("fails fast when workflow definition stages mismatch runtime stages", async () => {
+    let nextId = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-mismatch",
+      version: "1",
+      kind: "workflow",
+      stages: ["prepare", "generate"],
+    };
+
+    await expect(
+      runWorkflow({
+        workflow,
+        stages: [
+          {
+            id: "prepare",
+            agent: {
+              id: "prepare-agent",
+              execute: async () => ({
+                status: "completed",
+              }),
+            },
+          },
+          {
+            id: "publish",
+            agent: {
+              id: "publish-agent",
+              execute: async () => ({
+                status: "completed",
+              }),
+            },
+          },
+        ],
+        adapters: {
+          createId: () => `id-${nextId++}`,
+          createWorkflowRun: async () => undefined,
+          createStageRun: async () => undefined,
+          appendTrace: async () => undefined,
+        },
+      })
+    ).rejects.toThrow(
+      "Workflow stage mismatch: expected [prepare, generate], received [prepare, publish]"
+    );
+  });
 });
