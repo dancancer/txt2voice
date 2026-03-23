@@ -21,6 +21,15 @@ const expectField = (schema: string, modelName: string, fieldName: string) => {
   expect(modelBlock?.[1]).toMatch(new RegExp(`\\b${fieldName}\\b`));
 };
 
+const expectJsonField = (schema: string, modelName: string, fieldName: string) => {
+  const modelBlock = schema.match(
+    new RegExp(`model\\s+${modelName}\\s+\\{([\\s\\S]*?)\\n\\}`, "m")
+  );
+
+  expect(modelBlock?.[1]).toBeDefined();
+  expect(modelBlock?.[1]).toMatch(new RegExp(`\\b${fieldName}\\s+Json\\??\\b`));
+};
+
 describe("agent runtime prisma schema shape", () => {
   it("defines workflow execution models with minimum keys", () => {
     const schema = readSchema();
@@ -52,5 +61,19 @@ describe("agent runtime prisma schema shape", () => {
     expectField(schema, "TraceEvent", "stageRunId");
     expectField(schema, "TraceEvent", "agentRunId");
     expectField(schema, "TraceEvent", "eventType");
+  });
+
+  it("stores runtime artifact payloads in json fields", () => {
+    const schema = readSchema();
+
+    expectJsonField(schema, "WorkflowRun", "entryPayload");
+    expectJsonField(schema, "WorkflowRun", "runtimeConfig");
+    expectJsonField(schema, "WorkflowRun", "summary");
+    expectJsonField(schema, "StageRun", "summary");
+    expectJsonField(schema, "AgentRun", "inputSummary");
+    expectJsonField(schema, "AgentRun", "outputSummary");
+    expectJsonField(schema, "ToolCall", "argumentsSummary");
+    expectJsonField(schema, "ToolCall", "resultSummary");
+    expectJsonField(schema, "TraceEvent", "payload");
   });
 });
