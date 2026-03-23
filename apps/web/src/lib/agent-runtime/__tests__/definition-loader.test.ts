@@ -111,6 +111,38 @@ describe("definition loader", () => {
     }
   });
 
+  it("raises a structured validation error when required skill toml fields are missing", () => {
+    const rootDir = createFixtureRoot();
+
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      ['id = "character-extraction"', 'version = "1"'].join("\n")
+    );
+
+    expect(() => loadSkillDefinition(rootDir, "character-extraction")).toThrow(
+      DefinitionRegistryError
+    );
+
+    try {
+      loadSkillDefinition(rootDir, "character-extraction");
+    } catch (error) {
+      expect(error).toBeInstanceOf(DefinitionRegistryError);
+      expect((error as DefinitionRegistryError).code).toBe("VALIDATION_ERROR");
+      expect((error as DefinitionRegistryError).details).toMatchObject({
+        definitionType: "skill",
+        definitionId: "character-extraction",
+        missingFields: [
+          "kind",
+          "compatibleAgents",
+          "inputSchemaRef",
+          "outputSchemaRef",
+          "contextRequirements",
+          "toolAllowlist",
+        ],
+      });
+    }
+  });
+
   it("raises an authoring error when required markdown files are missing", () => {
     const rootDir = createFixtureRoot();
 
@@ -131,6 +163,50 @@ describe("definition loader", () => {
         definitionType: "skill",
         definitionId: "character-extraction",
         missingFile: "SKILL.md",
+      });
+    }
+  });
+
+  it("raises an authoring error when AGENT.md is missing", () => {
+    const rootDir = createFixtureRoot();
+
+    fs.rmSync(path.join(rootDir, "agents/character-discovery/AGENT.md"));
+
+    expect(() => loadAgentDefinition(rootDir, "character-discovery")).toThrow(
+      DefinitionRegistryError
+    );
+
+    try {
+      loadAgentDefinition(rootDir, "character-discovery");
+    } catch (error) {
+      expect(error).toBeInstanceOf(DefinitionRegistryError);
+      expect((error as DefinitionRegistryError).code).toBe("AUTHORING_ERROR");
+      expect((error as DefinitionRegistryError).details).toMatchObject({
+        definitionType: "agent",
+        definitionId: "character-discovery",
+        missingFile: "AGENT.md",
+      });
+    }
+  });
+
+  it("raises an authoring error when WORKFLOW.md is missing", () => {
+    const rootDir = createFixtureRoot();
+
+    fs.rmSync(path.join(rootDir, "workflows/script-production/WORKFLOW.md"));
+
+    expect(() => loadWorkflowDefinition(rootDir, "script-production")).toThrow(
+      DefinitionRegistryError
+    );
+
+    try {
+      loadWorkflowDefinition(rootDir, "script-production");
+    } catch (error) {
+      expect(error).toBeInstanceOf(DefinitionRegistryError);
+      expect((error as DefinitionRegistryError).code).toBe("AUTHORING_ERROR");
+      expect((error as DefinitionRegistryError).details).toMatchObject({
+        definitionType: "workflow",
+        definitionId: "script-production",
+        missingFile: "WORKFLOW.md",
       });
     }
   });
