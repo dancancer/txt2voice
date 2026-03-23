@@ -17,6 +17,33 @@ export interface LLMProvider {
   model: string;
 }
 
+export function getLLMProviderSnapshot(
+  env: NodeJS.ProcessEnv = process.env
+): LLMProvider {
+  return {
+    name: env.LLM_PROVIDER || "openai",
+    apiKey: env.LLM_API_KEY || env.OPENAI_API_KEY || "",
+    baseURL: env.LLM_BASE_URL || env.OPENAI_BASE_URL,
+    model: env.LLM_MODEL || "gpt-3.5-turbo",
+  };
+}
+
+export function getConfiguredLLMProvider(
+  env: NodeJS.ProcessEnv = process.env
+): LLMProvider {
+  const provider = getLLMProviderSnapshot(env);
+
+  if (!provider.apiKey) {
+    throw new TTSError(
+      "LLM服务未配置，请设置API密钥",
+      "TTS_SERVICE_DOWN",
+      provider.name
+    );
+  }
+
+  return provider;
+}
+
 export interface ExecuteProviderLLMCallInput {
   provider: LLMProvider;
   prompt: string;
@@ -579,20 +606,5 @@ ${continuationPrompt}
  * 获取LLM服务实例
  */
 export function getLLMService(): LLMService {
-  const provider: LLMProvider = {
-    name: process.env.LLM_PROVIDER || "openai",
-    apiKey: process.env.LLM_API_KEY || process.env.OPENAI_API_KEY || "",
-    baseURL: process.env.LLM_BASE_URL || process.env.OPENAI_BASE_URL,
-    model: process.env.LLM_MODEL || "gpt-3.5-turbo",
-  };
-
-  if (!provider.apiKey) {
-    throw new TTSError(
-      "LLM服务未配置，请设置API密钥",
-      "TTS_SERVICE_DOWN",
-      provider.name
-    );
-  }
-
-  return new LLMService(provider);
+  return new LLMService(getConfiguredLLMProvider());
 }
