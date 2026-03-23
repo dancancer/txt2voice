@@ -245,4 +245,18 @@ describe("character discovery stage", () => {
     expect(result.status).toBe("failed");
     expect("artifact" in result).toBe(false);
   });
+
+  it("fails stage when llm returns non-json payload", async () => {
+    const adapter = createMockAdapter("not-json");
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-6",
+      segmentText: "宁采臣抬头。",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+  });
 });

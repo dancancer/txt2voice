@@ -228,7 +228,7 @@ const extractJsonPayload = (content: string): Record<string, unknown> => {
     }
   }
 
-  return {};
+  throw new Error("Invalid character discovery payload: expected JSON object");
 };
 
 const mapResponseToMemoryPatch = (content: string): MemoryPatch => {
