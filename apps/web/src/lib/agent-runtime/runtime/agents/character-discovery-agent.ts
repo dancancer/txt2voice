@@ -190,6 +190,15 @@ const normalizeFactBucket = (
       continue;
     }
 
+    const existing = normalized[canonicalId];
+    if (isRecord(existing) && isRecord(rawValue)) {
+      normalized[canonicalId] = {
+        ...existing,
+        ...rawValue,
+      };
+      continue;
+    }
+
     normalized[canonicalId] = rawValue;
   }
 
@@ -231,8 +240,35 @@ const extractJsonPayload = (content: string): Record<string, unknown> => {
   throw new Error("Invalid character discovery payload: expected JSON object");
 };
 
+const validatePayloadSchema = (payload: Record<string, unknown>) => {
+  if (!Array.isArray(payload.canonicalIdentities)) {
+    throw new Error(
+      "Invalid character discovery payload: canonicalIdentities must be an array"
+    );
+  }
+
+  if (!Array.isArray(payload.aliasEvidence)) {
+    throw new Error(
+      "Invalid character discovery payload: aliasEvidence must be an array"
+    );
+  }
+
+  if (!isRecord(payload.assertedFacts)) {
+    throw new Error(
+      "Invalid character discovery payload: assertedFacts must be an object"
+    );
+  }
+
+  if (!isRecord(payload.inferredHints)) {
+    throw new Error(
+      "Invalid character discovery payload: inferredHints must be an object"
+    );
+  }
+};
+
 const mapResponseToMemoryPatch = (content: string): MemoryPatch => {
   const payload = extractJsonPayload(content);
+  validatePayloadSchema(payload);
   const identityIndex = buildCanonicalIdentityIndex(payload.canonicalIdentities);
 
   return {

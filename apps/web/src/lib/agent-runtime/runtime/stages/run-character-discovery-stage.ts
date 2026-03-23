@@ -137,6 +137,9 @@ const emptyDraft: MemoryPatch = {
   inferredHints: {},
 };
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+
 const toMemoryPatch = (value: unknown): MemoryPatch => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return emptyDraft;
@@ -160,6 +163,109 @@ const toMemoryPatch = (value: unknown): MemoryPatch => {
       !Array.isArray(draft.inferredHints)
         ? draft.inferredHints
         : {},
+  };
+};
+
+const mergeBucketValue = (existing: unknown, incoming: unknown): unknown => {
+  if (isRecord(existing) && isRecord(incoming)) {
+    return {
+      ...existing,
+      ...incoming,
+    };
+  }
+
+  return incoming;
+};
+
+const remapFactBucket = (
+  bucket: Record<string, unknown>,
+  remap: Map<string, string>
+): Record<string, unknown> => {
+  const remapped: Record<string, unknown> = {};
+
+  for (const [rawKey, value] of Object.entries(bucket)) {
+    const canonicalId = remap.get(rawKey) ?? rawKey;
+    remapped[canonicalId] = mergeBucketValue(remapped[canonicalId], value);
+  }
+
+  return remapped;
+};
+
+const reconcileCharacterMemoryDraft = (
+  draft: MemoryPatch,
+  characterMemory?: CharacterMemory
+): MemoryPatch => {
+  if (!characterMemory || characterMemory.canonicalIdentities.length === 0) {
+    return draft;
+  }
+
+  const existingCanonicalIdByName = new Map<string, string>();
+  for (const identity of characterMemory.canonicalIdentities) {
+    const name = identity.name.trim();
+    if (name && !existingCanonicalIdByName.has(name)) {
+      existingCanonicalIdByName.set(name, identity.id);
+    }
+  }
+
+  const remap = new Map<string, string>();
+  const canonicalIdentityById = new Map<string, { id: string; name: string }>();
+  const canonicalIdentities: { id: string; name: string }[] = [];
+
+  for (const identity of draft.canonicalIdentities || []) {
+    const incomingId =
+      typeof identity.id === "string" ? identity.id.trim() : "";
+    const incomingName =
+      typeof identity.name === "string" ? identity.name.trim() : "";
+    if (!incomingId || !incomingName) {
+      continue;
+    }
+
+    const canonicalId =
+      existingCanonicalIdByName.get(incomingName) ?? incomingId;
+    remap.set(incomingId, canonicalId);
+
+    if (canonicalIdentityById.has(canonicalId)) {
+      continue;
+    }
+
+    const canonicalIdentity = {
+      id: canonicalId,
+      name: incomingName,
+    };
+    canonicalIdentityById.set(canonicalId, canonicalIdentity);
+    canonicalIdentities.push(canonicalIdentity);
+  }
+
+  const aliasDedup = new Set<string>();
+  const aliasEvidence = [];
+  for (const evidence of draft.aliasEvidence || []) {
+    const alias = typeof evidence.alias === "string" ? evidence.alias : "";
+    const source = typeof evidence.source === "string" ? evidence.source : "";
+    const incomingCanonicalId =
+      typeof evidence.canonicalId === "string" ? evidence.canonicalId : "";
+    if (!alias || !source || !incomingCanonicalId) {
+      continue;
+    }
+
+    const canonicalId = remap.get(incomingCanonicalId) ?? incomingCanonicalId;
+    const key = `${alias}::${canonicalId}::${source}`;
+    if (aliasDedup.has(key)) {
+      continue;
+    }
+
+    aliasDedup.add(key);
+    aliasEvidence.push({
+      alias,
+      canonicalId,
+      source,
+    });
+  }
+
+  return {
+    canonicalIdentities,
+    aliasEvidence,
+    assertedFacts: remapFactBucket(draft.assertedFacts || {}, remap),
+    inferredHints: remapFactBucket(draft.inferredHints || {}, remap),
   };
 };
 
@@ -188,31 +294,6 @@ export const runCharacterDiscoveryStage = async (
   input: RunCharacterDiscoveryStageInput
 ): Promise<RunCharacterDiscoveryStageResult> => {
   const runtimeAgentId = "character-discovery-agent";
-  const skillSource = resolveCharacterExtractionSkillSource({
-    workspaceRoot: input.workspaceRoot,
-    skillDir: input.skillDir,
-  });
-  const skill = loadSkillDefinition(skillSource.workspaceRoot, skillSource.skillId);
-  assertSkillCompatibleWithAgent(
-    skill.definition.id,
-    skill.definition.compatibleAgents,
-    runtimeAgentId
-  );
-  const prompts = loadCharacterExtractionPrompts(skillSource.skillDir);
-  const context = buildAgentContext({
-    agentId: runtimeAgentId,
-    segmentText: input.segmentText,
-    fullBookText: input.fullBookText,
-    characterMemory: input.characterMemory,
-    budget: {
-      maxContextChars: 4000,
-      reservedOutputChars: 1200,
-    },
-  });
-  const adapter = await resolveAdapter(input.adapter);
-  const agent = createCharacterDiscoveryAgent({
-    adapter,
-  });
 
   const stageResult = await runStage({
     workflowRunId: input.workflowRunId,
@@ -221,6 +302,34 @@ export const runCharacterDiscoveryStage = async (
       agent: {
         id: runtimeAgentId,
         execute: async () => {
+          const skillSource = resolveCharacterExtractionSkillSource({
+            workspaceRoot: input.workspaceRoot,
+            skillDir: input.skillDir,
+          });
+          const skill = loadSkillDefinition(
+            skillSource.workspaceRoot,
+            skillSource.skillId
+          );
+          assertSkillCompatibleWithAgent(
+            skill.definition.id,
+            skill.definition.compatibleAgents,
+            runtimeAgentId
+          );
+          const prompts = loadCharacterExtractionPrompts(skillSource.skillDir);
+          const context = buildAgentContext({
+            agentId: runtimeAgentId,
+            segmentText: input.segmentText,
+            fullBookText: input.fullBookText,
+            characterMemory: input.characterMemory,
+            budget: {
+              maxContextChars: 4000,
+              reservedOutputChars: 1200,
+            },
+          });
+          const adapter = await resolveAdapter(input.adapter);
+          const agent = createCharacterDiscoveryAgent({
+            adapter,
+          });
           const result = await agent.execute({
             segmentText:
               typeof context.inputContext.segmentText === "string"
@@ -229,11 +338,16 @@ export const runCharacterDiscoveryStage = async (
             characterMemorySummary: context.referenceMemory.characterMemorySummary,
             prompts,
           });
+          const reconciledDraft = reconcileCharacterMemoryDraft(
+            result.characterMemoryDraft,
+            input.characterMemory
+          );
 
           return {
             status: "completed",
             output: {
-              characterMemoryDraft: result.characterMemoryDraft,
+              skillId: skill.definition.id,
+              characterMemoryDraft: reconciledDraft,
               provider: result.provider,
               model: result.model,
             },
@@ -257,13 +371,17 @@ export const runCharacterDiscoveryStage = async (
   }
 
   const memoryDraft = toMemoryPatch(stageResult.agent.output?.characterMemoryDraft);
+  const skillId =
+    typeof stageResult.agent.output?.skillId === "string"
+      ? stageResult.agent.output.skillId
+      : defaultCharacterExtractionSkillId;
 
   return {
     stageRunId: stageResult.id,
     status: "completed",
     artifact: {
       kind: "character-memory-draft",
-      skillId: skill.definition.id as "character-extraction",
+      skillId: skillId as "character-extraction",
       characterMemoryDraft: memoryDraft,
     },
   };

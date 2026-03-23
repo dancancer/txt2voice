@@ -128,14 +128,15 @@ describe("character discovery stage", () => {
       })
     );
 
-    await expect(
-      runCharacterDiscoveryStage({
-        workflowRunId: "wf-skill-source",
-        segmentText: "宁采臣抬头。",
-        skillDir: fixtureSkillDir,
-        adapter,
-      })
-    ).rejects.toThrow("is not compatible with character-discovery-agent");
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-skill-source",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
@@ -222,13 +223,19 @@ describe("character discovery stage", () => {
           "char-ning-dup": {
             role: "main",
           },
+          宁采臣: {
+            trait: "kind",
+          },
           路人甲: {
             role: "minor",
           },
         },
         inferredHints: {
-          宁采臣: {
+          "char-ning": {
             tone: "书生气",
+          },
+          宁采臣: {
+            mood: "谨慎",
           },
           "char-ghost": {
             tone: "unknown",
@@ -254,11 +261,78 @@ describe("character discovery stage", () => {
     expect(result.artifact.characterMemoryDraft.assertedFacts).toEqual({
       "char-ning": {
         role: "main",
+        trait: "kind",
       },
     });
     expect(result.artifact.characterMemoryDraft.inferredHints).toEqual({
       "char-ning": {
         tone: "书生气",
+        mood: "谨慎",
+      },
+    });
+  });
+
+  it("reuses existing canonical id from memory when names match", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [
+          {
+            id: "char-ning",
+            name: "宁采臣",
+          },
+        ],
+        aliasEvidence: [
+          {
+            alias: "宁生",
+            canonicalId: "char-ning",
+            source: "segment-2",
+          },
+        ],
+        assertedFacts: {
+          "char-ning": {
+            role: "main",
+          },
+        },
+        inferredHints: {
+          宁采臣: {
+            tone: "温和",
+          },
+        },
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-reuse-id",
+      segmentText: "宁采臣轻声答话。",
+      skillDir,
+      adapter,
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      },
+    });
+
+    expect(result.status).toBe("completed");
+    expect(result.artifact.characterMemoryDraft).toEqual({
+      canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+      aliasEvidence: [
+        {
+          alias: "宁生",
+          canonicalId: "char-1",
+          source: "segment-2",
+        },
+      ],
+      assertedFacts: {
+        "char-1": {
+          role: "main",
+        },
+      },
+      inferredHints: {
+        "char-1": {
+          tone: "温和",
+        },
       },
     });
   });
@@ -306,6 +380,20 @@ describe("character discovery stage", () => {
 
     const result = await runCharacterDiscoveryStage({
       workflowRunId: "wf-6",
+      segmentText: "宁采臣抬头。",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+  });
+
+  it("fails stage when llm returns malformed empty object payload", async () => {
+    const adapter = createMockAdapter("{}");
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-7",
       segmentText: "宁采臣抬头。",
       skillDir,
       adapter,
