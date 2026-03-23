@@ -119,6 +119,16 @@ const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
   };
 };
 
+const assertContiguousOrderInSegment = (lines: SegmentScriptDraftLine[]) => {
+  for (let index = 0; index < lines.length; index += 1) {
+    if (lines[index]?.orderInSegment !== index) {
+      throw new Error(
+        "Invalid script line: orderInSegment must start at 0 and increment by 1"
+      );
+    }
+  }
+};
+
 const toSegmentScriptDraft = (params: {
   content: string;
   segmentId: string;
@@ -142,9 +152,12 @@ const toSegmentScriptDraft = (params: {
     );
   }
 
+  const lines = payload.lines.map((line) => toDraftLine(line));
+  assertContiguousOrderInSegment(lines);
+
   return {
     segmentId: params.segmentId,
-    lines: payload.lines.map((line) => toDraftLine(line)),
+    lines,
     createdAt: params.now().toISOString(),
   };
 };

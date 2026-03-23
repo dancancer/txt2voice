@@ -18,6 +18,54 @@ const createMockAdapter = (content: string): LLMAdapter => ({
 const workspaceRoot = path.resolve(__dirname, "../../../../../..");
 const skillDir = path.join(workspaceRoot, "skills/script-generation");
 
+const createScriptGenerationSkillFixture = (params?: {
+  skillId?: string;
+  compatibleAgents?: string[];
+  contextRequirements?: string[];
+  toolAllowlist?: string[];
+}) => {
+  const skillId = params?.skillId ?? "script-generation";
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "segment-scripting-"));
+  const fixtureSkillDir = path.join(fixtureRoot, "skills", skillId);
+
+  fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "skill.toml"),
+    [
+      `id = "${skillId}"`,
+      'version = "1"',
+      'kind = "generation"',
+      `compatibleAgents = [${(params?.compatibleAgents ?? [
+        "script-generation-agent",
+      ])
+        .map((agentId) => `"${agentId}"`)
+        .join(", ")}]`,
+      'inputSchemaRef = "segment-script-input"',
+      'outputSchemaRef = "segment-script-draft"',
+      `contextRequirements = [${(params?.contextRequirements ?? ["segment"])
+        .map((requirement) => `"${requirement}"`)
+        .join(", ")}]`,
+      `toolAllowlist = [${(params?.toolAllowlist ?? [])
+        .map((tool) => `"${tool}"`)
+        .join(", ")}]`,
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "prompts/system.md"),
+    "return json",
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "prompts/user.md"),
+    "{{segment_text}}",
+    "utf8"
+  );
+
+  return fixtureSkillDir;
+};
+
 describe("segment scripting stage", () => {
   it("produces SegmentScriptDraft for single segment input", async () => {
     const adapter = createMockAdapter(
@@ -117,35 +165,9 @@ describe("segment scripting stage", () => {
   });
 
   it("uses runtime skill id from skill source instead of fixed literal", async () => {
-    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "segment-scripting-"));
-    const fixtureSkillDir = path.join(fixtureRoot, "skills/script-generation-custom");
-
-    fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
-    fs.writeFileSync(
-      path.join(fixtureSkillDir, "skill.toml"),
-      [
-        'id = "script-generation-custom"',
-        'version = "1"',
-        'kind = "generation"',
-        'compatibleAgents = ["script-generation-agent"]',
-        'inputSchemaRef = "segment-script-input"',
-        'outputSchemaRef = "segment-script-draft"',
-        'contextRequirements = ["segment"]',
-        "toolAllowlist = []",
-      ].join("\n"),
-      "utf8"
-    );
-    fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
-    fs.writeFileSync(
-      path.join(fixtureSkillDir, "prompts/system.md"),
-      "return json",
-      "utf8"
-    );
-    fs.writeFileSync(
-      path.join(fixtureSkillDir, "prompts/user.md"),
-      "{{segment_text}}",
-      "utf8"
-    );
+    const fixtureSkillDir = createScriptGenerationSkillFixture({
+      skillId: "script-generation-custom",
+    });
 
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -201,7 +223,7 @@ describe("segment scripting stage", () => {
     expect(call.prompt).not.toContain("{{character_memory_summary}}");
   });
 
-  it("fails stage when adapter returns non-json payload", async () => {
+  it("returns repairing when adapter returns non-json payload", async () => {
     const adapter = createMockAdapter("not-json");
 
     const result = await runSegmentScriptingStage({
@@ -212,11 +234,11 @@ describe("segment scripting stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("repairing");
     expect("artifact" in result).toBe(false);
   });
 
-  it("fails stage when payload is empty object or lines is not array", async () => {
+  it("returns repairing when payload is empty object or lines is not array", async () => {
     const adapterWithEmptyObject = createMockAdapter("{}");
     const emptyObjectResult = await runSegmentScriptingStage({
       workflowRunId: "wf-segment-fail-empty-object",
@@ -239,13 +261,13 @@ describe("segment scripting stage", () => {
       adapter: adapterWithInvalidLines,
     });
 
-    expect(emptyObjectResult.status).toBe("failed");
+    expect(emptyObjectResult.status).toBe("repairing");
     expect("artifact" in emptyObjectResult).toBe(false);
-    expect(invalidLinesResult.status).toBe("failed");
+    expect(invalidLinesResult.status).toBe("repairing");
     expect("artifact" in invalidLinesResult).toBe(false);
   });
 
-  it("fails stage when lines is an empty array", async () => {
+  it("returns repairing when lines is an empty array", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         lines: [],
@@ -260,11 +282,11 @@ describe("segment scripting stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("repairing");
     expect("artifact" in result).toBe(false);
   });
 
-  it("fails stage when a line is missing required key or empty value", async () => {
+  it("returns repairing when a line is missing required key or empty value", async () => {
     const adapterWithMissingKey = createMockAdapter(
       JSON.stringify({
         lines: [
@@ -306,44 +328,50 @@ describe("segment scripting stage", () => {
       adapter: adapterWithEmptyValue,
     });
 
-    expect(missingKeyResult.status).toBe("failed");
+    expect(missingKeyResult.status).toBe("repairing");
     expect("artifact" in missingKeyResult).toBe(false);
-    expect(emptyValueResult.status).toBe("failed");
+    expect(emptyValueResult.status).toBe("repairing");
     expect("artifact" in emptyValueResult).toBe(false);
   });
 
-  it("fails stage when skill is not compatible and does not call adapter", async () => {
-    const fixtureRoot = fs.mkdtempSync(
-      path.join(os.tmpdir(), "segment-scripting-incompatible-")
+  it("returns repairing when orderInSegment is not contiguous from zero", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+          {
+            id: "line-2",
+            sourceText: "燕赤霞点头。",
+            text: "燕赤霞点头。",
+            speaker: "旁白",
+            orderInSegment: 2,
+          },
+        ],
+      })
     );
-    const fixtureSkillDir = path.join(fixtureRoot, "skills/script-generation");
 
-    fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
-    fs.writeFileSync(
-      path.join(fixtureSkillDir, "skill.toml"),
-      [
-        'id = "script-generation"',
-        'version = "1"',
-        'kind = "generation"',
-        'compatibleAgents = ["other-agent"]',
-        'inputSchemaRef = "segment-script-input"',
-        'outputSchemaRef = "segment-script-draft"',
-        'contextRequirements = ["segment"]',
-        "toolAllowlist = []",
-      ].join("\n"),
-      "utf8"
-    );
-    fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
-    fs.writeFileSync(
-      path.join(fixtureSkillDir, "prompts/system.md"),
-      "return json",
-      "utf8"
-    );
-    fs.writeFileSync(
-      path.join(fixtureSkillDir, "prompts/user.md"),
-      "{{segment_text}}",
-      "utf8"
-    );
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-fail-non-contiguous-order",
+      segmentId: "segment-fail-non-contiguous-order",
+      segmentText: "宁采臣抬头。燕赤霞点头。",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("repairing");
+    expect("artifact" in result).toBe(false);
+  });
+
+  it("fails stage when skill is not compatible and does not call adapter", async () => {
+    const fixtureSkillDir = createScriptGenerationSkillFixture({
+      compatibleAgents: ["other-agent"],
+    });
 
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -360,6 +388,108 @@ describe("segment scripting stage", () => {
     });
 
     expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("fails stage when required prompt file is missing and does not call adapter", async () => {
+    const fixtureSkillDir = createScriptGenerationSkillFixture();
+    fs.unlinkSync(path.join(fixtureSkillDir, "prompts/user.md"));
+
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-missing-prompt",
+      segmentId: "segment-missing-prompt",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it.each([
+    {
+      title: "contextRequirements is not ['segment']",
+      contextRequirements: ["segment", "character_memory"],
+      toolAllowlist: [],
+    },
+    {
+      title: "toolAllowlist is not empty",
+      contextRequirements: ["segment"],
+      toolAllowlist: ["load-book-context"],
+    },
+  ])("fails stage when %s and does not call adapter", async (fixtureConfig) => {
+    const fixtureSkillDir = createScriptGenerationSkillFixture({
+      contextRequirements: fixtureConfig.contextRequirements,
+      toolAllowlist: fixtureConfig.toolAllowlist,
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-contract-mismatch",
+      segmentId: "segment-contract-mismatch",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("returns repairing when input is over budget and does not call adapter", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-over-budget",
+      segmentId: "segment-over-budget",
+      segmentText: "甲".repeat(5000),
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("repairing");
     expect("artifact" in result).toBe(false);
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });

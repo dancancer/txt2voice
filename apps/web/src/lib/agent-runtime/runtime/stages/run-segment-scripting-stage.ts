@@ -147,6 +147,42 @@ const assertSkillCompatibleWithAgent = (
   throw new Error(`Skill ${skillId} is not compatible with ${agentId}`);
 };
 
+const assertSkillContract = (definition: {
+  id: string;
+  contextRequirements: string[];
+  toolAllowlist: string[];
+}) => {
+  const hasExpectedContextRequirements =
+    definition.contextRequirements.length === 1 &&
+    definition.contextRequirements[0] === "segment";
+  if (!hasExpectedContextRequirements) {
+    throw new Error(
+      `Skill ${definition.id} has unsupported contextRequirements: expected ["segment"]`
+    );
+  }
+
+  if (definition.toolAllowlist.length > 0) {
+    throw new Error(`Skill ${definition.id} must declare empty toolAllowlist`);
+  }
+};
+
+const asErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "Unknown stage execution error";
+};
+
+const isRepairableError = (message: string): boolean =>
+  message.startsWith("Invalid script generation payload") ||
+  message.startsWith("Invalid script line") ||
+  message.startsWith("Input context over budget");
+
 export const runSegmentScriptingStage = async (
   input: RunSegmentScriptingStageInput
 ): Promise<RunSegmentScriptingStageResult> => {
@@ -158,6 +194,10 @@ export const runSegmentScriptingStage = async (
       id: "segment_scripting",
       agent: {
         id: runtimeAgentId,
+        resolveFailure: ({ error }) => {
+          const message = asErrorMessage(error);
+          return isRepairableError(message) ? "repairing" : "failed";
+        },
         execute: async () => {
           const skillSource = resolveScriptGenerationSkillSource({
             workspaceRoot: input.workspaceRoot,
@@ -172,6 +212,7 @@ export const runSegmentScriptingStage = async (
             skill.definition.compatibleAgents,
             runtimeAgentId
           );
+          assertSkillContract(skill.definition);
           const prompts = loadScriptGenerationPrompts(skillSource.skillDir);
           const context = buildAgentContext({
             agentId: runtimeAgentId,
@@ -182,6 +223,10 @@ export const runSegmentScriptingStage = async (
               reservedOutputChars: 1200,
             },
           });
+          if (context.executionContext.inputOverBudget) {
+            throw new Error("Input context over budget for segment scripting stage");
+          }
+
           const adapter = await resolveAdapter(input.adapter);
           const agent = createScriptGenerationAgent({
             adapter,
