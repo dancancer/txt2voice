@@ -5,4 +5,4 @@ compatibleAgents = ["script-generation-agent"]
 inputSchemaRef = "segment-script-input"
 outputSchemaRef = "segment-script-draft"
 contextRequirements = ["segment"]
-toolAllowlist = ["load-book-context"]
+toolAllowlist = []

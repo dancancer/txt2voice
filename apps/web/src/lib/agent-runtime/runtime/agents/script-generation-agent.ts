@@ -136,6 +136,11 @@ const toSegmentScriptDraft = (params: {
   if (!Array.isArray(payload.lines)) {
     throw new Error("Invalid script generation payload: lines must be an array");
   }
+  if (payload.lines.length === 0) {
+    throw new Error(
+      "Invalid script generation payload: lines must not be empty"
+    );
+  }
 
   return {
     segmentId: params.segmentId,

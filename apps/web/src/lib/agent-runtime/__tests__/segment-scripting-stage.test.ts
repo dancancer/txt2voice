@@ -131,7 +131,7 @@ describe("segment scripting stage", () => {
         'inputSchemaRef = "segment-script-input"',
         'outputSchemaRef = "segment-script-draft"',
         'contextRequirements = ["segment"]',
-        'toolAllowlist = ["load-book-context"]',
+        "toolAllowlist = []",
       ].join("\n"),
       "utf8"
     );
@@ -245,6 +245,25 @@ describe("segment scripting stage", () => {
     expect("artifact" in invalidLinesResult).toBe(false);
   });
 
+  it("fails stage when lines is an empty array", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-fail-empty-lines",
+      segmentId: "segment-fail-empty-lines",
+      segmentText: "宁采臣抬头。",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+  });
+
   it("fails stage when a line is missing required key or empty value", async () => {
     const adapterWithMissingKey = createMockAdapter(
       JSON.stringify({
@@ -310,7 +329,7 @@ describe("segment scripting stage", () => {
         'inputSchemaRef = "segment-script-input"',
         'outputSchemaRef = "segment-script-draft"',
         'contextRequirements = ["segment"]',
-        'toolAllowlist = ["load-book-context"]',
+        "toolAllowlist = []",
       ].join("\n"),
       "utf8"
     );
