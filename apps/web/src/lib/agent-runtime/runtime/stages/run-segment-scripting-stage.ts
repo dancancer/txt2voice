@@ -29,7 +29,7 @@ export interface RunSegmentScriptingStageInput
 
 export interface SegmentScriptingArtifact {
   kind: "segment-script-draft";
-  skillId: "script-generation";
+  skillId: string;
   segmentScriptDraft: SegmentScriptDraft;
 }
 
@@ -193,7 +193,6 @@ export const runSegmentScriptingStage = async (
               typeof context.inputContext.segmentText === "string"
                 ? context.inputContext.segmentText
                 : "",
-            characterMemorySummary: context.referenceMemory.characterMemorySummary,
             prompts,
           });
 
@@ -236,7 +235,7 @@ export const runSegmentScriptingStage = async (
     status: "completed",
     artifact: {
       kind: "segment-script-draft",
-      skillId: skillId as "script-generation",
+      skillId,
       segmentScriptDraft,
     },
   };

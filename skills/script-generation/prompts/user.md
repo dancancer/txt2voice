@@ -1,8 +1,5 @@
 请基于以下输入，输出单段台词草稿 JSON。
 
-已有角色记忆摘要（可为空）：
-{{character_memory_summary}}
-
 文本段落：
 {{segment_text}}
 

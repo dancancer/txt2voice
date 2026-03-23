@@ -10,7 +10,6 @@ export interface ScriptGenerationPrompts {
 export interface ScriptGenerationAgentInput {
   segmentId: string;
   segmentText: string;
-  characterMemorySummary: string;
   prompts: ScriptGenerationPrompts;
 }
 
@@ -147,14 +146,8 @@ const toSegmentScriptDraft = (params: {
 
 const renderUserPrompt = (
   template: string,
-  params: { segmentText: string; characterMemorySummary: string }
-) =>
-  template
-    .replaceAll("{{segment_text}}", params.segmentText)
-    .replaceAll(
-      "{{character_memory_summary}}",
-      params.characterMemorySummary || "none"
-    );
+  params: { segmentText: string }
+) => template.replaceAll("{{segment_text}}", params.segmentText);
 
 export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => ({
   async execute(
@@ -164,7 +157,6 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
       systemPrompt: input.prompts.systemPrompt,
       prompt: renderUserPrompt(input.prompts.userPrompt, {
         segmentText: input.segmentText,
-        characterMemorySummary: input.characterMemorySummary,
       }),
       metadata: {
         source: "agent_runtime.segment_scripting",
