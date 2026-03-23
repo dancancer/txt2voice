@@ -1,0 +1,8 @@
+id = "json-repair"
+version = "1"
+kind = "repair"
+compatibleAgents = ["repair-agent"]
+inputSchemaRef = "failed-segment-artifact"
+outputSchemaRef = "repair-decision"
+contextRequirements = ["segment", "failed_artifact"]
+toolAllowlist = []
