@@ -59,6 +59,9 @@ export interface SegmentFailureDetail {
   issueMessages: string[];
   issuePreviews: string[];
   segmentPreview: string;
+  segmentContent?: string;
+  rawResponse?: string | null;
+  structuredResult?: Record<string, unknown> | null;
 }
 
 export interface ScriptGenerationSummary {

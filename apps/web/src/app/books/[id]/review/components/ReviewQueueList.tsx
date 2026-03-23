@@ -14,6 +14,7 @@ import {
 import { CheckCircle2, Loader2, RotateCcw, XCircle } from "lucide-react";
 import type { ManualReviewItem, ManualReviewResolveAction, ManualReviewStatus } from "../models/types";
 import { buildScriptValidationDetailView } from "../models/script-validation-detail";
+import { ReviewScriptEditWorkspace } from "./ReviewScriptEditWorkspace";
 
 const REVIEW_STATUS_META: Record<
   ManualReviewStatus,
@@ -113,10 +114,15 @@ interface ReviewQueueListProps {
   loading: boolean;
   actionLoadingItemId: string | null;
   batchActionLoading: boolean;
+  scriptSaveLoadingItemId: string | null;
   onResolve: (item: ManualReviewItem, action: ManualReviewResolveAction) => void;
   onBatchResolve: (
     itemIds: string[],
     action: ManualReviewResolveAction
+  ) => Promise<boolean>;
+  onSaveScriptEdit: (
+    item: ManualReviewItem,
+    structuredResult: Record<string, unknown>
   ) => Promise<boolean>;
 }
 
@@ -125,10 +131,13 @@ export function ReviewQueueList({
   loading,
   actionLoadingItemId,
   batchActionLoading,
+  scriptSaveLoadingItemId,
   onResolve,
   onBatchResolve,
+  onSaveScriptEdit,
 }: ReviewQueueListProps) {
   const [selectedItemIds, setSelectedItemIds] = useState<string[]>([]);
+  const [editingItem, setEditingItem] = useState<ManualReviewItem | null>(null);
 
   const pendingItemIds = useMemo(
     () => items.filter((item) => item.status === "pending").map((item) => item.id),
@@ -256,6 +265,19 @@ export function ReviewQueueList({
             : null;
         const primaryText =
           item.sentence?.text || scriptDetail?.segmentPreview || "当前条目缺少句子文本";
+        const rawStructuredDialogues =
+          scriptDetail?.structuredResult &&
+          Array.isArray(scriptDetail.structuredResult.dialogues)
+            ? scriptDetail.structuredResult.dialogues
+            : [];
+        const generatedPreview =
+          rawStructuredDialogues.length > 0 &&
+          rawStructuredDialogues[0] &&
+          typeof rawStructuredDialogues[0] === "object" &&
+          !Array.isArray(rawStructuredDialogues[0]) &&
+          typeof (rawStructuredDialogues[0] as Record<string, unknown>).text === "string"
+            ? ((rawStructuredDialogues[0] as Record<string, unknown>).text as string)
+            : null;
 
         return (
           <Card key={item.id} className="border-slate-200 shadow-sm">
@@ -288,6 +310,26 @@ export function ReviewQueueList({
               <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
                 {primaryText}
               </p>
+              {item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE ? (
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <p className="mb-2 text-xs font-medium tracking-wide text-slate-500">
+                      段落原文
+                    </p>
+                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {scriptDetail?.segmentContent || scriptDetail?.segmentPreview || "暂无完整原文"}
+                    </p>
+                  </div>
+                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                    <p className="mb-2 text-xs font-medium tracking-wide text-slate-500">
+                      当前生成结果预览
+                    </p>
+                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                      {generatedPreview || rawResponseFallback(scriptDetail?.rawResponse)}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               {scriptDetail?.summary ? (
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                   {scriptDetail.summary}
@@ -403,6 +445,21 @@ export function ReviewQueueList({
                   推荐动作：{scriptDetail.recommendedActionLabel}
                 </div>
               ) : null}
+              {item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE &&
+              (scriptDetail?.segmentContent || scriptDetail?.rawResponse || scriptDetail?.structuredResult) ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="min-h-10"
+                    disabled={actionPending || batchActionLoading}
+                    onClick={() => setEditingItem(item)}
+                  >
+                    打开修订工作台
+                  </Button>
+                </div>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
@@ -454,6 +511,26 @@ export function ReviewQueueList({
           </Card>
         );
       })}
+      <ReviewScriptEditWorkspace
+        key={editingItem?.id || "review-script-workspace"}
+        open={Boolean(editingItem)}
+        item={editingItem}
+        saving={scriptSaveLoadingItemId === editingItem?.id}
+        onClose={() => setEditingItem(null)}
+        onSave={async (structuredResult) => {
+          if (!editingItem) {
+            return false;
+          }
+          return onSaveScriptEdit(editingItem, structuredResult);
+        }}
+      />
     </div>
   );
+}
+
+function rawResponseFallback(rawResponse: string | undefined): string {
+  if (!rawResponse) {
+    return "暂无原始生成结果";
+  }
+  return rawResponse.slice(0, 160);
 }

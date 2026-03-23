@@ -215,6 +215,16 @@ const normalizeSegmentFailureDetail = (value: unknown): SegmentFailureDetail | n
     issueMessages: asStringList(record.issueMessages),
     issuePreviews: asStringList(record.issuePreviews),
     segmentPreview: asString(record.segmentPreview),
+    segmentContent: asString(record.segmentContent),
+    rawResponse: asString(record.rawResponse) || null,
+    structuredResult:
+      record.structuredResult &&
+      typeof record.structuredResult === "object" &&
+      !Array.isArray(record.structuredResult)
+        ? (JSON.parse(
+            JSON.stringify(record.structuredResult)
+          ) as Record<string, unknown>)
+        : null,
   };
 };
 
@@ -366,6 +376,9 @@ const syncScriptFailureManualReviewItems = async (params: {
         issueMessages: failure.issueMessages,
         issuePreviews: failure.issuePreviews,
         segmentPreview: failure.segmentPreview,
+        segmentContent: failure.segmentContent || null,
+        rawResponse: failure.rawResponse || null,
+        structuredResult: failure.structuredResult || null,
         scriptSubtype,
       };
       const priority = pickManualReviewPriority(failure);

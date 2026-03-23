@@ -9,6 +9,7 @@ import type {
   ManualReviewItem,
   ManualReviewResolveAction,
   ReviewBatchResolveResponse,
+  ReviewScriptSaveResponse,
 } from "../models/types";
 
 interface ReviewWorkbenchActionInput {
@@ -37,6 +38,8 @@ export function useReviewWorkbenchActions({
   const [actionLoadingItemId, setActionLoadingItemId] = useState<string | null>(null);
   const [batchActionLoading, setBatchActionLoading] = useState(false);
   const [dispatchEventActionId, setDispatchEventActionId] =
+    useState<string | null>(null);
+  const [scriptSaveLoadingItemId, setScriptSaveLoadingItemId] =
     useState<string | null>(null);
 
   const resolveItem = useCallback(
@@ -198,13 +201,56 @@ export function useReviewWorkbenchActions({
     }
   }, [bookId, buildReviewParams]);
 
+  const saveScriptEdit = useCallback(
+    async (
+      item: ManualReviewItem,
+      structuredResult: Record<string, unknown>
+    ): Promise<boolean> => {
+      setScriptSaveLoadingItemId(item.id);
+      try {
+        const response = await fetch(
+          `/api/books/${bookId}/review/items/${item.id}/script-save`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              structuredResult,
+            }),
+          }
+        );
+        const payload = (await response.json().catch(() => ({}))) as ReviewScriptSaveResponse;
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error?.message || "保存人工修订台本失败");
+        }
+
+        toast.success("人工修订台本已保存");
+        await refreshAfterReviewMutation();
+        return true;
+      } catch (saveError) {
+        console.error("Failed to save manual review script edit:", saveError);
+        toast.error(
+          saveError instanceof Error ? saveError.message : "保存人工修订台本失败"
+        );
+        return false;
+      } finally {
+        setScriptSaveLoadingItemId(null);
+      }
+    },
+    [bookId, refreshAfterReviewMutation]
+  );
+
   return {
     actionLoadingItemId,
     batchActionLoading,
     dispatchEventActionId,
+    scriptSaveLoadingItemId,
     resolveItem,
     resolveItemsInBatch,
     resolveDispatchEvent,
     exportReviewLogs,
+    saveScriptEdit,
   };
 }

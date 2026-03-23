@@ -25,6 +25,12 @@ const buildItem = (): ManualReviewItem => ({
     issueMessages: ["原文覆盖率过低", "尾部存在未覆盖内容"],
     issuePreviews: ["第二段原文"],
     segmentPreview: "第二段原文，有校验问题",
+    segmentContent: "第二段原文，有校验问题。完整段落内容在这里。",
+    rawResponse: '{"dialogues":[],"characters":[]}',
+    structuredResult: {
+      dialogues: [],
+      characters: [],
+    },
     coverageRatio: 0.82,
   },
   assignedTo: null,
@@ -46,8 +52,10 @@ describe("ReviewQueueList", () => {
         loading={false}
         actionLoadingItemId={null}
         batchActionLoading={false}
+        scriptSaveLoadingItemId={null}
         onResolve={() => undefined}
         onBatchResolve={async () => true}
+        onSaveScriptEdit={async () => true}
       />
     );
 
@@ -56,10 +64,13 @@ describe("ReviewQueueList", () => {
     expect(html).toContain("尾部存在未覆盖内容");
     expect(html).toContain("问题代码");
     expect(html).toContain("问题原文预览");
+    expect(html).toContain("当前生成结果预览");
+    expect(html).toContain("段落原文");
     expect(html).toContain("段落原文预览");
     expect(html).toContain("建议动作");
     expect(html).toContain("推荐动作：重生");
     expect(html).toContain("重生（推荐）");
+    expect(html).toContain("打开修订工作台");
     expect(html).toContain("优先重生台本，确认这一段是否需要更小粒度切段。");
   });
 });

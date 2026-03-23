@@ -28,6 +28,9 @@ export interface ScriptValidationDetailView {
   issueMessages: string[];
   issuePreviews: string[];
   segmentPreview: string;
+  segmentContent: string;
+  rawResponse: string;
+  structuredResult: Record<string, unknown> | null;
   actionHints: string[];
   recommendedAction: ScriptValidationRecommendedAction | null;
   recommendedActionLabel: string;
@@ -183,6 +186,14 @@ export const buildScriptValidationDetailView = (params: {
   const errorCode = asString(detail?.errorCode);
   const coverageLabel = asCoverageLabel(detail?.coverageRatio);
   const segmentPreview = asString(detail?.segmentPreview);
+  const segmentContent = asString(detail?.segmentContent);
+  const rawResponse = asString(detail?.rawResponse);
+  const structuredResult =
+    detail?.structuredResult &&
+    typeof detail.structuredResult === "object" &&
+    !Array.isArray(detail.structuredResult)
+      ? (detail.structuredResult as Record<string, unknown>)
+      : null;
   const subtype = resolveScriptValidationSubtype({
     ...(detail ?? {}),
     scriptSubtype: issueSubtype || asString(detail?.scriptSubtype),
@@ -201,6 +212,9 @@ export const buildScriptValidationDetailView = (params: {
     issueMessages,
     issuePreviews,
     segmentPreview,
+    segmentContent,
+    rawResponse,
+    structuredResult,
     actionHints,
     recommendedAction,
     recommendedActionLabel: getScriptValidationRecommendedActionLabel(
@@ -213,6 +227,9 @@ export const buildScriptValidationDetailView = (params: {
       Boolean(coverageLabel) ||
       issueCodes.length > 0 ||
       issuePreviews.length > 0 ||
-      Boolean(segmentPreview),
+      Boolean(segmentPreview) ||
+      Boolean(segmentContent) ||
+      Boolean(rawResponse) ||
+      Boolean(structuredResult),
   };
 };

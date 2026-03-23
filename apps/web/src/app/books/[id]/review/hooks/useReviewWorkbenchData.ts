@@ -376,10 +376,12 @@ export function useReviewWorkbenchData(bookId: string) {
     actionLoadingItemId,
     batchActionLoading,
     dispatchEventActionId,
+    scriptSaveLoadingItemId,
     resolveItem,
     resolveItemsInBatch,
     resolveDispatchEvent,
     exportReviewLogs,
+    saveScriptEdit,
   } = useReviewWorkbenchActions({
     bookId,
     buildReviewParams,
@@ -452,6 +454,7 @@ export function useReviewWorkbenchData(bookId: string) {
     actionLoadingItemId,
     batchActionLoading,
     dispatchEventActionId,
+    scriptSaveLoadingItemId,
     error,
     issueTypeOptions,
     recommendedActionOptions,
@@ -474,5 +477,6 @@ export function useReviewWorkbenchData(bookId: string) {
     resolveItemsInBatch,
     resolveDispatchEvent,
     exportReviewLogs,
+    saveScriptEdit,
   };
 }

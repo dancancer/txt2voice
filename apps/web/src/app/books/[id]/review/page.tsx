@@ -57,6 +57,7 @@ export default function ReviewWorkbenchPage() {
     actionLoadingItemId,
     batchActionLoading,
     dispatchEventActionId,
+    scriptSaveLoadingItemId,
     error,
     issueTypeOptions,
     recommendedActionOptions,
@@ -78,6 +79,7 @@ export default function ReviewWorkbenchPage() {
     resolveItemsInBatch,
     resolveDispatchEvent,
     exportReviewLogs,
+    saveScriptEdit,
   } = useReviewWorkbenchData(bookId);
 
   const backlog = summary.pendingCount + summary.reprocessingCount;
@@ -181,8 +183,10 @@ export default function ReviewWorkbenchPage() {
               loading={reviewLoading}
               actionLoadingItemId={actionLoadingItemId}
               batchActionLoading={batchActionLoading}
+              scriptSaveLoadingItemId={scriptSaveLoadingItemId}
               onResolve={resolveItem}
               onBatchResolve={resolveItemsInBatch}
+              onSaveScriptEdit={saveScriptEdit}
             />
             <ReviewPaginationBar
               pagination={pagination}

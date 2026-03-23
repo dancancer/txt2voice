@@ -21,9 +21,7 @@ const Dialog: React.FC<DialogProps> = ({ open, onOpenChange, children }) => {
             className="fixed inset-0 bg-black/50"
             onClick={() => onOpenChange?.(false)}
           />
-          <div className="relative z-50 grid w-full max-w-lg gap-4 border bg-background p-6 shadow-lg rounded-lg">
-            {children}
-          </div>
+          {children}
         </div>
       )}
     </>

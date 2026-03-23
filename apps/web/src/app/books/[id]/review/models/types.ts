@@ -115,6 +115,17 @@ export interface ReviewBatchResolveResponse {
   };
 }
 
+export interface ReviewScriptSaveResponse {
+  success: boolean;
+  data: {
+    item: ManualReviewItem;
+    retryTask: null;
+  };
+  error?: {
+    message?: string;
+  };
+}
+
 export type ReviewRegenerateTaskSource = "manual_review" | "manual_review_batch";
 
 export interface ReviewRegenerateTask {

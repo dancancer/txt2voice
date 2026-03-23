@@ -85,6 +85,21 @@ const createFailedScript = () => ({
         issueMessages: ["原文覆盖率过低"],
         issuePreviews: ["第二段"],
         segmentPreview: "第二段原文",
+        segmentContent: "第二段原文，有校验问题",
+        rawResponse:
+          '{"dialogues":[{"id":"line-seg-2","sourceText":"第二段原文","text":"改写后的第二段","speaker":"旁白","tone":"中性"}],"characters":[]}',
+        structuredResult: {
+          dialogues: [
+            {
+              id: "line-seg-2",
+              sourceText: "第二段原文",
+              text: "改写后的第二段",
+              speaker: "旁白",
+              tone: "中性",
+            },
+          ],
+          characters: [],
+        },
       },
     ],
     characterDistribution: {},
@@ -138,6 +153,11 @@ describe("script-generation-runner", () => {
         priority: "high",
         issueDetail: expect.objectContaining({
           scriptSubtype: "COVERAGE",
+          segmentContent: "第二段原文，有校验问题",
+          rawResponse: expect.stringContaining('"dialogues"'),
+          structuredResult: expect.objectContaining({
+            dialogues: expect.any(Array),
+          }),
         }),
       }),
     });
