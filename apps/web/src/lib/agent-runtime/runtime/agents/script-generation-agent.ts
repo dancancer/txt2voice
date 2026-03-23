@@ -1,0 +1,188 @@
+import type { LLMAdapter } from "../../adapters/llm-adapter";
+import type { SegmentScriptDraft, SegmentScriptDraftLine } from "../../context";
+import { validateStructuredOutput } from "../../tools/validation-tools";
+
+export interface ScriptGenerationPrompts {
+  systemPrompt: string;
+  userPrompt: string;
+}
+
+export interface ScriptGenerationAgentInput {
+  segmentId: string;
+  segmentText: string;
+  characterMemorySummary: string;
+  prompts: ScriptGenerationPrompts;
+}
+
+export interface ScriptGenerationAgentResult {
+  segmentScriptDraft: SegmentScriptDraft;
+  rawResponse: string;
+  provider: string;
+  model: string;
+}
+
+interface ScriptGenerationAgentDeps {
+  adapter: LLMAdapter;
+  now?: () => Date;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+
+const asText = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const text = value.trim();
+  return text.length > 0 ? text : null;
+};
+
+const asOrderInSegment = (value: unknown): number | null => {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
+    value < 0
+  ) {
+    return null;
+  }
+
+  return value;
+};
+
+const parseObject = (rawText: string): Record<string, unknown> | null => {
+  try {
+    const parsed = JSON.parse(rawText);
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const extractJsonPayload = (content: string): Record<string, unknown> => {
+  const direct = parseObject(content);
+  if (direct) {
+    return direct;
+  }
+
+  const fencedBlock = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fencedBlock?.[1]) {
+    const fromFence = parseObject(fencedBlock[1]);
+    if (fromFence) {
+      return fromFence;
+    }
+  }
+
+  const start = content.indexOf("{");
+  const end = content.lastIndexOf("}");
+  if (start >= 0 && end > start) {
+    const fromBraces = parseObject(content.slice(start, end + 1));
+    if (fromBraces) {
+      return fromBraces;
+    }
+  }
+
+  throw new Error("Invalid script generation payload: expected JSON object");
+};
+
+const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
+  const result = validateStructuredOutput({
+    value,
+    requiredKeys: ["id", "sourceText", "text", "speaker", "orderInSegment"],
+  });
+  if (!result.valid) {
+    throw new Error(
+      `Invalid script line: missing keys ${result.missingKeys.join(", ")}`
+    );
+  }
+
+  if (!isRecord(value)) {
+    throw new Error("Invalid script line: line must be an object");
+  }
+
+  const id = asText(value.id);
+  const sourceText = asText(value.sourceText);
+  const text = asText(value.text);
+  const speaker = asText(value.speaker);
+  const orderInSegment = asOrderInSegment(value.orderInSegment);
+
+  if (!id || !sourceText || !text || !speaker || orderInSegment === null) {
+    throw new Error("Invalid script line: required fields are empty or invalid");
+  }
+
+  return {
+    id,
+    sourceText,
+    text,
+    speaker,
+    orderInSegment,
+  };
+};
+
+const toSegmentScriptDraft = (params: {
+  content: string;
+  segmentId: string;
+  now: () => Date;
+}): SegmentScriptDraft => {
+  const payload = extractJsonPayload(params.content);
+  const topLevel = validateStructuredOutput({
+    value: payload,
+    requiredKeys: ["lines"],
+  });
+  if (!topLevel.valid) {
+    throw new Error("Invalid script generation payload: lines is required");
+  }
+
+  if (!Array.isArray(payload.lines)) {
+    throw new Error("Invalid script generation payload: lines must be an array");
+  }
+
+  return {
+    segmentId: params.segmentId,
+    lines: payload.lines.map((line) => toDraftLine(line)),
+    createdAt: params.now().toISOString(),
+  };
+};
+
+const renderUserPrompt = (
+  template: string,
+  params: { segmentText: string; characterMemorySummary: string }
+) =>
+  template
+    .replaceAll("{{segment_text}}", params.segmentText)
+    .replaceAll(
+      "{{character_memory_summary}}",
+      params.characterMemorySummary || "none"
+    );
+
+export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => ({
+  async execute(
+    input: ScriptGenerationAgentInput
+  ): Promise<ScriptGenerationAgentResult> {
+    const response = await deps.adapter.call({
+      systemPrompt: input.prompts.systemPrompt,
+      prompt: renderUserPrompt(input.prompts.userPrompt, {
+        segmentText: input.segmentText,
+        characterMemorySummary: input.characterMemorySummary,
+      }),
+      metadata: {
+        source: "agent_runtime.segment_scripting",
+        stageId: "segment_scripting",
+      },
+    });
+
+    const now = deps.now ?? (() => new Date());
+
+    return {
+      segmentScriptDraft: toSegmentScriptDraft({
+        content: response.content,
+        segmentId: input.segmentId,
+        now,
+      }),
+      rawResponse: response.content,
+      provider: response.provider,
+      model: response.model,
+    };
+  },
+});

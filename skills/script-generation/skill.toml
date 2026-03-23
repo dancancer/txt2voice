@@ -1,0 +1,8 @@
+id = "script-generation"
+version = "1"
+kind = "generation"
+compatibleAgents = ["script-generation-agent"]
+inputSchemaRef = "segment-script-input"
+outputSchemaRef = "segment-script-draft"
+contextRequirements = ["segment", "character_memory_summary"]
+toolAllowlist = ["load-book-context"]
