@@ -264,6 +264,38 @@ const validatePayloadSchema = (payload: Record<string, unknown>) => {
       "Invalid character discovery payload: inferredHints must be an object"
     );
   }
+
+  for (const identity of payload.canonicalIdentities) {
+    if (!isRecord(identity)) {
+      throw new Error(
+        "Invalid character discovery payload: canonicalIdentities entries must be objects with name/canonicalName"
+      );
+    }
+
+    const name = asText(identity.name) ?? asText(identity.canonicalName);
+    if (!name) {
+      throw new Error(
+        "Invalid character discovery payload: canonicalIdentities entries must include name/canonicalName"
+      );
+    }
+  }
+
+  for (const evidence of payload.aliasEvidence) {
+    if (!isRecord(evidence)) {
+      throw new Error(
+        "Invalid character discovery payload: aliasEvidence entries must be objects with alias and canonical pointer"
+      );
+    }
+
+    const alias = asText(evidence.alias);
+    const canonicalPointer =
+      asText(evidence.canonicalId) ?? asText(evidence.canonicalName);
+    if (!alias || !canonicalPointer) {
+      throw new Error(
+        "Invalid character discovery payload: aliasEvidence entries must include alias and canonicalId/canonicalName"
+      );
+    }
+  }
 };
 
 const mapResponseToMemoryPatch = (content: string): MemoryPatch => {

@@ -337,6 +337,112 @@ describe("character discovery stage", () => {
     });
   });
 
+  it("reuses existing canonical id when draft canonical name matches known alias", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [
+          {
+            id: "char-new",
+            name: "燕大侠",
+          },
+        ],
+        aliasEvidence: [],
+        assertedFacts: {
+          "char-new": {
+            role: "mentor",
+          },
+        },
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-reuse-alias-id",
+      segmentText: "燕大侠缓缓收剑。",
+      skillDir,
+      adapter,
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-2", name: "燕赤霞" }],
+        aliasEvidence: [
+          { alias: "燕大侠", canonicalId: "char-2", source: "segment-1" },
+        ],
+        assertedFacts: {},
+        inferredHints: {},
+      },
+    });
+
+    expect(result.status).toBe("completed");
+    expect(result.artifact.characterMemoryDraft).toEqual({
+      canonicalIdentities: [{ id: "char-2", name: "燕赤霞" }],
+      aliasEvidence: [],
+      assertedFacts: {
+        "char-2": {
+          role: "mentor",
+        },
+      },
+      inferredHints: {},
+    });
+  });
+
+  it("reuses existing canonical id when draft alias evidence hits known alias", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [
+          {
+            id: "char-new",
+            name: "黑衣剑客",
+          },
+        ],
+        aliasEvidence: [
+          {
+            alias: "燕大侠",
+            canonicalId: "char-new",
+            source: "segment-3",
+          },
+        ],
+        assertedFacts: {
+          "char-new": {
+            style: "冷峻",
+          },
+        },
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-reuse-alias-evidence-id",
+      segmentText: "黑衣剑客一跃而下。",
+      skillDir,
+      adapter,
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-2", name: "燕赤霞" }],
+        aliasEvidence: [
+          { alias: "燕大侠", canonicalId: "char-2", source: "segment-1" },
+        ],
+        assertedFacts: {},
+        inferredHints: {},
+      },
+    });
+
+    expect(result.status).toBe("completed");
+    expect(result.artifact.characterMemoryDraft).toEqual({
+      canonicalIdentities: [{ id: "char-2", name: "燕赤霞" }],
+      aliasEvidence: [
+        {
+          alias: "燕大侠",
+          canonicalId: "char-2",
+          source: "segment-3",
+        },
+      ],
+      assertedFacts: {
+        "char-2": {
+          style: "冷峻",
+        },
+      },
+      inferredHints: {},
+    });
+  });
+
   it("does not require any db dependency and only returns runtime artifact", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -395,6 +501,27 @@ describe("character discovery stage", () => {
     const result = await runCharacterDiscoveryStage({
       workflowRunId: "wf-7",
       segmentText: "宁采臣抬头。",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+  });
+
+  it("fails stage when llm returns malformed canonical identity entry", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [{}],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-8",
+      segmentText: "燕赤霞抬头。",
       skillDir,
       adapter,
     });
