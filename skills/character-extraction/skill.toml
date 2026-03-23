@@ -4,5 +4,5 @@ kind = "analysis"
 compatibleAgents = ["character-discovery"]
 inputSchemaRef = "character-input"
 outputSchemaRef = "character-output"
-contextRequirements = ["segment"]
+contextRequirements = ["segment", "character_memory_summary"]
 toolAllowlist = ["load-book-context"]
