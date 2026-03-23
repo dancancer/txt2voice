@@ -129,4 +129,36 @@ describe("artifact and memory contracts", () => {
       },
     });
   });
+
+  it("merges per-canonical assertedFacts without dropping existing sub-fields", () => {
+    const baseMemory: CharacterMemory = {
+      canonicalIdentities: [{ id: "char-1", name: "Lin" }],
+      aliasEvidence: [],
+      assertedFacts: {
+        "char-1": {
+          gender: "male",
+          age: 40,
+        },
+      },
+      inferredHints: {},
+    };
+
+    const patch: MemoryPatch = {
+      assertedFacts: {
+        "char-1": {
+          role: "main",
+        },
+      },
+    };
+
+    const merged = mergeCharacterMemory(baseMemory, patch);
+
+    expect(merged.assertedFacts).toMatchObject({
+      "char-1": {
+        gender: "male",
+        age: 40,
+        role: "main",
+      },
+    });
+  });
 });
