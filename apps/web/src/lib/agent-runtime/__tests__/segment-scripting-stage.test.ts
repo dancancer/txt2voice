@@ -3,7 +3,10 @@ import os from "os";
 import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
-import { runSegmentScriptingStage } from "../runtime/stages/run-segment-scripting-stage";
+import {
+  runSegmentScriptingStage,
+  type RunSegmentScriptingStageResult,
+} from "../runtime/stages/run-segment-scripting-stage";
 
 const createMockAdapter = (content: string): LLMAdapter => ({
   call: jest.fn().mockResolvedValue({
@@ -17,6 +20,15 @@ const createMockAdapter = (content: string): LLMAdapter => ({
 
 const workspaceRoot = path.resolve(__dirname, "../../../../../..");
 const skillDir = path.join(workspaceRoot, "skills/script-generation");
+
+const asCompletedResult = (
+  result: RunSegmentScriptingStageResult
+): Extract<RunSegmentScriptingStageResult, { status: "completed" }> => {
+  if (result.status !== "completed") {
+    throw new Error(`Expected completed status, received ${result.status}`);
+  }
+  return result;
+};
 
 const createScriptGenerationSkillFixture = (params?: {
   skillId?: string;
@@ -91,9 +103,10 @@ describe("segment scripting stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.kind).toBe("segment-script-draft");
-    expect(result.artifact.segmentScriptDraft.segmentId).toBe("segment-1");
-    expect(result.artifact.segmentScriptDraft.lines).toHaveLength(1);
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.kind).toBe("segment-script-draft");
+    expect(completed.artifact.segmentScriptDraft.segmentId).toBe("segment-1");
+    expect(completed.artifact.segmentScriptDraft.lines).toHaveLength(1);
   });
 
   it("keeps required line fields in draft", async () => {
@@ -120,7 +133,8 @@ describe("segment scripting stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.segmentScriptDraft.lines[0]).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
       id: "line-1",
       sourceText: "“快走！”燕赤霞低喝。",
       text: "快走！",
@@ -153,15 +167,16 @@ describe("segment scripting stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.artifact).toEqual({
       kind: "segment-script-draft",
       skillId: "script-generation",
       segmentScriptDraft: expect.objectContaining({
         segmentId: "segment-3",
       }),
     });
-    expect((result as Record<string, unknown>).scriptSentences).toBeUndefined();
-    expect((result as Record<string, unknown>).persisted).toBeUndefined();
+    expect("scriptSentences" in completed).toBe(false);
+    expect("persisted" in completed).toBe(false);
   });
 
   it("uses runtime skill id from skill source instead of fixed literal", async () => {
@@ -192,7 +207,8 @@ describe("segment scripting stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.skillId).toBe("script-generation-custom");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.skillId).toBe("script-generation-custom");
   });
 
   it("does not inject character memory summary into prompt for current minimal contract", async () => {

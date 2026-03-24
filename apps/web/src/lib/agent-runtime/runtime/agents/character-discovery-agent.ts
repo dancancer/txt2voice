@@ -316,11 +316,10 @@ const renderUserPrompt = (
   params: { segmentText: string; characterMemorySummary: string }
 ) =>
   template
-    .replaceAll("{{segment_text}}", params.segmentText)
-    .replaceAll(
-      "{{character_memory_summary}}",
-      params.characterMemorySummary || "none"
-    );
+    .split("{{segment_text}}")
+    .join(params.segmentText)
+    .split("{{character_memory_summary}}")
+    .join(params.characterMemorySummary || "none");
 
 export const createCharacterDiscoveryAgent = (
   deps: CharacterDiscoveryAgentDeps

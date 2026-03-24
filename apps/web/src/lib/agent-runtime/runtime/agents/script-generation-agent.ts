@@ -165,7 +165,7 @@ const toSegmentScriptDraft = (params: {
 const renderUserPrompt = (
   template: string,
   params: { segmentText: string }
-) => template.replaceAll("{{segment_text}}", params.segmentText);
+) => template.split("{{segment_text}}").join(params.segmentText);
 
 export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => ({
   async execute(

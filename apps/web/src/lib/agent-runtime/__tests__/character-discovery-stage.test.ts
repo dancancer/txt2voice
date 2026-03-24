@@ -4,7 +4,10 @@ import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
 import type { CharacterMemory } from "../context";
-import { runCharacterDiscoveryStage } from "../runtime/stages/run-character-discovery-stage";
+import {
+  runCharacterDiscoveryStage,
+  type RunCharacterDiscoveryStageResult,
+} from "../runtime/stages/run-character-discovery-stage";
 
 const createMockAdapter = (content: string): LLMAdapter => ({
   call: jest.fn().mockResolvedValue({
@@ -18,6 +21,15 @@ const createMockAdapter = (content: string): LLMAdapter => ({
 
 const workspaceRoot = path.resolve(__dirname, "../../../../../..");
 const skillDir = path.join(workspaceRoot, "skills/character-extraction");
+
+const asCompletedResult = (
+  result: RunCharacterDiscoveryStageResult
+): Extract<RunCharacterDiscoveryStageResult, { status: "completed" }> => {
+  if (result.status !== "completed") {
+    throw new Error(`Expected completed status, received ${result.status}`);
+  }
+  return result;
+};
 
 describe("character discovery stage", () => {
   it("loads skill prompts and calls adapter via stage runtime", async () => {
@@ -177,8 +189,9 @@ describe("character discovery stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact).toBeDefined();
-    expect(result.artifact.characterMemoryDraft).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.artifact).toBeDefined();
+    expect(completed.artifact.characterMemoryDraft).toEqual({
       canonicalIdentities: [
         {
           id: "char-yan",
@@ -252,19 +265,20 @@ describe("character discovery stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.characterMemoryDraft.canonicalIdentities).toEqual([
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.characterMemoryDraft.canonicalIdentities).toEqual([
       {
         id: "char-ning",
         name: "宁采臣",
       },
     ]);
-    expect(result.artifact.characterMemoryDraft.assertedFacts).toEqual({
+    expect(completed.artifact.characterMemoryDraft.assertedFacts).toEqual({
       "char-ning": {
         role: "main",
         trait: "kind",
       },
     });
-    expect(result.artifact.characterMemoryDraft.inferredHints).toEqual({
+    expect(completed.artifact.characterMemoryDraft.inferredHints).toEqual({
       "char-ning": {
         tone: "书生气",
         mood: "谨慎",
@@ -315,7 +329,8 @@ describe("character discovery stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.characterMemoryDraft).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.characterMemoryDraft).toEqual({
       canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
       aliasEvidence: [
         {
@@ -372,7 +387,8 @@ describe("character discovery stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.characterMemoryDraft).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.characterMemoryDraft).toEqual({
       canonicalIdentities: [{ id: "char-2", name: "燕赤霞" }],
       aliasEvidence: [],
       assertedFacts: {
@@ -425,7 +441,8 @@ describe("character discovery stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.characterMemoryDraft).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.characterMemoryDraft).toEqual({
       canonicalIdentities: [{ id: "char-2", name: "燕赤霞" }],
       aliasEvidence: [
         {
@@ -461,8 +478,9 @@ describe("character discovery stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.artifact.kind).toBe("character-memory-draft");
-    expect(result.artifact.characterMemoryDraft.canonicalIdentities).toEqual([]);
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.kind).toBe("character-memory-draft");
+    expect(completed.artifact.characterMemoryDraft.canonicalIdentities).toEqual([]);
   });
 
   it("does not return fake success artifact when adapter call fails", async () => {

@@ -182,8 +182,10 @@ const renderUserPrompt = (
   }
 ) =>
   template
-    .replaceAll("{{segment_text}}", params.segmentText)
-    .replaceAll("{{failed_artifact_json}}", stringifyArtifact(params.failedArtifact));
+    .split("{{segment_text}}")
+    .join(params.segmentText)
+    .split("{{failed_artifact_json}}")
+    .join(stringifyArtifact(params.failedArtifact));
 
 export const createRepairAgent = (deps: RepairAgentDeps) => ({
   async execute(input: RepairAgentInput): Promise<RepairAgentResult> {

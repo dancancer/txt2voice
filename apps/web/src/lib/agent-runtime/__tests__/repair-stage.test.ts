@@ -3,7 +3,10 @@ import os from "os";
 import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
-import { runSegmentRepairStage } from "../runtime/stages/run-segment-repair-stage";
+import {
+  runSegmentRepairStage,
+  type RunSegmentRepairStageResult,
+} from "../runtime/stages/run-segment-repair-stage";
 
 const createMockAdapter = (content: string): LLMAdapter => ({
   call: jest.fn().mockResolvedValue({
@@ -17,6 +20,15 @@ const createMockAdapter = (content: string): LLMAdapter => ({
 
 const workspaceRoot = path.resolve(__dirname, "../../../../../..");
 const skillDir = path.join(workspaceRoot, "skills/json-repair");
+
+const asCompletedResult = (
+  result: RunSegmentRepairStageResult
+): Extract<RunSegmentRepairStageResult, { status: "completed" }> => {
+  if (result.status !== "completed") {
+    throw new Error(`Expected completed status, received ${result.status}`);
+  }
+  return result;
+};
 
 const createRepairSkillFixture = (params?: {
   skillId?: string;
@@ -97,13 +109,14 @@ describe("segment repair stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.decision).toMatchObject({
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toMatchObject({
       segmentId: "segment-1",
       action: "retry",
       retryable: true,
     });
-    expect(result.artifact?.kind).toBe("segment-script-draft");
-    expect(result.artifact?.segmentScriptDraft.lines).toHaveLength(1);
+    expect(completed.artifact?.kind).toBe("segment-script-draft");
+    expect(completed.artifact?.segmentScriptDraft.lines).toHaveLength(1);
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
@@ -179,13 +192,14 @@ describe("segment repair stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.decision).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toEqual({
       segmentId: "segment-2",
       action: "retry",
       reason: "semantic_retry",
       retryable: true,
     });
-    expect(result.artifact).toBeUndefined();
+    expect(completed.artifact).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
@@ -211,13 +225,14 @@ describe("segment repair stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.decision).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toEqual({
       segmentId: "segment-3",
       action: "refine",
       reason: "input_refinement",
       retryable: true,
     });
-    expect(result.artifact).toBeUndefined();
+    expect(completed.artifact).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
@@ -249,13 +264,14 @@ describe("segment repair stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.decision).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toEqual({
       segmentId: "segment-4",
       action: "manual_review",
       reason: "repair_depth_exceeded",
       retryable: false,
     });
-    expect(result.artifact).toBeUndefined();
+    expect(completed.artifact).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
@@ -387,13 +403,14 @@ describe("segment repair stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(result.decision).toEqual({
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toEqual({
       segmentId: "segment-over-budget-format",
       action: "refine",
       reason: "input_refinement",
       retryable: true,
     });
-    expect(result.artifact).toBeUndefined();
+    expect(completed.artifact).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 });
