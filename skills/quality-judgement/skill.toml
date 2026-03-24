@@ -1,0 +1,8 @@
+id = "quality-judgement"
+version = "1"
+kind = "quality"
+compatibleAgents = ["quality-judge-agent"]
+inputSchemaRef = "quality-stage-input"
+outputSchemaRef = "quality-verdict"
+contextRequirements = ["segment_script_draft", "validation_report"]
+toolAllowlist = []
