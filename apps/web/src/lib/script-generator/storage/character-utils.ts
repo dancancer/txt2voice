@@ -83,6 +83,24 @@ const toStringList = (value: unknown): string[] => {
   return [];
 };
 
+const normalizeCandidateAge = (
+  assertedAge: unknown,
+  inferredAge: unknown
+): CharacterCandidate["age"] => {
+  const candidate = assertedAge ?? inferredAge;
+
+  if (
+    candidate === null ||
+    candidate === undefined ||
+    typeof candidate === "string" ||
+    typeof candidate === "number"
+  ) {
+    return candidate ?? null;
+  }
+
+  return null;
+};
+
 export function mapCharacterMemoryToCandidates(
   memory: CharacterMemoryLike
 ): CharacterCandidate[] {
@@ -136,7 +154,7 @@ export function mapCharacterMemoryToCandidates(
         inferredBucket.description
       ),
       gender: normalizeGender(assertedBucket.gender ?? inferredBucket.gender),
-      age: assertedBucket.age ?? inferredBucket.age ?? null,
+      age: normalizeCandidateAge(assertedBucket.age, inferredBucket.age),
       personality: [...new Set(personality)],
       importance: normalizeImportance(
         assertedBucket.importance ?? inferredBucket.importance
