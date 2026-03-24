@@ -13,6 +13,18 @@ interface CharacterProfileLike {
   aliases?: Array<{ alias: string }>;
 }
 
+export interface SegmentScriptDraftLikeLine {
+  id: string;
+  text: string;
+  speaker: string;
+  orderInSegment: number;
+}
+
+export interface SegmentScriptDraftLike {
+  segmentId: string;
+  lines: SegmentScriptDraftLikeLine[];
+}
+
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -149,6 +161,39 @@ const buildSentenceData = (
     orderInSegment: line.orderInSegment,
     ttsParameters: toJsonValue(line.ttsParameters || {}),
   };
+};
+
+export const mapSegmentScriptDraftToDialogueLines = (params: {
+  segmentScriptDraft: SegmentScriptDraftLike;
+  chapterId?: string | null;
+}): DialogueLine[] => {
+  const { segmentScriptDraft, chapterId } = params;
+  const lines = Array.isArray(segmentScriptDraft.lines) ? segmentScriptDraft.lines : [];
+
+  return lines
+    .filter(
+      (line) =>
+        line &&
+        typeof line.id === "string" &&
+        typeof line.text === "string" &&
+        typeof line.speaker === "string" &&
+        typeof line.orderInSegment === "number"
+    )
+    .map((line) => {
+      const speaker = line.speaker.trim();
+      const text = line.text.trim();
+
+      return {
+        id: line.id,
+        segmentId: segmentScriptDraft.segmentId,
+        chapterId: chapterId ?? null,
+        characterName: speaker,
+        rawSpeaker: speaker,
+        text,
+        orderInSegment: line.orderInSegment,
+        isNarration: isNarrationSpeaker(speaker),
+      };
+    });
 };
 
 export async function saveSegmentScriptToDatabase(params: {

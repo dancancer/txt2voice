@@ -15,6 +15,142 @@ interface CharacterProfileLike {
   aliases?: AliasItem[];
 }
 
+interface CharacterMemoryLikeIdentity {
+  id?: string;
+  name?: string;
+}
+
+interface CharacterMemoryLikeAliasEvidence {
+  alias?: string;
+  canonicalId?: string;
+}
+
+interface CharacterMemoryLike {
+  canonicalIdentities?: CharacterMemoryLikeIdentity[];
+  aliasEvidence?: CharacterMemoryLikeAliasEvidence[];
+  assertedFacts?: Record<string, unknown>;
+  inferredHints?: Record<string, unknown>;
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const pickNonEmptyText = (...values: unknown[]): string | undefined => {
+  for (const value of values) {
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeGender = (value: unknown): CharacterCandidate["gender"] => {
+  if (value === "male" || value === "female" || value === "unknown") {
+    return value;
+  }
+
+  return "unknown";
+};
+
+const normalizeImportance = (value: unknown): CharacterCandidate["importance"] => {
+  if (value === "main" || value === "secondary" || value === "minor") {
+    return value;
+  }
+
+  return "minor";
+};
+
+const toStringList = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value.trim()];
+  }
+
+  return [];
+};
+
+export function mapCharacterMemoryToCandidates(
+  memory: CharacterMemoryLike
+): CharacterCandidate[] {
+  const canonicalIdentities = Array.isArray(memory.canonicalIdentities)
+    ? memory.canonicalIdentities
+    : [];
+  const aliasEvidence = Array.isArray(memory.aliasEvidence) ? memory.aliasEvidence : [];
+  const assertedFacts = asRecord(memory.assertedFacts) || {};
+  const inferredHints = asRecord(memory.inferredHints) || {};
+
+  const aliasesByCanonicalId = new Map<string, string[]>();
+  for (const item of aliasEvidence) {
+    const canonicalId =
+      typeof item.canonicalId === "string" ? item.canonicalId.trim() : "";
+    const alias = typeof item.alias === "string" ? item.alias.trim() : "";
+    if (!canonicalId || !alias) {
+      continue;
+    }
+
+    const bucket = aliasesByCanonicalId.get(canonicalId) || [];
+    if (!bucket.includes(alias)) {
+      bucket.push(alias);
+      aliasesByCanonicalId.set(canonicalId, bucket);
+    }
+  }
+
+  const seenNames = new Set<string>();
+  const candidates: CharacterCandidate[] = [];
+
+  for (const identity of canonicalIdentities) {
+    const canonicalId = typeof identity.id === "string" ? identity.id.trim() : "";
+    const name = typeof identity.name === "string" ? identity.name.trim() : "";
+    if (!canonicalId || !name || name === "旁白" || seenNames.has(name)) {
+      continue;
+    }
+
+    seenNames.add(name);
+
+    const assertedBucket = asRecord(assertedFacts[canonicalId]) || {};
+    const inferredBucket = asRecord(inferredHints[canonicalId]) || {};
+    const personality = [
+      ...toStringList(assertedBucket.personality),
+      ...toStringList(inferredBucket.personality),
+    ];
+
+    candidates.push({
+      name,
+      aliases: aliasesByCanonicalId.get(canonicalId) || [],
+      description: pickNonEmptyText(
+        assertedBucket.description,
+        inferredBucket.description
+      ),
+      gender: normalizeGender(assertedBucket.gender ?? inferredBucket.gender),
+      age: assertedBucket.age ?? inferredBucket.age ?? null,
+      personality: [...new Set(personality)],
+      importance: normalizeImportance(
+        assertedBucket.importance ?? inferredBucket.importance
+      ),
+      dialogueStyle: pickNonEmptyText(
+        assertedBucket.dialogueStyle,
+        inferredBucket.dialogueStyle
+      ),
+    });
+  }
+
+  return candidates;
+}
+
 export function buildCharacterMap(
   characterProfiles: CharacterProfileLike[]
 ): Map<string, string> {
