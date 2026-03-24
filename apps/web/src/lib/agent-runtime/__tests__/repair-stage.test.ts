@@ -107,6 +107,45 @@ describe("segment repair stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("renders format_repair prompt without failure_category placeholder and uses segment plus failedArtifact", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-prompt-contract-1",
+      segmentId: "segment-prompt-contract-1",
+      segmentText: "宁采臣抬头。",
+      failureKind: "format_repair",
+      failedArtifact: {
+        broken: true,
+      },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("宁采臣抬头。");
+    expect(call.prompt).toContain('"broken": true');
+    expect(call.prompt).not.toContain("{{failure_category}}");
+    expect(call.prompt).not.toContain("failure_category");
+  });
+
   it("routes semantic validation failures to semantic_retry without calling adapter", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
