@@ -9,7 +9,7 @@ import {
   type ValidationReport,
 } from "../../context";
 import { loadSkillDefinition } from "../../registry";
-import { createRepairAgent, type RepairFailureCategory } from "../agents/repair-agent";
+import { createRepairAgent } from "../agents/repair-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
 import type { TraceDependencies } from "../write-trace";
 
@@ -21,7 +21,10 @@ interface SegmentRepairRuntimeDeps {
   updateStageRun?: (record: StageRunRecord) => Promise<void> | void;
 }
 
-export type SegmentRepairFailureKind = RepairFailureCategory;
+export type SegmentRepairFailureKind =
+  | "format_repair"
+  | "semantic_retry"
+  | "input_refinement";
 
 export interface RunSegmentRepairStageInput extends SegmentRepairRuntimeDeps {
   workflowRunId: string;
@@ -163,6 +166,7 @@ const assertSkillContract = (definition: {
   id: string;
   contextRequirements: string[];
   toolAllowlist: string[];
+  outputSchemaRef: string;
 }) => {
   const expectedRequirements = new Set(["segment", "failed_artifact"]);
   if (
@@ -179,18 +183,12 @@ const assertSkillContract = (definition: {
   if (definition.toolAllowlist.length > 0) {
     throw new Error(`Skill ${definition.id} must declare empty toolAllowlist`);
   }
-};
 
-const asErrorMessage = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
+  if (definition.outputSchemaRef !== "segment-script-draft") {
+    throw new Error(
+      `Skill ${definition.id} has unsupported outputSchemaRef: expected "segment-script-draft"`
+    );
   }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
-  return "Unknown stage execution error";
 };
 
 const createManualReviewDecision = (segmentId: string): RepairDecision => ({
@@ -226,10 +224,7 @@ export const runSegmentRepairStage = async (
       id: "segment_repair",
       agent: {
         id: runtimeAgentId,
-        resolveFailure: ({ error }) => {
-          const message = asErrorMessage(error);
-          return message.length > 0 ? "failed" : "failed";
-        },
+        resolveFailure: () => "failed",
         execute: async () => {
           if (input.repairDepth >= maxRepairDepth) {
             return {
@@ -305,7 +300,6 @@ export const runSegmentRepairStage = async (
                 ? context.inputContext.segmentText
                 : "",
             failedArtifact: context.inputContext.failedArtifact,
-            failureCategory: "format_repair",
             prompts,
           });
 

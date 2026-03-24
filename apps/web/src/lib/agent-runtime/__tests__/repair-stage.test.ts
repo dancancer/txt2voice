@@ -1,3 +1,5 @@
+import fs from "fs";
+import os from "os";
 import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
@@ -15,6 +17,56 @@ const createMockAdapter = (content: string): LLMAdapter => ({
 
 const workspaceRoot = path.resolve(__dirname, "../../../../../..");
 const skillDir = path.join(workspaceRoot, "skills/json-repair");
+
+const createRepairSkillFixture = (params?: {
+  skillId?: string;
+  compatibleAgents?: string[];
+  contextRequirements?: string[];
+  toolAllowlist?: string[];
+  outputSchemaRef?: string;
+}) => {
+  const skillId = params?.skillId ?? "json-repair";
+  const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "segment-repair-"));
+  const fixtureSkillDir = path.join(fixtureRoot, "skills", skillId);
+
+  fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "skill.toml"),
+    [
+      `id = "${skillId}"`,
+      'version = "1"',
+      'kind = "repair"',
+      `compatibleAgents = [${(params?.compatibleAgents ?? ["repair-agent"])
+        .map((agentId) => `"${agentId}"`)
+        .join(", ")}]`,
+      'inputSchemaRef = "failed-segment-artifact"',
+      `outputSchemaRef = "${params?.outputSchemaRef ?? "segment-script-draft"}"`,
+      `contextRequirements = [${(params?.contextRequirements ?? [
+        "segment",
+        "failed_artifact",
+      ])
+        .map((requirement) => `"${requirement}"`)
+        .join(", ")}]`,
+      `toolAllowlist = [${(params?.toolAllowlist ?? [])
+        .map((tool) => `"${tool}"`)
+        .join(", ")}]`,
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "prompts/system.md"),
+    "return json",
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "prompts/user.md"),
+    "{{segment_text}} {{failed_artifact_json}} {{failure_category}}",
+    "utf8"
+  );
+
+  return fixtureSkillDir;
+};
 
 describe("segment repair stage", () => {
   it("routes broken structured output to format_repair and returns repaired draft", async () => {
@@ -163,6 +215,144 @@ describe("segment repair stage", () => {
       action: "manual_review",
       reason: "repair_depth_exceeded",
       retryable: false,
+    });
+    expect(result.artifact).toBeUndefined();
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it.each([
+    {
+      title: "adapter returns non-json payload",
+      content: "not-json",
+    },
+    {
+      title: "adapter returns empty lines",
+      content: JSON.stringify({ lines: [] }),
+    },
+    {
+      title: "adapter returns line with missing required field",
+      content: JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            orderInSegment: 0,
+          },
+        ],
+      }),
+    },
+    {
+      title: "adapter returns non-contiguous orderInSegment",
+      content: JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+          {
+            id: "line-2",
+            sourceText: "燕赤霞点头。",
+            text: "燕赤霞点头。",
+            speaker: "旁白",
+            orderInSegment: 2,
+          },
+        ],
+      }),
+    },
+  ])("fails format_repair when %s", async ({ content }) => {
+    const adapter = createMockAdapter(content);
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-format-invalid",
+      segmentId: "segment-format-invalid",
+      segmentText: "宁采臣抬头。燕赤霞点头。",
+      failureKind: "format_repair",
+      failedArtifact: {
+        segmentId: "segment-format-invalid",
+      },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails stage when skill output schema is incompatible and does not call adapter", async () => {
+    const fixtureSkillDir = createRepairSkillFixture({
+      outputSchemaRef: "repair-decision",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-skill-contract",
+      segmentId: "segment-skill-contract",
+      segmentText: "宁采臣抬头。",
+      failureKind: "format_repair",
+      failedArtifact: "not-json",
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("degrades format_repair to input_refinement when input is over budget", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-over-budget-format",
+      segmentId: "segment-over-budget-format",
+      segmentText: "甲".repeat(9000),
+      failureKind: "format_repair",
+      failedArtifact: "not-json",
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    expect(result.decision).toEqual({
+      segmentId: "segment-over-budget-format",
+      action: "refine",
+      reason: "input_refinement",
+      retryable: true,
     });
     expect(result.artifact).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(0);

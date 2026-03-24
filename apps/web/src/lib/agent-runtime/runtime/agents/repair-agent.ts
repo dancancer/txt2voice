@@ -6,11 +6,6 @@ import type {
 } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
 
-export type RepairFailureCategory =
-  | "format_repair"
-  | "semantic_retry"
-  | "input_refinement";
-
 export interface RepairAgentPrompts {
   systemPrompt: string;
   userPrompt: string;
@@ -20,7 +15,6 @@ export interface RepairAgentInput {
   segmentId: string;
   segmentText: string;
   failedArtifact: unknown;
-  failureCategory: RepairFailureCategory;
   prompts: RepairAgentPrompts;
 }
 
@@ -185,49 +179,24 @@ const renderUserPrompt = (
   params: {
     segmentText: string;
     failedArtifact: unknown;
-    failureCategory: RepairFailureCategory;
   }
 ) =>
   template
     .replaceAll("{{segment_text}}", params.segmentText)
-    .replaceAll("{{failed_artifact_json}}", stringifyArtifact(params.failedArtifact))
-    .replaceAll("{{failure_category}}", params.failureCategory);
+    .replaceAll("{{failed_artifact_json}}", stringifyArtifact(params.failedArtifact));
 
 export const createRepairAgent = (deps: RepairAgentDeps) => ({
   async execute(input: RepairAgentInput): Promise<RepairAgentResult> {
-    if (input.failureCategory === "semantic_retry") {
-      return {
-        decision: {
-          segmentId: input.segmentId,
-          action: "retry",
-          reason: "semantic_retry",
-          retryable: true,
-        },
-      };
-    }
-
-    if (input.failureCategory === "input_refinement") {
-      return {
-        decision: {
-          segmentId: input.segmentId,
-          action: "refine",
-          reason: "input_refinement",
-          retryable: true,
-        },
-      };
-    }
-
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
       prompt: renderUserPrompt(input.prompts.userPrompt, {
         segmentText: input.segmentText,
         failedArtifact: input.failedArtifact,
-        failureCategory: input.failureCategory,
       }),
       metadata: {
         source: "agent_runtime.segment_repair",
         stageId: "segment_repair",
-        failureCategory: input.failureCategory,
+        failureCategory: "format_repair",
       },
     });
     const now = deps.now ?? (() => new Date());
