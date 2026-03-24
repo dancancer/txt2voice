@@ -39,14 +39,26 @@ jest.mock("@/lib/script-generator", () => ({
   getScriptGenerator: jest.fn(),
 }));
 
+jest.mock(
+  "@/lib/agent-runtime/runtime/run-script-production-workflow",
+  () => ({
+    runScriptProductionWorkflow: jest.fn(),
+  })
+);
+
 import prisma from "@/lib/prisma";
 import { getScriptGenerator } from "@/lib/script-generator";
+import { runScriptProductionWorkflow } from "@/lib/agent-runtime/runtime/run-script-production-workflow";
 import { runScriptGenerationTask } from "@/lib/script-generation-runner";
 
 const mockPrisma = prisma as any;
 const mockGetScriptGenerator = getScriptGenerator as jest.MockedFunction<
   typeof getScriptGenerator
 >;
+const mockRunScriptProductionWorkflow =
+  runScriptProductionWorkflow as jest.MockedFunction<
+    typeof runScriptProductionWorkflow
+  >;
 const mockTaskFindUnique = mockPrisma.processingTask.findUnique as jest.Mock;
 
 const createFailedScript = () => ({
@@ -114,6 +126,40 @@ const createFailedScript = () => ({
   ],
 });
 
+const createSuccessfulScript = () => ({
+  dialogueLines: [
+    {
+      id: "line-1",
+      segmentId: "seg-1",
+      chapterId: "chapter-1",
+      orderInSegment: 0,
+      text: "第一段",
+      isNarration: true,
+      characterName: "旁白",
+      tone: "中性",
+    },
+  ],
+  summary: {
+    totalLines: 1,
+    dialogueCount: 0,
+    narrationCount: 1,
+    totalSegments: 1,
+    processedSegments: 1,
+    failedSegments: 0,
+    failedSegmentIds: [],
+    failedSegmentDetails: [],
+    characterDistribution: {},
+    emotionDistribution: {},
+  },
+  segments: [
+    {
+      segmentId: "seg-1",
+      lineCount: 1,
+      characters: ["旁白"],
+    },
+  ],
+});
+
 describe("script-generation-runner", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -128,6 +174,55 @@ describe("script-generation-runner", () => {
     mockPrisma.manualReviewItem.create.mockResolvedValue({ id: "review-1" });
     mockPrisma.manualReviewItem.update.mockResolvedValue({});
     mockPrisma.manualReviewItem.updateMany.mockResolvedValue({ count: 0 });
+
+    mockRunScriptProductionWorkflow.mockImplementation(async (input: any) => {
+      input.onExecutionEvent?.({
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        status: "submitted",
+        prompt: "prompt",
+        attempt: 1,
+      });
+      const generator = mockGetScriptGenerator();
+      let result;
+      if (input.mode === "regenerate") {
+        result = await generator.regenerateSegmentScript(
+          input.bookId,
+          input.segmentIds || [],
+          input.options,
+          input.onProgress
+        );
+      } else if (input.mode === "partial") {
+        result = await generator.generatePartialScript(
+          input.bookId,
+          input.options,
+          {
+            startFromSegmentId: input.startFromSegmentId,
+            startFromOrderIndex: input.startFromOrderIndex,
+            limitToSegments: input.limitToSegments,
+          },
+          input.onProgress
+        );
+      } else {
+        result = await generator.generateScript(
+          input.bookId,
+          input.options,
+          input.onProgress
+        );
+      }
+
+      input.onExecutionEvent?.({
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        status: "completed",
+        prompt: "prompt",
+        latencyMs: 120,
+        waitMs: 30,
+        attempt: 2,
+        retriesUsed: 1,
+      });
+      return result;
+    });
   });
 
   it("should create script validation manual review item and mark book as manual_review_pending", async () => {
@@ -191,6 +286,27 @@ describe("script-generation-runner", () => {
         }),
       }),
     });
+  });
+
+  it("should route full generation through runtime bridge instead of legacy generator", async () => {
+    mockRunScriptProductionWorkflow.mockResolvedValue(createSuccessfulScript());
+
+    await runScriptGenerationTask({
+      taskId: "task-runtime-bridge-full",
+      bookId: "book-1",
+      options: { batchSize: 1 } as any,
+    });
+
+    expect(mockGetScriptGenerator).not.toHaveBeenCalled();
+    expect(mockRunScriptProductionWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookId: "book-1",
+        options: { batchSize: 1 },
+        mode: "full",
+        onProgress: expect.any(Function),
+        onExecutionEvent: expect.any(Function),
+      })
+    );
   });
 
   it("should reuse existing pending manual review item instead of creating duplicates", async () => {

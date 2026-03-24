@@ -127,6 +127,57 @@ const resolveProsody = (line: DialogueLine): Record<string, number> => {
   };
 };
 
+const mergeAliases = (
+  left: Array<{ alias: string }> | undefined,
+  right: Array<{ alias: string }> | undefined
+): Array<{ alias: string }> => {
+  const seen = new Set<string>();
+  const merged: Array<{ alias: string }> = [];
+
+  for (const item of [...(left || []), ...(right || [])]) {
+    const alias = typeof item?.alias === "string" ? item.alias.trim() : "";
+    if (!alias || seen.has(alias)) {
+      continue;
+    }
+    seen.add(alias);
+    merged.push({ alias });
+  }
+
+  return merged;
+};
+
+const mergeProfileBuckets = (
+  primary: CharacterProfileLike[],
+  secondary: CharacterProfileLike[]
+): CharacterProfileLike[] => {
+  const merged: CharacterProfileLike[] = [...primary];
+
+  for (const profile of secondary) {
+    if (!profile?.canonicalName) {
+      continue;
+    }
+
+    const index = merged.findIndex(
+      (item) =>
+        (profile.id && item.id === profile.id) ||
+        item.canonicalName === profile.canonicalName
+    );
+
+    if (index < 0) {
+      merged.push(profile);
+      continue;
+    }
+
+    merged[index] = {
+      ...merged[index],
+      ...profile,
+      aliases: mergeAliases(merged[index].aliases, profile.aliases),
+    };
+  }
+
+  return merged;
+};
+
 const buildSentenceData = (
   bookId: string,
   line: DialogueLine,
@@ -207,9 +258,27 @@ export async function saveSegmentScriptToDatabase(params: {
     params;
 
   await prisma.$transaction(async (tx) => {
-    const narrationCharacter = dialogueLines.some(isNarrationLine)
-      ? await ensureNarrationCharacter(bookId, tx)
-      : null;
+    const existingProfiles = await tx.characterProfile.findMany({
+      where: {
+        bookId,
+        isActive: true,
+      },
+      include: {
+        aliases: true,
+      },
+    });
+    const runtimeProfiles = mergeProfileBuckets(characterProfiles, existingProfiles);
+    const runtimeMap = new Map(characterMap);
+    const profileByCanonical = new Map<string, CharacterProfileLike>();
+
+    for (const profile of runtimeProfiles) {
+      if (!profile?.canonicalName) {
+        continue;
+      }
+      profileByCanonical.set(profile.canonicalName, profile);
+      addCharacterToMap(runtimeMap, profile);
+      addCharacterToMap(characterMap, profile);
+    }
 
     await tx.scriptSentence.deleteMany({
       where: {
@@ -219,40 +288,13 @@ export async function saveSegmentScriptToDatabase(params: {
     });
 
     for (const line of dialogueLines) {
-      let character = isNarrationLine(line)
-        ? narrationCharacter
-        : characterProfiles.find((char) => char.canonicalName === line.characterName);
-
-      if (!character && line.characterName && !isNarrationLine(line)) {
-        const newCharacter = await tx.characterProfile.create({
-          data: {
-            bookId,
-            canonicalName: line.characterName,
-            characteristics: {
-              description: `台本生成自动创建的角色：${line.characterName}`,
-              personality: [],
-              importance: "minor",
-              relationships: {},
-            },
-            voicePreferences: {
-              dialogueStyle: "自然",
-            },
-            genderHint: "unknown",
-            ageHint: null,
-            emotionBaseline: "neutral",
-            isActive: true,
-          },
-        });
-
-        character = {
-          ...newCharacter,
-          aliases: [],
-        };
-
-        characterProfiles.push(character);
-        addCharacterToMap(characterMap, character);
-        console.log(`自动创建新角色: ${line.characterName}`);
-      }
+      const speaker = (line.characterName || "").trim();
+      const canonicalName = speaker
+        ? runtimeMap.get(speaker) || speaker
+        : undefined;
+      const character = canonicalName
+        ? profileByCanonical.get(canonicalName)
+        : undefined;
 
       let characterId: string | null = null;
       if (character?.id) {

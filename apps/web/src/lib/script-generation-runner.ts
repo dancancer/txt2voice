@@ -3,10 +3,10 @@
 // output: 台本任务执行结果
 // pos: 任务执行器
 import prisma from "@/lib/prisma";
-import { getScriptGenerator } from "@/lib/script-generator";
 import type { LLMExecutionEvent } from "@/lib/llm-service";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import { runScriptProductionWorkflow } from "@/lib/agent-runtime/runtime/run-script-production-workflow";
 import {
   jsonObject,
   mergeTaskData,
@@ -498,19 +498,8 @@ export async function runScriptGenerationTask({
 
   await updateTaskProgress(taskId, 10, "准备生成台本");
 
-  const scriptGenerator = getScriptGenerator();
   const llmMetricsCollector = createLLMMetricsCollector();
   let script: any;
-
-  if (typeof (scriptGenerator as { setExecutionObserver?: unknown }).setExecutionObserver === "function") {
-    (
-      scriptGenerator as {
-        setExecutionObserver: (observer: ((event: LLMExecutionEvent) => void) | null) => void;
-      }
-    ).setExecutionObserver((event) => {
-      llmMetricsCollector.observe(event);
-    });
-  }
 
   await updateTaskProgress(taskId, 30, "开始分析文本");
 
@@ -523,12 +512,16 @@ export async function runScriptGenerationTask({
   };
 
   if (extraParams.regenerateSegments && extraParams.segmentIds) {
-    script = await scriptGenerator.regenerateSegmentScript(
+    script = await runScriptProductionWorkflow({
       bookId,
-      extraParams.segmentIds,
       options,
-      segmentProgress
-    );
+      mode: "regenerate",
+      segmentIds: extraParams.segmentIds,
+      onProgress: segmentProgress,
+      onExecutionEvent: (event: LLMExecutionEvent) => {
+        llmMetricsCollector.observe(event);
+      },
+    });
     await updateTaskProgress(taskId, 70, "段落台本生成完成");
   } else if (
     extraParams.limitToSegments ||
@@ -537,16 +530,18 @@ export async function runScriptGenerationTask({
       extraParams.startFromOrderIndex !== undefined)
   ) {
     if (extraParams.limitToSegments) {
-      script = await scriptGenerator.generatePartialScript(
+      script = await runScriptProductionWorkflow({
         bookId,
         options,
-        {
-          startFromSegmentId: extraParams.startFromSegmentId,
-          startFromOrderIndex: extraParams.startFromOrderIndex,
-          limitToSegments: extraParams.limitToSegments,
+        mode: "partial",
+        startFromSegmentId: extraParams.startFromSegmentId,
+        startFromOrderIndex: extraParams.startFromOrderIndex,
+        limitToSegments: extraParams.limitToSegments,
+        onProgress: segmentProgress,
+        onExecutionEvent: (event: LLMExecutionEvent) => {
+          llmMetricsCollector.observe(event);
         },
-        segmentProgress
-      );
+      });
       script.segments = script.segments.slice(0, extraParams.limitToSegments);
       await updateTaskProgress(
         taskId,
@@ -554,22 +549,32 @@ export async function runScriptGenerationTask({
         `完成前${extraParams.limitToSegments}个段落的台本生成`
       );
     } else {
-      script = await scriptGenerator.generatePartialScript(
+      script = await runScriptProductionWorkflow({
         bookId,
         options,
-        {
-          startFromSegmentId: extraParams.startFromSegmentId,
-          startFromOrderIndex: extraParams.startFromOrderIndex,
+        mode: "partial",
+        startFromSegmentId: extraParams.startFromSegmentId,
+        startFromOrderIndex: extraParams.startFromOrderIndex,
+        onProgress: segmentProgress,
+        onExecutionEvent: (event: LLMExecutionEvent) => {
+          llmMetricsCollector.observe(event);
         },
-        segmentProgress
-      );
+      });
       await updateTaskProgress(taskId, 70, "增量台本生成完成");
     }
   } else {
     await prisma.scriptSentence.deleteMany({
       where: { bookId },
     });
-    script = await scriptGenerator.generateScript(bookId, options, segmentProgress);
+    script = await runScriptProductionWorkflow({
+      bookId,
+      options,
+      mode: "full",
+      onProgress: segmentProgress,
+      onExecutionEvent: (event: LLMExecutionEvent) => {
+        llmMetricsCollector.observe(event);
+      },
+    });
     await updateTaskProgress(taskId, 70, "台本生成完成");
   }
 

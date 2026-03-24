@@ -60,6 +60,11 @@ export type RunPersistStageResult =
   | RunPersistStageCompletedResult
   | RunPersistStageNonCompletedResult;
 
+const ARTIFACT_KIND_PRIORITY: Record<PersistStageArtifactInput["kind"], number> = {
+  "character-memory-draft": 0,
+  "segment-script-draft": 1,
+};
+
 const createRuntimeId = () =>
   `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -84,6 +89,22 @@ const toCharacterMemory = (
       : {},
 });
 
+const sortPersistArtifacts = (
+  artifacts: PersistStageArtifactInput[]
+): PersistStageArtifactInput[] =>
+  artifacts
+    .map((artifact, index) => ({ artifact, index }))
+    .sort((left, right) => {
+      const priorityDiff =
+        ARTIFACT_KIND_PRIORITY[left.artifact.kind] -
+        ARTIFACT_KIND_PRIORITY[right.artifact.kind];
+      if (priorityDiff !== 0) {
+        return priorityDiff;
+      }
+      return left.index - right.index;
+    })
+    .map((item) => item.artifact);
+
 export const runPersistStage = async (
   input: RunPersistStageInput
 ): Promise<RunPersistStageResult> => {
@@ -102,7 +123,7 @@ export const runPersistStage = async (
           let persistedCharacterCount = 0;
           let persistedSentenceCount = 0;
 
-          for (const artifact of input.artifacts) {
+          for (const artifact of sortPersistArtifacts(input.artifacts)) {
             if (artifact.kind === "character-memory-draft") {
               const result = await tools.persistCharacterMemoryDraft({
                 bookId: input.bookId,

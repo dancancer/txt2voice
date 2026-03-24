@@ -146,85 +146,66 @@ describe("persist stage", () => {
     ]);
   });
 
-  it("keeps persistence idempotent when replaying same artifacts", async () => {
-    const characterStore = new Map<string, { aliases: Set<string> }>();
-    const sentenceStore = new Map<
-      string,
-      Array<{ id: string; text: string; speaker: string; orderInSegment: number }>
-    >();
-    let saveCalls = 0;
+  it("commits character memory before segment draft even when input artifacts are reversed", async () => {
+    const commitOrder: string[] = [];
     const tools = createPersistTools({
       upsertCharacterCandidates: async (input) => {
+        commitOrder.push("character-memory-draft");
         for (const candidate of input.candidates) {
-          const existing = characterStore.get(candidate.name) ?? {
-            aliases: new Set<string>(),
-          };
+          input.characterMap.set(candidate.name, candidate.name);
           for (const alias of candidate.aliases) {
-            existing.aliases.add(alias);
+            input.characterMap.set(alias, candidate.name);
           }
-          characterStore.set(candidate.name, existing);
         }
       },
       saveSegmentScriptToDatabase: async (input) => {
-        saveCalls += 1;
-        sentenceStore.set(
-          input.segmentId,
-          input.dialogueLines.map((line) => ({
-            id: line.id,
-            text: line.text,
-            speaker: line.rawSpeaker || "",
-            orderInSegment: line.orderInSegment,
-          }))
+        commitOrder.push("segment-script-draft");
+        const mappedSpeaker = input.characterMap.get(
+          input.dialogueLines[0]?.characterName || ""
         );
+        if (mappedSpeaker !== "宁采臣") {
+          throw new Error("segment committed before character memory mapping");
+        }
       },
     });
+    const baseDraft = buildSegmentScriptDraft();
     const artifacts = [
+      {
+        kind: "segment-script-draft" as const,
+        segmentScriptDraft: {
+          ...baseDraft,
+          lines: [
+            {
+              ...baseDraft.lines[0],
+              speaker: "宁书生",
+            },
+          ],
+        },
+      },
       {
         kind: "character-memory-draft" as const,
         characterMemory: buildCharacterMemory(),
       },
-      {
-        kind: "segment-script-draft" as const,
-        segmentScriptDraft: buildSegmentScriptDraft(),
-      },
     ];
     const runtimeDeps = createRuntimeDeps();
 
-    const first = await runPersistStage({
-      workflowRunId: "wf-persist-idempotent",
+    const result = await runPersistStage({
+      workflowRunId: "wf-persist-ordered-commit",
       bookId: "book-1",
       artifacts,
       tools,
       ...runtimeDeps,
     });
-    const firstSnapshot = {
-      characterCount: characterStore.size,
-      aliases: [...(characterStore.get("宁采臣")?.aliases || new Set<string>())],
-      sentenceCount: sentenceStore.get("segment-1")?.length ?? 0,
-    };
 
-    const second = await runPersistStage({
-      workflowRunId: "wf-persist-idempotent",
-      bookId: "book-1",
-      artifacts,
-      tools,
-      ...runtimeDeps,
+    const completed = asCompletedResult(result);
+    expect(completed.artifact).toEqual({
+      kind: "persisted-business-facts",
+      persistedCharacterCount: 1,
+      persistedSentenceCount: 1,
     });
-    const secondSnapshot = {
-      characterCount: characterStore.size,
-      aliases: [...(characterStore.get("宁采臣")?.aliases || new Set<string>())],
-      sentenceCount: sentenceStore.get("segment-1")?.length ?? 0,
-    };
-
-    const firstCompleted = asCompletedResult(first);
-    const secondCompleted = asCompletedResult(second);
-    expect(firstCompleted.artifact).toEqual(secondCompleted.artifact);
-    expect(firstSnapshot).toEqual(secondSnapshot);
-    expect(secondSnapshot).toEqual({
-      characterCount: 1,
-      aliases: ["宁书生"],
-      sentenceCount: 1,
-    });
-    expect(saveCalls).toBe(2);
+    expect(commitOrder).toEqual([
+      "character-memory-draft",
+      "segment-script-draft",
+    ]);
   });
 });
