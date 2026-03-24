@@ -34,19 +34,20 @@
   - commits: `5b3df14`, `f533218`, `a3cdb60`
 - Task 12: quality stage 已完成
   - commits: `eb2e455`, `fa44e0d`
-- Task 13: persist stage 已实现并通过定向测试
+- Task 13: persist stage 已实现
   - commit: `6e39346`
 - 跨 Task 9/10/11 的 `typecheck` 阻断已修复
   - commit: `98c49c6`
+- `CharacterMemory -> Candidate` 的类型收窄已修复
+  - commit: `b835ecd`
+- handoff 文档已提交
+  - commit: `cd823f5`
 
 ## 当前工作树状态
 
-- 当前 `HEAD`：`98c49c6`
-- 当前有 1 个未提交代码修改：
-  - `/Users/xupeng/mycode/txt2voice/.worktrees/subagent-runtime/apps/web/src/lib/script-generator/storage/character-utils.ts`
-- 这个未提交修改的目的：
-  - 修正 `mapCharacterMemoryToCandidates()` 里的 `age` 类型收窄，恢复 `apps/web` 的 `typecheck`
-- 这处修改已经通过验证，但尚未单独提交
+- 当前 `HEAD`：`cd823f5`
+- 当前工作树：干净
+- 当前分支：`codex/subagent-runtime`
 
 ## 变更清单
 
@@ -86,6 +87,7 @@
 - `pnpm --filter web test -- --runInBand src/lib/agent-runtime/__tests__/repair-stage.test.ts`
 - `pnpm --filter web test -- --runInBand src/lib/agent-runtime/__tests__/quality-stage.test.ts`
 - `pnpm --filter web test -- --runInBand src/lib/agent-runtime/__tests__/persist-stage.test.ts`
+- `pnpm --filter web test -- --runInBand src/lib/agent-runtime/__tests__/quality-stage.test.ts`
 - `cd apps/web && pnpm run typecheck`
 
 ## 代码质检结果
@@ -94,8 +96,8 @@
   - Task 1 到 Task 12
 - Task 13 状态：
   - 已实现
-  - 定向测试通过
-  - `typecheck` 当前已恢复通过
+  - `persist-stage.test.ts` 通过
+  - `apps/web` 的 `typecheck` 通过
   - 但还未完成正式的“规格审查 + 代码质量审查”闭环
 
 ## 结果与结论
@@ -126,26 +128,17 @@
   - Task 13 的正式审查闭环还没做
   - Task 14 之后的“系统接线”还没开始
 - 现存已知非阻断风险：
-  - `quality stage` 的失败路径测试仍可继续补强
-  - `repair stage` 仍更像“局部构件”，真正接入主 workflow 入口在后续任务
+  - `quality stage` 的 contract failure-path 测试仍可继续补强
+  - `repair stage` 现在是局部可用构件，但真正接入 `script-production` 的 workflow bridge 仍在后续任务
   - 部分 stage 文件已接近或超过 400 行目标，后续可在稳定后拆分
 
 ## 下一会话建议起手顺序
 
-1. 先处理当前未提交改动
-   - 检查 `/Users/xupeng/mycode/txt2voice/.worktrees/subagent-runtime/apps/web/src/lib/script-generator/storage/character-utils.ts`
-   - 确认只是 `age` 类型收窄修复
-   - 运行：
-     - `cd /Users/xupeng/mycode/txt2voice/.worktrees/subagent-runtime/apps/web && pnpm run typecheck`
-     - `cd /Users/xupeng/mycode/txt2voice/.worktrees/subagent-runtime && pnpm --filter web test -- --runInBand src/lib/agent-runtime/__tests__/persist-stage.test.ts`
-   - 若通过，提交一个小 commit
-     - 建议信息：`fix: narrow character memory age typing`
-
-2. 补 Task 13 的正式审查闭环
+1. 补 Task 13 的正式审查闭环
    - 规格审查：persist stage 是否只提交业务事实、不越界
    - 质量审查：幂等性与旧 persistence helper 的复用是否合理
 
-3. 继续 Task 14
+2. 继续 Task 14
    - 目标：接管脚本生成任务入口
    - 重点不是新功能，而是把旧入口切到新 runtime
    - 关键文件：
@@ -154,7 +147,7 @@
      - `/Users/xupeng/mycode/txt2voice/.worktrees/subagent-runtime/apps/web/src/app/api/books/[id]/script/generate/route.ts`
      - `/Users/xupeng/mycode/txt2voice/.worktrees/subagent-runtime/apps/web/src/lib/agent-runtime/runtime/run-script-production-workflow.ts`
 
-4. Task 14 完成后，再做 Task 15/16
+3. Task 14 完成后，再做 Task 15/16
    - replay / summary / metadata 聚合
    - 最终文档更新
 
