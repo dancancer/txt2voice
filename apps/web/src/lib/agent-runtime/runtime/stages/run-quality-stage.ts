@@ -75,6 +75,7 @@ interface QualitySkillSource {
 }
 
 interface StageOutput {
+  [key: string]: unknown;
   decision: QualityStageDecision;
   verdict: QualityVerdict;
   handoff?: QualityReviewHandoff;
@@ -185,6 +186,8 @@ const assertSkillContract = (definition: {
   const expectedRequirements = new Set([
     "segment_script_draft",
     "validation_report",
+    "quality_signals",
+    "failed_artifact",
   ]);
 
   if (
@@ -194,7 +197,7 @@ const assertSkillContract = (definition: {
     )
   ) {
     throw new Error(
-      `Skill ${definition.id} has unsupported contextRequirements: expected ["segment_script_draft", "validation_report"]`
+      `Skill ${definition.id} has unsupported contextRequirements: expected ["segment_script_draft", "validation_report", "quality_signals", "failed_artifact"]`
     );
   }
 
@@ -277,7 +280,10 @@ const resolveDeterministicDecision = (
 
   return {
     decision: "manual_review_required",
-    verdict,
+    verdict: {
+      ...verdict,
+      verdict: "manual_review",
+    },
     handoff: createManualReviewHandoff({
       segmentId: input.segmentId,
       summary: "deterministic_validation_requires_manual_review",
@@ -304,7 +310,10 @@ const resolveSemanticDecision = (params: {
   if (forceManualReview || lowScore || lowConfidence) {
     return {
       decision: "manual_review_required",
-      verdict: params.verdict,
+      verdict: {
+        ...params.verdict,
+        verdict: "manual_review",
+      },
       handoff: createManualReviewHandoff({
         segmentId: params.segmentId,
         summary: params.summary,
