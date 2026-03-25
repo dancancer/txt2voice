@@ -375,6 +375,57 @@ describe("workflow runtime skeleton", () => {
     );
   });
 
+  it("emits skill_selected when agent output resolves a skill id", async () => {
+    const events: Array<{ kind: string; payload?: Record<string, unknown> }> = [];
+    let nextId = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-skill-selected",
+      version: "1",
+      kind: "workflow",
+      stages: ["generate"],
+    };
+
+    await runWorkflow({
+      workflow,
+      stages: [
+        {
+          id: "generate",
+          agent: {
+            id: "generate-agent",
+            execute: async () => ({
+              status: "completed",
+              output: {
+                skillId: "script-generation",
+              },
+            }),
+          },
+        },
+      ],
+      adapters: {
+        createId: () => `id-${nextId++}`,
+        createWorkflowRun: async () => undefined,
+        createStageRun: async () => undefined,
+        createAgentRun: async () => undefined,
+        updateAgentRun: async () => undefined,
+        appendTrace: async (event) => {
+          events.push({ kind: event.kind, payload: event.payload });
+        },
+      },
+    });
+
+    expect(events.map((event) => event.kind)).toEqual(
+      expect.arrayContaining(["skill_selected", "agent.completed"])
+    );
+    expect(events.find((event) => event.kind === "skill_selected")).toEqual(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          agentId: "generate-agent",
+          skillId: "script-generation",
+        }),
+      })
+    );
+  });
+
   it("creates workflow run, stage runs, and trace events per stage", async () => {
     const workflowRuns: InMemoryWorkflowRun[] = [];
     const stageRuns: InMemoryStageRun[] = [];

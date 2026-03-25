@@ -291,6 +291,7 @@ export const runAgent = async (input: RunAgentInput): Promise<RunAgentResult> =>
 
   const status =
     execution.status === "completed" ? "completed" : resolveFailureStatus(execution);
+  const resolvedSkillId = input.agent.skillId || resolveSkillId(execution.output);
   const result: RunAgentResult = {
     runId: agentRunId,
     agentId: input.agent.id,
@@ -298,6 +299,22 @@ export const runAgent = async (input: RunAgentInput): Promise<RunAgentResult> =>
     output: execution.output,
     error: execution.status === "failed" ? execution.error : undefined,
   };
+
+  if (resolvedSkillId) {
+    await writeTrace({
+      ...input,
+      kind: "skill_selected",
+      workflowRunId: input.workflowRunId,
+      stageRunId: input.stageRunId,
+      agentRunId,
+      status: "completed",
+      payload: {
+        agentId: input.agent.id,
+        skillId: resolvedSkillId,
+        stageId: input.stageId,
+      },
+    });
+  }
 
   await writeTrace({
     ...input,
@@ -317,7 +334,7 @@ export const runAgent = async (input: RunAgentInput): Promise<RunAgentResult> =>
       id: agentRunId,
       stageRunId: input.stageRunId,
       agentId: input.agent.id,
-      skillId: input.agent.skillId || resolveSkillId(result.output),
+      skillId: resolvedSkillId,
       status: result.status,
       inputSummary:
         input.agent.getInputSummary?.(executorInput) ?? input.agent.inputSummary,
