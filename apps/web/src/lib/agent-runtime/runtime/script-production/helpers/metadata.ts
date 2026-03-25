@@ -93,6 +93,25 @@ export const createFailureDetail = (params: {
   structuredResult: params.structuredResult ?? null,
 });
 
+export const remapFailureToParentSegment = (params: {
+  parentSegment: ScriptProductionBookSegment;
+  failure: SegmentFailureDetail;
+}): SegmentFailureDetail =>
+  createFailureDetail({
+    segment: params.parentSegment,
+    stage: params.failure.stage,
+    errorCode: params.failure.errorCode,
+    message: params.failure.message,
+    provider: params.failure.provider,
+    retryable: params.failure.retryable,
+    coverageRatio: params.failure.coverageRatio,
+    issueCodes: params.failure.issueCodes,
+    issueMessages: params.failure.issueMessages,
+    issuePreviews: params.failure.issuePreviews,
+    rawResponse: params.failure.rawResponse,
+    structuredResult: params.failure.structuredResult,
+  });
+
 export const createValidationTraceEvent = (params: {
   createId: () => string;
   now?: () => Date;
