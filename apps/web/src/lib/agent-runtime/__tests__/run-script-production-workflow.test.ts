@@ -1,8 +1,15 @@
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
   default: {
+    $transaction: jest.fn(),
     book: {
       findUnique: jest.fn(),
+    },
+    manualReviewItem: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
     },
     workflowRun: {
       create: jest.fn(),
@@ -203,6 +210,11 @@ describe("runScriptProductionWorkflow", () => {
     jest.clearAllMocks();
 
     mockPrisma.book.findUnique.mockResolvedValue(createBookFixture());
+    mockPrisma.$transaction.mockImplementation(async (callback: any) => callback(mockPrisma));
+    mockPrisma.manualReviewItem.findFirst.mockResolvedValue(null);
+    mockPrisma.manualReviewItem.create.mockResolvedValue({ id: "review-1" });
+    mockPrisma.manualReviewItem.update.mockResolvedValue({});
+    mockPrisma.manualReviewItem.updateMany.mockResolvedValue({ count: 0 });
     mockPrisma.workflowRun.create.mockResolvedValue({ id: "wf-runtime-1" });
     mockPrisma.workflowRun.update.mockResolvedValue({});
     mockPrisma.workflowRun.findUnique.mockResolvedValue(null);
@@ -376,6 +388,68 @@ describe("runScriptProductionWorkflow", () => {
         characters: ["旁白"],
       },
     ]);
+  });
+
+  it("syncs manual review items inside runtime when taskId is provided", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-seg-1",
+      status: "completed",
+      artifact: createDraftArtifact("seg-1", "第一段原文。"),
+    } as any);
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "quality-seg-1",
+      status: "completed",
+      decision: "manual_review_required",
+      verdict: {
+        segmentId: "seg-1",
+        verdict: "manual_review",
+        score: 0.61,
+        reasons: ["low confidence"],
+      },
+      handoff: {
+        segmentId: "seg-1",
+        summary: "manual review required",
+        reasons: ["low confidence"],
+        evidence: {
+          score: 0.61,
+          confidence: 0.49,
+          validation: {
+            coverageRatio: 1,
+            issues: [],
+          },
+        },
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      taskId: "task-review-1",
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockPrisma.manualReviewItem.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        bookId: "book-1",
+        segmentId: "seg-1",
+        issueType: "SCRIPT_VALIDATION",
+      }),
+    });
+    expect((result as any).runtimeMetadata?.summary).toEqual(
+      expect.objectContaining({
+        manualReviewSync: expect.objectContaining({
+          issueType: "SCRIPT_VALIDATION",
+          created: 1,
+          pending: 1,
+          resolved: 0,
+        }),
+      })
+    );
   });
 
   it("reuses legacy partial segment selection semantics before running runtime stages", async () => {

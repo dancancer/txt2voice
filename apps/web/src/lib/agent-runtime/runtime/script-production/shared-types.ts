@@ -11,6 +11,7 @@ export type ScriptProductionWorkflowMode = "full" | "partial" | "regenerate";
 
 export interface RunScriptProductionWorkflowInput {
   bookId: string;
+  taskId?: string;
   options: Partial<ScriptGenerationOptions>;
   mode: ScriptProductionWorkflowMode;
   startFromSegmentId?: string | null;

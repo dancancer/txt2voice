@@ -23,6 +23,13 @@ export interface ScriptProductionWorkflowSummary {
   completedAt: string;
   durationMs: number;
   segmentOutcomeIndex: SegmentOutcomeIndexItem[];
+  manualReviewSync?: {
+    issueType: string;
+    created: number;
+    updated: number;
+    pending: number;
+    resolved: number;
+  };
 }
 
 export interface ScriptProductionRuntimeMetadata {
@@ -174,6 +181,13 @@ export const buildWorkflowSummary = (params: {
   startedAt: string;
   completedAt: string;
   segmentOutcomeIndex: SegmentOutcomeIndexItem[];
+  manualReviewSync?: {
+    issueType: string;
+    created: number;
+    updated: number;
+    pending: number;
+    resolved: number;
+  };
 }): ScriptProductionWorkflowSummary => {
   const durationMs = Math.max(
     new Date(params.completedAt).getTime() - new Date(params.startedAt).getTime(),
@@ -197,6 +211,7 @@ export const buildWorkflowSummary = (params: {
     completedAt: params.completedAt,
     durationMs,
     segmentOutcomeIndex: params.segmentOutcomeIndex,
+    manualReviewSync: params.manualReviewSync,
   };
 };
 

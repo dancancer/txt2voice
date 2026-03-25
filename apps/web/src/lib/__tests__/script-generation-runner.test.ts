@@ -358,6 +358,55 @@ describe("script-generation-runner", () => {
     });
   });
 
+  it("should prefer runtime-provided manual review sync stats over local review mutations", async () => {
+    mockRunScriptProductionWorkflow.mockResolvedValue({
+      ...createFailedScript(),
+      runtimeMetadata: createRuntimeMetadata({
+        status: "failed",
+        summary: {
+          totalSegments: 2,
+          processedSegments: 1,
+          failedSegments: 1,
+          failedSegmentIds: ["seg-2"],
+          manualReviewSync: {
+            issueType: "SCRIPT_VALIDATION",
+            created: 1,
+            updated: 0,
+            pending: 1,
+            resolved: 0,
+          },
+        },
+      }),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-runtime-review",
+      bookId: "book-1",
+      options: {},
+    });
+
+    expect(mockPrisma.manualReviewItem.create).not.toHaveBeenCalled();
+    expect(mockPrisma.manualReviewItem.update).not.toHaveBeenCalled();
+    expect(mockPrisma.manualReviewItem.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
+      where: { id: "task-runtime-review" },
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            reviewSync: expect.objectContaining({
+              issueType: "SCRIPT_VALIDATION",
+              created: 1,
+              pending: 1,
+            }),
+            agentRuntime: expect.objectContaining({
+              workflowRunId: "workflow-run-1",
+            }),
+          }),
+        }),
+      }),
+    });
+  });
+
   it("should route full generation through runtime bridge instead of legacy generator", async () => {
     mockRunScriptProductionWorkflow.mockResolvedValue(createSuccessfulScript());
 

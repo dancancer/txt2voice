@@ -71,6 +71,14 @@ interface AgentRuntimeMetadata {
   summary?: Record<string, unknown>;
 }
 
+interface RuntimeManualReviewSync {
+  issueType: string;
+  created: number;
+  updated: number;
+  pending: number;
+  resolved: number;
+}
+
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -129,6 +137,29 @@ const asAgentRuntimeMetadata = (
     traceEventCount: asNumber(record.traceEventCount) ?? undefined,
     stageRunCount: asNumber(record.stageRunCount) ?? undefined,
     summary: summary ? JSON.parse(JSON.stringify(summary)) : undefined,
+  };
+};
+
+const asRuntimeManualReviewSync = (
+  runtimeMetadata: AgentRuntimeMetadata | null
+): RuntimeManualReviewSync | null => {
+  const summary = asRecord(runtimeMetadata?.summary);
+  const reviewSync = asRecord(summary?.manualReviewSync);
+  if (!reviewSync) {
+    return null;
+  }
+
+  const issueType = asString(reviewSync.issueType);
+  if (!issueType) {
+    return null;
+  }
+
+  return {
+    issueType,
+    created: asNumber(reviewSync.created) ?? 0,
+    updated: asNumber(reviewSync.updated) ?? 0,
+    pending: asNumber(reviewSync.pending) ?? 0,
+    resolved: asNumber(reviewSync.resolved) ?? 0,
   };
 };
 
@@ -582,6 +613,7 @@ export async function runScriptGenerationTask({
 
   if (extraParams.regenerateSegments && extraParams.segmentIds) {
     script = await runScriptProductionWorkflow({
+      taskId,
       bookId,
       options,
       mode: "regenerate",
@@ -600,6 +632,7 @@ export async function runScriptGenerationTask({
   ) {
     if (extraParams.limitToSegments) {
       script = await runScriptProductionWorkflow({
+        taskId,
         bookId,
         options,
         mode: "partial",
@@ -619,6 +652,7 @@ export async function runScriptGenerationTask({
       );
     } else {
       script = await runScriptProductionWorkflow({
+        taskId,
         bookId,
         options,
         mode: "partial",
@@ -636,6 +670,7 @@ export async function runScriptGenerationTask({
       where: { bookId },
     });
     script = await runScriptProductionWorkflow({
+      taskId,
       bookId,
       options,
       mode: "full",
@@ -662,6 +697,7 @@ export async function runScriptGenerationTask({
   const runtimeMetadata = asAgentRuntimeMetadata(
     asRecord(script)?.runtimeMetadata
   );
+  const runtimeReviewSync = asRuntimeManualReviewSync(runtimeMetadata);
   const hasSegmentFailures = failedSegments > 0;
   const failedSegmentIds = asStringList(script.summary.failedSegmentIds);
   const processedSegmentIds = Array.isArray(script.segments)
@@ -679,23 +715,33 @@ export async function runScriptGenerationTask({
     isPartialRun,
   });
   const outstandingFailedSegments = outstandingFailedSegmentIds.length;
-  const resolvedReviewResult = await resolveSuccessfulScriptValidationManualReviewItems({
-    taskId,
-    bookId,
-    processedSegmentIds,
-    failedSegmentIds,
-  });
-  const reviewSyncResult = hasSegmentFailures
-    ? await syncScriptFailureManualReviewItems({
+  const resolvedReviewResult = runtimeReviewSync
+    ? {
+        resolved: runtimeReviewSync.resolved,
+      }
+    : await resolveSuccessfulScriptValidationManualReviewItems({
         taskId,
         bookId,
-        failures: failedSegmentDetails,
-      })
-    : {
-        created: 0,
-        updated: 0,
-        totalPending: 0,
-      };
+        processedSegmentIds,
+        failedSegmentIds,
+      });
+  const reviewSyncResult = runtimeReviewSync
+    ? {
+        created: runtimeReviewSync.created,
+        updated: runtimeReviewSync.updated,
+        totalPending: runtimeReviewSync.pending,
+      }
+    : hasSegmentFailures
+      ? await syncScriptFailureManualReviewItems({
+          taskId,
+          bookId,
+          failures: failedSegmentDetails,
+        })
+      : {
+          created: 0,
+          updated: 0,
+          totalPending: 0,
+        };
   const llmMetrics = llmMetricsCollector.snapshot();
 
   if (hasSegmentFailures) {

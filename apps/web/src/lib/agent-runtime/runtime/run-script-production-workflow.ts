@@ -33,6 +33,7 @@ import { runQualityStage } from "./stages/run-quality-stage";
 import { runSegmentRepairStage } from "./stages/run-segment-repair-stage";
 import { runSegmentScriptingStage } from "./stages/run-segment-scripting-stage";
 import { runCharacterDiscoveryPass } from "./script-production/run-character-discovery-pass";
+import { syncRuntimeManualReviewItems } from "./script-production/manual-review-sync";
 import { runSingleSegment } from "./script-production/run-single-segment";
 import type {
   RunScriptProductionWorkflowInput,
@@ -344,6 +345,14 @@ export const runScriptProductionWorkflow = async (
         }
       }
 
+      const manualReviewSync = await syncRuntimeManualReviewItems({
+        taskId: input.taskId,
+        bookId: input.bookId,
+        failures: failedSegmentDetails,
+        processedSegmentIds: segmentSummaries.map((segment) => segment.segmentId),
+        failedSegmentIds,
+      });
+
       const completedAt = now();
       const workflowSummary = buildWorkflowSummary({
         mode: input.mode,
@@ -360,6 +369,7 @@ export const runScriptProductionWorkflow = async (
         startedAt: startedAt.toISOString(),
         completedAt: completedAt.toISOString(),
         segmentOutcomeIndex,
+        manualReviewSync,
       });
       const runtimeStatus =
         failedSegmentIds.length > 0 ? "failed" : "completed";
