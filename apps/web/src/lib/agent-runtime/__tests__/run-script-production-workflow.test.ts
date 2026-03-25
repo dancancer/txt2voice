@@ -1328,6 +1328,29 @@ describe("runScriptProductionWorkflow", () => {
         model: "mock-model",
       })
     );
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: "llm_requested",
+          payload: expect.objectContaining({
+            provider: "unknown",
+            model: "unknown",
+          }),
+        }),
+      })
+    );
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: "structured_output_received",
+          payload: expect.objectContaining({
+            provider: "mock-provider",
+            model: "mock-model",
+            contentLength: 2,
+          }),
+        }),
+      })
+    );
   });
 
   it("persists runtime execution rows and returns runtimeMetadata", async () => {

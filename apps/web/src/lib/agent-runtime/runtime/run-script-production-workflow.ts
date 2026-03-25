@@ -79,14 +79,6 @@ export const runScriptProductionWorkflow = async (
   const createId = deps.createId || createRuntimeId;
   const now = deps.now ?? (() => new Date());
   const runtimeStore = deps.runtimeStore || createScriptProductionRuntimeStore();
-  const observedAdapter = deps.adapter
-    ? createObservedAdapter({
-        adapter: deps.adapter,
-        onExecutionEvent: input.onExecutionEvent,
-      })
-    : createObservedDefaultAdapter({
-        onExecutionEvent: input.onExecutionEvent,
-      });
 
   const book = (await loadBook({
     bookId: input.bookId,
@@ -233,6 +225,26 @@ export const runScriptProductionWorkflow = async (
       appendTrace: appendTrackedTrace,
     },
     coordinator: async ({ workflowRunId }) => {
+      const observedAdapter = deps.adapter
+        ? createObservedAdapter({
+            adapter: deps.adapter,
+            onExecutionEvent: input.onExecutionEvent,
+            trace: {
+              workflowRunId,
+              createId,
+              appendTrace: appendTrackedTrace,
+              now,
+            },
+          })
+        : createObservedDefaultAdapter({
+            onExecutionEvent: input.onExecutionEvent,
+            trace: {
+              workflowRunId,
+              createId,
+              appendTrace: appendTrackedTrace,
+              now,
+            },
+          });
       const characterDiscoveryResult = await runCharacterDiscoveryPass({
         workflowRunId,
         bookId: input.bookId,
