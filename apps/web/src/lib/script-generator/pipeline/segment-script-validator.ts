@@ -1,3 +1,5 @@
+import { normalizeNarrationText } from "@/lib/script-generator/narration-text-normalizer";
+
 type RawScriptSentence = {
   text?: unknown;
   sourceText?: unknown;
@@ -363,7 +365,15 @@ export function validateSegmentScript(params: {
   scriptSentences.forEach((sentence, index) => {
     const sourceText = asTrimmedString(sentence.sourceText);
     const speaker = asTrimmedString(sentence.speaker) || "未知";
-    const text = asTrimmedString(sentence.text) || sourceText;
+    const rawText = asTrimmedString(sentence.text) || sourceText;
+    const text =
+      speaker === "旁白"
+        ? normalizeNarrationText({
+            sourceText,
+            text: rawText,
+          })
+        : rawText;
+    let hasLineIssue = false;
 
     if (!sourceText) {
       issues.push(
@@ -383,35 +393,6 @@ export function validateSegmentScript(params: {
 
     if (!comparableExpected) {
       issues.push(buildIssue("EMPTY_TEXT", "sourceText 只有空白或引号", index));
-      return;
-    }
-
-    if (comparableText !== comparableExpected) {
-      issues.push(
-        buildIssue(
-          "TEXT_SOURCE_MISMATCH",
-          "text 与 sourceText 不一致，疑似改写或边界漂移",
-          index,
-          previewText(sourceText)
-        )
-      );
-      return;
-    }
-
-    if (
-      speaker === "旁白" &&
-      (isLikelySpeechQuotedText(sourceText) ||
-        isAttributedDialogueQuotedText(sourceText) ||
-        isBoundaryQuoteFragment(sourceText))
-    ) {
-      issues.push(
-        buildIssue(
-          "QUOTED_NARRATION",
-          "旁白句直接承载整段引号对白，疑似对白/旁白混抽",
-          index,
-          previewText(sourceText)
-        )
-      );
       return;
     }
 
@@ -438,12 +419,46 @@ export function validateSegmentScript(params: {
           previewText(gap)
         )
       );
-      return;
+      hasLineIssue = true;
     }
 
     const end = start + sourceText.length;
     cursor = end;
     coveredLength += normalizeComparableText(sourceText).length;
+
+    if (comparableText !== comparableExpected) {
+      issues.push(
+        buildIssue(
+          "TEXT_SOURCE_MISMATCH",
+          "text 与 sourceText 不一致，疑似改写或边界漂移",
+          index,
+          previewText(sourceText)
+        )
+      );
+      hasLineIssue = true;
+    }
+
+    if (
+      !hasLineIssue &&
+      speaker === "旁白" &&
+      (isLikelySpeechQuotedText(sourceText) ||
+        isAttributedDialogueQuotedText(sourceText) ||
+        isBoundaryQuoteFragment(sourceText))
+    ) {
+      issues.push(
+        buildIssue(
+          "QUOTED_NARRATION",
+          "旁白句直接承载整段引号对白，疑似对白/旁白混抽",
+          index,
+          previewText(sourceText)
+        )
+      );
+      hasLineIssue = true;
+    }
+
+    if (hasLineIssue) {
+      return;
+    }
 
     lines.push({
       text,

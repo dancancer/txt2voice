@@ -164,6 +164,23 @@ describe("segment script validator", () => {
     expect(result.issues.map((issue) => issue.code)).toContain('TEXT_SOURCE_MISMATCH');
   });
 
+  it("should keep full source coverage when narration text is reformatted but sourceText is exact", () => {
+    const result = validateSegmentScript({
+      segmentContent: '几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。',
+      scriptSentences: [
+        {
+          sourceText: '几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。',
+          text: '（几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。）',
+          speaker: '旁白',
+        },
+      ],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.coverageRatio).toBe(1);
+    expect(result.issues).toEqual([]);
+  });
+
   it("should reject missing original content coverage", () => {
     const result = validateSegmentScript({
       segmentContent: '“你好。”他转身离开。',
@@ -249,6 +266,27 @@ describe("segment script validator", () => {
 
     expect(result.valid).toBe(true);
     expect(result.issues).toHaveLength(0);
+  });
+
+  it("should accept narration text that only wraps sourceText with stage parentheses", () => {
+    const result = validateSegmentScript({
+      segmentContent: '几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。',
+      scriptSentences: [
+        {
+          sourceText: '几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。',
+          text: '（几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。）',
+          speaker: '旁白',
+        },
+      ],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.coverageRatio).toBe(1);
+    expect(result.issues).toHaveLength(0);
+    expect(result.lines[0]).toMatchObject({
+      sourceText: '几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。',
+      resolvedText: '几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。',
+    });
   });
 
   it("should reject quoted narrator short replies without punctuation", () => {

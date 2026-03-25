@@ -200,6 +200,55 @@ describe("persist stage", () => {
     ]);
   });
 
+  it("normalizes wrapped narration text back to sourceText before persistence", async () => {
+    const sentenceCalls: PersistSegmentScriptDraftInput[] = [];
+    const tools = createPersistTools({
+      upsertCharacterCandidates: async () => {
+        throw new Error("unexpected upsertCharacterCandidates invocation");
+      },
+      saveSegmentScriptToDatabase: async (input) => {
+        sentenceCalls.push(input);
+      },
+    });
+
+    const result = await runPersistStage({
+      workflowRunId: "wf-persist-narration-normalize",
+      bookId: "book-1",
+      artifacts: [
+        {
+          kind: "segment-script-draft",
+          segmentScriptDraft: {
+            segmentId: "segment-1",
+            createdAt: "2026-03-25T00:00:00.000Z",
+            lines: [
+              {
+                id: "line-1",
+                sourceText:
+                  "几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。",
+                text: "（几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。）",
+                speaker: "旁白",
+                orderInSegment: 0,
+              },
+            ],
+          },
+        },
+      ],
+      tools,
+      ...createRuntimeDeps(),
+    });
+
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.persistedSentenceCount).toBe(1);
+    expect(sentenceCalls).toHaveLength(1);
+    expect(sentenceCalls[0]?.dialogueLines).toEqual([
+      expect.objectContaining({
+        characterName: "旁白",
+        rawSpeaker: "旁白",
+        text: "几息之后，看着侍女们整整齐齐归到了大殿两侧，闵弘芳这才开口。",
+      }),
+    ]);
+  });
+
   it("commits character memory before segment draft even when input artifacts are reversed", async () => {
     const commitOrder: string[] = [];
     const tools = createPersistTools({

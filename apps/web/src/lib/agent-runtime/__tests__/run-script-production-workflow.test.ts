@@ -1585,4 +1585,52 @@ describe("runScriptProductionWorkflow", () => {
       })
     );
   });
+
+  it("links workflow runs back to the processing task when taskId is provided", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-task-link",
+      status: "completed",
+      artifact: createDraftArtifact("seg-1", "第一段原文。"),
+    } as any);
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "stage-quality-task-link",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "seg-1",
+        verdict: "pass",
+        score: 0.99,
+        reasons: ["ok"],
+      },
+    } as any);
+    mockRunPersistStage.mockResolvedValue({
+      stageRunId: "stage-persist-task-link",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 1,
+      },
+    } as any);
+
+    await runScriptProductionWorkflow({
+      taskId: "task-123",
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockPrisma.workflowRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          processingTaskId: "task-123",
+        }),
+      })
+    );
+  });
 });

@@ -124,6 +124,7 @@ jest.mock("../prisma", () => ({
     characterProfile: {
       upsert: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       createMany: jest.fn(),
     },
@@ -152,6 +153,18 @@ describe("ScriptGenerator - 新数据结构适配", () => {
       canonicalName: "旁白",
       isSystemRole: true,
       systemRoleType: "narration",
+    });
+    mockPrisma.characterProfile.findMany.mockResolvedValue([]);
+    mockPrisma.characterProfile.findFirst.mockResolvedValue(null);
+    mockPrisma.scriptSentence.create.mockResolvedValue({
+      id: "sentence-default",
+      characterId: "narration-char",
+      rawSpeaker: "旁白",
+      orderInSegment: 0,
+      tone: "中性",
+      strength: 75,
+      pauseAfter: 1.5,
+      ttsParameters: {},
     });
 
     mockBook = {
@@ -249,14 +262,13 @@ describe("ScriptGenerator - 新数据结构适配", () => {
       expect(mockPrisma.scriptSentence.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            characterId: expect.any(String),
+            characterId: expect.anything(),
+            rawSpeaker: expect.any(String),
             orderInSegment: expect.any(Number),
             tone: expect.any(String),
-            ttsParameters: expect.objectContaining({
-              strength: expect.any(Number),
-              pauseAfter: expect.any(Number),
-              originalSpeaker: expect.any(String),
-            }),
+            strength: expect.any(Number),
+            pauseAfter: expect.any(Number),
+            ttsParameters: expect.any(Object),
           }),
         })
       );
@@ -480,7 +492,8 @@ describe("ScriptGenerator - 新数据结构适配", () => {
       expect(mockPrisma.scriptSentence.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            characterId: expect.any(String),
+            characterId: expect.anything(),
+            rawSpeaker: expect.any(String),
             orderInSegment: expect.any(Number),
             tone: expect.any(String),
           }),

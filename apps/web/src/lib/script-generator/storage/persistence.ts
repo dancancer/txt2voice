@@ -6,6 +6,7 @@ import {
   isNarrationSpeaker,
   NARRATION_CHARACTER_NAME,
 } from "@/lib/narration-character";
+import { normalizeNarrationText } from "@/lib/script-generator/narration-text-normalizer";
 
 interface CharacterProfileLike {
   id?: string;
@@ -16,6 +17,7 @@ interface CharacterProfileLike {
 export interface SegmentScriptDraftLikeLine {
   id: string;
   text: string;
+  sourceText?: string;
   speaker: string;
   orderInSegment: number;
 }
@@ -232,7 +234,13 @@ export const mapSegmentScriptDraftToDialogueLines = (params: {
     )
     .map((line) => {
       const speaker = line.speaker.trim();
-      const text = line.text.trim();
+      const text = isNarrationSpeaker(speaker)
+        ? normalizeNarrationText({
+            sourceText:
+              typeof line.sourceText === "string" ? line.sourceText : line.text,
+            text: line.text,
+          }).trim()
+        : line.text.trim();
 
       return {
         id: line.id,

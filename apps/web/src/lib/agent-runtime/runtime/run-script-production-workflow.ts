@@ -195,6 +195,7 @@ export const runScriptProductionWorkflow = async (
         await runtimeStore.createWorkflowRun({
           ...record,
           bookId: input.bookId,
+          processingTaskId: input.taskId ?? null,
           runtimeConfig: {
             mode: input.mode,
           },

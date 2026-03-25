@@ -233,20 +233,44 @@ book:
   - `totalSegments = 408`
 - 脚本生成真实进入 runtime
 - 只选中首段，不是整本全跑
-- 最终结果：
-  - `ProcessingTask.status = failed`
-  - `Book.status = manual_review_pending`
-  - `WorkflowRun.status = failed`
-  - `stageCount = 37`
-  - `artifactCount = 27`
-  - `sentenceCount = 0`
-  - `semanticRetryCount = 6`
+- 历史失败样本已经复现并定位到 3 个真实根因：
+  - validation 在 `TEXT_SOURCE_MISMATCH` 前提前退出，导致伪造的
+    `NON_WHITESPACE_GAP / LOW_COVERAGE`
+  - 旁白被 LLM 包上外层 `（...） / (...)` 时，validation 与 persist
+    没有做统一归一化
+  - runtime 创建 `WorkflowRun` 时没有把 `taskId` 回填到
+    `processingTaskId`
+- 2026-03-25 的最新真实重跑结果：
+  - 第一次成功收敛任务：
+    - `ProcessingTask.id = b815ac99-de31-44ec-b743-d07490c99020`
+    - `WorkflowRun.id = workflow-1774442319940-mho2c9qj`
+    - `ProcessingTask.status = completed`
+    - `WorkflowRun.status = completed`
+    - `failedSegments = 0`
+    - `persistedSentenceCount = 9`
+    - `manualReviewSync.resolved = 1`
+  - 第二次真实重跑用于验证 task 反链：
+    - `ProcessingTask.id = 6cb8442e-35fb-4cb3-8aa5-d5187daf0236`
+    - `WorkflowRun.id = workflow-1774444054638-l02jmymk`
+    - `WorkflowRun.processingTaskId = 6cb8442e-35fb-4cb3-8aa5-d5187daf0236`
+    - `segmentOutcomeIndex[0].terminalStage = persist`
+- 关键 artifact 证据：
+  - `0150bbfa-344a-42bd-842d-dd5507905e71::refined-1::refined-5`
+    的最新 `validation-report` 为：
+    - `valid = true`
+    - `issues = []`
+    - `coverageRatio = 1`
+  - `script_sentences` 已为首段真实落库 `9` 条
+  - 之前的 `SCRIPT_VALIDATION` manual review item 已自动 `resolved`
 
 关键事实：
 
 - 这不是环境没起来
 - 这不是旧架构没迁完
-- 是首段在真实长文本场景下，经过 `semantic_retry + input_refinement` 后仍然没收敛，最终进入 manual review
+- 首段在真实长文本场景下的 runtime 收敛问题已经被消掉
+- 目前可以安全声称：
+  - `validation -> repair -> refinement -> persist` 这条真实首段链路已打通
+  - `WorkflowRun <-> ProcessingTask` 的数据库反链也已恢复
 
 ### auto pipeline 真实路径
 
@@ -289,8 +313,17 @@ book:
   - `protocol-definitions.test.ts`
   - `write-trace.test.ts`
   - `script-generation-runner.test.ts`
+- 这一轮新增并已验证通过的关键回归：
+  - `cd /Users/xupeng/mycode/txt2voice/apps/web && pnpm test -- --runInBand src/lib/__tests__/segment-script-validator.test.ts`
+  - `cd /Users/xupeng/mycode/txt2voice/apps/web && pnpm test -- --runInBand src/lib/agent-runtime/__tests__/persist-stage.test.ts`
+  - `cd /Users/xupeng/mycode/txt2voice/apps/web && pnpm test -- --runInBand src/lib/agent-runtime/__tests__/run-script-production-workflow.test.ts --testNamePattern='links workflow runs back to the processing task when taskId is provided'`
+  - `cd /Users/xupeng/mycode/txt2voice/apps/web && pnpm test -- --runInBand src/lib/__tests__/segment-script-validator.test.ts src/lib/agent-runtime/__tests__/persist-stage.test.ts src/lib/agent-runtime/__tests__/run-script-production-workflow.test.ts --testNamePattern='narration text that only wraps sourceText with stage parentheses|normalizes wrapped narration text back to sourceText before persistence|links workflow runs back to the processing task when taskId is provided|refines segment input after semantic retry is exhausted and persists merged parent draft once|recursively refines nested slices before persisting the merged parent draft|syncs manual review items inside runtime when taskId is provided|persists runtime execution rows and returns runtimeMetadata'`
 - `cd /Users/xupeng/mycode/txt2voice/apps/web && pnpm run typecheck`
   - 结果：通过
+- 真实 API 重跑已再次验证：
+  - `POST /api/books/e0957096-f9ad-444a-82ee-fca422bb33b7/script/generate`
+    with `{"limitToSegments":1}`
+  - 最新两次任务都已完成且 `failedSegments = 0`
 
 ## 当前剩余缺口
 
@@ -299,41 +332,42 @@ book:
 主链路迁移本身已经基本完成，剩余更像增强项：
 
 1. `RuntimeArtifact` 已能写、查、按 workflow/segment 组织，但还没有更好的消费接口暴露到上层 API 或调试工具
-2. trace taxonomy 已有高价值事件，但 legacy kind 还没有完全清零
-3. `prepare / complete` 还是最小实现，暂未进一步工具化
+2. `ProcessingTask.taskData.metadata.queueState` 目前更像 enqueue 时快照，不代表 Bull 的真实终态；调试时容易误导
+3. trace taxonomy 已有高价值事件，但 legacy kind 还没有完全清零
+4. `prepare / complete` 还是最小实现，暂未进一步工具化
 
 ### 真实业务收敛层面
 
-当前最重要的真实阻断已经不是“旧架构残留”，而是：
+原先最重要的真实阻断已经被解决，但还没有足够证据直接外推到整本书：
 
-- 长段落、叙述密集、夹杂标题/引号的真实文本
-- 在 `segment_scripting -> validation -> semantic_retry -> input_refinement`
-  这条链路上仍可能无法稳定收敛
-
-`sample.txt` 的手动样本已经证明这一点。
+- 已经证实：
+  - `sample.txt` 首段在真实 runtime 中可以稳定收敛
+  - refinement 叶子段不再被 `TEXT_SOURCE_MISMATCH` 卡死
+- 还需要继续扩样：
+  - `limitToSegments > 1`
+  - `startFromOrderIndex` 向后推进
+  - 更大批量甚至整本跑通时的稳定性
 
 ## 新会话建议起手顺序
 
-1. 直接读取 `sample.txt` 失败样本的 runtime artifacts
+1. 先把真实验证范围从 `limitToSegments = 1` 扩到更大样本
    - 目标 book：`e0957096-f9ad-444a-82ee-fca422bb33b7`
-   - 重点 segment：`0150bbfa-344a-42bd-842d-dd5507905e71`
-   - 先看每一轮：
+   - 建议优先：
+     - `limitToSegments = 5`
+     - 或从 `startFromOrderIndex = 1` 继续往后推
+
+2. 如果后续段落再失败，优先读取 runtime artifacts 再下结论
+   - 重点看：
      - `validation-report`
      - `repair-decision`
      - `segment-script-draft`
      - `quality-verdict`
-
-2. 针对真实失败样本优化收敛逻辑
-   - 优先盯：
+   - 优先关注 issue code：
      - `TEXT_SOURCE_MISMATCH`
      - `NON_WHITESPACE_GAP`
      - `LOW_COVERAGE`
-   - 重点文件：
-     - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production/run-segment-validation-cycle.ts`
-     - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production/resolve-segment-draft.ts`
-     - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production/helpers/validation-and-refinement.ts`
 
-3. 如需更好调试，再补 artifact 消费接口
+3. 如果调试成本继续升高，再补 artifact 消费接口
    - 优先给 runtime artifact 增加更好用的 bundle / timeline 读取面
    - 再决定是否暴露 API
 
@@ -344,11 +378,16 @@ book:
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generation-runner.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-script-production-workflow.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production-runtime-store.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/pipeline/segment-script-validator.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/storage/persistence.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/narration-text-normalizer.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production/run-segment-validation-cycle.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production/resolve-segment-draft.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production/helpers/validation-and-refinement.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/run-script-production-workflow.test.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/script-production-runtime-store.test.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/persist-stage.test.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/__tests__/segment-script-validator.test.ts`
 
 ## 分支建议
 
@@ -358,4 +397,11 @@ book:
 
 当前工作区状态：
 
-- 干净
+- 非干净，未提交修改包括：
+  - `apps/web/src/lib/script-generator/pipeline/segment-script-validator.ts`
+  - `apps/web/src/lib/script-generator/storage/persistence.ts`
+  - `apps/web/src/lib/script-generator/narration-text-normalizer.ts`
+  - `apps/web/src/lib/agent-runtime/runtime/run-script-production-workflow.ts`
+  - `apps/web/src/lib/__tests__/segment-script-validator.test.ts`
+  - `apps/web/src/lib/agent-runtime/__tests__/persist-stage.test.ts`
+  - `apps/web/src/lib/agent-runtime/__tests__/run-script-production-workflow.test.ts`
