@@ -1,4 +1,4 @@
 id = "script-production"
 version = "1"
 kind = "workflow"
-stages = ["character_discovery", "segment_scripting", "segment_repair", "quality_judgement", "persist"]
+stages = ["character_discovery", "segment_scripting", "segment_repair", "quality_judgement", "persist", "manual_review_handoff"]

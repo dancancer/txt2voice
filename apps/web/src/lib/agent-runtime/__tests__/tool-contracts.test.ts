@@ -11,6 +11,7 @@ import {
   COMMIT_SCRIPT_SENTENCES_TOOL,
   SAVE_CHARACTER_MEMORY_TOOL,
 } from "../tools/io-tools";
+import { SYNC_MANUAL_REVIEW_ITEMS_TOOL } from "../tools/review-tools";
 
 describe("tool contracts", () => {
   it("restricts tool access with allowlist", () => {
@@ -78,5 +79,7 @@ describe("tool contracts", () => {
     expect(COMMIT_SCRIPT_SENTENCES_TOOL.sideEffect).toBe(true);
     expect(SAVE_CHARACTER_MEMORY_TOOL.sideEffect).toBe(true);
     expect(SAVE_CHARACTER_MEMORY_TOOL.kind).toBe("io");
+    expect(SYNC_MANUAL_REVIEW_ITEMS_TOOL.sideEffect).toBe(true);
+    expect(SYNC_MANUAL_REVIEW_ITEMS_TOOL.kind).toBe("task");
   });
 });

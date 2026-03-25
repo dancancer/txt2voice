@@ -29,11 +29,11 @@ import type { RunStageResult, StageRunRecord } from "./run-stage";
 import { runWorkflow } from "./run-workflow";
 import { runPersistStage } from "./stages/run-persist-stage";
 import { runCharacterDiscoveryStage } from "./stages/run-character-discovery-stage";
+import { runManualReviewHandoffStage } from "./stages/run-manual-review-handoff-stage";
 import { runQualityStage } from "./stages/run-quality-stage";
 import { runSegmentRepairStage } from "./stages/run-segment-repair-stage";
 import { runSegmentScriptingStage } from "./stages/run-segment-scripting-stage";
 import { runCharacterDiscoveryPass } from "./script-production/run-character-discovery-pass";
-import { syncRuntimeManualReviewItems } from "./script-production/manual-review-sync";
 import { runSingleSegment } from "./script-production/run-single-segment";
 import type {
   RunScriptProductionWorkflowInput,
@@ -51,6 +51,7 @@ interface ScriptProductionWorkflowDeps {
   loadBookForGeneration?: typeof loadBookForGeneration;
   resolvePartialSegments?: typeof resolvePartialSegments;
   runCharacterDiscoveryStage?: typeof runCharacterDiscoveryStage;
+  runManualReviewHandoffStage?: typeof runManualReviewHandoffStage;
   runSegmentScriptingStage?: typeof runSegmentScriptingStage;
   runSegmentRepairStage?: typeof runSegmentRepairStage;
   runQualityStage?: typeof runQualityStage;
@@ -68,6 +69,8 @@ export const runScriptProductionWorkflow = async (
   const resolvePartial = deps.resolvePartialSegments || resolvePartialSegments;
   const runDiscoveryStage =
     deps.runCharacterDiscoveryStage || runCharacterDiscoveryStage;
+  const runManualReviewStage =
+    deps.runManualReviewHandoffStage || runManualReviewHandoffStage;
   const runScriptingStage =
     deps.runSegmentScriptingStage || runSegmentScriptingStage;
   const runRepairStage = deps.runSegmentRepairStage || runSegmentRepairStage;
@@ -185,6 +188,7 @@ export const runScriptProductionWorkflow = async (
         "segment_repair",
         "quality_judgement",
         "persist",
+        "manual_review_handoff",
       ],
     },
     entryPayload: {
@@ -345,12 +349,71 @@ export const runScriptProductionWorkflow = async (
         }
       }
 
-      const manualReviewSync = await syncRuntimeManualReviewItems({
+      const manualReviewStage = await runManualReviewStage({
+        workflowRunId,
         taskId: input.taskId,
         bookId: input.bookId,
         failures: failedSegmentDetails,
         processedSegmentIds: segmentSummaries.map((segment) => segment.segmentId),
         failedSegmentIds,
+        createId,
+        now: deps.now,
+        createStageRun: createTrackedStageRun,
+        updateStageRun: updateTrackedStageRun,
+        createAgentRun: createTrackedAgentRun,
+        updateAgentRun: updateTrackedAgentRun,
+        createToolCall: async (record) => {
+          await runtimeStore.createToolCall({
+            ...record,
+            createdAt: record.createdAt ?? now(),
+          });
+        },
+        updateToolCall: async (record) => {
+          await runtimeStore.updateToolCall({
+            ...record,
+            completedAt: record.completedAt ?? now(),
+          });
+        },
+        appendTrace: appendTrackedTrace,
+      });
+      const manualReviewSync =
+        manualReviewStage.status === "completed"
+          ? manualReviewStage.summary
+          : {
+              issueType: "SCRIPT_VALIDATION",
+              created: 0,
+              updated: 0,
+              pending: 0,
+              resolved: 0,
+            };
+      await runtimeStore.updateStageRun({
+        id: manualReviewStage.stageRunId,
+        workflowRunId,
+        stageId: "manual_review_handoff",
+        status: manualReviewStage.status,
+        summary: {
+          stageId: "manual_review_handoff",
+          ...manualReviewSync,
+        },
+        completedAt: now(),
+      });
+      coordinatorStageResults.push({
+        id: manualReviewStage.stageRunId,
+        stageId: "manual_review_handoff",
+        status: manualReviewStage.status,
+        agent: {
+          runId: manualReviewStage.agentRunId,
+          agentId: "manual-review-handoff-agent",
+          status: manualReviewStage.status,
+          output:
+            manualReviewStage.status === "completed"
+              ? { ...manualReviewStage.summary }
+              : undefined,
+          error:
+            manualReviewStage.status === "completed"
+              ? undefined
+              : manualReviewStage.error,
+        },
       });
 
       const completedAt = now();

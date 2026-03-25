@@ -440,6 +440,13 @@ describe("runScriptProductionWorkflow", () => {
         issueType: "SCRIPT_VALIDATION",
       }),
     });
+    expect(mockPrisma.toolCall.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          toolName: "sync-manual-review-items",
+        }),
+      })
+    );
     expect((result as any).runtimeMetadata?.summary).toEqual(
       expect.objectContaining({
         manualReviewSync: expect.objectContaining({
