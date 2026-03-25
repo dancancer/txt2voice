@@ -35,6 +35,10 @@ jest.mock("@/lib/agent-runtime/runtime/stages/run-segment-scripting-stage", () =
   runSegmentScriptingStage: jest.fn(),
 }));
 
+jest.mock("@/lib/agent-runtime/runtime/stages/run-character-discovery-stage", () => ({
+  runCharacterDiscoveryStage: jest.fn(),
+}));
+
 jest.mock("@/lib/agent-runtime/runtime/stages/run-segment-repair-stage", () => ({
   runSegmentRepairStage: jest.fn(),
 }));
@@ -50,6 +54,7 @@ jest.mock("@/lib/agent-runtime/runtime/stages/run-persist-stage", () => ({
 import prisma from "@/lib/prisma";
 import { getScriptGenerator } from "@/lib/script-generator";
 import { runScriptProductionWorkflow } from "../runtime/run-script-production-workflow";
+import { runCharacterDiscoveryStage } from "../runtime/stages/run-character-discovery-stage";
 import { runSegmentScriptingStage } from "../runtime/stages/run-segment-scripting-stage";
 import { runSegmentRepairStage } from "../runtime/stages/run-segment-repair-stage";
 import { runQualityStage } from "../runtime/stages/run-quality-stage";
@@ -59,6 +64,10 @@ const mockPrisma = prisma as any;
 const mockGetScriptGenerator = getScriptGenerator as jest.MockedFunction<
   typeof getScriptGenerator
 >;
+const mockRunCharacterDiscoveryStage =
+  runCharacterDiscoveryStage as jest.MockedFunction<
+    typeof runCharacterDiscoveryStage
+  >;
 const mockRunSegmentScriptingStage =
   runSegmentScriptingStage as jest.MockedFunction<typeof runSegmentScriptingStage>;
 const mockRunSegmentRepairStage =
@@ -152,6 +161,43 @@ const createDraftArtifact = (
   },
 });
 
+const createCharacterMemoryDraftArtifact = () => ({
+  kind: "character-memory-draft" as const,
+  skillId: "character-extraction" as const,
+  characterMemoryDraft: {
+    canonicalIdentities: [
+      {
+        id: "char-zhangsan",
+        name: "张三",
+      },
+    ],
+    aliasEvidence: [
+      {
+        alias: "三哥",
+        canonicalId: "char-zhangsan",
+        source: "segment-1",
+      },
+    ],
+    assertedFacts: {
+      "char-zhangsan": {
+        role: "lead",
+      },
+    },
+    inferredHints: {},
+  },
+});
+
+const createEmptyCharacterMemoryDraftArtifact = () => ({
+  kind: "character-memory-draft" as const,
+  skillId: "character-extraction" as const,
+  characterMemoryDraft: {
+    canonicalIdentities: [],
+    aliasEvidence: [],
+    assertedFacts: {},
+    inferredHints: {},
+  },
+});
+
 describe("runScriptProductionWorkflow", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -167,6 +213,11 @@ describe("runScriptProductionWorkflow", () => {
     mockPrisma.toolCall.create.mockResolvedValue({});
     mockPrisma.toolCall.update.mockResolvedValue({});
     mockPrisma.traceEvent.create.mockResolvedValue({});
+    mockRunCharacterDiscoveryStage.mockResolvedValue({
+      stageRunId: "discovery-unused",
+      status: "completed",
+      artifact: createEmptyCharacterMemoryDraftArtifact(),
+    } as any);
     mockRunSegmentRepairStage.mockResolvedValue({
       stageRunId: "repair-unused",
       status: "completed",
@@ -383,6 +434,98 @@ describe("runScriptProductionWorkflow", () => {
         characters: ["旁白"],
       },
     ]);
+  });
+
+  it("runs character discovery before segment scripting and persists the memory draft once", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+    mockRunCharacterDiscoveryStage.mockResolvedValue({
+      stageRunId: "discovery-stage-1",
+      status: "completed",
+      artifact: createCharacterMemoryDraftArtifact(),
+    } as any);
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-1",
+      status: "completed",
+      artifact: createDraftArtifact("seg-1", "第一段原文。", {
+        speaker: "张三",
+      }),
+    } as any);
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "quality-1",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "seg-1",
+        verdict: "pass",
+        score: 0.98,
+        reasons: ["ok"],
+      },
+    } as any);
+    mockRunPersistStage.mockImplementation(async (input: any) => {
+      if (input.artifacts[0]?.kind === "character-memory-draft") {
+        return {
+          stageRunId: "stage-persist-character-memory",
+          status: "completed",
+          artifact: {
+            kind: "persisted-business-facts",
+            persistedCharacterCount: 1,
+            persistedSentenceCount: 0,
+          },
+        } as any;
+      }
+
+      return {
+        stageRunId: "stage-persist-segment",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount: 0,
+          persistedSentenceCount: 1,
+        },
+      } as any;
+    });
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunCharacterDiscoveryStage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        segmentText: "第一段原文。",
+      })
+    );
+    expect(mockRunPersistStage).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        artifacts: [
+          expect.objectContaining({
+            kind: "character-memory-draft",
+          }),
+        ],
+      })
+    );
+    expect(mockRunPersistStage).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        artifacts: [
+          expect.objectContaining({
+            kind: "segment-script-draft",
+          }),
+        ],
+      })
+    );
+    expect((result as any).runtimeMetadata?.summary).toEqual(
+      expect.objectContaining({
+        persistedCharacterCount: 1,
+        persistedSentenceCount: 1,
+      })
+    );
   });
 
   it("keeps regenerate mode segment order aligned with legacy book order", async () => {
@@ -824,6 +967,184 @@ describe("runScriptProductionWorkflow", () => {
     );
     expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(4);
     expect(result.summary.failedSegments).toBe(0);
+  });
+
+  it("recursively refines nested slices before persisting the merged parent draft", async () => {
+    const refinedContent = '前文。\n\n后文。“你好。”';
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [
+        {
+          id: "seg-1",
+          chapterId: "chapter-1",
+          orderIndex: 0,
+          content: refinedContent,
+        },
+      ],
+      characterProfiles: [],
+    });
+
+    mockRunSegmentScriptingStage.mockImplementation(async ({ segmentId }: any) => {
+      if (segmentId === "seg-1::refined-1::refined-1") {
+        return {
+          stageRunId: "stage-script-refined-1-1",
+          status: "completed",
+          artifact: createDraftArtifact("seg-1::refined-1::refined-1", "前文。"),
+        } as any;
+      }
+
+      if (segmentId === "seg-1::refined-1::refined-2") {
+        return {
+          stageRunId: "stage-script-refined-1-2",
+          status: "completed",
+          artifact: createDraftArtifact("seg-1::refined-1::refined-2", "后文。"),
+        } as any;
+      }
+
+      if (segmentId === "seg-1::refined-2") {
+        return {
+          stageRunId: "stage-script-refined-2",
+          status: "completed",
+          artifact: createDraftArtifact("seg-1::refined-2", "“你好。”", {
+            text: "你好。",
+            speaker: "张三",
+          }),
+        } as any;
+      }
+
+      if (segmentId === "seg-1::refined-1") {
+        return {
+          stageRunId: "stage-script-refined-1",
+          status: "repairing",
+          error: "Input context over budget for segment scripting stage",
+          failedArtifact: {
+            kind: "segment-scripting-failure",
+            rawResponse: null,
+            provider: "openai",
+            model: "gpt-4.1-mini",
+            message: "Input context over budget for segment scripting stage",
+          },
+        } as any;
+      }
+
+      return {
+        stageRunId: `stage-script-${segmentId}`,
+        status: "completed",
+        artifact: createDraftArtifact(segmentId, "错误片段"),
+      } as any;
+    });
+
+    mockRunSegmentRepairStage.mockImplementation(async (input: any) => {
+      if (input.failureKind === "semantic_retry") {
+        return {
+          stageRunId: `stage-repair-semantic-${input.segmentId}-${input.repairDepth ?? 0}`,
+          status: "completed",
+          decision: {
+            segmentId: input.segmentId,
+            action: "retry",
+            reason: "semantic_retry",
+            retryable: true,
+          },
+        } as any;
+      }
+
+      if (input.failureKind === "input_refinement") {
+        return {
+          stageRunId: `stage-repair-input-${input.segmentId}-${input.repairDepth ?? 0}`,
+          status: "completed",
+          decision: {
+            segmentId: input.segmentId,
+            action: "refine",
+            reason: "input_refinement",
+            retryable: true,
+          },
+        } as any;
+      }
+
+      if (
+        input.failureKind === "format_repair" &&
+        input.segmentId === "seg-1::refined-1"
+      ) {
+        return {
+          stageRunId: "stage-repair-format-refined-1",
+          status: "completed",
+          decision: {
+            segmentId: input.segmentId,
+            action: "refine",
+            reason: "input_refinement",
+            retryable: true,
+          },
+        } as any;
+      }
+
+      throw new Error(
+        `unexpected repair request: ${input.failureKind}:${input.segmentId}`
+      );
+    });
+
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "quality-pass",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "seg-pass",
+        verdict: "pass",
+        score: 0.95,
+        reasons: ["ok"],
+      },
+    } as any);
+    mockRunPersistStage.mockResolvedValue({
+      stageRunId: "persist-pass",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 3,
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunSegmentRepairStage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        segmentId: "seg-1::refined-1",
+        failureKind: "format_repair",
+      })
+    );
+    expect(mockRunPersistStage).toHaveBeenCalledTimes(1);
+    expect(mockRunPersistStage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        artifacts: [
+          expect.objectContaining({
+            kind: "segment-script-draft",
+            segmentScriptDraft: expect.objectContaining({
+              segmentId: "seg-1",
+              lines: [
+                expect.objectContaining({
+                  sourceText: "前文。",
+                  orderInSegment: 0,
+                }),
+                expect.objectContaining({
+                  sourceText: "后文。",
+                  orderInSegment: 1,
+                }),
+                expect.objectContaining({
+                  sourceText: "“你好。”",
+                  orderInSegment: 2,
+                }),
+              ],
+            }),
+          }),
+        ],
+      })
+    );
+    expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(6);
+    expect(result.summary.failedSegments).toBe(0);
+    expect(result.summary.totalLines).toBe(3);
   });
 
   it("emits execution events from bridge adapter calls", async () => {

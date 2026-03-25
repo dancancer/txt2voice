@@ -43,6 +43,7 @@ import {
 import { runStage, type RunStageResult, type StageRunRecord } from "./run-stage";
 import { runWorkflow } from "./run-workflow";
 import { runPersistStage, type RunPersistStageResult } from "./stages/run-persist-stage";
+import { runCharacterDiscoveryStage } from "./stages/run-character-discovery-stage";
 import { runQualityStage, type RunQualityStageResult } from "./stages/run-quality-stage";
 import {
   runSegmentRepairStage,
@@ -81,6 +82,7 @@ interface ScriptProductionWorkflowDeps {
   adapter?: LLMAdapter;
   loadBookForGeneration?: typeof loadBookForGeneration;
   resolvePartialSegments?: typeof resolvePartialSegments;
+  runCharacterDiscoveryStage?: typeof runCharacterDiscoveryStage;
   runSegmentScriptingStage?: typeof runSegmentScriptingStage;
   runSegmentRepairStage?: typeof runSegmentRepairStage;
   runQualityStage?: typeof runQualityStage;
@@ -111,7 +113,8 @@ type ScriptProductionWorkflowResult = GeneratedScript & {
 };
 
 const MAX_SEMANTIC_RETRY_DEPTH = 1;
-const MAX_INPUT_REFINEMENT_DEPTH = 1;
+const MAX_INPUT_REFINEMENT_DEPTH = 2;
+const CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT = 3;
 
 interface SegmentRuntimeCounters {
   persistedSentenceCount: number;
@@ -138,6 +141,27 @@ const mergeSegmentCounters = (
   formatRepairCount: left.formatRepairCount + right.formatRepairCount,
   semanticRetryCount: left.semanticRetryCount + right.semanticRetryCount,
 });
+
+const buildCharacterDiscoverySampleText = (
+  segments: ScriptProductionBookSegment[]
+): string =>
+  segments
+    .slice(0, CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT)
+    .map((segment) => segment.content.trim())
+    .filter((segmentText) => segmentText.length > 0)
+    .join("\n\n");
+
+const hasCharacterMemoryDraftContent = (draft: {
+  canonicalIdentities?: unknown[];
+  aliasEvidence?: unknown[];
+  assertedFacts?: Record<string, unknown>;
+  inferredHints?: Record<string, unknown>;
+}): boolean =>
+  (Array.isArray(draft.canonicalIdentities) &&
+    draft.canonicalIdentities.length > 0) ||
+  (Array.isArray(draft.aliasEvidence) && draft.aliasEvidence.length > 0) ||
+  Object.keys(draft.assertedFacts || {}).length > 0 ||
+  Object.keys(draft.inferredHints || {}).length > 0;
 
 const remapFailureToParentSegment = (params: {
   parentSegment: ScriptProductionBookSegment;
@@ -1181,6 +1205,8 @@ export const runScriptProductionWorkflow = async (
 ): Promise<ScriptProductionWorkflowResult> => {
   const loadBook = deps.loadBookForGeneration || loadBookForGeneration;
   const resolvePartial = deps.resolvePartialSegments || resolvePartialSegments;
+  const runDiscoveryStage =
+    deps.runCharacterDiscoveryStage || runCharacterDiscoveryStage;
   const runScriptingStage =
     deps.runSegmentScriptingStage || runSegmentScriptingStage;
   const runRepairStage = deps.runSegmentRepairStage || runSegmentRepairStage;
@@ -1292,6 +1318,7 @@ export const runScriptProductionWorkflow = async (
       version: "1",
       kind: "workflow",
       stages: [
+        "character_discovery",
         "segment_scripting",
         "validation",
         "segment_repair",
@@ -1341,6 +1368,150 @@ export const runScriptProductionWorkflow = async (
       appendTrace: appendTrackedTrace,
     },
     coordinator: async ({ workflowRunId }) => {
+      const characterDiscoverySampleText =
+        buildCharacterDiscoverySampleText(segments);
+
+      if (characterDiscoverySampleText.length > 0) {
+        const discoveryStage = await runDiscoveryStage({
+          workflowRunId,
+          segmentText: characterDiscoverySampleText,
+          adapter: observedAdapter,
+          createId,
+          now: deps.now,
+          createStageRun: createTrackedStageRun,
+          updateStageRun: updateTrackedStageRun,
+          appendTrace: appendTrackedTrace,
+        });
+
+        await runtimeStore.updateStageRun({
+          id: discoveryStage.stageRunId,
+          workflowRunId,
+          stageId: "character_discovery",
+          status: discoveryStage.status,
+          summary: {
+            stageId: "character_discovery",
+            sampleSegmentCount: Math.min(
+              segments.length,
+              CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT
+            ),
+            sampleCharCount: characterDiscoverySampleText.length,
+            artifactKind:
+              discoveryStage.status === "completed"
+                ? discoveryStage.artifact.kind
+                : undefined,
+          },
+          completedAt: now(),
+        });
+        coordinatorStageResults.push({
+          id: discoveryStage.stageRunId,
+          stageId: "character_discovery",
+          status: discoveryStage.status,
+          agent: {
+            agentId: "character-discovery-agent",
+            status: discoveryStage.status,
+            output:
+              discoveryStage.status === "completed"
+                ? {
+                    skillId: discoveryStage.artifact.skillId,
+                  }
+                : undefined,
+            error:
+              discoveryStage.status === "completed"
+                ? undefined
+                : discoveryStage.error,
+          },
+        });
+
+        if (
+          discoveryStage.status === "completed" &&
+          hasCharacterMemoryDraftContent(
+            discoveryStage.artifact.characterMemoryDraft
+          )
+        ) {
+          const persistCharacterMemoryStage = await runPersistCommitStage({
+            workflowRunId,
+            bookId: input.bookId,
+            artifacts: [
+              {
+                kind: "character-memory-draft",
+                characterMemory: discoveryStage.artifact.characterMemoryDraft,
+              },
+            ],
+            characterProfiles,
+            characterMap,
+            createId,
+            now: deps.now,
+            createStageRun: createTrackedStageRun,
+            updateStageRun: updateTrackedStageRun,
+            createAgentRun: createTrackedAgentRun,
+            updateAgentRun: updateTrackedAgentRun,
+            createToolCall: async (record) => {
+              await runtimeStore.createToolCall({
+                ...record,
+                createdAt: record.createdAt ?? now(),
+              });
+            },
+            updateToolCall: async (record) => {
+              await runtimeStore.updateToolCall({
+                ...record,
+                completedAt: record.completedAt ?? now(),
+              });
+            },
+            appendTrace: appendTrackedTrace,
+          });
+
+          await runtimeStore.updateStageRun({
+            id: persistCharacterMemoryStage.stageRunId,
+            workflowRunId,
+            stageId: "persist",
+            status: persistCharacterMemoryStage.status,
+            summary: {
+              stageId: "persist",
+              artifactKind: "character-memory-draft",
+              persistedCharacterCount:
+                persistCharacterMemoryStage.status === "completed"
+                  ? persistCharacterMemoryStage.artifact.persistedCharacterCount
+                  : 0,
+              persistedSentenceCount:
+                persistCharacterMemoryStage.status === "completed"
+                  ? persistCharacterMemoryStage.artifact.persistedSentenceCount
+                  : 0,
+            },
+            completedAt: now(),
+          });
+          coordinatorStageResults.push({
+            id: persistCharacterMemoryStage.stageRunId,
+            stageId: "persist",
+            status: persistCharacterMemoryStage.status,
+            agent: {
+              runId: persistCharacterMemoryStage.agentRunId,
+              agentId: "persist-agent",
+              status: persistCharacterMemoryStage.status,
+              output:
+                persistCharacterMemoryStage.status === "completed"
+                  ? {
+                      persistedCharacterCount:
+                        persistCharacterMemoryStage.artifact
+                          .persistedCharacterCount,
+                      persistedSentenceCount:
+                        persistCharacterMemoryStage.artifact
+                          .persistedSentenceCount,
+                    }
+                  : undefined,
+              error:
+                persistCharacterMemoryStage.status === "completed"
+                  ? undefined
+                  : persistCharacterMemoryStage.error,
+            },
+          });
+
+          if (persistCharacterMemoryStage.status === "completed") {
+            persistedCharacterCount +=
+              persistCharacterMemoryStage.artifact.persistedCharacterCount;
+          }
+        }
+      }
+
       for (const segment of segments) {
         const result = await runSingleSegment({
           workflowRunId,
