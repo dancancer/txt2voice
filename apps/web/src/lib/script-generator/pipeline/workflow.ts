@@ -112,7 +112,7 @@ const normalizeSegmentFailure = (params: {
   };
 };
 
-const loadBookForGeneration = async (params: {
+export const loadBookForGeneration = async (params: {
   bookId: string;
   segmentIds?: string[];
 }) => {
@@ -264,7 +264,7 @@ const runSegmentGeneration = async (params: {
   };
 };
 
-const resolvePartialSegments = (params: {
+export const resolvePartialSegments = (params: {
   segments: any[];
   startFromSegmentId?: string | null;
   startFromOrderIndex?: number | null;

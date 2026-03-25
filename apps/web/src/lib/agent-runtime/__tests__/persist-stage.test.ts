@@ -1,4 +1,5 @@
 import type { CharacterMemory, SegmentScriptDraft } from "../context";
+import type { AgentRunRecord, ToolCallRecord } from "../runtime/run-agent";
 import {
   createPersistTools,
   type PersistCharacterMemoryDraftInput,
@@ -21,12 +22,51 @@ const asCompletedResult = (
 
 const createRuntimeDeps = () => {
   let nextId = 0;
+  const agentRuns: Array<
+    AgentRunRecord & {
+      completedAt?: Date;
+    }
+  > = [];
+  const toolCalls: Array<
+    ToolCallRecord & {
+      createdAt?: Date;
+      completedAt?: Date;
+    }
+  > = [];
 
   return {
     createId: () => `runtime-${nextId++}`,
     appendTrace: async () => undefined,
     createStageRun: async () => undefined,
     updateStageRun: async () => undefined,
+    createAgentRun: async (
+      record: AgentRunRecord & { completedAt?: Date }
+    ) => {
+      agentRuns.push(record);
+    },
+    updateAgentRun: async (
+      record: AgentRunRecord & { completedAt?: Date }
+    ) => {
+      const target = agentRuns.find((item) => item.id === record.id);
+      if (target) {
+        Object.assign(target, record);
+      }
+    },
+    createToolCall: async (
+      record: ToolCallRecord & { createdAt?: Date }
+    ) => {
+      toolCalls.push(record);
+    },
+    updateToolCall: async (
+      record: ToolCallRecord & { completedAt?: Date }
+    ) => {
+      const target = toolCalls.find((item) => item.id === record.id);
+      if (target) {
+        Object.assign(target, record);
+      }
+    },
+    agentRuns,
+    toolCalls,
   };
 };
 
@@ -108,6 +148,7 @@ describe("persist stage", () => {
 
   it("commits SegmentScriptDraft artifact into ScriptSentence persistence path", async () => {
     const sentenceCalls: PersistSegmentScriptDraftInput[] = [];
+    const runtimeDeps = createRuntimeDeps();
     const tools = createPersistTools({
       upsertCharacterCandidates: async () => {
         throw new Error("unexpected upsertCharacterCandidates invocation");
@@ -127,7 +168,7 @@ describe("persist stage", () => {
         },
       ],
       tools,
-      ...createRuntimeDeps(),
+      ...runtimeDeps,
     });
 
     const completed = asCompletedResult(result);
@@ -142,6 +183,19 @@ describe("persist stage", () => {
         rawSpeaker: "宁采臣",
         text: "在下宁采臣。",
         orderInSegment: 0,
+      }),
+    ]);
+    expect(runtimeDeps.toolCalls).toEqual([
+      expect.objectContaining({
+        toolName: "persist-segment-script-draft",
+        status: "completed",
+        argumentsSummary: expect.objectContaining({
+          segmentId: "segment-1",
+          lineCount: 1,
+        }),
+        resultSummary: expect.objectContaining({
+          persistedSentenceCount: 1,
+        }),
       }),
     ]);
   });

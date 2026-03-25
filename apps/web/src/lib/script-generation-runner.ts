@@ -58,6 +58,19 @@ interface ScriptGenerationLLMMetrics {
   providers: ScriptGenerationLLMProviderMetrics[];
 }
 
+interface AgentRuntimeMetadata {
+  workflowRunId: string;
+  workflowId?: string;
+  status: string;
+  mode?: string;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+  traceEventCount?: number;
+  stageRunCount?: number;
+  summary?: Record<string, unknown>;
+}
+
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -86,6 +99,62 @@ const asStringList = (value: unknown): string[] => {
   return value
     .map((entry) => asString(entry))
     .filter((entry) => entry.length > 0);
+};
+
+const asAgentRuntimeMetadata = (
+  value: unknown
+): AgentRuntimeMetadata | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const workflowRunId = asString(record.workflowRunId);
+  const status = asString(record.status);
+
+  if (!workflowRunId || !status) {
+    return null;
+  }
+
+  const summary = asRecord(record.summary) || undefined;
+
+  return {
+    workflowRunId,
+    workflowId: asString(record.workflowId) || undefined,
+    status,
+    mode: asString(record.mode) || undefined,
+    startedAt: asString(record.startedAt) || undefined,
+    completedAt: asString(record.completedAt) || undefined,
+    durationMs: asNumber(record.durationMs) ?? undefined,
+    traceEventCount: asNumber(record.traceEventCount) ?? undefined,
+    stageRunCount: asNumber(record.stageRunCount) ?? undefined,
+    summary: summary ? JSON.parse(JSON.stringify(summary)) : undefined,
+  };
+};
+
+const buildBookRuntimePointers = (params: {
+  runtimeMetadata: AgentRuntimeMetadata | null;
+  isFailure: boolean;
+}): Record<string, unknown> => {
+  const { runtimeMetadata, isFailure } = params;
+  if (!runtimeMetadata) {
+    return {};
+  }
+
+  return {
+    lastScriptWorkflowRunId: runtimeMetadata.workflowRunId,
+    lastScriptRuntimeStatus: runtimeMetadata.status,
+    ...(runtimeMetadata.completedAt
+      ? {
+          lastScriptRuntimeCompletedAt: runtimeMetadata.completedAt,
+        }
+      : {}),
+    ...(isFailure
+      ? {
+          lastFailedScriptWorkflowRunId: runtimeMetadata.workflowRunId,
+        }
+      : {}),
+  };
 };
 
 const createLLMMetricsCollector = () => {
@@ -590,6 +659,9 @@ export async function runScriptGenerationTask({
 
   const failedSegments = Number(script.summary.failedSegments || 0);
   const totalSegments = Number(script.summary.totalSegments || 0);
+  const runtimeMetadata = asAgentRuntimeMetadata(
+    asRecord(script)?.runtimeMetadata
+  );
   const hasSegmentFailures = failedSegments > 0;
   const failedSegmentIds = asStringList(script.summary.failedSegmentIds);
   const processedSegmentIds = Array.isArray(script.segments)
@@ -652,6 +724,11 @@ export async function runScriptGenerationTask({
           updated: reviewSyncResult.updated,
           pending: reviewSyncResult.totalPending,
         },
+        ...(runtimeMetadata
+          ? {
+              agentRuntime: runtimeMetadata,
+            }
+          : {}),
         ...(llmMetrics.submitted > 0
           ? {
               llmMetrics,
@@ -691,6 +768,10 @@ export async function runScriptGenerationTask({
           scriptFailureManualReviewCreated: reviewSyncResult.created,
           scriptFailureManualReviewUpdated: reviewSyncResult.updated,
           scriptFailureManualReviewResolved: resolvedReviewResult.resolved,
+          ...buildBookRuntimePointers({
+            runtimeMetadata,
+            isFailure: true,
+          }),
         },
       },
     });
@@ -714,6 +795,11 @@ export async function runScriptGenerationTask({
       isPartial: isPartialRun,
       regeneratedSegments: extraParams.segmentIds?.length || 0,
       autoResolvedScriptReviewItems: resolvedReviewResult.resolved,
+      ...(runtimeMetadata
+        ? {
+            agentRuntime: runtimeMetadata,
+          }
+        : {}),
       ...(llmMetrics.submitted > 0
         ? {
             llmMetrics,
@@ -754,6 +840,10 @@ export async function runScriptGenerationTask({
             }),
         failedSegments: outstandingFailedSegments,
         failedSegmentIds: outstandingFailedSegmentIds,
+        ...buildBookRuntimePointers({
+          runtimeMetadata,
+          isFailure: false,
+        }),
       },
     },
   });

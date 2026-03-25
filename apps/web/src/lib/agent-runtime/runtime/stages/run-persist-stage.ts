@@ -1,6 +1,7 @@
 import { buildCharacterMap } from "@/lib/script-generator/storage/character-utils";
 import type { CharacterMemory, MemoryPatch, SegmentScriptDraft } from "../../context";
 import { createPersistTools, type PersistTools } from "../../tools/persist-tools";
+import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
 import type { TraceDependencies } from "../write-trace";
 
@@ -10,6 +11,14 @@ interface PersistRuntimeDeps {
   now?: TraceDependencies["now"];
   createStageRun?: (record: StageRunRecord) => Promise<void> | void;
   updateStageRun?: (record: StageRunRecord) => Promise<void> | void;
+  createAgentRun?: (record: AgentRunRecord) => Promise<void> | void;
+  updateAgentRun?: (
+    record: AgentRunRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
+  createToolCall?: (record: ToolCallRecord & { createdAt?: Date }) => Promise<void> | void;
+  updateToolCall?: (
+    record: ToolCallRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
 }
 
 interface CharacterProfileLike {
@@ -46,12 +55,14 @@ export interface PersistStageArtifact {
 
 interface RunPersistStageCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "completed";
   artifact: PersistStageArtifact;
 }
 
 interface RunPersistStageNonCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "failed" | "retrying" | "repairing";
   error?: string;
 }
@@ -114,7 +125,11 @@ export const runPersistStage = async (
       id: "persist",
       agent: {
         id: "persist-agent",
-        execute: async () => {
+        getInputSummary: () => ({
+          bookId: input.bookId,
+          artifactCount: input.artifacts.length,
+        }),
+        execute: async ({ runToolCall }) => {
           const tools = input.tools || createPersistTools();
           const characterProfiles = input.characterProfiles || [];
           const characterMap =
@@ -125,23 +140,58 @@ export const runPersistStage = async (
 
           for (const artifact of sortPersistArtifacts(input.artifacts)) {
             if (artifact.kind === "character-memory-draft") {
-              const result = await tools.persistCharacterMemoryDraft({
-                bookId: input.bookId,
-                characterMemory: toCharacterMemory(artifact.characterMemory),
-                characterProfiles,
-                characterMap,
-              });
+              const persistCharacterMemory = () =>
+                tools.persistCharacterMemoryDraft({
+                  bookId: input.bookId,
+                  characterMemory: toCharacterMemory(artifact.characterMemory),
+                  characterProfiles,
+                  characterMap,
+                });
+              const result = runToolCall
+                ? await runToolCall({
+                    toolName: "persist-character-memory-draft",
+                    argumentsSummary: {
+                      bookId: input.bookId,
+                      canonicalIdentityCount: Array.isArray(
+                        artifact.characterMemory.canonicalIdentities
+                      )
+                        ? artifact.characterMemory.canonicalIdentities.length
+                        : 0,
+                    },
+                    getResultSummary: (toolResult) => ({
+                      persistedCharacterCount:
+                        toolResult.persistedCharacterCount,
+                    }),
+                    execute: persistCharacterMemory,
+                  })
+                : await persistCharacterMemory();
               persistedCharacterCount += result.persistedCharacterCount;
               continue;
             }
 
-            const result = await tools.persistSegmentScriptDraft({
-              bookId: input.bookId,
-              segmentScriptDraft: artifact.segmentScriptDraft,
-              chapterId: artifact.chapterId,
-              characterProfiles,
-              characterMap,
-            });
+            const persistSegmentDraft = () =>
+              tools.persistSegmentScriptDraft({
+                bookId: input.bookId,
+                segmentScriptDraft: artifact.segmentScriptDraft,
+                chapterId: artifact.chapterId,
+                characterProfiles,
+                characterMap,
+              });
+            const result = runToolCall
+              ? await runToolCall({
+                  toolName: "persist-segment-script-draft",
+                  argumentsSummary: {
+                    bookId: input.bookId,
+                    segmentId: artifact.segmentScriptDraft.segmentId,
+                    lineCount: artifact.segmentScriptDraft.lines.length,
+                  },
+                  getResultSummary: (toolResult) => ({
+                    persistedSentenceCount:
+                      toolResult.persistedSentenceCount,
+                  }),
+                  execute: persistSegmentDraft,
+                })
+              : await persistSegmentDraft();
             persistedSentenceCount += result.persistedSentenceCount;
           }
 
@@ -160,11 +210,16 @@ export const runPersistStage = async (
     now: input.now,
     createStageRun: input.createStageRun ?? (async () => undefined),
     updateStageRun: input.updateStageRun,
+    createAgentRun: input.createAgentRun,
+    updateAgentRun: input.updateAgentRun,
+    createToolCall: input.createToolCall,
+    updateToolCall: input.updateToolCall,
   });
 
   if (stageResult.status !== "completed") {
     return {
       stageRunId: stageResult.id,
+      agentRunId: stageResult.agent.runId,
       status: stageResult.status,
       error: stageResult.agent.error,
     };
@@ -172,6 +227,7 @@ export const runPersistStage = async (
 
   return {
     stageRunId: stageResult.id,
+    agentRunId: stageResult.agent.runId,
     status: "completed",
     artifact: {
       kind: "persisted-business-facts",

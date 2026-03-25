@@ -5,6 +5,7 @@ import {
   type RuntimeStageDefinition,
   type StageRunRecord,
 } from "./run-stage";
+import type { AgentRunRecord, ToolCallRecord } from "./run-agent";
 import type { TraceDependencies } from "./write-trace";
 import { writeTrace } from "./write-trace";
 
@@ -15,6 +16,8 @@ export interface WorkflowRunRecord {
   workflowId: string;
   status: string;
   entryPayload?: Record<string, unknown>;
+  summary?: Record<string, unknown>;
+  completedAt?: Date;
 }
 
 export interface WorkflowRuntimeAdapters extends TraceDependencies {
@@ -22,19 +25,45 @@ export interface WorkflowRuntimeAdapters extends TraceDependencies {
   updateWorkflowRun?: (record: WorkflowRunRecord) => Promise<void> | void;
   createStageRun: (record: StageRunRecord) => Promise<void> | void;
   updateStageRun?: (record: StageRunRecord) => Promise<void> | void;
+  createAgentRun?: (record: AgentRunRecord) => Promise<void> | void;
+  updateAgentRun?: (
+    record: AgentRunRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
+  createToolCall?: (record: ToolCallRecord & { createdAt?: Date }) => Promise<void> | void;
+  updateToolCall?: (
+    record: ToolCallRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
 }
 
-export interface RunWorkflowInput {
-  workflow: WorkflowDefinition;
-  stages: RuntimeStageDefinition[];
+export interface WorkflowCoordinatorContext {
+  workflowRunId: string;
   entryPayload?: Record<string, unknown>;
   adapters: WorkflowRuntimeAdapters;
 }
 
-export interface RunWorkflowResult {
+export interface WorkflowCoordinatorResult<TResult = unknown> {
+  status?: WorkflowTerminalStatus;
+  summary?: Record<string, unknown>;
+  stages?: RunStageResult[];
+  result?: TResult;
+}
+
+export interface RunWorkflowInput {
+  workflow: WorkflowDefinition;
+  stages?: RuntimeStageDefinition[];
+  coordinator?: (
+    context: WorkflowCoordinatorContext
+  ) => Promise<WorkflowCoordinatorResult>;
+  entryPayload?: Record<string, unknown>;
+  adapters: WorkflowRuntimeAdapters;
+}
+
+export interface RunWorkflowResult<TResult = unknown> {
   id: string;
   status: WorkflowTerminalStatus;
   stages: RunStageResult[];
+  summary?: Record<string, unknown>;
+  result?: TResult;
 }
 
 const assertStageIdsMatch = (
@@ -66,7 +95,13 @@ const getWorkflowStatus = (stages: RunStageResult[]): WorkflowTerminalStatus => 
 export const runWorkflow = async (
   input: RunWorkflowInput
 ): Promise<RunWorkflowResult> => {
-  assertStageIdsMatch(input.workflow.stages, input.stages);
+  if (!input.coordinator && !input.stages) {
+    throw new Error("runWorkflow requires either stages or coordinator");
+  }
+
+  if (input.stages) {
+    assertStageIdsMatch(input.workflow.stages, input.stages);
+  }
 
   const workflowRun: WorkflowRunRecord = {
     id: input.adapters.createId(),
@@ -89,26 +124,71 @@ export const runWorkflow = async (
 
   const stageResults: RunStageResult[] = [];
 
-  for (const stage of input.stages) {
-    const stageResult = await runStage({
-      ...input.adapters,
-      workflowRunId: workflowRun.id,
-      stage,
-      entryPayload: input.entryPayload,
-      createStageRun: input.adapters.createStageRun,
-      updateStageRun: input.adapters.updateStageRun,
+  let summary: Record<string, unknown> | undefined;
+  let result: unknown;
+  let status: WorkflowTerminalStatus;
+
+  try {
+    if (input.coordinator) {
+      const coordinatorResult = await input.coordinator({
+        workflowRunId: workflowRun.id,
+        entryPayload: input.entryPayload,
+        adapters: input.adapters,
+      });
+      summary = coordinatorResult.summary;
+      stageResults.push(...(coordinatorResult.stages || []));
+      result = coordinatorResult.result;
+      status = coordinatorResult.status ?? "completed";
+    } else {
+      for (const stage of input.stages || []) {
+        const stageResult = await runStage({
+          ...input.adapters,
+          workflowRunId: workflowRun.id,
+          stage,
+          entryPayload: input.entryPayload,
+          createStageRun: input.adapters.createStageRun,
+          updateStageRun: input.adapters.updateStageRun,
+          createAgentRun: input.adapters.createAgentRun,
+          updateAgentRun: input.adapters.updateAgentRun,
+          createToolCall: input.adapters.createToolCall,
+          updateToolCall: input.adapters.updateToolCall,
+        });
+
+        stageResults.push(stageResult);
+
+        if (stageResult.status !== "completed") {
+          break;
+        }
+      }
+
+      status = getWorkflowStatus(stageResults);
+    }
+  } catch (error) {
+    status = "failed";
+    workflowRun.status = status;
+    await input.adapters.updateWorkflowRun?.({
+      ...workflowRun,
+      summary,
     });
 
-    stageResults.push(stageResult);
-
-    if (stageResult.status !== "completed") {
-      break;
-    }
+    await writeTrace({
+      ...input.adapters,
+      workflowRunId: workflowRun.id,
+      kind: "workflow.failed",
+      status,
+      payload: {
+        workflowId: input.workflow.id,
+        stageCount: stageResults.length,
+      },
+    });
+    throw error;
   }
 
-  const status = getWorkflowStatus(stageResults);
   workflowRun.status = status;
-  await input.adapters.updateWorkflowRun?.(workflowRun);
+  await input.adapters.updateWorkflowRun?.({
+    ...workflowRun,
+    summary,
+  });
 
   await writeTrace({
     ...input.adapters,
@@ -125,5 +205,7 @@ export const runWorkflow = async (
     id: workflowRun.id,
     status,
     stages: stageResults,
+    summary,
+    result,
   };
 };

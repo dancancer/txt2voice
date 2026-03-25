@@ -25,6 +25,16 @@ interface ScriptGenerationAgentDeps {
   now?: () => Date;
 }
 
+interface ScriptGenerationErrorContext {
+  rawResponse: string;
+  provider: string;
+  model: string;
+}
+
+interface ScriptGenerationExecutionError extends Error {
+  output?: Record<string, unknown>;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
@@ -167,6 +177,36 @@ const renderUserPrompt = (
   params: { segmentText: string }
 ) => template.split("{{segment_text}}").join(params.segmentText);
 
+const asErrorMessage = (value: unknown): string => {
+  if (value instanceof Error) {
+    return value.message;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "segment_scripting_parse_failed";
+};
+
+const toScriptGenerationError = (params: {
+  error: unknown;
+  context: ScriptGenerationErrorContext;
+}): ScriptGenerationExecutionError => {
+  const wrapped = new Error(asErrorMessage(params.error)) as ScriptGenerationExecutionError;
+  wrapped.output = {
+    failedArtifact: {
+      kind: "segment-scripting-failure",
+      rawResponse: params.context.rawResponse,
+      provider: params.context.provider,
+      model: params.context.model,
+      message: wrapped.message,
+    },
+  };
+
+  return wrapped;
+};
+
 export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => ({
   async execute(
     input: ScriptGenerationAgentInput
@@ -184,15 +224,26 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
 
     const now = deps.now ?? (() => new Date());
 
-    return {
-      segmentScriptDraft: toSegmentScriptDraft({
-        content: response.content,
-        segmentId: input.segmentId,
-        now,
-      }),
-      rawResponse: response.content,
-      provider: response.provider,
-      model: response.model,
-    };
+    try {
+      return {
+        segmentScriptDraft: toSegmentScriptDraft({
+          content: response.content,
+          segmentId: input.segmentId,
+          now,
+        }),
+        rawResponse: response.content,
+        provider: response.provider,
+        model: response.model,
+      };
+    } catch (error) {
+      throw toScriptGenerationError({
+        error,
+        context: {
+          rawResponse: response.content,
+          provider: response.provider,
+          model: response.model,
+        },
+      });
+    }
   },
 });

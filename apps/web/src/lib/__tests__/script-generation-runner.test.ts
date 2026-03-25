@@ -160,6 +160,24 @@ const createSuccessfulScript = () => ({
   ],
 });
 
+const createRuntimeMetadata = (partial?: Record<string, unknown>) => ({
+  workflowRunId: "workflow-run-1",
+  workflowId: "script-production",
+  status: "completed",
+  startedAt: "2026-03-24T10:00:00.000Z",
+  completedAt: "2026-03-24T10:00:05.000Z",
+  durationMs: 5000,
+  traceEventCount: 12,
+  stageRunCount: 4,
+  summary: {
+    totalSegments: 1,
+    processedSegments: 1,
+    failedSegments: 0,
+    failedSegmentIds: [],
+  },
+  ...partial,
+});
+
 describe("script-generation-runner", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -283,6 +301,58 @@ describe("script-generation-runner", () => {
         metadata: expect.objectContaining({
           failedSegmentIds: ["seg-2"],
           scriptFailureManualReviewPending: 1,
+        }),
+      }),
+    });
+  });
+
+  it("should attach agentRuntime metadata on failed runs and only persist runtime pointers to book metadata", async () => {
+    mockRunScriptProductionWorkflow.mockResolvedValue({
+      ...createFailedScript(),
+      runtimeMetadata: createRuntimeMetadata({
+        status: "failed",
+        summary: {
+          totalSegments: 2,
+          processedSegments: 1,
+          failedSegments: 1,
+          failedSegmentIds: ["seg-2"],
+        },
+      }),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-runtime-failed",
+      bookId: "book-1",
+      options: {},
+    });
+
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
+      where: { id: "task-runtime-failed" },
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            agentRuntime: expect.objectContaining({
+              workflowRunId: "workflow-run-1",
+              workflowId: "script-production",
+              status: "failed",
+              traceEventCount: 12,
+              stageRunCount: 4,
+            }),
+            failedSegments: 1,
+            failedSegmentIds: ["seg-2"],
+          }),
+        }),
+      }),
+    });
+
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          lastScriptWorkflowRunId: "workflow-run-1",
+          lastScriptRuntimeStatus: "failed",
+          lastScriptRuntimeCompletedAt: "2026-03-24T10:00:05.000Z",
+          lastFailedScriptWorkflowRunId: "workflow-run-1",
         }),
       }),
     });
@@ -822,6 +892,7 @@ describe("script-generation-runner", () => {
                 characters: ["旁白"],
               },
             ],
+            runtimeMetadata: createRuntimeMetadata(),
           };
         }),
         generatePartialScript: jest.fn(),
@@ -841,6 +912,10 @@ describe("script-generation-runner", () => {
         status: "completed",
         taskData: expect.objectContaining({
           metadata: expect.objectContaining({
+            agentRuntime: expect.objectContaining({
+              workflowRunId: "workflow-run-1",
+              status: "completed",
+            }),
             llmMetrics: expect.objectContaining({
               submitted: 1,
               completed: 1,
@@ -858,6 +933,17 @@ describe("script-generation-runner", () => {
               ],
             }),
           }),
+        }),
+      }),
+    });
+
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
+      where: { id: "book-1" },
+      data: expect.objectContaining({
+        metadata: expect.objectContaining({
+          lastScriptWorkflowRunId: "workflow-run-1",
+          lastScriptRuntimeStatus: "completed",
+          lastScriptRuntimeCompletedAt: "2026-03-24T10:00:05.000Z",
         }),
       }),
     });

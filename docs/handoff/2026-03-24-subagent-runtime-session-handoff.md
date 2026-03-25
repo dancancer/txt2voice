@@ -42,18 +42,62 @@
   - `SegmentScriptDraft -> ScriptSentence`
   - replay/fresh run 下 canonical 解析不再依赖复用同一批 in-memory profile 引用
 
-### Task 14：已完成入口 seam 切换
+### Task 14：runtime bridge 已闭环
 
 - 已新增：
   - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-script-production-workflow.ts`
 - 已完成：
   - `script-generation-runner.ts` 不再直接调用 `getScriptGenerator()` 分发 full / partial / regenerate
-  - 三条入口统一经 `runScriptProductionWorkflow()` 进入一层 bridge
+  - `runScriptProductionWorkflow()` 现在显式串起：
+    - `segment_scripting`
+    - deterministic validation
+    - `segment_repair`
+    - `quality`
+    - `persist`
+  - full / partial / regenerate 继续复用旧 `workflow.ts` 的选段语义
+  - `format_repair` 已能拿到结构化 `failedArtifact`，包含 `rawResponse / provider / model`
   - runner 后半段的 task progress、manual review sync、book/task 状态回写逻辑保持不变
-- 当前 bridge 状态：
-  - 这是一个 **thin seam**
-  - 现在仍然只是统一入口，不是完整的 stage-based orchestrator
-  - `segment_scripting -> validation -> repair -> quality -> persist` 还没有在 bridge 内部显式串起来
+
+### Task 15：runtime replay / summary / metadata 聚合已完成
+
+- 已新增：
+  - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production-runtime-store.ts`
+- 已完成：
+  - 默认生产路径会写入：
+    - `WorkflowRun`
+    - `StageRun`
+    - `TraceEvent`
+    - `AgentRun`
+    - `ToolCall`
+  - `WorkflowRun.summary` 已聚合：
+    - `mode`
+    - `selectedSegmentIds`
+    - `totalSegments`
+    - `processedSegments`
+    - `failedSegments`
+    - `failedSegmentIds`
+    - `persistedSentenceCount`
+    - `persistedCharacterCount`
+    - `formatRepairCount`
+    - `semanticRetryCount`
+    - `manualReviewRequiredCount`
+    - `qualityRejectedCount`
+    - `startedAt`
+    - `completedAt`
+    - `durationMs`
+    - `segmentOutcomeIndex`
+  - `runScriptProductionWorkflow()` 现在返回兼容旧 `GeneratedScript` 的同时，额外挂出 `runtimeMetadata`
+  - `script-generation-runner.ts` 会把 runtime 摘要合并到：
+    - `processingTask.taskData.metadata.agentRuntime`
+    - `book.metadata` 中的轻量 pointer 字段
+  - 已提供轻量 replay 读取面：
+    - `loadWorkflowReplay(workflowRunId)`
+  - 当前 replay 已支持：
+    - `stageRuns`
+    - `stageRuns.agentRuns`
+    - `stageRuns.agentRuns.toolCalls`
+    - `stageRuns.traceEvents`
+    - `traceEvents`
 
 ### 文档已恢复并纳管
 
@@ -70,6 +114,18 @@
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/storage/persistence.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generation-runner.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-script-production-workflow.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production-runtime-helpers.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production-runtime-store.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-agent.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-stage.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-workflow.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/stages/run-segment-scripting-stage.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/stages/run-segment-repair-stage.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/stages/run-quality-stage.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/stages/run-persist-stage.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/agents/script-generation-agent.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/adapters/llm-adapter.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/workflow-runtime.test.ts`
 
 ### 测试改动
 
@@ -77,6 +133,10 @@
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/storage/character-utils.task13.test.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/storage/persistence.task13.test.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/__tests__/script-generation-runner.test.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/run-script-production-workflow.test.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/segment-scripting-stage.test.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/llm-adapter.test.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/script-production-runtime-store.test.ts`
 
 ### 文档改动
 
@@ -96,6 +156,10 @@
   - 结果：PASS
 - `pnpm --filter web test -- --runInBand src/lib/__tests__/script-generation-runner.test.ts src/lib/agent-runtime/__tests__/persist-stage.test.ts src/lib/script-generator/storage/character-utils.task13.test.ts src/lib/script-generator/storage/persistence.task13.test.ts`
   - 结果：4 suites / 15 tests 全绿
+- `pnpm --filter web test -- --runInBand src/lib/agent-runtime/__tests__/script-production-runtime-store.test.ts src/lib/agent-runtime/__tests__/run-script-production-workflow.test.ts src/lib/agent-runtime/__tests__/segment-scripting-stage.test.ts src/lib/agent-runtime/__tests__/llm-adapter.test.ts src/lib/__tests__/script-generation-runner.test.ts`
+  - 结果：5 suites / 38 tests 全绿
+- `pnpm --filter web test -- --runInBand src/lib/agent-runtime/__tests__/workflow-runtime.test.ts src/lib/agent-runtime/__tests__/script-production-runtime-store.test.ts src/lib/agent-runtime/__tests__/run-script-production-workflow.test.ts`
+  - 结果：3 suites / 18 tests 全绿
 - `cd /Users/xupeng/mycode/txt2voice/apps/web && pnpm run typecheck`
   - 结果：`EXIT_CODE=0`
 
@@ -109,64 +173,67 @@
   - segment 路径不再越界创建业务角色
   - fresh replay 能从数据库恢复 canonical / alias 映射
 
-### Task 14（当前窄规格）
+### Task 14
 
 - 规格审查：通过
-- 当前通过范围仅包括：
-  - 旧 runner 入口已统一切到 `runScriptProductionWorkflow()`
+- 关键结论：
+  - thin seam 已提升为显式 stage bridge
+  - full / partial / regenerate 选段语义未回退
+  - `format_repair` 失败上下文已可透传
   - runner 后置状态语义未回退
+
+### Task 15
+
+- 规格审查：通过
+- 代码质量审查：通过
+- 关键结论：
+  - 默认生产路径已写通 `WorkflowRun / StageRun / TraceEvent`
+  - `AgentRun / ToolCall` 已接入 replay 链路
+  - runtime summary 与 replay 读取面已具备最小可用闭环
+  - runner metadata 已通过独立命名空间接入，未污染既有业务 summary / `reviewSync` / `llmMetrics`
 
 ## 结果与结论
 
-- 当前分支的真实状态不是“Task 14 完成”，而是：
+- 当前分支的真实状态已经变成：
   - Task 13 已闭环
-  - Task 14 已完成 **入口 seam 切换**
-  - Task 14 的完整 runtime bridge 仍未完成
-- 所以当前可以安全声称的阶段成果是：
-  - persist 业务事实提交边界已经收紧
-  - script generation 入口已经从硬编码 generator 调用中抽离
-  - 下一步可以在不动 route / queue 契约的前提下，把 seam 往真正的 stage orchestrator 推进
+  - Task 14 已闭环
+  - Task 15 已闭环
+  - Task 16 已完成本轮 handoff 更新
+- 当前可以安全声称的阶段成果是：
+  - script production 主链路已经具备显式 stage bridge
+  - runtime replay / summary / metadata 聚合已经写通到 agent/tool 级
+  - workflow-level 生命周期与 adapter 透传已通过通用 `runWorkflow()` coordinator 模式收回 runtime
+  - runner / book metadata 已能稳定挂接 workflow 运行指针
 
 ## 当前阻断 / 遗留风险
 
-- `runScriptProductionWorkflow()` 目前还是 thin wrapper
-  - 还没有显式串联：
-    - `segment_scripting`
-    - deterministic validation
-    - `segment_repair`
-    - `quality`
-    - `persist`
-- `workflows/script-production/workflow.toml` 仍未更新到完整阶段集
-  - 目前仍只有 `prepare / character_discovery / segment_scripting / segment_repair`
-- 通用 `runWorkflow()` 仍未接入真实业务链路
-  - 主要原因是当前 runtime stage API 还不负责 artifact 自动传递
-- Task 15/16 还没开始：
-  - replay / summary / metadata 聚合
-  - 最终文档更新
+- `input_refinement` 现已覆盖两条主路径：
+  - `semantic_retry` 用尽后进入切片重试
+  - `format_repair` 返回 `refine` 后进入切片重试
+- 当前仍有两层保守边界：
+  - refinement 深度仍受限
+  - 对纯 `LOW_COVERAGE` 这类宽口径失败，虽然现在会优先复用旧 validator 细码，但最终兜底切片仍保留通用句界启发式
+- `AgentRun / ToolCall` 已接入当前 runtime 与 script-production replay
+  - `ToolCall` 现在已经具备通用 runtime 能力，但当前落地覆盖仍以 script-production 的高价值 deterministic 动作为主
+- `runWorkflow()` 已支持 coordinator/B-lite 模式
+  - 当前已收回 workflow-level 生命周期
+  - 段级循环、业务聚合和部分 stage 结果组装仍留在 `run-script-production-workflow.ts`
 
 ## 下一会话建议起手顺序
 
-1. 扩展 `runScriptProductionWorkflow()`，从 thin seam 推到真正的 stage bridge
-   - 先闭环：
-     - `segment_scripting`
-     - deterministic validation
-     - `segment_repair`
-     - `quality`
-     - `persist`
+1. 决定是否进一步强化 input refinement
+   - 方向：
+     - 增加更深层 refinement 递归覆盖
+     - 继续收紧纯 `LOW_COVERAGE` 场景下的通用句界兜底
 
-2. 决定是否最小导出旧 workflow helper
-   - 候选：
-     - `loadBookForGeneration`
-     - `resolvePartialSegments`
-   - 目标：
-     - 避免在新 bridge 里复制 full / partial / regenerate 的段落选择逻辑
+2. 决定是否继续推进“完全去特化”
+   - 方向：
+     - 将段级循环与业务聚合进一步从 `run-script-production-workflow.ts` 下沉到通用 coordinator/segment executor
+     - 缩薄 script-production bridge，减少手工 stage result 组装
 
-3. 等 bridge 真正落地后，再更新 `workflows/script-production/workflow.toml`
-   - 让 definition 与真实 runtime 阶段一致
-
-4. 再做 Task 15 / Task 16
-   - replay / summary / metadata 聚合
-   - 最终设计/计划/handoff 清理
+3. 决定是否继续扩大 generic ToolCall 覆盖面
+   - 方向：
+     - 从当前 script-production 高价值 deterministic 动作，推广到更多 workflow/agent
 
 ## 新会话建议直接读取的文件
 
@@ -174,10 +241,11 @@
 - `/Users/xupeng/mycode/txt2voice/docs/plans/2026-03-23-subagent-skills-runtime-design.md`
 - `/Users/xupeng/mycode/txt2voice/docs/plans/2026-03-23-subagent-skills-runtime.md`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generation-runner.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-workflow.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-script-production-workflow.ts`
-- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/stages/run-persist-stage.ts`
-- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/storage/character-utils.ts`
-- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/script-generator/storage/persistence.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production-runtime-store.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/script-production-runtime-helpers.ts`
+- `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/__tests__/workflow-runtime.test.ts`
 - `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/__tests__/script-generation-runner.test.ts`
 
 ## 分支建议

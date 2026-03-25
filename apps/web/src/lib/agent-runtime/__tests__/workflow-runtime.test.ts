@@ -17,6 +17,25 @@ type InMemoryStageRun = {
   status: string;
 };
 
+type InMemoryAgentRun = {
+  id: string;
+  stageRunId: string;
+  agentId: string;
+  status: string;
+  skillId?: string;
+  inputSummary?: JsonMap;
+  outputSummary?: JsonMap;
+};
+
+type InMemoryToolCall = {
+  id: string;
+  agentRunId: string;
+  toolName: string;
+  status: string;
+  argumentsSummary?: JsonMap;
+  resultSummary?: JsonMap;
+};
+
 const updateStageStatus = (
   stageRuns: InMemoryStageRun[],
   stageRunId: string,
@@ -30,9 +49,232 @@ const updateStageStatus = (
 };
 
 describe("workflow runtime skeleton", () => {
+  it("supports coordinator mode while keeping a single workflow run", async () => {
+    const workflowRuns: InMemoryWorkflowRun[] = [];
+    const workflowUpdates: Array<Record<string, unknown>> = [];
+    const events: Array<{ kind: string; payload?: Record<string, unknown> }> = [];
+    let nextId = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-coordinator",
+      version: "1",
+      kind: "workflow",
+      stages: ["segment_scripting", "validation", "persist"],
+    };
+
+    const result = await runWorkflow({
+      workflow,
+      entryPayload: {
+        bookId: "book-1",
+      },
+      coordinator: async ({ workflowRunId }) => ({
+        status: "completed",
+        summary: {
+          processedSegments: 2,
+        },
+        stages: [
+          {
+            id: "stage-1",
+            stageId: "segment_scripting",
+            status: "completed",
+            agent: {
+              runId: "agent-1",
+              agentId: "script-generation-agent",
+              status: "completed",
+              output: { ok: true },
+            },
+          },
+        ],
+        result: {
+          workflowRunId,
+        },
+      }),
+      adapters: {
+        createId: () => `id-${nextId++}`,
+        createWorkflowRun: async (record) => {
+          workflowRuns.push(record);
+        },
+        updateWorkflowRun: async (record) => {
+          workflowUpdates.push(record as unknown as Record<string, unknown>);
+        },
+        createStageRun: async () => undefined,
+        appendTrace: async (event) => {
+          events.push({ kind: event.kind, payload: event.payload });
+        },
+      },
+    });
+
+    expect(workflowRuns).toHaveLength(1);
+    expect(result.id).toBe(workflowRuns[0]?.id);
+    expect(result.status).toBe("completed");
+    expect(result.summary).toEqual({
+      processedSegments: 2,
+    });
+    expect(result.stages).toHaveLength(1);
+    expect(result.result).toEqual({
+      workflowRunId: workflowRuns[0]?.id,
+    });
+    expect(workflowUpdates[0]).toEqual(
+      expect.objectContaining({
+        id: workflowRuns[0]?.id,
+        status: "completed",
+        summary: {
+          processedSegments: 2,
+        },
+      })
+    );
+    expect(events.map((event) => event.kind)).toEqual([
+      "workflow.started",
+      "workflow.completed",
+    ]);
+    expect(events[1]?.payload).toEqual(
+      expect.objectContaining({
+        stageCount: 1,
+      })
+    );
+  });
+
+  it("creates and updates tool calls through generic runtime helper", async () => {
+    const toolCalls: InMemoryToolCall[] = [];
+    let nextId = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-tool-call",
+      version: "1",
+      kind: "workflow",
+      stages: ["generate"],
+    };
+
+    await runWorkflow({
+      workflow,
+      stages: [
+        {
+          id: "generate",
+          agent: {
+            id: "generate-agent",
+            execute: async (input: any) => {
+              await input.runToolCall({
+                toolName: "validate-structured-output",
+                argumentsSummary: { segmentId: "seg-1" },
+                execute: async () => ({ valid: true }),
+                getResultSummary: (result: { valid: boolean }) => result,
+              });
+
+              return {
+                status: "completed",
+                output: { ok: true },
+              };
+            },
+          },
+        },
+      ],
+      adapters: {
+        createId: () => `id-${nextId++}`,
+        createWorkflowRun: async () => undefined,
+        createStageRun: async () => undefined,
+        createAgentRun: async () => undefined,
+        updateAgentRun: async () => undefined,
+        createToolCall: async (record) => {
+          toolCalls.push(record as InMemoryToolCall);
+        },
+        updateToolCall: async (record) => {
+          const target = toolCalls.find((item) => item.id === record.id);
+          if (target) {
+            Object.assign(target, record);
+          }
+        },
+        appendTrace: async () => undefined,
+      },
+    });
+
+    expect(toolCalls).toHaveLength(1);
+    expect(toolCalls[0]).toEqual(
+      expect.objectContaining({
+        toolName: "validate-structured-output",
+        status: "completed",
+        argumentsSummary: {
+          segmentId: "seg-1",
+        },
+        resultSummary: {
+          valid: true,
+        },
+      })
+    );
+  });
+
+  it("creates and updates agent runs with input and output summaries", async () => {
+    const agentRuns: InMemoryAgentRun[] = [];
+    let nextId = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-agent-run",
+      version: "1",
+      kind: "workflow",
+      stages: ["generate"],
+    };
+
+    await runWorkflow({
+      workflow,
+      entryPayload: {
+        bookId: "book-1",
+        segmentId: "seg-1",
+      },
+      stages: [
+        {
+          id: "generate",
+          agent: {
+            id: "generate-agent",
+            skillId: "script-generation",
+            getInputSummary: ({ entryPayload }) => ({
+              segmentId: entryPayload?.segmentId,
+            }),
+            getOutputSummary: ({ output }) => ({
+              lineCount: output?.lineCount,
+            }),
+            execute: async () => ({
+              status: "completed",
+              output: {
+                skillId: "script-generation",
+                lineCount: 2,
+              },
+            }),
+          },
+        },
+      ],
+      adapters: {
+        createId: () => `id-${nextId++}`,
+        createWorkflowRun: async () => undefined,
+        createStageRun: async () => undefined,
+        createAgentRun: async (record) => {
+          agentRuns.push(record as InMemoryAgentRun);
+        },
+        updateAgentRun: async (record) => {
+          const target = agentRuns.find((item) => item.id === record.id);
+          if (target) {
+            Object.assign(target, record);
+          }
+        },
+        appendTrace: async () => undefined,
+      },
+    });
+
+    expect(agentRuns).toHaveLength(1);
+    expect(agentRuns[0]).toEqual(
+      expect.objectContaining({
+        agentId: "generate-agent",
+        skillId: "script-generation",
+        status: "completed",
+        inputSummary: {
+          segmentId: "seg-1",
+        },
+        outputSummary: {
+          lineCount: 2,
+        },
+      })
+    );
+  });
+
   it("creates workflow run, stage runs, and trace events per stage", async () => {
     const workflowRuns: InMemoryWorkflowRun[] = [];
     const stageRuns: InMemoryStageRun[] = [];
+    const agentRuns: InMemoryAgentRun[] = [];
     const events: Array<{ kind: string; stageRunId?: string }> = [];
     let nextId = 0;
     const workflow: WorkflowDefinition = {
@@ -80,6 +322,15 @@ describe("workflow runtime skeleton", () => {
         updateStageRun: async (record) => {
           updateStageStatus(stageRuns, record.id, record.status);
         },
+        createAgentRun: async (record) => {
+          agentRuns.push(record as InMemoryAgentRun);
+        },
+        updateAgentRun: async (record) => {
+          const target = agentRuns.find((item) => item.id === record.id);
+          if (target) {
+            Object.assign(target, record);
+          }
+        },
         appendTrace: async (event) => {
           events.push({
             kind: event.kind,
@@ -92,6 +343,14 @@ describe("workflow runtime skeleton", () => {
     expect(workflowRuns).toHaveLength(1);
     expect(stageRuns.map((item) => item.stageId)).toEqual(["prepare", "generate"]);
     expect(stageRuns.map((item) => item.status)).toEqual(["completed", "completed"]);
+    expect(agentRuns.map((item) => item.agentId)).toEqual([
+      "prepare-agent",
+      "generate-agent",
+    ]);
+    expect(agentRuns.map((item) => item.status)).toEqual([
+      "completed",
+      "completed",
+    ]);
     const stageTraceKinds = events
       .filter((event) => event.stageRunId)
       .map((event) => event.kind);

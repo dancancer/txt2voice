@@ -1,4 +1,10 @@
-import { runAgent, type RunAgentResult, type RuntimeAgentDefinition } from "./run-agent";
+import {
+  runAgent,
+  type RunAgentResult,
+  type RuntimeAgentDefinition,
+  type AgentRunRecord,
+  type ToolCallRecord,
+} from "./run-agent";
 import type { TraceDependencies } from "./write-trace";
 import { writeTrace } from "./write-trace";
 
@@ -20,6 +26,14 @@ export interface RunStageInput extends TraceDependencies {
   entryPayload?: Record<string, unknown>;
   createStageRun: (record: StageRunRecord) => Promise<void> | void;
   updateStageRun?: (record: StageRunRecord) => Promise<void> | void;
+  createAgentRun?: (record: AgentRunRecord) => Promise<void> | void;
+  updateAgentRun?: (
+    record: AgentRunRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
+  createToolCall?: (record: ToolCallRecord & { createdAt?: Date }) => Promise<void> | void;
+  updateToolCall?: (
+    record: ToolCallRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
 }
 
 export interface RunStageResult {
@@ -57,6 +71,10 @@ export const runStage = async (input: RunStageInput): Promise<RunStageResult> =>
     stageId: input.stage.id,
     entryPayload: input.entryPayload,
     agent: input.stage.agent,
+    createAgentRun: input.createAgentRun,
+    updateAgentRun: input.updateAgentRun,
+    createToolCall: input.createToolCall,
+    updateToolCall: input.updateToolCall,
   });
 
   stageRun.status = agentResult.status;

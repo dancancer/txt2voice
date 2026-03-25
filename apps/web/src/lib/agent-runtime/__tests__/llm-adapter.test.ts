@@ -65,6 +65,10 @@ describe("agent runtime llm adapter", () => {
       provider: "openai",
       model: "gpt-4.1-mini",
       latencyMs: 42,
+      attempt: 1,
+      waitMs: 11,
+      retriesUsed: 0,
+      totalElapsedMs: 42,
       usage: {
         prompt_tokens: 5,
         completion_tokens: 9,
@@ -112,6 +116,10 @@ describe("agent runtime llm adapter", () => {
       provider: "custom",
       model: "deepseek-chat",
       latencyMs: 7,
+      attempt: 1,
+      waitMs: 0,
+      retriesUsed: 0,
+      totalElapsedMs: 7,
       usage: null,
     });
   });

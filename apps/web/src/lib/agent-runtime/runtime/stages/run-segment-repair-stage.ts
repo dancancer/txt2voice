@@ -10,6 +10,7 @@ import {
 } from "../../context";
 import { loadSkillDefinition } from "../../registry";
 import { createRepairAgent } from "../agents/repair-agent";
+import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
 import type { TraceDependencies } from "../write-trace";
 
@@ -19,6 +20,14 @@ interface SegmentRepairRuntimeDeps {
   now?: TraceDependencies["now"];
   createStageRun?: (record: StageRunRecord) => Promise<void> | void;
   updateStageRun?: (record: StageRunRecord) => Promise<void> | void;
+  createAgentRun?: (record: AgentRunRecord) => Promise<void> | void;
+  updateAgentRun?: (
+    record: AgentRunRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
+  createToolCall?: (record: ToolCallRecord & { createdAt?: Date }) => Promise<void> | void;
+  updateToolCall?: (
+    record: ToolCallRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
 }
 
 export type SegmentRepairFailureKind =
@@ -48,6 +57,7 @@ export interface SegmentRepairArtifact {
 
 interface RunSegmentRepairStageCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "completed";
   decision: RepairDecision;
   artifact?: SegmentRepairArtifact;
@@ -55,6 +65,7 @@ interface RunSegmentRepairStageCompletedResult {
 
 interface RunSegmentRepairStageNonCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "failed" | "retrying" | "repairing";
   error?: string;
 }
@@ -224,6 +235,11 @@ export const runSegmentRepairStage = async (
       id: "segment_repair",
       agent: {
         id: runtimeAgentId,
+        inputSummary: {
+          segmentId: input.segmentId,
+          failureKind: input.failureKind,
+          repairDepth: input.repairDepth,
+        },
         resolveFailure: () => "failed",
         execute: async () => {
           if (input.repairDepth >= maxRepairDepth) {
@@ -321,11 +337,16 @@ export const runSegmentRepairStage = async (
     now: input.now,
     createStageRun: input.createStageRun ?? (async () => undefined),
     updateStageRun: input.updateStageRun,
+    createAgentRun: input.createAgentRun,
+    updateAgentRun: input.updateAgentRun,
+    createToolCall: input.createToolCall,
+    updateToolCall: input.updateToolCall,
   });
 
   if (stageResult.status !== "completed") {
     return {
       stageRunId: stageResult.id,
+      agentRunId: stageResult.agent.runId,
       status: stageResult.status,
       error: stageResult.agent.error,
     };
@@ -343,6 +364,7 @@ export const runSegmentRepairStage = async (
 
   return {
     stageRunId: stageResult.id,
+    agentRunId: stageResult.agent.runId,
     status: "completed",
     decision,
     artifact:

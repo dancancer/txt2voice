@@ -8,6 +8,7 @@ import {
   createQualityJudgeAgent,
   type QualitySignals,
 } from "../agents/quality-judge-agent";
+import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
 import type { TraceDependencies } from "../write-trace";
 
@@ -17,6 +18,14 @@ interface QualityStageRuntimeDeps {
   now?: TraceDependencies["now"];
   createStageRun?: (record: StageRunRecord) => Promise<void> | void;
   updateStageRun?: (record: StageRunRecord) => Promise<void> | void;
+  createAgentRun?: (record: AgentRunRecord) => Promise<void> | void;
+  updateAgentRun?: (
+    record: AgentRunRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
+  createToolCall?: (record: ToolCallRecord & { createdAt?: Date }) => Promise<void> | void;
+  updateToolCall?: (
+    record: ToolCallRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
 }
 
 export interface RunQualityStageInput extends QualityStageRuntimeDeps {
@@ -52,6 +61,7 @@ export type QualityStageDecision =
 
 interface RunQualityStageCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "completed";
   decision: QualityStageDecision;
   verdict: QualityVerdict;
@@ -60,6 +70,7 @@ interface RunQualityStageCompletedResult {
 
 interface RunQualityStageNonCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "failed" | "retrying" | "repairing";
   error?: string;
 }
@@ -342,6 +353,10 @@ export const runQualityStage = async (
       id: "quality_judgement",
       agent: {
         id: runtimeAgentId,
+        inputSummary: {
+          segmentId: input.segmentId,
+          coverageRatio: input.validationReport.coverageRatio,
+        },
         resolveFailure: () => "failed",
         execute: async () => {
           const deterministicDecision = resolveDeterministicDecision(input);
@@ -400,11 +415,16 @@ export const runQualityStage = async (
     now: input.now,
     createStageRun: input.createStageRun ?? (async () => undefined),
     updateStageRun: input.updateStageRun,
+    createAgentRun: input.createAgentRun,
+    updateAgentRun: input.updateAgentRun,
+    createToolCall: input.createToolCall,
+    updateToolCall: input.updateToolCall,
   });
 
   if (stageResult.status !== "completed") {
     return {
       stageRunId: stageResult.id,
+      agentRunId: stageResult.agent.runId,
       status: stageResult.status,
       error: stageResult.agent.error,
     };
@@ -419,6 +439,7 @@ export const runQualityStage = async (
 
   return {
     stageRunId: stageResult.id,
+    agentRunId: stageResult.agent.runId,
     status: "completed",
     decision:
       (stageResult.agent.output?.decision as QualityStageDecision | undefined) ??

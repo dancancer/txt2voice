@@ -5,6 +5,7 @@ import type { LLMAdapter } from "../../adapters/llm-adapter";
 import { buildAgentContext, type SegmentScriptDraft } from "../../context";
 import { loadSkillDefinition } from "../../registry";
 import { createScriptGenerationAgent } from "../agents/script-generation-agent";
+import type { AgentRunRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
 import type { TraceDependencies } from "../write-trace";
 
@@ -14,6 +15,10 @@ interface SegmentScriptingRuntimeDeps {
   now?: TraceDependencies["now"];
   createStageRun?: (record: StageRunRecord) => Promise<void> | void;
   updateStageRun?: (record: StageRunRecord) => Promise<void> | void;
+  createAgentRun?: (record: AgentRunRecord) => Promise<void> | void;
+  updateAgentRun?: (
+    record: AgentRunRecord & { completedAt?: Date }
+  ) => Promise<void> | void;
 }
 
 export interface RunSegmentScriptingStageInput
@@ -35,14 +40,17 @@ export interface SegmentScriptingArtifact {
 
 interface RunSegmentScriptingStageCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "completed";
   artifact: SegmentScriptingArtifact;
 }
 
 interface RunSegmentScriptingStageNonCompletedResult {
   stageRunId: string;
+  agentRunId?: string;
   status: "failed" | "retrying" | "repairing";
   error?: string;
+  failedArtifact?: unknown;
 }
 
 export type RunSegmentScriptingStageResult =
@@ -194,6 +202,10 @@ export const runSegmentScriptingStage = async (
       id: "segment_scripting",
       agent: {
         id: runtimeAgentId,
+        inputSummary: {
+          segmentId: input.segmentId,
+          sourceLength: input.segmentText.length,
+        },
         resolveFailure: ({ error }) => {
           const message = asErrorMessage(error);
           return isRepairableError(message) ? "repairing" : "failed";
@@ -258,13 +270,17 @@ export const runSegmentScriptingStage = async (
     now: input.now,
     createStageRun: input.createStageRun ?? (async () => undefined),
     updateStageRun: input.updateStageRun,
+    createAgentRun: input.createAgentRun,
+    updateAgentRun: input.updateAgentRun,
   });
 
   if (stageResult.status !== "completed") {
     return {
       stageRunId: stageResult.id,
+      agentRunId: stageResult.agent.runId,
       status: stageResult.status,
       error: stageResult.agent.error,
+      failedArtifact: stageResult.agent.output?.failedArtifact,
     };
   }
 
@@ -277,6 +293,7 @@ export const runSegmentScriptingStage = async (
 
   return {
     stageRunId: stageResult.id,
+    agentRunId: stageResult.agent.runId,
     status: "completed",
     artifact: {
       kind: "segment-script-draft",

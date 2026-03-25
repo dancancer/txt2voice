@@ -252,6 +252,15 @@ describe("segment scripting stage", () => {
 
     expect(result.status).toBe("repairing");
     expect("artifact" in result).toBe(false);
+    expect(
+      "failedArtifact" in result ? result.failedArtifact : undefined
+    ).toEqual({
+      kind: "segment-scripting-failure",
+      rawResponse: "not-json",
+      provider: "mock-provider",
+      model: "mock-model",
+      message: "Invalid script generation payload: expected JSON object",
+    });
   });
 
   it("returns repairing when payload is empty object or lines is not array", async () => {
