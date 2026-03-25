@@ -7,6 +7,8 @@ export type TraceRuntimeStatus =
   | "failed"
   | "retrying"
   | "repairing"
+  | "manual_review_required"
+  | "blocked"
   | "skipped";
 
 export interface TraceDependencies {
@@ -31,7 +33,15 @@ const mapStatusToEventStatus = (
     return "completed";
   }
 
+  if (status === "manual_review_required") {
+    return "completed";
+  }
+
   if (status === "failed") {
+    return "failed";
+  }
+
+  if (status === "blocked") {
     return "failed";
   }
 

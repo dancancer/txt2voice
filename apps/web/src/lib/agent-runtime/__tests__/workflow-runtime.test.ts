@@ -133,6 +133,110 @@ describe("workflow runtime skeleton", () => {
     );
   });
 
+  it("accepts manual_review_required as a coordinator terminal status", async () => {
+    const workflowRuns: InMemoryWorkflowRun[] = [];
+    const workflowUpdates: Array<Record<string, unknown>> = [];
+    const events: Array<{ kind: string; payload?: Record<string, unknown> }> = [];
+    let nextId = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-manual-review",
+      version: "1",
+      kind: "workflow",
+      stages: ["quality_judgement", "manual_review_handoff"],
+    };
+
+    const result = await runWorkflow({
+      workflow,
+      coordinator: async () => ({
+        status: "manual_review_required",
+        summary: {
+          pendingReviews: 2,
+        },
+      }),
+      adapters: {
+        createId: () => `id-${nextId++}`,
+        createWorkflowRun: async (record) => {
+          workflowRuns.push(record);
+        },
+        updateWorkflowRun: async (record) => {
+          workflowUpdates.push(record as unknown as Record<string, unknown>);
+        },
+        createStageRun: async () => undefined,
+        appendTrace: async (event) => {
+          events.push({ kind: event.kind, payload: event.payload });
+        },
+      },
+    });
+
+    expect(result.status).toBe("manual_review_required");
+    expect(workflowRuns).toHaveLength(1);
+    expect(workflowUpdates[0]).toEqual(
+      expect.objectContaining({
+        id: workflowRuns[0]?.id,
+        status: "manual_review_required",
+        summary: {
+          pendingReviews: 2,
+        },
+      })
+    );
+    expect(events.map((event) => event.kind)).toEqual([
+      "workflow.started",
+      "workflow.manual_review_required",
+    ]);
+  });
+
+  it("accepts blocked as a coordinator terminal status", async () => {
+    const workflowRuns: InMemoryWorkflowRun[] = [];
+    const workflowUpdates: Array<Record<string, unknown>> = [];
+    const events: Array<{ kind: string; payload?: Record<string, unknown> }> = [];
+    let nextId = 0;
+    const workflow: WorkflowDefinition = {
+      id: "wf-blocked",
+      version: "1",
+      kind: "workflow",
+      stages: ["prepare"],
+    };
+
+    const result = await runWorkflow({
+      workflow,
+      coordinator: async () => ({
+        status: "blocked",
+        summary: {
+          reason: "budget_exceeded",
+        },
+      }),
+      adapters: {
+        createId: () => `id-${nextId++}`,
+        createWorkflowRun: async (record) => {
+          workflowRuns.push(record);
+        },
+        updateWorkflowRun: async (record) => {
+          workflowUpdates.push(record as unknown as Record<string, unknown>);
+        },
+        createStageRun: async () => undefined,
+        appendTrace: async (event) => {
+          events.push({ kind: event.kind, payload: event.payload });
+        },
+      },
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(workflowRuns).toHaveLength(1);
+    expect(workflowUpdates[0]).toEqual(
+      expect.objectContaining({
+        id: workflowRuns[0]?.id,
+        status: "blocked",
+        summary: {
+          reason: "budget_exceeded",
+        },
+      })
+    );
+    expect(events.map((event) => event.kind)).toEqual([
+      "workflow.started",
+      "workflow.blocked",
+    ]);
+  });
+
   it("creates and updates tool calls through generic runtime helper", async () => {
     const toolCalls: InMemoryToolCall[] = [];
     let nextId = 0;

@@ -9,7 +9,13 @@ import type { AgentRunRecord, ToolCallRecord } from "./run-agent";
 import type { TraceDependencies } from "./write-trace";
 import { writeTrace } from "./write-trace";
 
-type WorkflowTerminalStatus = "completed" | "failed" | "retrying" | "repairing";
+type WorkflowTerminalStatus =
+  | "completed"
+  | "failed"
+  | "retrying"
+  | "repairing"
+  | "manual_review_required"
+  | "blocked";
 
 export interface WorkflowRunRecord {
   id: string;
