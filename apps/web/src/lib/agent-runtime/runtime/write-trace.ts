@@ -26,6 +26,11 @@ export interface WriteTraceInput extends TraceDependencies {
   payload?: Record<string, unknown>;
 }
 
+const TRACE_KIND_ALIASES: Record<string, string> = {
+  "validation.failed": "validation_failed",
+  "validation.completed": "structured_output_received",
+};
+
 const mapStatusToEventStatus = (
   status: TraceRuntimeStatus
 ): ExecutionEventStatus => {
@@ -57,7 +62,7 @@ export const writeTrace = async (
 ): Promise<ExecutionEvent> => {
   const event: ExecutionEvent = {
     id: input.createId(),
-    kind: input.kind,
+    kind: TRACE_KIND_ALIASES[input.kind] || input.kind,
     createdAt: (input.now ?? (() => new Date()))().toISOString(),
     workflowRunId: input.workflowRunId,
     stageRunId: input.stageRunId,
