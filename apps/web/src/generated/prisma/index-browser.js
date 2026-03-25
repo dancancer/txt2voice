@@ -306,6 +306,74 @@ exports.Prisma.ProcessingTaskScalarFieldEnum = {
   externalTaskId: 'externalTaskId'
 };
 
+exports.Prisma.WorkflowRunScalarFieldEnum = {
+  id: 'id',
+  workflowId: 'workflowId',
+  bookId: 'bookId',
+  processingTaskId: 'processingTaskId',
+  status: 'status',
+  entryPayload: 'entryPayload',
+  runtimeConfig: 'runtimeConfig',
+  summary: 'summary',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+};
+
+exports.Prisma.StageRunScalarFieldEnum = {
+  id: 'id',
+  workflowRunId: 'workflowRunId',
+  stageId: 'stageId',
+  status: 'status',
+  summary: 'summary',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+};
+
+exports.Prisma.AgentRunScalarFieldEnum = {
+  id: 'id',
+  stageRunId: 'stageRunId',
+  agentId: 'agentId',
+  skillId: 'skillId',
+  status: 'status',
+  inputSummary: 'inputSummary',
+  outputSummary: 'outputSummary',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt'
+};
+
+exports.Prisma.ToolCallScalarFieldEnum = {
+  id: 'id',
+  agentRunId: 'agentRunId',
+  toolName: 'toolName',
+  status: 'status',
+  argumentsSummary: 'argumentsSummary',
+  resultSummary: 'resultSummary',
+  createdAt: 'createdAt',
+  completedAt: 'completedAt'
+};
+
+exports.Prisma.TraceEventScalarFieldEnum = {
+  id: 'id',
+  workflowRunId: 'workflowRunId',
+  stageRunId: 'stageRunId',
+  agentRunId: 'agentRunId',
+  eventType: 'eventType',
+  payload: 'payload',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.RuntimeArtifactScalarFieldEnum = {
+  id: 'id',
+  workflowRunId: 'workflowRunId',
+  stageRunId: 'stageRunId',
+  agentRunId: 'agentRunId',
+  segmentId: 'segmentId',
+  artifactKind: 'artifactKind',
+  artifactVersion: 'artifactVersion',
+  payload: 'payload',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SpeakerProfileScalarFieldEnum = {
   name: 'name',
   gender: 'gender',
@@ -541,6 +609,12 @@ exports.Prisma.ModelName = {
   AudioFile: 'AudioFile',
   CharacterMergeAudit: 'CharacterMergeAudit',
   ProcessingTask: 'ProcessingTask',
+  WorkflowRun: 'WorkflowRun',
+  StageRun: 'StageRun',
+  AgentRun: 'AgentRun',
+  ToolCall: 'ToolCall',
+  TraceEvent: 'TraceEvent',
+  RuntimeArtifact: 'RuntimeArtifact',
   SpeakerProfile: 'SpeakerProfile',
   CharacterSpeakerBinding: 'CharacterSpeakerBinding',
   SpeakerEngineVariant: 'SpeakerEngineVariant',

@@ -32,6 +32,7 @@ model Book {
   mergeAudits           CharacterMergeAudit[]
   characterProfiles     CharacterProfile[]
   processingTasks       ProcessingTask[]
+  workflowRuns          WorkflowRun[]
   scriptSentences       ScriptSentence[]
   synthesisAttempts     SynthesisAttempt[]
   textSegments          TextSegment[]
@@ -292,21 +293,22 @@ model CharacterMergeAudit {
 }
 
 model ProcessingTask {
-  id             String    @id @default(uuid())
+  id             String        @id @default(uuid())
   bookId         String
   taskType       String
-  status         String    @default("pending")
-  progress       Int       @default(0)
-  totalItems     Int       @default(0)
-  processedItems Int       @default(0)
-  taskData       Json      @default("{}")
+  status         String        @default("pending")
+  progress       Int           @default(0)
+  totalItems     Int           @default(0)
+  processedItems Int           @default(0)
+  taskData       Json          @default("{}")
   errorMessage   String?
   startedAt      DateTime?
   completedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
   externalTaskId String?
-  book           Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  book           Book          @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  workflowRuns   WorkflowRun[]
 
   @@index([bookId])
   @@index([status])
@@ -314,6 +316,94 @@ model ProcessingTask {
   @@index([taskType, status])
   @@index([externalTaskId])
   @@map("processing_tasks")
+}
+
+model WorkflowRun {
+  id               String            @id @default(uuid())
+  workflowId       String
+  bookId           String
+  processingTaskId String?
+  status           String
+  entryPayload     Json?
+  runtimeConfig    Json?
+  summary          Json?
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  book             Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  processingTask   ProcessingTask?   @relation(fields: [processingTaskId], references: [id], onDelete: SetNull)
+  stageRuns        StageRun[]
+  traceEvents      TraceEvent[]
+  runtimeArtifacts RuntimeArtifact[]
+}
+
+model StageRun {
+  id               String            @id @default(uuid())
+  workflowRunId    String
+  stageId          String
+  status           String
+  summary          Json?
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  workflowRun      WorkflowRun       @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  agentRuns        AgentRun[]
+  traceEvents      TraceEvent[]
+  runtimeArtifacts RuntimeArtifact[]
+}
+
+model AgentRun {
+  id               String            @id @default(uuid())
+  stageRunId       String
+  agentId          String
+  skillId          String?
+  status           String
+  inputSummary     Json?
+  outputSummary    Json?
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+  stageRun         StageRun          @relation(fields: [stageRunId], references: [id], onDelete: Cascade)
+  toolCalls        ToolCall[]
+  traceEvents      TraceEvent[]
+  runtimeArtifacts RuntimeArtifact[]
+}
+
+model ToolCall {
+  id               String    @id @default(uuid())
+  agentRunId       String
+  toolName         String
+  status           String
+  argumentsSummary Json?
+  resultSummary    Json?
+  createdAt        DateTime  @default(now())
+  completedAt      DateTime?
+  agentRun         AgentRun  @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+}
+
+model TraceEvent {
+  id            String      @id @default(uuid())
+  workflowRunId String
+  stageRunId    String?
+  agentRunId    String?
+  eventType     String
+  payload       Json?
+  createdAt     DateTime    @default(now())
+  workflowRun   WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  stageRun      StageRun?   @relation(fields: [stageRunId], references: [id], onDelete: SetNull)
+  agentRun      AgentRun?   @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+}
+
+model RuntimeArtifact {
+  id              String      @id @default(uuid())
+  workflowRunId   String
+  stageRunId      String?
+  agentRunId      String?
+  segmentId       String?
+  artifactKind    String
+  artifactVersion String
+  payload         Json
+  createdAt       DateTime    @default(now())
+  workflowRun     WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  stageRun        StageRun?   @relation(fields: [stageRunId], references: [id], onDelete: SetNull)
+  agentRun        AgentRun?   @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
 }
 
 model SpeakerProfile {
