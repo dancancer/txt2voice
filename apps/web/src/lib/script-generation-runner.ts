@@ -12,8 +12,6 @@ import {
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
-import { Prisma } from "@/lib/prisma";
-import { resolveScriptValidationSubtype } from "@/lib/script-validation-review";
 
 export interface ScriptGenerationExtraParams {
   startFromSegmentId?: string | null;
@@ -31,12 +29,6 @@ export interface ScriptGenerationRunParams {
 }
 
 const MANUAL_REVIEW_ISSUE_TYPE = "SCRIPT_VALIDATION";
-const MANUAL_REVIEW_HIGH_PRIORITY_CODES = new Set([
-  "LOW_COVERAGE",
-  "NON_WHITESPACE_GAP",
-  "SOURCE_NOT_FOUND",
-  "MISSING_SOURCE_TEXT",
-]);
 
 interface ScriptGenerationLLMProviderMetrics {
   provider: string;
@@ -420,161 +412,6 @@ const resolveBookStatusAfterPartialRun = (params: {
   return "script_generated";
 };
 
-const pickManualReviewPriority = (detail: SegmentFailureDetail): "high" | "normal" => {
-  if (detail.coverageRatio !== null && detail.coverageRatio < 0.9) {
-    return "high";
-  }
-
-  for (const issueCode of detail.issueCodes) {
-    if (MANUAL_REVIEW_HIGH_PRIORITY_CODES.has(issueCode)) {
-      return "high";
-    }
-  }
-
-  return "normal";
-};
-
-const toInputJson = (value: unknown): Prisma.InputJsonValue =>
-  JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
-
-const syncScriptFailureManualReviewItems = async (params: {
-  taskId: string;
-  bookId: string;
-  failures: SegmentFailureDetail[];
-}) => {
-  const { taskId, bookId, failures } = params;
-  if (failures.length === 0) {
-    return {
-      created: 0,
-      updated: 0,
-      totalPending: 0,
-    };
-  }
-
-  let created = 0;
-  let updated = 0;
-
-  await prisma.$transaction(async (tx) => {
-    for (const failure of failures) {
-      const scriptSubtype = resolveScriptValidationSubtype({
-        errorCode: failure.errorCode,
-        issueCodes: failure.issueCodes,
-      });
-      const issueDetail = {
-        source: "script_generation",
-        taskId,
-        segmentId: failure.segmentId,
-        chapterId: failure.chapterId,
-        orderIndex: failure.orderIndex,
-        stage: failure.stage,
-        errorCode: failure.errorCode,
-        message: failure.message,
-        provider: failure.provider,
-        retryable: failure.retryable,
-        coverageRatio: failure.coverageRatio,
-        issueCodes: failure.issueCodes,
-        issueMessages: failure.issueMessages,
-        issuePreviews: failure.issuePreviews,
-        segmentPreview: failure.segmentPreview,
-        segmentContent: failure.segmentContent || null,
-        rawResponse: failure.rawResponse || null,
-        structuredResult: failure.structuredResult || null,
-        scriptSubtype,
-      };
-      const priority = pickManualReviewPriority(failure);
-
-      const existing = await tx.manualReviewItem.findFirst({
-        where: {
-          bookId,
-          issueType: MANUAL_REVIEW_ISSUE_TYPE,
-          segmentId: failure.segmentId,
-          status: {
-            in: ["pending", "reprocessing"],
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (existing) {
-        await tx.manualReviewItem.update({
-          where: { id: existing.id },
-          data: {
-            status: "pending",
-            priority,
-            issueDetail: toInputJson(issueDetail),
-            resolutionType: null,
-            resolutionNote: null,
-            resolvedAt: null,
-          },
-        });
-        updated += 1;
-        continue;
-      }
-
-      await tx.manualReviewItem.create({
-        data: {
-          bookId,
-          chapterId: failure.chapterId,
-          segmentId: failure.segmentId,
-          issueType: MANUAL_REVIEW_ISSUE_TYPE,
-          priority,
-          status: "pending",
-          issueDetail: toInputJson(issueDetail),
-        },
-      });
-      created += 1;
-    }
-  });
-
-  return {
-    created,
-    updated,
-    totalPending: created + updated,
-  };
-};
-
-const resolveSuccessfulScriptValidationManualReviewItems = async (params: {
-  taskId: string;
-  bookId: string;
-  processedSegmentIds: string[];
-  failedSegmentIds: string[];
-}) => {
-  const { taskId, bookId, processedSegmentIds, failedSegmentIds } = params;
-  const failedSegmentIdSet = new Set(failedSegmentIds);
-  const successfulSegmentIds = processedSegmentIds.filter(
-    (segmentId) => segmentId && !failedSegmentIdSet.has(segmentId)
-  );
-
-  if (successfulSegmentIds.length === 0) {
-    return { resolved: 0 };
-  }
-
-  const result = await prisma.manualReviewItem.updateMany({
-    where: {
-      bookId,
-      issueType: MANUAL_REVIEW_ISSUE_TYPE,
-      segmentId: {
-        in: successfulSegmentIds,
-      },
-      status: {
-        in: ["pending", "reprocessing"],
-      },
-    },
-    data: {
-      status: "resolved",
-      resolutionType: "auto_resolved",
-      resolutionNote: `script_generation_success:task=${taskId}`,
-      resolvedAt: new Date(),
-    },
-  });
-
-  return {
-    resolved: typeof result.count === "number" ? result.count : 0,
-  };
-};
-
 /**
  * 执行台本生成任务。
  * 注意：异常交由队列层决定是否重试和最终失败落库。
@@ -715,33 +552,14 @@ export async function runScriptGenerationTask({
     isPartialRun,
   });
   const outstandingFailedSegments = outstandingFailedSegmentIds.length;
-  const resolvedReviewResult = runtimeReviewSync
-    ? {
-        resolved: runtimeReviewSync.resolved,
-      }
-    : await resolveSuccessfulScriptValidationManualReviewItems({
-        taskId,
-        bookId,
-        processedSegmentIds,
-        failedSegmentIds,
-      });
-  const reviewSyncResult = runtimeReviewSync
-    ? {
-        created: runtimeReviewSync.created,
-        updated: runtimeReviewSync.updated,
-        totalPending: runtimeReviewSync.pending,
-      }
-    : hasSegmentFailures
-      ? await syncScriptFailureManualReviewItems({
-          taskId,
-          bookId,
-          failures: failedSegmentDetails,
-        })
-      : {
-          created: 0,
-          updated: 0,
-          totalPending: 0,
-        };
+  const resolvedReviewResult = {
+    resolved: runtimeReviewSync?.resolved ?? 0,
+  };
+  const reviewSyncResult = {
+    created: runtimeReviewSync?.created ?? 0,
+    updated: runtimeReviewSync?.updated ?? 0,
+    totalPending: runtimeReviewSync?.pending ?? 0,
+  };
   const llmMetrics = llmMetricsCollector.snapshot();
 
   if (hasSegmentFailures) {

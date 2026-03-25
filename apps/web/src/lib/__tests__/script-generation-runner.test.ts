@@ -244,10 +244,24 @@ describe("script-generation-runner", () => {
   });
 
   it("should create script validation manual review item and mark book as manual_review_pending", async () => {
-    mockGetScriptGenerator.mockReturnValue({
-      generateScript: jest.fn().mockResolvedValue(createFailedScript()),
-      generatePartialScript: jest.fn(),
-      regenerateSegmentScript: jest.fn(),
+    mockRunScriptProductionWorkflow.mockResolvedValue({
+      ...createFailedScript(),
+      runtimeMetadata: createRuntimeMetadata({
+        status: "failed",
+        summary: {
+          totalSegments: 2,
+          processedSegments: 1,
+          failedSegments: 1,
+          failedSegmentIds: ["seg-2"],
+          manualReviewSync: {
+            issueType: "SCRIPT_VALIDATION",
+            created: 1,
+            updated: 0,
+            pending: 1,
+            resolved: 0,
+          },
+        },
+      }),
     } as any);
 
     await runScriptGenerationTask({
@@ -256,24 +270,9 @@ describe("script-generation-runner", () => {
       options: {},
     });
 
-    expect(mockPrisma.manualReviewItem.create).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        bookId: "book-1",
-        chapterId: "chapter-1",
-        segmentId: "seg-2",
-        issueType: "SCRIPT_VALIDATION",
-        status: "pending",
-        priority: "high",
-        issueDetail: expect.objectContaining({
-          scriptSubtype: "COVERAGE",
-          segmentContent: "第二段原文，有校验问题",
-          rawResponse: expect.stringContaining('"dialogues"'),
-          structuredResult: expect.objectContaining({
-            dialogues: expect.any(Array),
-          }),
-        }),
-      }),
-    });
+    expect(mockPrisma.manualReviewItem.create).not.toHaveBeenCalled();
+    expect(mockPrisma.manualReviewItem.update).not.toHaveBeenCalled();
+    expect(mockPrisma.manualReviewItem.updateMany).not.toHaveBeenCalled();
 
     expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
       where: { id: "task-1" },
@@ -407,6 +406,46 @@ describe("script-generation-runner", () => {
     });
   });
 
+  it("should not fall back to local review sync when runtime metadata omits manualReviewSync", async () => {
+    mockRunScriptProductionWorkflow.mockResolvedValue({
+      ...createFailedScript(),
+      runtimeMetadata: createRuntimeMetadata({
+        status: "failed",
+        summary: {
+          totalSegments: 2,
+          processedSegments: 1,
+          failedSegments: 1,
+          failedSegmentIds: ["seg-2"],
+        },
+      }),
+    } as any);
+
+    await runScriptGenerationTask({
+      taskId: "task-no-review-fallback",
+      bookId: "book-1",
+      options: {},
+    });
+
+    expect(mockPrisma.manualReviewItem.create).not.toHaveBeenCalled();
+    expect(mockPrisma.manualReviewItem.update).not.toHaveBeenCalled();
+    expect(mockPrisma.manualReviewItem.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
+      where: { id: "task-no-review-fallback" },
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            reviewSync: expect.objectContaining({
+              issueType: "SCRIPT_VALIDATION",
+              created: 0,
+              updated: 0,
+              pending: 0,
+            }),
+          }),
+        }),
+      }),
+    });
+  });
+
   it("should route full generation through runtime bridge instead of legacy generator", async () => {
     mockRunScriptProductionWorkflow.mockResolvedValue(createSuccessfulScript());
 
@@ -429,11 +468,24 @@ describe("script-generation-runner", () => {
   });
 
   it("should reuse existing pending manual review item instead of creating duplicates", async () => {
-    mockPrisma.manualReviewItem.findFirst.mockResolvedValue({ id: "review-existing" });
-    mockGetScriptGenerator.mockReturnValue({
-      generateScript: jest.fn().mockResolvedValue(createFailedScript()),
-      generatePartialScript: jest.fn(),
-      regenerateSegmentScript: jest.fn(),
+    mockRunScriptProductionWorkflow.mockResolvedValue({
+      ...createFailedScript(),
+      runtimeMetadata: createRuntimeMetadata({
+        status: "failed",
+        summary: {
+          totalSegments: 2,
+          processedSegments: 1,
+          failedSegments: 1,
+          failedSegmentIds: ["seg-2"],
+          manualReviewSync: {
+            issueType: "SCRIPT_VALIDATION",
+            created: 0,
+            updated: 1,
+            pending: 1,
+            resolved: 0,
+          },
+        },
+      }),
     } as any);
 
     await runScriptGenerationTask({
@@ -443,15 +495,19 @@ describe("script-generation-runner", () => {
     });
 
     expect(mockPrisma.manualReviewItem.create).not.toHaveBeenCalled();
-    expect(mockPrisma.manualReviewItem.update).toHaveBeenCalledWith({
-      where: { id: "review-existing" },
+    expect(mockPrisma.manualReviewItem.update).not.toHaveBeenCalled();
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
+      where: { id: "task-2" },
       data: expect.objectContaining({
-        status: "pending",
-        priority: "high",
-        issueDetail: expect.objectContaining({
-          scriptSubtype: "COVERAGE",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            reviewSync: expect.objectContaining({
+              created: 0,
+              updated: 1,
+              pending: 1,
+            }),
+          }),
         }),
-        resolutionType: null,
       }),
     });
   });
@@ -537,10 +593,24 @@ describe("script-generation-runner", () => {
       ],
     });
 
-    mockGetScriptGenerator.mockReturnValue({
-      generateScript: jest.fn(),
-      generatePartialScript,
-      regenerateSegmentScript: jest.fn(),
+    mockRunScriptProductionWorkflow.mockResolvedValue({
+      ...createSuccessfulScript(),
+      runtimeMetadata: createRuntimeMetadata({
+        status: "completed",
+        summary: {
+          totalSegments: 1,
+          processedSegments: 1,
+          failedSegments: 0,
+          failedSegmentIds: [],
+          manualReviewSync: {
+            issueType: "SCRIPT_VALIDATION",
+            created: 0,
+            updated: 0,
+            pending: 0,
+            resolved: 1,
+          },
+        },
+      }),
     } as any);
 
     await runScriptGenerationTask({
@@ -552,22 +622,16 @@ describe("script-generation-runner", () => {
       },
     });
 
-    expect(mockPrisma.manualReviewItem.updateMany).toHaveBeenCalledWith({
-      where: {
-        bookId: "book-1",
-        issueType: "SCRIPT_VALIDATION",
-        segmentId: {
-          in: ["seg-2"],
-        },
-        status: {
-          in: ["pending", "reprocessing"],
-        },
-      },
+    expect(generatePartialScript).not.toHaveBeenCalled();
+    expect(mockPrisma.manualReviewItem.updateMany).not.toHaveBeenCalled();
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
+      where: { id: "task-success" },
       data: expect.objectContaining({
-        status: "resolved",
-        resolutionType: "auto_resolved",
-        resolutionNote: expect.stringContaining("task-success"),
-        resolvedAt: expect.any(Date),
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            autoResolvedScriptReviewItems: 1,
+          }),
+        }),
       }),
     });
 
