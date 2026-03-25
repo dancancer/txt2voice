@@ -1,6 +1,9 @@
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
   default: {
+    runtimeArtifact: {
+      create: jest.fn(),
+    },
     toolCall: {
       create: jest.fn(),
       update: jest.fn(),
@@ -31,16 +34,19 @@ describe("script production runtime store", () => {
       stageRuns: [
         {
           id: "stage-1",
+          runtimeArtifacts: [],
           agentRuns: [
             {
               id: "agent-1",
               toolCalls: [],
+              runtimeArtifacts: [],
               traceEvents: [],
             },
           ],
           traceEvents: [],
         },
       ],
+      runtimeArtifacts: [],
       traceEvents: [],
     };
     mockPrisma.workflowRun.findUnique.mockResolvedValue(workflowRun);
@@ -61,6 +67,9 @@ describe("script production runtime store", () => {
                 toolCalls: {
                   orderBy: [{ createdAt: "asc" }, { id: "asc" }],
                 },
+                runtimeArtifacts: {
+                  orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                },
                 traceEvents: {
                   orderBy: [{ createdAt: "asc" }, { id: "asc" }],
                 },
@@ -70,8 +79,14 @@ describe("script production runtime store", () => {
             traceEvents: {
               orderBy: [{ createdAt: "asc" }, { id: "asc" }],
             },
+            runtimeArtifacts: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            },
           },
           orderBy: [{ startedAt: "asc" }, { id: "asc" }],
+        },
+        runtimeArtifacts: {
+          orderBy: [{ createdAt: "asc" }, { id: "asc" }],
         },
         traceEvents: {
           orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -130,6 +145,44 @@ describe("script production runtime store", () => {
         eventType: "validation_failed",
         payload: expect.objectContaining({
           segmentId: "seg-1",
+        }),
+      }),
+    });
+  });
+
+  it("persists runtime artifacts with envelope metadata", async () => {
+    mockPrisma.runtimeArtifact.create.mockResolvedValue({});
+    const { createScriptProductionRuntimeStore } = await import(
+      "../runtime/script-production-runtime-store"
+    );
+
+    const store = createScriptProductionRuntimeStore();
+    await store.createRuntimeArtifact({
+      id: "artifact-1",
+      workflowRunId: "wf-1",
+      stageRunId: "stage-1",
+      agentRunId: "agent-1",
+      segmentId: "seg-1",
+      artifactKind: "validation-report",
+      artifactVersion: "v1",
+      payload: {
+        valid: false,
+        issueCodes: ["LOW_COVERAGE"],
+      },
+    });
+
+    expect(mockPrisma.runtimeArtifact.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: "artifact-1",
+        workflowRunId: "wf-1",
+        stageRunId: "stage-1",
+        agentRunId: "agent-1",
+        segmentId: "seg-1",
+        artifactKind: "validation-report",
+        artifactVersion: "v1",
+        payload: expect.objectContaining({
+          valid: false,
+          issueCodes: ["LOW_COVERAGE"],
         }),
       }),
     });

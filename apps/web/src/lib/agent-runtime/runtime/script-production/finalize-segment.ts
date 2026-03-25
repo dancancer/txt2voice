@@ -82,6 +82,35 @@ export const finalizeSegment = async (params: {
     },
   });
 
+  if (qualityStage.status === "completed") {
+    await params.context.runtimeStore.createRuntimeArtifact({
+      id: params.context.createId(),
+      workflowRunId: params.context.workflowRunId,
+      stageRunId: qualityStage.stageRunId,
+      agentRunId: qualityStage.agentRunId ?? null,
+      segmentId: params.context.segment.id,
+      artifactKind: "segment-script-draft",
+      artifactVersion: "v1",
+      payload: params.draft,
+      createdAt: (params.context.now ?? (() => new Date()))(),
+    });
+    await params.context.runtimeStore.createRuntimeArtifact({
+      id: params.context.createId(),
+      workflowRunId: params.context.workflowRunId,
+      stageRunId: qualityStage.stageRunId,
+      agentRunId: qualityStage.agentRunId ?? null,
+      segmentId: params.context.segment.id,
+      artifactKind: "quality-verdict",
+      artifactVersion: "v1",
+      payload: {
+        decision: qualityStage.decision,
+        verdict: qualityStage.verdict,
+        handoff: qualityStage.handoff,
+      },
+      createdAt: (params.context.now ?? (() => new Date()))(),
+    });
+  }
+
   if (qualityStage.status !== "completed") {
     return {
       status: "failed",

@@ -22,21 +22,23 @@
 - 本轮已把 `manual_review_handoff` 落成显式 runtime stage，runner 端的本地 review sync fallback 已移除。
 - 本轮已补齐 `script-generation-agent / repair-agent / quality-judge-agent / coordinator-agent` 的 authoring 定义，并扩展 skill metadata。
 - 本轮已补齐 phase-2 缺失的 runtime tool contracts，并开始在主链路里写 `context_built / artifact_committed / manual_review_escalated` 事件。
+- 本轮已把 `prepare / complete` 接入 script-production workflow。
+- 本轮已补上 `llm_requested / structured_output_received / repair_started` 等高价值 trace 事件。
+- 本轮已新增 `RuntimeArtifact` 持久化面，并开始在主链路里落 `character-memory-draft / validation-report / repair-decision / segment-script-draft / quality-verdict`。
 
 ### Partially Completed
 
 - 主 workflow 还没有接入设计稿里的完整阶段机。
-  - 当前 `workflow.toml` 已包含 `character_discovery`，但仍缺 `prepare / manual_review_handoff / complete`。
-- 主 workflow 已经包含 `manual_review_handoff`，但仍缺 `prepare / complete`。
+  - 当前 `workflow.toml` 已包含 `prepare / character_discovery / manual_review_handoff / complete`，但这些 stage 还主要是最小实现，尚未完全工具化。
 - `runWorkflow()` 已支持 `manual_review_required / blocked`，但这些状态还没有在更多 runtime workflow 上普及。
 - `ToolCall` 和 replay 已能工作，缺失的 tool contract 也已补齐，但 canonical toolName 和 trace taxonomy 仍在继续收口。
-- trace taxonomy 目前只先落了 `context_built / artifact_committed / manual_review_escalated`，以及 `validation.failed -> validation_failed` 的落库归一化；`llm_requested / structured_output_received / repair_started` 仍未全链路标准化。
+- trace taxonomy 已覆盖 `context_built / artifact_committed / manual_review_escalated / repair_started / llm_requested / structured_output_received` 的首批高价值事件，但还没有对所有 legacy kind 做统一归一。
+- runtime 已开始 artifact-centric 落盘，但 replay 读取面还没有把 artifacts 提升为一等导航对象。
 
 ### Not Yet Implemented
 
-- `prepare` / `complete` 还没有在 workflow 定义中体现。
 - 更完整的 trace taxonomy 还没标准化为统一事件名。
-- runtime 目前是 run-centric replay，还没有 artifact-centric 的独立持久化面。
+- runtime artifacts 还没有独立的查询/导航接口，只是作为 replay sidecar 落盘。
 
 ### Deferred For Later
 

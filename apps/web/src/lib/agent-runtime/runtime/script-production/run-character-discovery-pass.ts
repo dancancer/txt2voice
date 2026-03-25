@@ -140,6 +140,21 @@ export const runCharacterDiscoveryPass = async (
     },
   });
 
+  if (discoveryStage.status === "completed") {
+    await params.runtimeStore.createRuntimeArtifact({
+      id: params.createId(),
+      workflowRunId: params.workflowRunId,
+      stageRunId: discoveryStage.stageRunId,
+      artifactKind: discoveryStage.artifact.kind,
+      artifactVersion: "v1",
+      payload: {
+        skillId: discoveryStage.artifact.skillId,
+        characterMemoryDraft: discoveryStage.artifact.characterMemoryDraft,
+      },
+      createdAt: now(),
+    });
+  }
+
   if (
     discoveryStage.status !== "completed" ||
     !hasCharacterMemoryDraftContent(discoveryStage.artifact.characterMemoryDraft)

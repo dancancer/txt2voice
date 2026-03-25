@@ -61,6 +61,14 @@ describe("agent runtime prisma schema shape", () => {
     expectField(schema, "TraceEvent", "stageRunId");
     expectField(schema, "TraceEvent", "agentRunId");
     expectField(schema, "TraceEvent", "eventType");
+
+    expectModel(schema, "RuntimeArtifact");
+    expectField(schema, "RuntimeArtifact", "workflowRunId");
+    expectField(schema, "RuntimeArtifact", "stageRunId");
+    expectField(schema, "RuntimeArtifact", "agentRunId");
+    expectField(schema, "RuntimeArtifact", "segmentId");
+    expectField(schema, "RuntimeArtifact", "artifactKind");
+    expectField(schema, "RuntimeArtifact", "artifactVersion");
   });
 
   it("stores runtime artifact payloads in json fields", () => {
@@ -75,5 +83,6 @@ describe("agent runtime prisma schema shape", () => {
     expectJsonField(schema, "ToolCall", "argumentsSummary");
     expectJsonField(schema, "ToolCall", "resultSummary");
     expectJsonField(schema, "TraceEvent", "payload");
+    expectJsonField(schema, "RuntimeArtifact", "payload");
   });
 });

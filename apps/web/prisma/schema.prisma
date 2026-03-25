@@ -333,6 +333,7 @@ model WorkflowRun {
   processingTask   ProcessingTask? @relation(fields: [processingTaskId], references: [id], onDelete: SetNull)
   stageRuns        StageRun[]
   traceEvents      TraceEvent[]
+  runtimeArtifacts RuntimeArtifact[]
 }
 
 model StageRun {
@@ -346,6 +347,7 @@ model StageRun {
   workflowRun   WorkflowRun  @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
   agentRuns     AgentRun[]
   traceEvents   TraceEvent[]
+  runtimeArtifacts RuntimeArtifact[]
 }
 
 model AgentRun {
@@ -361,6 +363,7 @@ model AgentRun {
   stageRun      StageRun    @relation(fields: [stageRunId], references: [id], onDelete: Cascade)
   toolCalls     ToolCall[]
   traceEvents   TraceEvent[]
+  runtimeArtifacts RuntimeArtifact[]
 }
 
 model ToolCall {
@@ -386,6 +389,21 @@ model TraceEvent {
   workflowRun   WorkflowRun  @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
   stageRun      StageRun?    @relation(fields: [stageRunId], references: [id], onDelete: SetNull)
   agentRun      AgentRun?    @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+}
+
+model RuntimeArtifact {
+  id              String      @id @default(uuid())
+  workflowRunId   String
+  stageRunId      String?
+  agentRunId      String?
+  segmentId       String?
+  artifactKind    String
+  artifactVersion String
+  payload         Json
+  createdAt       DateTime    @default(now())
+  workflowRun     WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  stageRun        StageRun?   @relation(fields: [stageRunId], references: [id], onDelete: SetNull)
+  agentRun        AgentRun?   @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
 }
 
 model SpeakerProfile {

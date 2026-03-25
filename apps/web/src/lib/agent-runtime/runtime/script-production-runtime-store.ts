@@ -76,6 +76,17 @@ export interface ScriptProductionRuntimeStore {
     resultSummary?: JsonMap;
     completedAt?: Date;
   }) => Promise<void>;
+  createRuntimeArtifact: (record: {
+    id: string;
+    workflowRunId: string;
+    stageRunId?: string | null;
+    agentRunId?: string | null;
+    segmentId?: string | null;
+    artifactKind: string;
+    artifactVersion: string;
+    payload: unknown;
+    createdAt?: Date;
+  }) => Promise<void>;
   appendTrace: (event: ExecutionEvent) => Promise<void>;
 }
 
@@ -192,6 +203,22 @@ export const createScriptProductionRuntimeStore = (): ScriptProductionRuntimeSto
     });
   },
 
+  async createRuntimeArtifact(record) {
+    await runtimePrisma.runtimeArtifact.create({
+      data: {
+        id: record.id,
+        workflowRunId: record.workflowRunId,
+        stageRunId: record.stageRunId ?? null,
+        agentRunId: record.agentRunId ?? null,
+        segmentId: record.segmentId ?? null,
+        artifactKind: record.artifactKind,
+        artifactVersion: record.artifactVersion,
+        payload: toJson(record.payload),
+        createdAt: record.createdAt,
+      },
+    });
+  },
+
   async appendTrace(event) {
     await runtimePrisma.traceEvent.create({
       data: {
@@ -218,6 +245,9 @@ export const loadWorkflowReplay = async (workflowRunId: string) =>
                 toolCalls: {
                   orderBy: [{ createdAt: "asc" }, { id: "asc" }],
                 },
+                runtimeArtifacts: {
+                  orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+                },
                 traceEvents: {
                   orderBy: [{ createdAt: "asc" }, { id: "asc" }],
                 },
@@ -227,9 +257,15 @@ export const loadWorkflowReplay = async (workflowRunId: string) =>
             traceEvents: {
               orderBy: [{ createdAt: "asc" }, { id: "asc" }],
             },
+            runtimeArtifacts: {
+              orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+            },
           },
           orderBy: [{ startedAt: "asc" }, { id: "asc" }],
         },
+      runtimeArtifacts: {
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      },
       traceEvents: {
         orderBy: [{ createdAt: "asc" }, { id: "asc" }],
       },

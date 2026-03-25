@@ -118,5 +118,17 @@ export const runValidationStage = async (params: {
   });
   params.context.onStageResult?.(validationStageResult);
 
+  await params.context.runtimeStore.createRuntimeArtifact({
+    id: params.context.createId(),
+    workflowRunId: params.context.workflowRunId,
+    stageRunId: validationStageResult.id,
+    agentRunId: validationStageResult.agent.runId ?? null,
+    segmentId: params.context.segment.id,
+    artifactKind: "validation-report",
+    artifactVersion: "v1",
+    payload: params.validationReport,
+    createdAt: (params.context.now ?? (() => new Date()))(),
+  });
+
   return validationStageResult;
 };

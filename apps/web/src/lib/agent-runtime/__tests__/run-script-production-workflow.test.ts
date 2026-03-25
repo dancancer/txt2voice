@@ -28,6 +28,9 @@ jest.mock("@/lib/prisma", () => ({
       create: jest.fn(),
       update: jest.fn(),
     },
+    runtimeArtifact: {
+      create: jest.fn(),
+    },
     traceEvent: {
       create: jest.fn(),
     },
@@ -224,6 +227,7 @@ describe("runScriptProductionWorkflow", () => {
     mockPrisma.agentRun.update.mockResolvedValue({});
     mockPrisma.toolCall.create.mockResolvedValue({});
     mockPrisma.toolCall.update.mockResolvedValue({});
+    mockPrisma.runtimeArtifact.create.mockResolvedValue({});
     mockPrisma.traceEvent.create.mockResolvedValue({});
     mockRunCharacterDiscoveryStage.mockResolvedValue({
       stageRunId: "discovery-unused",
@@ -1491,6 +1495,16 @@ describe("runScriptProductionWorkflow", () => {
           toolName: expect.stringMatching(
             /validate-structured-output|check-script-coverage|commit-script-sentences/
           ),
+        }),
+      })
+    );
+    expect(mockPrisma.runtimeArtifact.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          artifactKind: expect.stringMatching(
+            /character-memory-draft|validation-report|segment-script-draft|quality-verdict/
+          ),
+          artifactVersion: "v1",
         }),
       })
     );

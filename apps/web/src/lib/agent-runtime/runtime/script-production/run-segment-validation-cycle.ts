@@ -136,6 +136,22 @@ export const runSegmentValidationCycle = async (
       error: repairStage.status === "completed" ? undefined : repairStage.error,
     },
   });
+  if (repairStage.status === "completed") {
+    await params.runtimeStore.createRuntimeArtifact({
+      id: params.createId(),
+      workflowRunId: params.workflowRunId,
+      stageRunId: repairStage.stageRunId,
+      agentRunId: repairStage.agentRunId ?? null,
+      segmentId: params.segment.id,
+      artifactKind: "repair-decision",
+      artifactVersion: "v1",
+      payload: {
+        failureKind: "semantic_retry",
+        decision: repairStage.decision,
+      },
+      createdAt: (params.now ?? (() => new Date()))(),
+    });
+  }
 
   if (repairStage.status !== "completed") {
     return {
@@ -255,6 +271,22 @@ export const runSegmentValidationCycle = async (
             : refinementStage.error,
       },
     });
+    if (refinementStage.status === "completed") {
+      await params.runtimeStore.createRuntimeArtifact({
+        id: params.createId(),
+        workflowRunId: params.workflowRunId,
+        stageRunId: refinementStage.stageRunId,
+        agentRunId: refinementStage.agentRunId ?? null,
+        segmentId: params.segment.id,
+        artifactKind: "repair-decision",
+        artifactVersion: "v1",
+        payload: {
+          failureKind: "input_refinement",
+          decision: refinementStage.decision,
+        },
+        createdAt: (params.now ?? (() => new Date()))(),
+      });
+    }
 
     if (
       refinementStage.status === "completed" &&
