@@ -285,3 +285,61 @@ export const loadRuntimeArtifacts = async (params: {
     },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
   });
+
+type RuntimeArtifactRow = {
+  id: string;
+  segmentId?: string | null;
+  artifactKind: string;
+  createdAt: Date;
+};
+
+type WorkflowReplayWithArtifacts = Awaited<ReturnType<typeof loadWorkflowReplay>>;
+
+const sortArtifacts = <T extends RuntimeArtifactRow>(artifacts: T[]): T[] =>
+  [...artifacts].sort((left, right) => {
+    const timeDiff = left.createdAt.getTime() - right.createdAt.getTime();
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+    return left.id.localeCompare(right.id);
+  });
+
+export const loadWorkflowRuntimeBundle = async (workflowRunId: string) => {
+  const replay = (await loadWorkflowReplay(
+    workflowRunId
+  )) as WorkflowReplayWithArtifacts;
+  if (!replay) {
+    return null;
+  }
+
+  const timeline = sortArtifacts([
+    ...((replay.runtimeArtifacts as RuntimeArtifactRow[] | undefined) || []),
+    ...((replay.stageRuns || []).flatMap(
+      (stageRun: any) => stageRun.runtimeArtifacts || []
+    ) as RuntimeArtifactRow[]),
+    ...((replay.stageRuns || []).flatMap((stageRun: any) =>
+      (stageRun.agentRuns || []).flatMap((agentRun: any) => agentRun.runtimeArtifacts || [])
+    ) as RuntimeArtifactRow[]),
+  ]);
+
+  const workflowArtifacts = timeline.filter((artifact) => !artifact.segmentId);
+  const segmentArtifacts = timeline.reduce<Record<string, RuntimeArtifactRow[]>>(
+    (acc, artifact) => {
+      if (!artifact.segmentId) {
+        return acc;
+      }
+
+      acc[artifact.segmentId] ||= [];
+      acc[artifact.segmentId].push(artifact);
+      return acc;
+    },
+    {}
+  );
+
+  return {
+    replay,
+    timeline,
+    workflowArtifacts,
+    segmentArtifacts,
+  };
+};

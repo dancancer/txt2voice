@@ -217,4 +217,71 @@ describe("script production runtime store", () => {
     });
     expect(result).toBe(rows);
   });
+
+  it("builds an artifact-centric workflow bundle grouped by segment", async () => {
+    const workflowRun = {
+      id: "wf-1",
+      workflowId: "script-production",
+      status: "completed",
+      runtimeArtifacts: [
+        {
+          id: "artifact-workflow-1",
+          artifactKind: "character-memory-draft",
+          segmentId: null,
+          createdAt: new Date("2026-03-25T10:00:00.000Z"),
+        },
+      ],
+      stageRuns: [
+        {
+          id: "stage-1",
+          stageId: "validation",
+          runtimeArtifacts: [
+            {
+              id: "artifact-seg-1-validation",
+              artifactKind: "validation-report",
+              segmentId: "seg-1",
+              createdAt: new Date("2026-03-25T10:00:01.000Z"),
+            },
+          ],
+          agentRuns: [
+            {
+              id: "agent-1",
+              runtimeArtifacts: [
+                {
+                  id: "artifact-seg-1-quality",
+                  artifactKind: "quality-verdict",
+                  segmentId: "seg-1",
+                  createdAt: new Date("2026-03-25T10:00:02.000Z"),
+                },
+              ],
+              toolCalls: [],
+              traceEvents: [],
+            },
+          ],
+          traceEvents: [],
+        },
+      ],
+      traceEvents: [],
+    };
+    mockPrisma.workflowRun.findUnique.mockResolvedValue(workflowRun);
+
+    const { loadWorkflowRuntimeBundle } = await import(
+      "../runtime/script-production-runtime-store"
+    );
+
+    const bundle = await loadWorkflowRuntimeBundle("wf-1");
+
+    expect(bundle?.timeline.map((item) => item.id)).toEqual([
+      "artifact-workflow-1",
+      "artifact-seg-1-validation",
+      "artifact-seg-1-quality",
+    ]);
+    expect(bundle?.workflowArtifacts.map((item) => item.id)).toEqual([
+      "artifact-workflow-1",
+    ]);
+    expect(bundle?.segmentArtifacts["seg-1"]?.map((item) => item.id)).toEqual([
+      "artifact-seg-1-validation",
+      "artifact-seg-1-quality",
+    ]);
+  });
 });
