@@ -224,6 +224,22 @@ export const finalizeSegment = async (params: {
     };
   }
 
+  await params.context.appendTrace({
+    id: params.context.createId(),
+    kind: "artifact_committed",
+    createdAt: (params.context.now ?? (() => new Date()))().toISOString(),
+    workflowRunId: params.context.workflowRunId,
+    stageRunId: persistStage.stageRunId,
+    agentRunId: persistStage.agentRunId,
+    status: "completed",
+    payload: {
+      artifactKind: "segment-script-draft",
+      segmentId: params.context.segment.id,
+      persistedSentenceCount: persistStage.artifact.persistedSentenceCount,
+      persistedCharacterCount: persistStage.artifact.persistedCharacterCount,
+    },
+  });
+
   const dialogueLines = mapSegmentScriptDraftToDialogueLines({
     segmentScriptDraft: params.draft,
     chapterId: params.context.segment.chapterId ?? null,

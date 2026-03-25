@@ -440,6 +440,13 @@ describe("runScriptProductionWorkflow", () => {
         issueType: "SCRIPT_VALIDATION",
       }),
     });
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: "manual_review_escalated",
+        }),
+      })
+    );
     expect(mockPrisma.toolCall.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -1429,6 +1436,13 @@ describe("runScriptProductionWorkflow", () => {
       })
     );
     expect(mockPrisma.traceEvent.create).toHaveBeenCalled();
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: expect.stringMatching(/artifact_committed|context_built/),
+        }),
+      })
+    );
     expect(mockPrisma.workflowRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: expect.any(String) },

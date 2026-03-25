@@ -415,6 +415,23 @@ export const runScriptProductionWorkflow = async (
               : manualReviewStage.error,
         },
       });
+      if (manualReviewSync.pending > 0) {
+        await appendTrackedTrace({
+          id: createId(),
+          kind: "manual_review_escalated",
+          createdAt: now().toISOString(),
+          workflowRunId,
+          stageRunId: manualReviewStage.stageRunId,
+          agentRunId: manualReviewStage.agentRunId,
+          status: "completed",
+          payload: {
+            pending: manualReviewSync.pending,
+            created: manualReviewSync.created,
+            updated: manualReviewSync.updated,
+            issueType: manualReviewSync.issueType,
+          },
+        });
+      }
 
       const completedAt = now();
       const workflowSummary = buildWorkflowSummary({

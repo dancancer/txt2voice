@@ -74,6 +74,22 @@ export const runCharacterDiscoveryPass = async (
     return { persistedCharacterCount: 0 };
   }
 
+  await params.appendTrace({
+    id: params.createId(),
+    kind: "context_built",
+    createdAt: (params.now ?? (() => new Date()))().toISOString(),
+    workflowRunId: params.workflowRunId,
+    status: "completed",
+    payload: {
+      stageId: "character_discovery",
+      segmentCount: Math.min(
+        params.segments.length,
+        CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT
+      ),
+      charCount: sampleText.length,
+    },
+  });
+
   const discoveryStage = await runDiscoveryStage({
     workflowRunId: params.workflowRunId,
     segmentText: sampleText,
@@ -199,6 +215,23 @@ export const runCharacterDiscoveryPass = async (
   if (persistCharacterMemoryStage.status !== "completed") {
     return { persistedCharacterCount: 0 };
   }
+
+  await params.appendTrace({
+    id: params.createId(),
+    kind: "artifact_committed",
+    createdAt: now().toISOString(),
+    workflowRunId: params.workflowRunId,
+    stageRunId: persistCharacterMemoryStage.stageRunId,
+    agentRunId: persistCharacterMemoryStage.agentRunId,
+    status: "completed",
+    payload: {
+      artifactKind: "character-memory-draft",
+      persistedCharacterCount:
+        persistCharacterMemoryStage.artifact.persistedCharacterCount,
+      persistedSentenceCount:
+        persistCharacterMemoryStage.artifact.persistedSentenceCount,
+    },
+  });
 
   return {
     persistedCharacterCount:
