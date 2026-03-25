@@ -3,6 +3,7 @@ jest.mock("@/lib/prisma", () => ({
   default: {
     runtimeArtifact: {
       create: jest.fn(),
+      findMany: jest.fn(),
     },
     toolCall: {
       create: jest.fn(),
@@ -186,5 +187,34 @@ describe("script production runtime store", () => {
         }),
       }),
     });
+  });
+
+  it("loads runtime artifacts with workflow and segment filters", async () => {
+    const rows = [
+      {
+        id: "artifact-1",
+        artifactKind: "validation-report",
+      },
+    ];
+    mockPrisma.runtimeArtifact.findMany.mockResolvedValue(rows);
+    const { loadRuntimeArtifacts } = await import(
+      "../runtime/script-production-runtime-store"
+    );
+
+    const result = await loadRuntimeArtifacts({
+      workflowRunId: "wf-1",
+      segmentId: "seg-1",
+      artifactKind: "validation-report",
+    });
+
+    expect(mockPrisma.runtimeArtifact.findMany).toHaveBeenCalledWith({
+      where: {
+        workflowRunId: "wf-1",
+        segmentId: "seg-1",
+        artifactKind: "validation-report",
+      },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+    expect(result).toBe(rows);
   });
 });

@@ -271,3 +271,17 @@ export const loadWorkflowReplay = async (workflowRunId: string) =>
       },
     },
   });
+
+export const loadRuntimeArtifacts = async (params: {
+  workflowRunId: string;
+  segmentId?: string;
+  artifactKind?: string;
+}) =>
+  runtimePrisma.runtimeArtifact.findMany({
+    where: {
+      workflowRunId: params.workflowRunId,
+      ...(params.segmentId ? { segmentId: params.segmentId } : {}),
+      ...(params.artifactKind ? { artifactKind: params.artifactKind } : {}),
+    },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+  });
