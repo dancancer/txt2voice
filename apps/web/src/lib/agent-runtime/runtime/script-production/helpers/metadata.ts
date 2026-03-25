@@ -133,8 +133,8 @@ export const createValidationTraceEvent = (params: {
 }): ExecutionEvent => ({
   id: params.createId(),
   kind: params.validationReport.valid
-    ? "validation.completed"
-    : "validation.failed",
+    ? "validation_succeeded"
+    : "validation_failed",
   createdAt: (params.now ?? (() => new Date()))().toISOString(),
   workflowRunId: params.workflowRunId,
   stageRunId: params.stageRunId,

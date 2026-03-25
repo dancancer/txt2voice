@@ -1516,6 +1516,16 @@ describe("runScriptProductionWorkflow", () => {
         }),
       })
     );
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: "validation_succeeded",
+          payload: expect.objectContaining({
+            segmentId: "seg-1",
+          }),
+        }),
+      })
+    );
     expect(mockPrisma.workflowRun.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: expect.any(String) },

@@ -18,7 +18,7 @@ const TOOL_NAME_ALIASES: Record<string, string> = {
 
 const TRACE_KIND_ALIASES: Record<string, string> = {
   "validation.failed": "validation_failed",
-  "validation.completed": "structured_output_received",
+  "validation.completed": "validation_succeeded",
 };
 
 const isTerminalStatus = (status: string): boolean =>
