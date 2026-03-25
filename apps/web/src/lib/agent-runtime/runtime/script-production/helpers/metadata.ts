@@ -1,0 +1,205 @@
+import type { ExecutionEvent } from "../../../protocol/events";
+import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type {
+  ScriptProductionWorkflowMode,
+  ScriptProductionBookSegment,
+  SegmentOutcomeIndexItem,
+} from "../shared-types";
+
+export interface ScriptProductionWorkflowSummary {
+  mode: ScriptProductionWorkflowMode;
+  selectedSegmentIds: string[];
+  totalSegments: number;
+  processedSegments: number;
+  failedSegments: number;
+  failedSegmentIds: string[];
+  persistedSentenceCount: number;
+  persistedCharacterCount: number;
+  formatRepairCount: number;
+  semanticRetryCount: number;
+  manualReviewRequiredCount: number;
+  qualityRejectedCount: number;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  segmentOutcomeIndex: SegmentOutcomeIndexItem[];
+}
+
+export interface ScriptProductionRuntimeMetadata {
+  workflowRunId: string;
+  workflowId: string;
+  status: "completed" | "failed";
+  mode: ScriptProductionWorkflowMode;
+  startedAt: string;
+  completedAt: string;
+  durationMs: number;
+  summary: ScriptProductionWorkflowSummary;
+  traceEventCount: number;
+  stageRunCount: number;
+}
+
+export const createRuntimeId = () =>
+  `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+export const asErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "unknown_runtime_error";
+};
+
+const buildSegmentPreview = (content: string): string =>
+  content.replace(/\s+/g, " ").trim().slice(0, 120);
+
+export const createFailureDetail = (params: {
+  segment: ScriptProductionBookSegment;
+  stage: string;
+  errorCode: string;
+  message: string;
+  provider?: string | null;
+  retryable?: boolean;
+  coverageRatio?: number | null;
+  issueCodes?: string[];
+  issueMessages?: string[];
+  issuePreviews?: string[];
+  rawResponse?: string | null;
+  structuredResult?: Record<string, unknown> | null;
+}): SegmentFailureDetail => ({
+  segmentId: params.segment.id,
+  chapterId: params.segment.chapterId ?? null,
+  orderIndex:
+    typeof params.segment.orderIndex === "number" &&
+    Number.isFinite(params.segment.orderIndex)
+      ? params.segment.orderIndex
+      : -1,
+  stage: params.stage,
+  errorCode: params.errorCode,
+  message: params.message,
+  provider: params.provider ?? null,
+  retryable: params.retryable === true,
+  coverageRatio:
+    typeof params.coverageRatio === "number" ? params.coverageRatio : null,
+  issueCodes: params.issueCodes || [],
+  issueMessages: params.issueMessages || [params.message],
+  issuePreviews: params.issuePreviews || [],
+  segmentPreview: buildSegmentPreview(params.segment.content),
+  segmentContent: params.segment.content,
+  rawResponse: params.rawResponse ?? null,
+  structuredResult: params.structuredResult ?? null,
+});
+
+export const createValidationTraceEvent = (params: {
+  createId: () => string;
+  now?: () => Date;
+  workflowRunId: string;
+  stageRunId: string;
+  segment: ScriptProductionBookSegment;
+  validationReport: {
+    valid: boolean;
+    coverageRatio: number;
+    issues: Array<{ code: string }>;
+  };
+}): ExecutionEvent => ({
+  id: params.createId(),
+  kind: params.validationReport.valid
+    ? "validation.completed"
+    : "validation.failed",
+  createdAt: (params.now ?? (() => new Date()))().toISOString(),
+  workflowRunId: params.workflowRunId,
+  stageRunId: params.stageRunId,
+  status: params.validationReport.valid ? "completed" : "failed",
+  payload: {
+    segmentId: params.segment.id,
+    chapterId: params.segment.chapterId ?? null,
+    orderIndex:
+      typeof params.segment.orderIndex === "number"
+        ? params.segment.orderIndex
+        : -1,
+    coverageRatio: params.validationReport.coverageRatio,
+    issueCodes: params.validationReport.issues.map((issue) => issue.code),
+  },
+});
+
+export const createStageSummary = (params: {
+  segment: ScriptProductionBookSegment;
+  stageId: string;
+  summary: Record<string, unknown>;
+}): Record<string, unknown> => ({
+  segmentId: params.segment.id,
+  chapterId: params.segment.chapterId ?? null,
+  orderIndex:
+    typeof params.segment.orderIndex === "number"
+      ? params.segment.orderIndex
+      : -1,
+  ...params.summary,
+  stageId: params.stageId,
+});
+
+export const buildWorkflowSummary = (params: {
+  mode: ScriptProductionWorkflowMode;
+  selectedSegmentIds: string[];
+  totalSegments: number;
+  processedSegments: number;
+  failedSegmentIds: string[];
+  persistedSentenceCount: number;
+  persistedCharacterCount: number;
+  formatRepairCount: number;
+  semanticRetryCount: number;
+  manualReviewRequiredCount: number;
+  qualityRejectedCount: number;
+  startedAt: string;
+  completedAt: string;
+  segmentOutcomeIndex: SegmentOutcomeIndexItem[];
+}): ScriptProductionWorkflowSummary => {
+  const durationMs = Math.max(
+    new Date(params.completedAt).getTime() - new Date(params.startedAt).getTime(),
+    0
+  );
+
+  return {
+    mode: params.mode,
+    selectedSegmentIds: params.selectedSegmentIds,
+    totalSegments: params.totalSegments,
+    processedSegments: params.processedSegments,
+    failedSegments: params.failedSegmentIds.length,
+    failedSegmentIds: params.failedSegmentIds,
+    persistedSentenceCount: params.persistedSentenceCount,
+    persistedCharacterCount: params.persistedCharacterCount,
+    formatRepairCount: params.formatRepairCount,
+    semanticRetryCount: params.semanticRetryCount,
+    manualReviewRequiredCount: params.manualReviewRequiredCount,
+    qualityRejectedCount: params.qualityRejectedCount,
+    startedAt: params.startedAt,
+    completedAt: params.completedAt,
+    durationMs,
+    segmentOutcomeIndex: params.segmentOutcomeIndex,
+  };
+};
+
+export const buildRuntimeMetadata = (params: {
+  workflowRunId: string;
+  workflowId: string;
+  status: "completed" | "failed";
+  mode: ScriptProductionWorkflowMode;
+  startedAt: string;
+  completedAt: string;
+  summary: ScriptProductionWorkflowSummary;
+  traceEventCount: number;
+  stageRunCount: number;
+}): ScriptProductionRuntimeMetadata => ({
+  workflowRunId: params.workflowRunId,
+  workflowId: params.workflowId,
+  status: params.status,
+  mode: params.mode,
+  startedAt: params.startedAt,
+  completedAt: params.completedAt,
+  durationMs: params.summary.durationMs,
+  summary: params.summary,
+  traceEventCount: params.traceEventCount,
+  stageRunCount: params.stageRunCount,
+});
