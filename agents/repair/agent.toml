@@ -1,0 +1,6 @@
+id = "repair-agent"
+version = "1"
+role = "repair_failed_segment_artifacts"
+compatibleWorkflowStages = ["segment_repair"]
+allowedSkills = ["json-repair"]
+allowedTools = []

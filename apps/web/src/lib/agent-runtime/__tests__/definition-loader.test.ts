@@ -86,6 +86,74 @@ describe("definition loader", () => {
     expect(workflow.instructions).toContain("Script Production");
   });
 
+  it("preserves optional skill metadata fields when provided", () => {
+    const rootDir = createFixtureRoot();
+
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        'kind = "analysis"',
+        'compatibleAgents = ["character-discovery"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+        'promptBundle = ["prompts/system.md", "prompts/user.md"]',
+        'modelPolicy = "balanced"',
+        'repairPolicy = "manual-review-first"',
+        'successCriteria = ["returns-json", "uses-canonical-identities"]',
+        'telemetryTags = ["runtime", "character"]',
+      ].join("\n")
+    );
+
+    const skill = loadSkillDefinition(rootDir, "character-extraction");
+
+    expect(skill.definition).toEqual(
+      expect.objectContaining({
+        promptBundle: ["prompts/system.md", "prompts/user.md"],
+        modelPolicy: "balanced",
+        repairPolicy: "manual-review-first",
+        successCriteria: ["returns-json", "uses-canonical-identities"],
+        telemetryTags: ["runtime", "character"],
+      })
+    );
+  });
+
+  it("loads real runtime agent definitions from the repository", () => {
+    const workspaceRoot = path.resolve(__dirname, "../../../../../..");
+
+    const scriptGeneration = loadAgentDefinition(workspaceRoot, "script-generation");
+    const repair = loadAgentDefinition(workspaceRoot, "repair");
+    const qualityJudge = loadAgentDefinition(workspaceRoot, "quality-judge");
+    const coordinator = loadAgentDefinition(workspaceRoot, "coordinator");
+
+    expect(scriptGeneration.definition).toEqual(
+      expect.objectContaining({
+        id: "script-generation-agent",
+        compatibleWorkflowStages: ["segment_scripting"],
+      })
+    );
+    expect(repair.definition).toEqual(
+      expect.objectContaining({
+        id: "repair-agent",
+        compatibleWorkflowStages: ["segment_repair"],
+      })
+    );
+    expect(qualityJudge.definition).toEqual(
+      expect.objectContaining({
+        id: "quality-judge-agent",
+        compatibleWorkflowStages: ["quality_judgement"],
+      })
+    );
+    expect(coordinator.definition).toEqual(
+      expect.objectContaining({
+        id: "coordinator-agent",
+      })
+    );
+  });
+
   it("raises a structured validation error when required toml fields are missing", () => {
     const rootDir = createFixtureRoot();
 

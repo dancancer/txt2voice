@@ -7,6 +7,12 @@ const hasText = (value: unknown): value is string =>
 const isTextList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((entry) => hasText(entry));
 
+const isOptionalText = (value: unknown): boolean =>
+  value === undefined || hasText(value);
+
+const isOptionalTextList = (value: unknown): boolean =>
+  value === undefined || isTextList(value);
+
 export interface AgentDefinition {
   id: string;
   version: string;
@@ -25,6 +31,11 @@ export interface SkillDefinition {
   outputSchemaRef: string;
   contextRequirements: string[];
   toolAllowlist: string[];
+  promptBundle?: string[];
+  modelPolicy?: string;
+  repairPolicy?: string;
+  successCriteria?: string[];
+  telemetryTags?: string[];
 }
 
 export interface WorkflowDefinition {
@@ -68,7 +79,12 @@ export const isSkillDefinition = (value: unknown): value is SkillDefinition => {
     hasText(value.inputSchemaRef) &&
     hasText(value.outputSchemaRef) &&
     isTextList(value.contextRequirements) &&
-    isTextList(value.toolAllowlist)
+    isTextList(value.toolAllowlist) &&
+    isOptionalTextList(value.promptBundle) &&
+    isOptionalText(value.modelPolicy) &&
+    isOptionalText(value.repairPolicy) &&
+    isOptionalTextList(value.successCriteria) &&
+    isOptionalTextList(value.telemetryTags)
   );
 };
 

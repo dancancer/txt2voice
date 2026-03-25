@@ -1,0 +1,6 @@
+id = "quality-judge-agent"
+version = "1"
+role = "judge_segment_quality"
+compatibleWorkflowStages = ["quality_judgement"]
+allowedSkills = ["quality-judgement"]
+allowedTools = []

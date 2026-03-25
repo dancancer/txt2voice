@@ -1,0 +1,6 @@
+id = "coordinator-agent"
+version = "1"
+role = "coordinate_runtime_workflow"
+compatibleWorkflowStages = ["prepare", "manual_review_handoff", "complete"]
+allowedSkills = []
+allowedTools = ["update-task-progress", "sync-manual-review-items"]
