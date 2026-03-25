@@ -1470,6 +1470,20 @@ describe("runScriptProductionWorkflow", () => {
       })
     );
     expect(mockPrisma.stageRun.create).toHaveBeenCalled();
+    expect(mockPrisma.stageRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stageId: "prepare",
+        }),
+      })
+    );
+    expect(mockPrisma.stageRun.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          stageId: "complete",
+        }),
+      })
+    );
     expect(mockPrisma.agentRun.create).toHaveBeenCalled();
     expect(mockPrisma.toolCall.create).toHaveBeenCalledWith(
       expect.objectContaining({

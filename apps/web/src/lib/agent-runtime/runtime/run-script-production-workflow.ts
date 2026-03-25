@@ -25,7 +25,7 @@ import {
   createScriptProductionRuntimeStore,
   type ScriptProductionRuntimeStore,
 } from "./script-production-runtime-store";
-import type { RunStageResult, StageRunRecord } from "./run-stage";
+import { runStage, type RunStageResult, type StageRunRecord } from "./run-stage";
 import { runWorkflow } from "./run-workflow";
 import { runPersistStage } from "./stages/run-persist-stage";
 import { runCharacterDiscoveryStage } from "./stages/run-character-discovery-stage";
@@ -174,6 +174,7 @@ export const runScriptProductionWorkflow = async (
       version: "1",
       kind: "workflow",
       stages: [
+        "prepare",
         "character_discovery",
         "segment_scripting",
         "validation",
@@ -181,6 +182,7 @@ export const runScriptProductionWorkflow = async (
         "quality_judgement",
         "persist",
         "manual_review_handoff",
+        "complete",
       ],
     },
     entryPayload: {
@@ -225,6 +227,55 @@ export const runScriptProductionWorkflow = async (
       appendTrace: appendTrackedTrace,
     },
     coordinator: async ({ workflowRunId }) => {
+      const prepareStage = await runStage({
+        workflowRunId,
+        stage: {
+          id: "prepare",
+          agent: {
+            id: "coordinator-agent",
+            execute: async () => ({
+              status: "completed",
+              output: {
+                mode: input.mode,
+                selectedSegmentCount: segments.length,
+              },
+            }),
+          },
+        },
+        createId,
+        appendTrace: appendTrackedTrace,
+        now: deps.now,
+        createStageRun: createTrackedStageRun,
+        updateStageRun: updateTrackedStageRun,
+        createAgentRun: createTrackedAgentRun,
+        updateAgentRun: updateTrackedAgentRun,
+        createToolCall: async (record) => {
+          await runtimeStore.createToolCall({
+            ...record,
+            createdAt: record.createdAt ?? now(),
+          });
+        },
+        updateToolCall: async (record) => {
+          await runtimeStore.updateToolCall({
+            ...record,
+            completedAt: record.completedAt ?? now(),
+          });
+        },
+      });
+      await runtimeStore.updateStageRun({
+        id: prepareStage.id,
+        workflowRunId,
+        stageId: "prepare",
+        status: prepareStage.status,
+        summary: {
+          stageId: "prepare",
+          mode: input.mode,
+          selectedSegmentCount: segments.length,
+        },
+        completedAt: now(),
+      });
+      coordinatorStageResults.push(prepareStage);
+
       const observedAdapter = deps.adapter
         ? createObservedAdapter({
             adapter: deps.adapter,
@@ -463,6 +514,54 @@ export const runScriptProductionWorkflow = async (
         segmentOutcomeIndex,
         manualReviewSync,
       });
+      const completeStage = await runStage({
+        workflowRunId,
+        stage: {
+          id: "complete",
+          agent: {
+            id: "coordinator-agent",
+            execute: async () => ({
+              status: "completed",
+              output: {
+                failedSegments: failedSegmentIds.length,
+                processedSegments: persistedSegments,
+              },
+            }),
+          },
+        },
+        createId,
+        appendTrace: appendTrackedTrace,
+        now: deps.now,
+        createStageRun: createTrackedStageRun,
+        updateStageRun: updateTrackedStageRun,
+        createAgentRun: createTrackedAgentRun,
+        updateAgentRun: updateTrackedAgentRun,
+        createToolCall: async (record) => {
+          await runtimeStore.createToolCall({
+            ...record,
+            createdAt: record.createdAt ?? now(),
+          });
+        },
+        updateToolCall: async (record) => {
+          await runtimeStore.updateToolCall({
+            ...record,
+            completedAt: record.completedAt ?? now(),
+          });
+        },
+      });
+      await runtimeStore.updateStageRun({
+        id: completeStage.id,
+        workflowRunId,
+        stageId: "complete",
+        status: completeStage.status,
+        summary: {
+          stageId: "complete",
+          failedSegments: failedSegmentIds.length,
+          processedSegments: persistedSegments,
+        },
+        completedAt: now(),
+      });
+      coordinatorStageResults.push(completeStage);
       const runtimeStatus =
         failedSegmentIds.length > 0 ? "failed" : "completed";
 
