@@ -19,23 +19,23 @@
 - `character_discovery / segment_scripting / repair / quality / persist` 都有独立 stage 实现。
 - `script-generation-runner.ts` 已经切到 `runScriptProductionWorkflow()`，runtime replay / summary / metadata 也已写通。
 - 本轮已把 `character_discovery` 接入 script-production bridge，并在主 workflow 中先提交 `character-memory-draft` 再继续段落生成。
+- 本轮已把 `manual_review_handoff` 落成显式 runtime stage，runner 端的本地 review sync fallback 已移除。
+- 本轮已补齐 `script-generation-agent / repair-agent / quality-judge-agent / coordinator-agent` 的 authoring 定义，并扩展 skill metadata。
+- 本轮已补齐 phase-2 缺失的 runtime tool contracts，并开始在主链路里写 `context_built / artifact_committed / manual_review_escalated` 事件。
 
 ### Partially Completed
 
 - 主 workflow 还没有接入设计稿里的完整阶段机。
   - 当前 `workflow.toml` 已包含 `character_discovery`，但仍缺 `prepare / manual_review_handoff / complete`。
-- runtime 已经能产出质量审查证据包，但人工审查落库仍由 `script-generation-runner.ts` 直接操作 `ManualReviewItem`。
-- `runWorkflow()` 已经能驱动 lifecycle，但状态集仍只有 `completed / failed / retrying / repairing`，没有设计稿里的 `blocked / manual_review_required`。
-- `ToolCall` 和 replay 已能工作，但 generic coverage 仍主要集中在 script-production 的高价值动作。
+- 主 workflow 已经包含 `manual_review_handoff`，但仍缺 `prepare / complete`。
+- `runWorkflow()` 已支持 `manual_review_required / blocked`，但这些状态还没有在更多 runtime workflow 上普及。
+- `ToolCall` 和 replay 已能工作，缺失的 tool contract 也已补齐，但 canonical toolName 和 trace taxonomy 仍在继续收口。
+- trace taxonomy 目前只先落了 `context_built / artifact_committed / manual_review_escalated`，以及 `validation.failed -> validation_failed` 的落库归一化；`llm_requested / structured_output_received / repair_started` 仍未全链路标准化。
 
 ### Not Yet Implemented
 
-- `manual_review_handoff` 还不是 runtime stage。
 - `prepare` / `complete` 还没有在 workflow 定义中体现。
-- `script-generation-agent`、`repair-agent`、`quality-judge-agent`、`coordinator-agent` 的文件化 authoring 定义还没补齐。
-- `skill.toml` 还没有设计稿建议的 `promptBundle / modelPolicy / repairPolicy / successCriteria / telemetryTags`。
-- 设计稿建议的 trace taxonomy 还没标准化为统一事件名。
-- 设计稿里的 `load-segment-batch / load-character-memory / save-script-draft / create-manual-review-item / estimate-token-budget` 等工具还没形成正式 contract。
+- 更完整的 trace taxonomy 还没标准化为统一事件名。
 - runtime 目前是 run-centric replay，还没有 artifact-centric 的独立持久化面。
 
 ### Deferred For Later
@@ -88,7 +88,7 @@ git add /Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/ru
 git commit -m "feat: wire character discovery into runtime workflow"
 ```
 
-### Task 2: 新增 `manual_review_handoff` stage，并把人工审查落库下沉到 runtime
+### Task 2: 新增 `manual_review_handoff` stage，并把人工审查落库下沉到 runtime（已在当前分支落地）
 
 **Files:**
 - Create: `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/stages/run-manual-review-handoff-stage.ts`
@@ -132,7 +132,7 @@ git add /Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/st
 git commit -m "feat: move manual review handoff into runtime"
 ```
 
-### Task 3: 补齐 workflow 状态模型与 definition parity
+### Task 3: 补齐 workflow 状态模型与 definition parity（已在当前分支落地）
 
 **Files:**
 - Modify: `/Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/run-workflow.ts`
@@ -171,7 +171,7 @@ git add /Users/xupeng/mycode/txt2voice/apps/web/src/lib/agent-runtime/runtime/ru
 git commit -m "feat: expand workflow terminal states"
 ```
 
-### Task 4: 补齐缺失的 agent authoring 定义，并增强 skill metadata
+### Task 4: 补齐缺失的 agent authoring 定义，并增强 skill metadata（已在当前分支落地）
 
 **Files:**
 - Create: `/Users/xupeng/mycode/txt2voice/agents/script-generation/agent.toml`

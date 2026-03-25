@@ -752,6 +752,17 @@ describe("runScriptProductionWorkflow", () => {
         },
       })
     );
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: "repair_started",
+          payload: expect.objectContaining({
+            failureKind: "format_repair",
+            segmentId: "seg-1",
+          }),
+        }),
+      })
+    );
     expect(mockRunPersistStage).toHaveBeenCalledTimes(1);
     expect((result as any).runtimeMetadata?.summary).toEqual(
       expect.objectContaining({
@@ -918,6 +929,17 @@ describe("runScriptProductionWorkflow", () => {
       expect.objectContaining({
         segmentId: "seg-1",
         failureKind: "semantic_retry",
+      })
+    );
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          eventType: "repair_started",
+          payload: expect.objectContaining({
+            failureKind: "semantic_retry",
+            segmentId: "seg-1",
+          }),
+        }),
       })
     );
     expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(2);

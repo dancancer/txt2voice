@@ -1,6 +1,13 @@
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
   default: {
+    toolCall: {
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    traceEvent: {
+      create: jest.fn(),
+    },
     workflowRun: {
       findUnique: jest.fn(),
     },
@@ -72,5 +79,59 @@ describe("script production runtime store", () => {
       },
     });
     expect(result).toBe(workflowRun);
+  });
+
+  it("normalizes persisted tool names to canonical runtime contracts", async () => {
+    mockPrisma.toolCall.create.mockResolvedValue({});
+    const { createScriptProductionRuntimeStore } = await import(
+      "../runtime/script-production-runtime-store"
+    );
+
+    const store = createScriptProductionRuntimeStore();
+    await store.createToolCall({
+      id: "tool-1",
+      agentRunId: "agent-1",
+      toolName: "persist-segment-script-draft",
+      status: "processing",
+    });
+
+    expect(mockPrisma.toolCall.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: "tool-1",
+        agentRunId: "agent-1",
+        toolName: "save-script-draft",
+        status: "processing",
+      }),
+    });
+  });
+
+  it("normalizes trace event kinds before persisting replay events", async () => {
+    mockPrisma.traceEvent.create.mockResolvedValue({});
+    const { createScriptProductionRuntimeStore } = await import(
+      "../runtime/script-production-runtime-store"
+    );
+
+    const store = createScriptProductionRuntimeStore();
+    await store.appendTrace({
+      id: "trace-1",
+      kind: "validation.failed",
+      createdAt: "2026-03-25T12:00:00.000Z",
+      workflowRunId: "wf-1",
+      status: "failed",
+      payload: {
+        segmentId: "seg-1",
+      },
+    });
+
+    expect(mockPrisma.traceEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        id: "trace-1",
+        workflowRunId: "wf-1",
+        eventType: "validation_failed",
+        payload: expect.objectContaining({
+          segmentId: "seg-1",
+        }),
+      }),
+    });
   });
 });

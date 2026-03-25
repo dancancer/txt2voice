@@ -11,11 +11,26 @@ const toJson = (value: unknown) =>
 
 const runtimePrisma = prisma as any;
 
+const TOOL_NAME_ALIASES: Record<string, string> = {
+  "persist-character-memory-draft": "save-character-memory",
+  "persist-segment-script-draft": "save-script-draft",
+};
+
+const TRACE_KIND_ALIASES: Record<string, string> = {
+  "validation.failed": "validation_failed",
+  "validation.completed": "structured_output_received",
+};
+
 const isTerminalStatus = (status: string): boolean =>
   status === "completed" ||
   status === "failed" ||
   status === "retrying" ||
   status === "repairing";
+
+const normalizeToolName = (toolName: string) =>
+  TOOL_NAME_ALIASES[toolName] || toolName;
+
+const normalizeTraceKind = (kind: string) => TRACE_KIND_ALIASES[kind] || kind;
 
 export interface ScriptProductionRuntimeStore {
   createWorkflowRun: (
@@ -151,7 +166,7 @@ export const createScriptProductionRuntimeStore = (): ScriptProductionRuntimeSto
       data: {
         id: record.id,
         agentRunId: record.agentRunId,
-        toolName: record.toolName,
+        toolName: normalizeToolName(record.toolName),
         status: record.status,
         argumentsSummary: record.argumentsSummary
           ? toJson(record.argumentsSummary)
@@ -165,6 +180,7 @@ export const createScriptProductionRuntimeStore = (): ScriptProductionRuntimeSto
     await runtimePrisma.toolCall.update({
       where: { id: record.id },
       data: {
+        toolName: normalizeToolName(record.toolName),
         status: record.status,
         resultSummary: record.resultSummary
           ? toJson(record.resultSummary)
@@ -183,7 +199,7 @@ export const createScriptProductionRuntimeStore = (): ScriptProductionRuntimeSto
         workflowRunId: event.workflowRunId,
         stageRunId: event.stageRunId ?? null,
         agentRunId: event.agentRunId ?? null,
-        eventType: event.kind,
+        eventType: normalizeTraceKind(event.kind),
         payload: toJson(event.payload),
         createdAt: new Date(event.createdAt),
       },

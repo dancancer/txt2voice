@@ -58,6 +58,17 @@ export const runSegmentValidationCycle = async (
     ...counters,
     semanticRetryCount: counters.semanticRetryCount + 1,
   };
+  await params.appendTrace({
+    id: params.createId(),
+    kind: "repair_started",
+    createdAt: (params.now ?? (() => new Date()))().toISOString(),
+    workflowRunId: params.workflowRunId,
+    status: "started",
+    payload: {
+      segmentId: params.segment.id,
+      failureKind: "semantic_retry",
+    },
+  });
   const repairStage = await runRepairStage({
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,

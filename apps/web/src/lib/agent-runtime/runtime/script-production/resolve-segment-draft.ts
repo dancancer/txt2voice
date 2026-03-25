@@ -125,6 +125,17 @@ export const resolveSegmentDraft = async (
     ...counters,
     formatRepairCount: counters.formatRepairCount + 1,
   };
+  await params.appendTrace({
+    id: params.createId(),
+    kind: "repair_started",
+    createdAt: (params.now ?? (() => new Date()))().toISOString(),
+    workflowRunId: params.workflowRunId,
+    status: "started",
+    payload: {
+      segmentId: params.segment.id,
+      failureKind: "format_repair",
+    },
+  });
   const repairStage = await runRepairStage({
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,
