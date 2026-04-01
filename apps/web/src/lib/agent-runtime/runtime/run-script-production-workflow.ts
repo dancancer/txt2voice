@@ -22,6 +22,10 @@ import {
   type ScriptProductionRuntimeMetadata,
 } from "./script-production-runtime-helpers";
 import {
+  isMastraShadowModeEnabled,
+  resolveStageExecutor,
+} from "./executor-policy";
+import {
   createScriptProductionRuntimeStore,
   type ScriptProductionRuntimeStore,
 } from "./script-production-runtime-store";
@@ -79,6 +83,23 @@ export const runScriptProductionWorkflow = async (
   const createId = deps.createId || createRuntimeId;
   const now = deps.now ?? (() => new Date());
   const runtimeStore = deps.runtimeStore || createScriptProductionRuntimeStore();
+  const executorPolicy = {
+    shadowModeEnabled: isMastraShadowModeEnabled(),
+    stageExecutors: {
+      character_discovery: resolveStageExecutor({
+        stageId: "character_discovery",
+      }),
+      segment_scripting: resolveStageExecutor({
+        stageId: "segment_scripting",
+      }),
+      segment_repair: resolveStageExecutor({
+        stageId: "segment_repair",
+      }),
+      quality_judgement: resolveStageExecutor({
+        stageId: "quality_judgement",
+      }),
+    },
+  };
 
   const book = (await loadBook({
     bookId: input.bookId,
@@ -198,6 +219,7 @@ export const runScriptProductionWorkflow = async (
           processingTaskId: input.taskId ?? null,
           runtimeConfig: {
             mode: input.mode,
+            executorPolicy,
           },
           startedAt,
         });
