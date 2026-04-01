@@ -87,6 +87,14 @@ export interface ScriptProductionRuntimeStore {
     payload: unknown;
     createdAt?: Date;
   }) => Promise<void>;
+  createShadowDiffArtifact: (record: {
+    id: string;
+    workflowRunId: string;
+    stageRunId?: string | null;
+    segmentId?: string | null;
+    payload: unknown;
+    createdAt?: Date;
+  }) => Promise<void>;
   appendTrace: (event: ExecutionEvent) => Promise<void>;
 }
 
@@ -213,6 +221,22 @@ export const createScriptProductionRuntimeStore = (): ScriptProductionRuntimeSto
         segmentId: record.segmentId ?? null,
         artifactKind: record.artifactKind,
         artifactVersion: record.artifactVersion,
+        payload: toJson(record.payload),
+        createdAt: record.createdAt,
+      },
+    });
+  },
+
+  async createShadowDiffArtifact(record) {
+    await runtimePrisma.runtimeArtifact.create({
+      data: {
+        id: record.id,
+        workflowRunId: record.workflowRunId,
+        stageRunId: record.stageRunId ?? null,
+        agentRunId: null,
+        segmentId: record.segmentId ?? null,
+        artifactKind: "shadow-diff",
+        artifactVersion: "v1",
         payload: toJson(record.payload),
         createdAt: record.createdAt,
       },

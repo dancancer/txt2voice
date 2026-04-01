@@ -33,6 +33,9 @@ export interface RunSegmentScriptingStageInput
   skillDir?: string;
   executor?: StageExecutor;
   shadowMode?: boolean;
+  onShadowResult?: (
+    result: RunSegmentScriptingStageResult
+  ) => Promise<void> | void;
   runMastraSegmentScriptingStage?: (
     input: RunSegmentScriptingStageInput
   ) => Promise<RunSegmentScriptingStageResult>;
@@ -313,6 +316,8 @@ const buildShadowInput = (
   input: RunSegmentScriptingStageInput
 ): RunSegmentScriptingStageInput => ({
   ...input,
+  shadowMode: false,
+  onShadowResult: undefined,
   createStageRun: undefined,
   updateStageRun: undefined,
   createAgentRun: undefined,
@@ -336,10 +341,13 @@ export const runSegmentScriptingStage = async (
   if (input.shadowMode) {
     const nativePromise = runSegmentScriptingStageNative(input);
     const shadowPromise = runMastraSegmentScriptingStage(buildShadowInput(input));
-    const [nativeResult] = await Promise.all([
+    const [nativeResult, shadowResult] = await Promise.all([
       nativePromise,
       shadowPromise.catch(() => null),
     ]);
+    if (shadowResult) {
+      await input.onShadowResult?.(shadowResult);
+    }
 
     return nativeResult;
   }

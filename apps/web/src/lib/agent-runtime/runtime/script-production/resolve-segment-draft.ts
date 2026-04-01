@@ -1,4 +1,5 @@
 import type { SegmentScriptDraft } from "../../context";
+import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import {
   createFailureDetail,
   createStageSummary,
@@ -10,8 +11,12 @@ import {
   mergeRefinedSegmentDrafts,
   resolveFailureArtifact,
 } from "../script-production-runtime-helpers";
-import { runSegmentRepairStage } from "../stages/run-segment-repair-stage";
+import {
+  runSegmentRepairStage,
+  type RunSegmentRepairStageResult,
+} from "../stages/run-segment-repair-stage";
 import { runSegmentScriptingStage } from "../stages/run-segment-scripting-stage";
+import type { RunSegmentScriptingStageResult } from "../stages/run-segment-scripting-stage";
 import {
   createEmptySegmentCounters,
   mergeSegmentCounters,
@@ -46,6 +51,8 @@ export const resolveSegmentDraft = async (
   const runRepairStage = params.runSegmentRepairStage || runSegmentRepairStage;
 
   let counters = createEmptySegmentCounters();
+  let scriptingShadowResult: RunSegmentScriptingStageResult | null = null;
+  let formatRepairShadowResult: RunSegmentRepairStageResult | null = null;
   const scriptStage = await runScriptingStage({
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,
@@ -53,6 +60,9 @@ export const resolveSegmentDraft = async (
     adapter: params.adapter,
     executor: params.executorPolicy?.segmentScripting,
     shadowMode: params.executorPolicy?.shadowModeEnabled,
+    onShadowResult: async (result) => {
+      scriptingShadowResult = result;
+    },
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,
@@ -102,6 +112,22 @@ export const resolveSegmentDraft = async (
     },
   });
 
+  if (scriptingShadowResult) {
+    await params.runtimeStore.createShadowDiffArtifact({
+      id: params.createId(),
+      workflowRunId: params.workflowRunId,
+      stageRunId: scriptStage.stageRunId,
+      segmentId: params.segment.id,
+      payload: createShadowDiffPayload({
+        stageId: "segment_scripting",
+        segmentId: params.segment.id,
+        nativeResult: scriptStage,
+        shadowResult: scriptingShadowResult,
+      }),
+      createdAt: (params.now ?? (() => new Date()))(),
+    });
+  }
+
   if (scriptStage.status === "completed") {
     return {
       status: "success",
@@ -149,6 +175,9 @@ export const resolveSegmentDraft = async (
     adapter: params.adapter,
     executor: params.executorPolicy?.segmentRepair,
     shadowMode: params.executorPolicy?.shadowModeEnabled,
+    onShadowResult: async (result) => {
+      formatRepairShadowResult = result;
+    },
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,
@@ -203,6 +232,22 @@ export const resolveSegmentDraft = async (
       error: repairStage.status === "completed" ? undefined : repairStage.error,
     },
   });
+
+  if (formatRepairShadowResult) {
+    await params.runtimeStore.createShadowDiffArtifact({
+      id: params.createId(),
+      workflowRunId: params.workflowRunId,
+      stageRunId: repairStage.stageRunId,
+      segmentId: params.segment.id,
+      payload: createShadowDiffPayload({
+        stageId: "segment_repair",
+        segmentId: params.segment.id,
+        nativeResult: repairStage,
+        shadowResult: formatRepairShadowResult,
+      }),
+      createdAt: (params.now ?? (() => new Date()))(),
+    });
+  }
 
   if (repairStage.status !== "completed") {
     const repairFailureContext = extractFailureArtifactContext(
