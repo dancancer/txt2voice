@@ -1,15 +1,16 @@
 # txt2voice 技术架构
 
-> 更新日期：2026-03-29
+> 更新日期：2026-04-01
 
 ## 1. 架构定位
 
-txt2voice 当前采用“单体 Web 应用 + 异步任务队列 + 文件化 Agent Runtime”的组合架构：
+txt2voice 当前采用“单体 Web 应用 + 异步任务队列 + 文件化 Agent Runtime + Mastra 混合执行层”的组合架构：
 
 - `apps/web` 同时承载页面、API、任务触发、Worker 启动和核心业务服务
 - `Redis + Bull` 负责长链路任务异步执行、重试和故障恢复
 - `PostgreSQL + Prisma` 负责业务主数据、任务数据、运行时追踪和质检结果
 - `agents/`、`skills/`、`workflows/` 为台本生产提供文件化运行时定义层
+- `Mastra` 只负责 LLM-heavy stage 的 agent authoring / tool bridge / shadow execution
 - 外部 LLM 与 TTS Provider 通过统一服务层接入，不把业务流程散落在 Route 内
 
 这套架构的目标不是最小 demo，而是让“长文本生产为可交付音频”这条链路具备三件事：
@@ -86,9 +87,9 @@ Service Layer (apps/web/src/lib)
 
 关键子模块：
 
-- `text-processor.ts`：文本处理
+- `text-processor.ts` + `text-processing/**`：文本处理 facade 与模块树
 - `script-generation-runner.ts`、`script-generator/**`：台本生产
-- `audio-generation-runner.ts`、`audio-generator.ts`：音频生产
+- `audio-generation-runner.ts`、`audio-generator.ts` + `audio-generation/**`：音频生产 facade 与模块树
 - `quality-check-runner.ts`、`manual-review-service.ts`：质检与复核
 - `auto-pipeline/**`：一键编排
 - `slo-metrics/**`、`slo-alerts/**`：运营监控
@@ -118,6 +119,20 @@ Service Layer (apps/web/src/lib)
 - 为台本生产提供 workflow / stage / agent / tool / artifact 运行时
 - 把角色发现、分段生成、修复、质量判断、持久化和复核交接拆成可追踪阶段
 - 把运行过程沉淀为 `WorkflowRun`、`StageRun`、`AgentRun`、`ToolCall`、`TraceEvent`
+
+混合执行策略：
+
+- `agent-runtime` 继续作为生产 orchestration、持久化真相源和 replay 数据源
+- `Mastra` 只接 `character_discovery`、`segment_scripting`、`segment_repair`、`quality_judgement`
+- `native / mastra / shadow mode` 最终都统一回写现有 `ToolCall`、`TraceEvent`、`RuntimeArtifact`
+- `shadow mode` 不影响主业务结果，只额外写入 `shadow-diff` sidecar artifact
+
+关键实现：
+
+- `apps/web/src/lib/agent-runtime/runtime/executor-policy.ts`
+- `apps/web/src/lib/agent-runtime/mastra/compiler/**`
+- `apps/web/src/lib/agent-runtime/mastra/runtime/**`
+- `apps/web/src/lib/agent-runtime/mastra/trace/**`
 
 ## 4. 核心运行链路
 
@@ -168,11 +183,14 @@ Service Layer (apps/web/src/lib)
 - 支持格式修复、本地修复、语义重试
 - 失败段落可以进入修复与人工复核
 - 运行时结果会回写 `ProcessingTask`，并为书籍保留 workflow 指针
+- LLM-heavy stage 已支持显式 executor policy 和 shadow diff 落库
+- UI / replay / 报表继续只消费统一后的 runtime records，不感知底层 executor
 
 关键实现：
 
 - `apps/web/src/lib/script-generation-runner.ts`
 - `apps/web/src/lib/agent-runtime/runtime/run-script-production-workflow.ts`
+- `apps/web/src/lib/agent-runtime/mastra/runtime/shadow-diff.ts`
 - `workflows/script-production/workflow.toml`
 
 ### 4.3 音频生产链路
@@ -200,8 +218,29 @@ Service Layer (apps/web/src/lib)
 
 - `apps/web/src/lib/audio-generation-runner.ts`
 - `apps/web/src/lib/audio-generator.ts`
+- `apps/web/src/lib/audio-generation/**`
 - `apps/web/src/lib/audio-synthesis-runtime.ts`
 - `apps/web/src/lib/final-assembly-runner.ts`
+
+### 4.5 运行时开关
+
+当前混合 runtime 的行为由环境变量控制：
+
+- `AGENT_RUNTIME_EXECUTOR=native|mastra`
+  说明：
+  `native` 为默认值，主结果完全走现有 runtime。
+- `AGENT_RUNTIME_MASTRA_STAGES=character_discovery,segment_scripting,segment_repair,quality_judgement`
+  说明：
+  只有命中 allowlist 的 stage 才会切到 Mastra。
+- `AGENT_RUNTIME_MASTRA_SHADOW_MODE=true|false`
+  说明：
+  打开后主结果仍走 native，但并行运行 Mastra，并把差异写入 `shadow-diff` artifact。
+
+排障建议：
+
+- 先用 `native + shadow mode` 验证结果漂移，再考虑单独把某个 stage 切到 `mastra`
+- 不要直接让持久化和 deterministic service 走 Mastra
+- replay 与审核界面若需要看差异，应读取 `RuntimeArtifact.artifactKind = shadow-diff`
 
 ### 4.4 质量闭环链路
 
