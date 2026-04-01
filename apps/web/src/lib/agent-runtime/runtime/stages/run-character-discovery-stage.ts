@@ -28,6 +28,9 @@ export interface RunCharacterDiscoveryStageInput
   skillDir?: string;
   executor?: StageExecutor;
   shadowMode?: boolean;
+  onShadowResult?: (
+    result: RunCharacterDiscoveryStageResult
+  ) => Promise<void> | void;
   runMastraCharacterDiscoveryStage?: (
     input: RunCharacterDiscoveryStageInput
   ) => Promise<RunCharacterDiscoveryStageResult>;
@@ -438,6 +441,8 @@ const buildShadowInput = (
   input: RunCharacterDiscoveryStageInput
 ): RunCharacterDiscoveryStageInput => ({
   ...input,
+  shadowMode: false,
+  onShadowResult: undefined,
   createStageRun: undefined,
   updateStageRun: undefined,
   appendTrace: async () => undefined,
@@ -461,10 +466,13 @@ export const runCharacterDiscoveryStage = async (
     const shadowPromise = runMastraCharacterDiscoveryStage(
       buildShadowInput(input)
     );
-    const [nativeResult] = await Promise.all([
+    const [nativeResult, shadowResult] = await Promise.all([
       nativePromise,
       shadowPromise.catch(() => null),
     ]);
+    if (shadowResult) {
+      await input.onShadowResult?.(shadowResult);
+    }
 
     return nativeResult;
   }

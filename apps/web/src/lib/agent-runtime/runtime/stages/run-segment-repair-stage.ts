@@ -50,6 +50,9 @@ export interface RunSegmentRepairStageInput extends SegmentRepairRuntimeDeps {
   skillDir?: string;
   executor?: StageExecutor;
   shadowMode?: boolean;
+  onShadowResult?: (
+    result: RunSegmentRepairStageResult
+  ) => Promise<void> | void;
   runMastraSegmentRepairStage?: (
     input: RunSegmentRepairStageInput
   ) => Promise<RunSegmentRepairStageResult>;
@@ -390,6 +393,8 @@ const buildShadowInput = (
   input: RunSegmentRepairStageInput
 ): RunSegmentRepairStageInput => ({
   ...input,
+  shadowMode: false,
+  onShadowResult: undefined,
   createStageRun: undefined,
   updateStageRun: undefined,
   createAgentRun: undefined,
@@ -415,10 +420,13 @@ export const runSegmentRepairStage = async (
   if (input.shadowMode) {
     const nativePromise = runSegmentRepairStageNative(input);
     const shadowPromise = runMastraSegmentRepairStage(buildShadowInput(input));
-    const [nativeResult] = await Promise.all([
+    const [nativeResult, shadowResult] = await Promise.all([
       nativePromise,
       shadowPromise.catch(() => null),
     ]);
+    if (shadowResult) {
+      await input.onShadowResult?.(shadowResult);
+    }
 
     return nativeResult;
   }

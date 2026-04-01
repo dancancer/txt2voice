@@ -1,5 +1,6 @@
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
 import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import {
   buildInputRefinementSegments,
   buildValidationReport,
@@ -10,7 +11,10 @@ import {
   remapFailureToParentSegment,
 } from "../script-production-runtime-helpers";
 import { normalizeSegmentScriptDraft } from "./helpers/script-draft-normalizer";
-import { runSegmentRepairStage } from "../stages/run-segment-repair-stage";
+import {
+  runSegmentRepairStage,
+  type RunSegmentRepairStageResult,
+} from "../stages/run-segment-repair-stage";
 import {
   mergeSegmentCounters,
   type SegmentRunResult,
@@ -88,6 +92,7 @@ export const runSegmentValidationCycle = async (
       failureKind: "semantic_retry",
     },
   });
+  let semanticRepairShadowResult: RunSegmentRepairStageResult | null = null;
   const repairStage = await runRepairStage({
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,
@@ -104,6 +109,9 @@ export const runSegmentValidationCycle = async (
     adapter: params.adapter,
     executor: params.executorPolicy?.segmentRepair,
     shadowMode: params.executorPolicy?.shadowModeEnabled,
+    onShadowResult: async (result) => {
+      semanticRepairShadowResult = result;
+    },
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,
@@ -175,6 +183,22 @@ export const runSegmentValidationCycle = async (
     });
   }
 
+  if (semanticRepairShadowResult) {
+    await params.runtimeStore.createShadowDiffArtifact({
+      id: params.createId(),
+      workflowRunId: params.workflowRunId,
+      stageRunId: repairStage.stageRunId,
+      segmentId: params.segment.id,
+      payload: createShadowDiffPayload({
+        stageId: "segment_repair",
+        segmentId: params.segment.id,
+        nativeResult: repairStage,
+        shadowResult: semanticRepairShadowResult,
+      }),
+      createdAt: (params.now ?? (() => new Date()))(),
+    });
+  }
+
   if (repairStage.status !== "completed") {
     const repairFailureContext = extractFailureArtifactContext(
       repairStage.failedArtifact
@@ -232,6 +256,7 @@ export const runSegmentValidationCycle = async (
       repairStage.decision.action === "refine");
 
   if (canAttemptInputRefinement) {
+    let refinementShadowResult: RunSegmentRepairStageResult | null = null;
     const refinementStage = await runRepairStage({
       workflowRunId: params.workflowRunId,
       segmentId: params.segment.id,
@@ -248,6 +273,9 @@ export const runSegmentValidationCycle = async (
       adapter: params.adapter,
       executor: params.executorPolicy?.segmentRepair,
       shadowMode: params.executorPolicy?.shadowModeEnabled,
+      onShadowResult: async (result) => {
+        refinementShadowResult = result;
+      },
       createId: params.createId,
       now: params.now,
       createStageRun: params.createStageRun,
@@ -316,6 +344,22 @@ export const runSegmentValidationCycle = async (
           failureKind: "input_refinement",
           decision: refinementStage.decision,
         },
+        createdAt: (params.now ?? (() => new Date()))(),
+      });
+    }
+
+    if (refinementShadowResult) {
+      await params.runtimeStore.createShadowDiffArtifact({
+        id: params.createId(),
+        workflowRunId: params.workflowRunId,
+        stageRunId: refinementStage.stageRunId,
+        segmentId: params.segment.id,
+        payload: createShadowDiffPayload({
+          stageId: "segment_repair",
+          segmentId: params.segment.id,
+          nativeResult: refinementStage,
+          shadowResult: refinementShadowResult,
+        }),
         createdAt: (params.now ?? (() => new Date()))(),
       });
     }

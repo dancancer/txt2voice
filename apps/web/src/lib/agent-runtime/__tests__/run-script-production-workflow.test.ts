@@ -796,6 +796,204 @@ describe("runScriptProductionWorkflow", () => {
     }
   });
 
+  it("persists shadow diff artifacts without changing the primary workflow result", async () => {
+    const previousExecutor = process.env.AGENT_RUNTIME_EXECUTOR;
+    const previousStages = process.env.AGENT_RUNTIME_MASTRA_STAGES;
+    const previousShadow = process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE;
+
+    delete process.env.AGENT_RUNTIME_EXECUTOR;
+    process.env.AGENT_RUNTIME_MASTRA_STAGES =
+      "character_discovery,segment_scripting,quality_judgement";
+    process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE = "true";
+
+    try {
+      mockPrisma.book.findUnique.mockResolvedValue({
+        id: "book-1",
+        textSegments: [createBookFixture().textSegments[0]],
+        characterProfiles: [],
+      });
+      mockRunCharacterDiscoveryStage.mockImplementation(async (input: any) => {
+        await input.onShadowResult?.({
+          stageRunId: "discovery-shadow-alt",
+          status: "completed",
+          artifact: {
+            kind: "character-memory-draft",
+            skillId: "character-extraction",
+            characterMemoryDraft: {
+              canonicalIdentities: [
+                {
+                  id: "char-shadow",
+                  name: "燕赤霞",
+                },
+              ],
+              aliasEvidence: [],
+              assertedFacts: {},
+              inferredHints: {},
+            },
+          },
+        });
+
+        return {
+          stageRunId: "discovery-stage-shadow",
+          status: "completed",
+          artifact: createEmptyCharacterMemoryDraftArtifact(),
+        } as any;
+      });
+      mockRunSegmentScriptingStage.mockImplementation(async (input: any) => {
+        await input.onShadowResult?.({
+          stageRunId: "stage-script-shadow-alt",
+          agentRunId: "agent-script-shadow-alt",
+          status: "completed",
+          artifact: {
+            kind: "segment-script-draft",
+            skillId: "script-generation",
+            segmentScriptDraft: {
+              segmentId: "seg-1",
+              createdAt: "2026-04-01T00:00:00.000Z",
+              lines: [
+                {
+                  id: "shadow-line-1",
+                  sourceText: "第一段原文。",
+                  text: "第一段原文。",
+                  speaker: "旁白",
+                  orderInSegment: 0,
+                },
+                {
+                  id: "shadow-line-2",
+                  sourceText: "第一段原文。",
+                  text: "第一段原文。",
+                  speaker: "旁白",
+                  orderInSegment: 1,
+                },
+              ],
+            },
+          },
+        });
+
+        return {
+          stageRunId: "stage-script-shadow",
+          status: "completed",
+          artifact: createDraftArtifact("seg-1", "第一段原文。"),
+        } as any;
+      });
+      mockRunQualityStage.mockImplementation(async (input: any) => {
+        await input.onShadowResult?.({
+          stageRunId: "quality-shadow-alt",
+          agentRunId: "quality-shadow-alt-agent",
+          status: "completed",
+          decision: "manual_review_required",
+          verdict: {
+            segmentId: "seg-1",
+            verdict: "manual_review",
+            score: 0.42,
+            reasons: ["shadow review"],
+          },
+          handoff: {
+            segmentId: "seg-1",
+            summary: "shadow_review_required",
+            reasons: ["shadow review"],
+            evidence: {
+              score: 0.42,
+              confidence: 0.42,
+              validation: {
+                coverageRatio: 1,
+                issues: [],
+              },
+            },
+          },
+        });
+
+        return {
+          stageRunId: "quality-shadow",
+          status: "completed",
+          decision: "auto_pass",
+          verdict: {
+            segmentId: "seg-1",
+            verdict: "pass",
+            score: 0.99,
+            reasons: ["ok"],
+          },
+        } as any;
+      });
+      mockRunPersistStage.mockResolvedValue({
+        stageRunId: "persist-shadow",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount: 0,
+          persistedSentenceCount: 1,
+        },
+      } as any);
+
+      const result = await runScriptProductionWorkflow({
+        bookId: "book-1",
+        options: {},
+        mode: "full",
+      });
+
+      expect(result.summary.processedSegments).toBe(1);
+      expect(result.summary.failedSegments).toBe(0);
+
+      const shadowArtifacts = mockPrisma.runtimeArtifact.create.mock.calls
+        .map((call: any[]) => call[0]?.data)
+        .filter((data: any) => data?.artifactKind === "shadow-diff");
+
+      expect(shadowArtifacts).toHaveLength(3);
+      expect(shadowArtifacts).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            artifactKind: "shadow-diff",
+            payload: expect.objectContaining({
+              stageId: "character_discovery",
+              matched: false,
+              differingFields: expect.arrayContaining(["outputSummary"]),
+            }),
+          }),
+          expect.objectContaining({
+            artifactKind: "shadow-diff",
+            payload: expect.objectContaining({
+              stageId: "segment_scripting",
+              segmentId: "seg-1",
+              matched: false,
+              differingFields: expect.arrayContaining(["outputSummary"]),
+            }),
+          }),
+          expect.objectContaining({
+            artifactKind: "shadow-diff",
+            payload: expect.objectContaining({
+              stageId: "quality_judgement",
+              segmentId: "seg-1",
+              matched: false,
+              differingFields: expect.arrayContaining([
+                "outputSummary",
+                "validationResult",
+                "manualReviewJudgement",
+              ]),
+            }),
+          }),
+        ])
+      );
+    } finally {
+      if (previousExecutor === undefined) {
+        delete process.env.AGENT_RUNTIME_EXECUTOR;
+      } else {
+        process.env.AGENT_RUNTIME_EXECUTOR = previousExecutor;
+      }
+
+      if (previousStages === undefined) {
+        delete process.env.AGENT_RUNTIME_MASTRA_STAGES;
+      } else {
+        process.env.AGENT_RUNTIME_MASTRA_STAGES = previousStages;
+      }
+
+      if (previousShadow === undefined) {
+        delete process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE;
+      } else {
+        process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE = previousShadow;
+      }
+    }
+  });
+
   it("keeps regenerate mode segment order aligned with legacy book order", async () => {
     mockRunSegmentScriptingStage.mockImplementation(async ({ segmentId }) => ({
       stageRunId: `stage-${segmentId}`,

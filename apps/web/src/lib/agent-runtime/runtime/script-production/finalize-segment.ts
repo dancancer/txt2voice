@@ -1,12 +1,16 @@
 import { mapSegmentScriptDraftToDialogueLines } from "@/lib/script-generator/storage/persistence";
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
+import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import {
   createFailureDetail,
   createStageSummary,
   toSegmentSummary,
 } from "../script-production-runtime-helpers";
 import { runPersistStage } from "../stages/run-persist-stage";
-import { runQualityStage } from "../stages/run-quality-stage";
+import {
+  runQualityStage,
+  type RunQualityStageResult,
+} from "../stages/run-quality-stage";
 import type { RunSingleSegmentParams } from "./run-single-segment-types";
 import type { SegmentRunResult, SegmentRuntimeCounters } from "./shared-types";
 
@@ -46,6 +50,7 @@ export const finalizeSegment = async (params: {
     params.context.runQualityStage || runQualityStage;
   const runPersistCommitStage =
     params.context.runPersistStage || runPersistStage;
+  let qualityShadowResult: RunQualityStageResult | null = null;
 
   const qualityStage = await runQualityJudgeStage({
     workflowRunId: params.context.workflowRunId,
@@ -55,6 +60,9 @@ export const finalizeSegment = async (params: {
     adapter: params.context.adapter,
     executor: params.context.executorPolicy?.qualityJudgement,
     shadowMode: params.context.executorPolicy?.shadowModeEnabled,
+    onShadowResult: async (result) => {
+      qualityShadowResult = result;
+    },
     createId: params.context.createId,
     now: params.context.now,
     createStageRun: params.context.createStageRun,
@@ -107,6 +115,22 @@ export const finalizeSegment = async (params: {
         qualityStage.status === "completed" ? undefined : qualityStage.error,
     },
   });
+
+  if (qualityShadowResult) {
+    await params.context.runtimeStore.createShadowDiffArtifact({
+      id: params.context.createId(),
+      workflowRunId: params.context.workflowRunId,
+      stageRunId: qualityStage.stageRunId,
+      segmentId: params.context.segment.id,
+      payload: createShadowDiffPayload({
+        stageId: "quality_judgement",
+        segmentId: params.context.segment.id,
+        nativeResult: qualityStage,
+        shadowResult: qualityShadowResult,
+      }),
+      createdAt: (params.context.now ?? (() => new Date()))(),
+    });
+  }
 
   if (qualityStage.status === "completed") {
     await params.context.runtimeStore.createRuntimeArtifact({

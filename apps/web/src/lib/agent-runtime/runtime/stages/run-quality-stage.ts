@@ -41,6 +41,9 @@ export interface RunQualityStageInput extends QualityStageRuntimeDeps {
   skillDir?: string;
   executor?: StageExecutor;
   shadowMode?: boolean;
+  onShadowResult?: (
+    result: RunQualityStageResult
+  ) => Promise<void> | void;
   runMastraQualityStage?: (
     input: RunQualityStageInput
   ) => Promise<RunQualityStageResult>;
@@ -462,6 +465,8 @@ const buildShadowInput = (
   input: RunQualityStageInput
 ): RunQualityStageInput => ({
   ...input,
+  shadowMode: false,
+  onShadowResult: undefined,
   createStageRun: undefined,
   updateStageRun: undefined,
   createAgentRun: undefined,
@@ -487,10 +492,13 @@ export const runQualityStage = async (
   if (input.shadowMode) {
     const nativePromise = runQualityStageNative(input);
     const shadowPromise = runMastraQualityStage(buildShadowInput(input));
-    const [nativeResult] = await Promise.all([
+    const [nativeResult, shadowResult] = await Promise.all([
       nativePromise,
       shadowPromise.catch(() => null),
     ]);
+    if (shadowResult) {
+      await input.onShadowResult?.(shadowResult);
+    }
 
     return nativeResult;
   }
