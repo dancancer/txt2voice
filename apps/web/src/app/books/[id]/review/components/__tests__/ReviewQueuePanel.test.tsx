@@ -14,6 +14,8 @@ describe("ReviewFilterBar", () => {
         scriptSubtype="COVERAGE"
         recommendedAction="regenerate"
         priority="high"
+        pendingCount={12}
+        allPendingRegenerateLoading={false}
         issueTypeOptions={["SCRIPT_VALIDATION"]}
         scriptSubtypeOptions={[{ value: "COVERAGE", label: "覆盖率不足" }]}
         recommendedActionOptions={[
@@ -29,6 +31,7 @@ describe("ReviewFilterBar", () => {
         onPriorityChange={() => undefined}
         onRefresh={() => undefined}
         onExport={() => undefined}
+        onRegenerateAllPending={() => undefined}
         refreshing={false}
       />
     );
@@ -38,5 +41,35 @@ describe("ReviewFilterBar", () => {
     expect(html).toContain("覆盖率不足");
     expect(html).toContain("重生");
     expect(html).toContain("高优先级");
+  });
+
+  it("should render regenerate-all-pending button with pending count", () => {
+    const html = renderToStaticMarkup(
+      <ReviewFilterBar
+        status="pending"
+        issueType="all"
+        scriptSubtype="all"
+        recommendedAction="all"
+        priority="all"
+        pendingCount={23}
+        allPendingRegenerateLoading={false}
+        issueTypeOptions={["SCRIPT_VALIDATION", "CER"]}
+        scriptSubtypeOptions={[]}
+        recommendedActionOptions={[]}
+        showScriptSubtypeFilter={false}
+        showRecommendedActionFilter={false}
+        onStatusChange={() => undefined}
+        onIssueTypeChange={() => undefined}
+        onScriptSubtypeChange={() => undefined}
+        onRecommendedActionChange={() => undefined}
+        onPriorityChange={() => undefined}
+        onRefresh={() => undefined}
+        onExport={() => undefined}
+        onRegenerateAllPending={() => undefined}
+        refreshing={false}
+      />
+    );
+
+    expect(html).toContain("重生全部待复核（23）");
   });
 });

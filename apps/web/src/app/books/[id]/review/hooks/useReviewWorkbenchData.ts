@@ -69,7 +69,9 @@ const toRegenerateTask = (
 ): ReviewRegenerateTask | null => {
   const metadata = isRecord(task.metadata) ? task.metadata : null;
   const source =
-    metadata?.source === "manual_review" || metadata?.source === "manual_review_batch"
+    metadata?.source === "manual_review" ||
+    metadata?.source === "manual_review_batch" ||
+    metadata?.source === "manual_review_bulk_pending"
       ? metadata.source
       : null;
 
@@ -377,8 +379,10 @@ export function useReviewWorkbenchData(bookId: string) {
     batchActionLoading,
     dispatchEventActionId,
     scriptSaveLoadingItemId,
+    allPendingRegenerateLoading,
     resolveItem,
     resolveItemsInBatch,
+    regenerateAllPendingItems,
     resolveDispatchEvent,
     exportReviewLogs,
     saveScriptEdit,
@@ -455,6 +459,7 @@ export function useReviewWorkbenchData(bookId: string) {
     batchActionLoading,
     dispatchEventActionId,
     scriptSaveLoadingItemId,
+    allPendingRegenerateLoading,
     error,
     issueTypeOptions,
     recommendedActionOptions,
@@ -475,6 +480,7 @@ export function useReviewWorkbenchData(bookId: string) {
     updatePriorityFilter,
     resolveItem,
     resolveItemsInBatch,
+    regenerateAllPendingItems,
     resolveDispatchEvent,
     exportReviewLogs,
     saveScriptEdit,

@@ -135,10 +135,115 @@ describe("segment scripting stage", () => {
     expect(result.status).toBe("completed");
     const completed = asCompletedResult(result);
     expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
-      id: "line-1",
-      sourceText: "“快走！”燕赤霞低喝。",
+      id: "line-1::dialogue-1",
+      sourceText: "“快走！”",
       text: "快走！",
       speaker: "燕赤霞",
+      orderInSegment: 0,
+    });
+  });
+
+  it("realigns pure quoted leaf outputs back to full quoted source text", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText:
+              "外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……",
+            text: "外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-quoted-leaf",
+      segmentId: "segment-quoted-leaf",
+      segmentText:
+        "“外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……”",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
+      id: "line-1",
+      sourceText:
+        "“外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……”",
+      text: "外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……",
+      speaker: "未知",
+      orderInSegment: 0,
+    });
+  });
+
+  it("normalizes pure quoted leaf when sourceText already keeps quotes but speaker is narration", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“无事，只想叫叫你。”",
+            text: "无事，只想叫叫你。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-quoted-leaf-narration",
+      segmentId: "segment-quoted-leaf-narration",
+      segmentText: "“无事，只想叫叫你。”",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
+      id: "line-1",
+      sourceText: "“无事，只想叫叫你。”",
+      text: "无事，只想叫叫你。",
+      speaker: "未知",
+      orderInSegment: 0,
+    });
+  });
+
+  it("fills missing speaker with unknown instead of failing the draft", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“胆儿挺大的啊。”",
+            text: "胆儿挺大的啊。",
+            speaker: "",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-empty-speaker",
+      segmentId: "segment-empty-speaker",
+      segmentText: "“胆儿挺大的啊。”",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
+      id: "line-1",
+      sourceText: "“胆儿挺大的啊。”",
+      text: "胆儿挺大的啊。",
+      speaker: "未知",
       orderInSegment: 0,
     });
   });
@@ -359,7 +464,7 @@ describe("segment scripting stage", () => {
     expect("artifact" in emptyValueResult).toBe(false);
   });
 
-  it("returns repairing when orderInSegment is not contiguous from zero", async () => {
+  it("normalizes non-contiguous orderInSegment into a completed draft", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         lines: [
@@ -382,15 +487,31 @@ describe("segment scripting stage", () => {
     );
 
     const result = await runSegmentScriptingStage({
-      workflowRunId: "wf-segment-fail-non-contiguous-order",
-      segmentId: "segment-fail-non-contiguous-order",
+      workflowRunId: "wf-segment-normalize-non-contiguous-order",
+      segmentId: "segment-normalize-non-contiguous-order",
       segmentText: "宁采臣抬头。燕赤霞点头。",
       skillDir,
       adapter,
     });
 
-    expect(result.status).toBe("repairing");
-    expect("artifact" in result).toBe(false);
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.segmentScriptDraft.lines).toEqual([
+      {
+        id: "line-1",
+        sourceText: "宁采臣抬头。",
+        text: "宁采臣抬头。",
+        speaker: "旁白",
+        orderInSegment: 0,
+      },
+      {
+        id: "line-2",
+        sourceText: "燕赤霞点头。",
+        text: "燕赤霞点头。",
+        speaker: "旁白",
+        orderInSegment: 1,
+      },
+    ]);
   });
 
   it("fails stage when skill is not compatible and does not call adapter", async () => {

@@ -5,9 +5,11 @@ import {
   buildValidationReport,
   createFailureDetail,
   createStageSummary,
+  extractFailureArtifactContext,
   mergeRefinedSegmentDrafts,
   remapFailureToParentSegment,
 } from "../script-production-runtime-helpers";
+import { normalizeSegmentScriptDraft } from "./helpers/script-draft-normalizer";
 import { runSegmentRepairStage } from "../stages/run-segment-repair-stage";
 import {
   mergeSegmentCounters,
@@ -25,6 +27,20 @@ type ValidationCycleResult =
   | { status: "terminal"; result: SegmentRunResult }
   | { status: "failed"; failure: SegmentFailureDetail; counters: SegmentRuntimeCounters };
 
+const toDraftStructuredResult = (draft: SegmentScriptDraft) => ({
+  segmentId: draft.segmentId,
+  createdAt: draft.createdAt,
+  lines: draft.lines.map((line) => ({ ...line })),
+});
+
+const toDraftFailureContext = (draft: SegmentScriptDraft) => ({
+  rawResponse:
+    typeof draft.rawResponse === "string" && draft.rawResponse.trim().length > 0
+      ? draft.rawResponse
+      : undefined,
+  structuredResult: toDraftStructuredResult(draft),
+});
+
 export const runSegmentValidationCycle = async (
   params: RunSingleSegmentParams,
   draft: SegmentScriptDraft,
@@ -34,7 +50,10 @@ export const runSegmentValidationCycle = async (
   const runRepairStage = params.runSegmentRepairStage || runSegmentRepairStage;
 
   let counters = initialCounters;
-  let currentDraft = draft;
+  let currentDraft = normalizeSegmentScriptDraft({
+    segmentText: params.segment.content,
+    draft,
+  });
   let validationReport = buildValidationReport({
     segment: params.segment,
     draft: currentDraft,
@@ -78,6 +97,7 @@ export const runSegmentValidationCycle = async (
       kind: "validation-failure",
       segmentId: params.segment.id,
       validationReport,
+      ...toDraftFailureContext(currentDraft),
     },
     validationReport,
     repairDepth: 0,
@@ -154,6 +174,10 @@ export const runSegmentValidationCycle = async (
   }
 
   if (repairStage.status !== "completed") {
+    const repairFailureContext = extractFailureArtifactContext(
+      repairStage.failedArtifact
+    );
+
     return {
       status: "failed",
       failure: createFailureDetail({
@@ -161,6 +185,9 @@ export const runSegmentValidationCycle = async (
         stage: "segment_repair",
         errorCode: "SEGMENT_REPAIR_FAILED",
         message: repairStage.error || "segment_repair_failed",
+        provider: repairFailureContext.provider ?? undefined,
+        rawResponse: repairFailureContext.rawResponse,
+        structuredResult: repairFailureContext.structuredResult,
         retryable: repairStage.status === "retrying",
       }),
       counters,
@@ -212,6 +239,7 @@ export const runSegmentValidationCycle = async (
         kind: "validation-failure",
         segmentId: params.segment.id,
         validationReport,
+        ...toDraftFailureContext(currentDraft),
       },
       validationReport,
       repairDepth: params.inputRefinementDepth,
@@ -354,10 +382,13 @@ export const runSegmentValidationCycle = async (
           refinedDrafts.push(refinedResult.draft);
         }
 
-        const mergedDraft = mergeRefinedSegmentDrafts({
-          parentSegmentId: params.segment.id,
-          drafts: refinedDrafts,
-          now: params.now,
+        const mergedDraft = normalizeSegmentScriptDraft({
+          segmentText: params.segment.content,
+          draft: mergeRefinedSegmentDrafts({
+            parentSegmentId: params.segment.id,
+            drafts: refinedDrafts,
+            now: params.now,
+          }),
         });
 
         const mergedValidationReport = buildValidationReport({
@@ -387,6 +418,7 @@ export const runSegmentValidationCycle = async (
             issueMessages: mergedValidationReport.issues.map(
               (issue) => issue.message
             ),
+            ...toDraftFailureContext(mergedDraft),
           }),
           counters: mergedCounters,
         };
@@ -409,6 +441,7 @@ export const runSegmentValidationCycle = async (
         coverageRatio: validationReport.coverageRatio,
         issueCodes: validationReport.issues.map((issue) => issue.code),
         issueMessages: validationReport.issues.map((issue) => issue.message),
+        ...toDraftFailureContext(currentDraft),
       }),
       counters,
     };
@@ -426,6 +459,7 @@ export const runSegmentValidationCycle = async (
       issueCodes: validationReport.issues.map((issue) => issue.code),
       issueMessages: validationReport.issues.map((issue) => issue.message),
       retryable: repairStage.decision.retryable,
+      ...toDraftFailureContext(currentDraft),
     }),
     counters,
   };

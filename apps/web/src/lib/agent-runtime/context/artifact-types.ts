@@ -10,6 +10,9 @@ export interface SegmentScriptDraft {
   segmentId: string;
   lines: SegmentScriptDraftLine[];
   createdAt: string;
+  rawResponse?: string;
+  provider?: string;
+  model?: string;
 }
 
 export interface ValidationIssue {

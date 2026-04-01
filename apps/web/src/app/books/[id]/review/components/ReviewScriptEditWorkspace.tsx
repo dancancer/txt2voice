@@ -58,6 +58,25 @@ const asString = (value: unknown): string =>
 
 const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
 
+const resolveDialogueEntries = (value: unknown): unknown[] => {
+  const record = asRecord(value);
+  if (Array.isArray(record?.dialogues)) {
+    return record.dialogues;
+  }
+  if (Array.isArray(record?.lines)) {
+    return record.lines;
+  }
+  return [];
+};
+
+const resolveCharacterEntries = (value: unknown): unknown[] => {
+  const record = asRecord(value);
+  if (Array.isArray(record?.characters)) {
+    return record.characters;
+  }
+  return [];
+};
+
 const normalizeDialogues = (value: unknown): DialogueDraft[] =>
   asArray(value).map((entry, index) => {
     const record = asRecord(entry);
@@ -107,8 +126,8 @@ const buildInitialDraft = (item: ManualReviewItem | null) => {
   const detail = asRecord(item?.issueDetail);
   const structuredResult = asRecord(detail?.structuredResult);
   return {
-    dialogues: normalizeDialogues(structuredResult?.dialogues),
-    characters: normalizeCharacters(structuredResult?.characters),
+    dialogues: normalizeDialogues(resolveDialogueEntries(structuredResult)),
+    characters: normalizeCharacters(resolveCharacterEntries(structuredResult)),
   };
 };
 
@@ -143,7 +162,7 @@ const buildChangeSummary = (
   original: Record<string, unknown> | null,
   current: Record<string, unknown>
 ) => {
-  const originalDialogues = normalizeDialogues(asRecord(original)?.dialogues);
+  const originalDialogues = normalizeDialogues(resolveDialogueEntries(original));
   const currentDialogues = normalizeDialogues(current.dialogues);
   const changes: string[] = [];
 
@@ -196,6 +215,7 @@ export function ReviewScriptEditWorkspace({
 
   const structuredResult = useMemo(() => toStructuredResult(draft), [draft]);
   const rawResponse = asString(detail?.rawResponse);
+  const rawResponseUnavailableReason = asString(detail?.rawResponseUnavailableReason);
   const segmentContent = asString(detail?.segmentContent);
   const issueMessages = asArray(detail?.issueMessages)
     .map((message) => asString(message).trim())
@@ -301,7 +321,7 @@ export function ReviewScriptEditWorkspace({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
       <DialogContent className="h-[92vh] max-w-[96vw] overflow-hidden p-0">
-        <div className="flex h-full flex-col bg-slate-50">
+        <div className="flex h-full min-h-0 flex-col bg-slate-50">
           <DialogHeader className="border-b border-slate-200 bg-white px-6 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-2">
@@ -329,7 +349,7 @@ export function ReviewScriptEditWorkspace({
             </div>
           </DialogHeader>
 
-          <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 lg:grid-cols-[1.05fr_1.2fr_0.95fr]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden lg:grid-cols-[1.05fr_1.2fr_0.95fr]">
             <section className="min-h-0 overflow-y-auto border-r border-slate-200 bg-white p-4">
               <div className="space-y-4">
                 <div className="space-y-2">
@@ -381,28 +401,31 @@ export function ReviewScriptEditWorkspace({
               </div>
             </section>
 
-            <section className="min-h-0 overflow-y-auto border-r border-slate-200 bg-slate-50 p-4">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-900">结构化台本编辑</h3>
-                  <div className="flex gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={addDialogue}>
-                      <Plus className="mr-1 h-4 w-4" />
-                      新增台词
-                    </Button>
-                    <Button type="button" size="sm" variant="outline" onClick={addCharacter}>
-                      <Plus className="mr-1 h-4 w-4" />
-                      新增角色
-                    </Button>
-                  </div>
+            <section className="flex min-h-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-50 p-4">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-slate-900">结构化台本编辑</h3>
+                <div className="flex gap-2">
+                  <Button type="button" size="sm" variant="outline" onClick={addDialogue}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    新增台词
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={addCharacter}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    新增角色
+                  </Button>
                 </div>
+              </div>
 
-                <Tabs defaultValue="dialogues">
-                  <TabsList>
-                    <TabsTrigger value="dialogues">台词结构</TabsTrigger>
-                    <TabsTrigger value="characters">角色候选</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="dialogues" className="space-y-3">
+              <Tabs defaultValue="dialogues" className="flex min-h-0 flex-1 flex-col">
+                <TabsList className="w-fit shrink-0">
+                  <TabsTrigger value="dialogues">台词结构</TabsTrigger>
+                  <TabsTrigger value="characters">角色候选</TabsTrigger>
+                </TabsList>
+                <TabsContent
+                  value="dialogues"
+                  className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1"
+                >
+                  <div className="space-y-3">
                     {draft.dialogues.map((dialogue, index) => (
                       <div
                         key={`${dialogue.id}-${index}`}
@@ -461,8 +484,13 @@ export function ReviewScriptEditWorkspace({
                         </div>
                       </div>
                     ))}
-                  </TabsContent>
-                  <TabsContent value="characters" className="space-y-3">
+                  </div>
+                </TabsContent>
+                <TabsContent
+                  value="characters"
+                  className="mt-3 min-h-0 flex-1 overflow-y-auto pr-1"
+                >
+                  <div className="space-y-3">
                     {draft.characters.length === 0 ? (
                       <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
                         当前没有角色候选，必要时可手动补充。
@@ -525,9 +553,9 @@ export function ReviewScriptEditWorkspace({
                         </div>
                       </div>
                     ))}
-                  </TabsContent>
-                </Tabs>
-              </div>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </section>
 
             <section className="min-h-0 overflow-y-auto bg-white p-4">
@@ -570,7 +598,11 @@ export function ReviewScriptEditWorkspace({
                   <TabsContent value="raw">
                     <Textarea
                       readOnly
-                      value={rawResponse || "当前没有原始响应文本。"}
+                      value={
+                        rawResponse ||
+                        rawResponseUnavailableReason ||
+                        "当前没有原始响应文本。"
+                      }
                       className="min-h-[60vh] font-mono text-xs"
                     />
                   </TabsContent>

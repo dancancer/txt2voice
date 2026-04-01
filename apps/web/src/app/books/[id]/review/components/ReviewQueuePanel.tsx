@@ -15,7 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { Download, Loader2, RefreshCcw } from "lucide-react";
+import { Download, Loader2, RefreshCcw, RotateCcw } from "lucide-react";
 import type {
   ManualReviewStatusFilter,
   ReviewPagination,
@@ -74,6 +74,8 @@ interface ReviewFilterBarProps {
   scriptSubtype: string;
   recommendedAction: ReviewRecommendedActionFilter;
   priority: string;
+  pendingCount: number;
+  allPendingRegenerateLoading: boolean;
   issueTypeOptions: string[];
   scriptSubtypeOptions: Array<{ value: string; label: string }>;
   recommendedActionOptions: Array<{ value: string; label: string }>;
@@ -86,6 +88,7 @@ interface ReviewFilterBarProps {
   onPriorityChange: (value: string) => void;
   onRefresh: () => void;
   onExport: () => void;
+  onRegenerateAllPending: () => void;
   refreshing: boolean;
 }
 
@@ -95,6 +98,8 @@ export function ReviewFilterBar({
   scriptSubtype,
   recommendedAction,
   priority,
+  pendingCount,
+  allPendingRegenerateLoading,
   issueTypeOptions,
   scriptSubtypeOptions,
   recommendedActionOptions,
@@ -107,6 +112,7 @@ export function ReviewFilterBar({
   onPriorityChange,
   onRefresh,
   onExport,
+  onRegenerateAllPending,
   refreshing,
 }: ReviewFilterBarProps) {
   const statusLabel = REVIEW_STATUS_LABELS[status] || "状态";
@@ -128,7 +134,7 @@ export function ReviewFilterBar({
   return (
     <Card className="border-slate-200 shadow-sm">
       <CardContent className="p-4 !pt-4">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-7">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-8">
           <Select value={status} onValueChange={(value) => onStatusChange(value as ManualReviewStatusFilter)}>
             <SelectTrigger className="min-h-11 bg-white">
               <span className="block truncate">{statusLabel}</span>
@@ -209,6 +215,26 @@ export function ReviewFilterBar({
             </SelectContent>
           </Select>
 
+          <Button
+            type="button"
+            className="min-h-11"
+            disabled={
+              pendingCount === 0 || refreshing || allPendingRegenerateLoading
+            }
+            onClick={onRegenerateAllPending}
+          >
+            {allPendingRegenerateLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                全量重生中
+              </>
+            ) : (
+              <>
+                <RotateCcw className="mr-2 h-4 w-4" />
+                {`重生全部待复核（${pendingCount}）`}
+              </>
+            )}
+          </Button>
           <Button
             type="button"
             variant="outline"

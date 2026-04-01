@@ -109,6 +109,35 @@ const toRecommendedActionClassName = (
   return "ring-2 ring-amber-300 ring-offset-2";
 };
 
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const resolveGeneratedPreview = (structuredResult: Record<string, unknown> | null) => {
+  if (!structuredResult) {
+    return null;
+  }
+
+  const entries = Array.isArray(structuredResult.dialogues)
+    ? structuredResult.dialogues
+    : Array.isArray(structuredResult.lines)
+      ? structuredResult.lines
+      : [];
+
+  for (const entry of entries) {
+    const record = asRecord(entry);
+    const text = typeof record?.text === "string" ? record.text.trim() : "";
+    if (text) {
+      return text;
+    }
+  }
+
+  return null;
+};
+
 interface ReviewQueueListProps {
   items: ManualReviewItem[];
   loading: boolean;
@@ -265,19 +294,9 @@ export function ReviewQueueList({
             : null;
         const primaryText =
           item.sentence?.text || scriptDetail?.segmentPreview || "当前条目缺少句子文本";
-        const rawStructuredDialogues =
-          scriptDetail?.structuredResult &&
-          Array.isArray(scriptDetail.structuredResult.dialogues)
-            ? scriptDetail.structuredResult.dialogues
-            : [];
-        const generatedPreview =
-          rawStructuredDialogues.length > 0 &&
-          rawStructuredDialogues[0] &&
-          typeof rawStructuredDialogues[0] === "object" &&
-          !Array.isArray(rawStructuredDialogues[0]) &&
-          typeof (rawStructuredDialogues[0] as Record<string, unknown>).text === "string"
-            ? ((rawStructuredDialogues[0] as Record<string, unknown>).text as string)
-            : null;
+        const generatedPreview = resolveGeneratedPreview(
+          scriptDetail?.structuredResult || null
+        );
 
         return (
           <Card key={item.id} className="border-slate-200 shadow-sm">

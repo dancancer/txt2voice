@@ -6,8 +6,8 @@
 # 1) 安装依赖
 pnpm install
 
-# 2) 配置环境变量
-cp .env.local.example apps/web/.env.local
+# 2) 配置环境变量（仓库根目录）
+cp .env.local.example .env.local
 # 填入 LLM_API_KEY 等必要配置
 
 # 3) 启动依赖服务（PostgreSQL + Redis）

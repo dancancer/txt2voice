@@ -82,6 +82,23 @@ describe("script-validation-detail", () => {
     });
   });
 
+  it("should translate internal repair payload errors into reviewer-facing guidance", () => {
+    const detail = buildScriptValidationDetailView({
+      issueSubtype: "OTHER",
+      issueDetail: {
+        stage: "segment_repair",
+        errorCode: "SEGMENT_REPAIR_FAILED",
+        message: "Invalid repair payload line: required fields are invalid",
+        issueMessages: ["Invalid repair payload line: required fields are invalid"],
+      },
+    });
+
+    expect(detail.summary).toBe("修复阶段返回的台词条目存在空值或非法字段，无法回写台本。");
+    expect(detail.issueMessages).toEqual([
+      "修复阶段返回的台词条目存在空值或非法字段，无法回写台本。",
+    ]);
+  });
+
   it("should expose recommended action metadata for filtering", () => {
     expect(getScriptValidationRecommendedActionLabel("regenerate")).toBe("重生");
     expect(listScriptValidationSubtypesByRecommendedAction("regenerate")).toContain(

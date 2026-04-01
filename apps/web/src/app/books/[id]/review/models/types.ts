@@ -115,6 +115,29 @@ export interface ReviewBatchResolveResponse {
   };
 }
 
+export interface ReviewRegenerateAllPendingResult {
+  reviewItemCount: number;
+  processedCount: number;
+  scriptTask: {
+    taskId: string;
+    taskType: "SCRIPT_GENERATION";
+    status: string;
+  } | null;
+  audioTask: {
+    taskId: string;
+    taskType: "AUDIO_GENERATION";
+    status: string;
+  } | null;
+}
+
+export interface ReviewRegenerateAllPendingResponse {
+  success: boolean;
+  data: ReviewRegenerateAllPendingResult;
+  error?: {
+    message?: string;
+  };
+}
+
 export interface ReviewScriptSaveResponse {
   success: boolean;
   data: {
@@ -126,7 +149,10 @@ export interface ReviewScriptSaveResponse {
   };
 }
 
-export type ReviewRegenerateTaskSource = "manual_review" | "manual_review_batch";
+export type ReviewRegenerateTaskSource =
+  | "manual_review"
+  | "manual_review_batch"
+  | "manual_review_bulk_pending";
 
 export interface ReviewRegenerateTask {
   id: string;
@@ -353,5 +379,6 @@ export const SOURCE_FILTER_OPTIONS = [
   { value: "qc_retry", label: "qc_retry" },
   { value: "manual_review", label: "manual_review" },
   { value: "manual_review_batch", label: "manual_review_batch" },
+  { value: "manual_review_bulk_pending", label: "manual_review_bulk_pending" },
   { value: "unknown", label: "unknown" },
 ] as const;

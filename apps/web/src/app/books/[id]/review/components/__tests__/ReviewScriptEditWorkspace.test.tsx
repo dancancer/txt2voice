@@ -72,4 +72,54 @@ describe("ReviewScriptEditWorkspace", () => {
     expect(html).toContain("人多心乱，都撤了吧。");
     expect(html).toContain("原文覆盖率过低");
   });
+
+  it("should render runtime draft lines when structuredResult uses lines shape", () => {
+    const item = buildItem();
+    item.issueDetail = {
+      ...(item.issueDetail as Record<string, unknown>),
+      rawResponse:
+        '{"lines":[{"id":"line-1","sourceText":"她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”","text":"人多心乱，都撤了吧。","speaker":"未知","orderInSegment":0}]}',
+      structuredResult: {
+        segmentId: "segment-1",
+        createdAt: "2026-03-23T10:00:00.000Z",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”",
+            text: "人多心乱，都撤了吧。",
+            speaker: "未知",
+            orderInSegment: 0,
+          },
+        ],
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ReviewScriptEditWorkspace
+        open
+        item={item}
+        saving={false}
+        onClose={() => undefined}
+        onSave={async () => true}
+      />
+    );
+
+    expect(html).toContain("人多心乱，都撤了吧。");
+    expect(html).toContain("未知");
+  });
+
+  it("should reserve a dedicated scroll container for the structured editor column", () => {
+    const html = renderToStaticMarkup(
+      <ReviewScriptEditWorkspace
+        open
+        item={buildItem()}
+        saving={false}
+        onClose={() => undefined}
+        onSave={async () => true}
+      />
+    );
+
+    expect(html).toContain("flex min-h-0 flex-1 flex-col");
+    expect(html).toContain("min-h-0 flex-1 overflow-y-auto");
+  });
 });

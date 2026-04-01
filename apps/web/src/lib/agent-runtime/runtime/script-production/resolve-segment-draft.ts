@@ -2,6 +2,7 @@ import type { SegmentScriptDraft } from "../../context";
 import {
   createFailureDetail,
   createStageSummary,
+  extractFailureArtifactContext,
   remapFailureToParentSegment,
 } from "../script-production-runtime-helpers";
 import {
@@ -200,6 +201,10 @@ export const resolveSegmentDraft = async (
   });
 
   if (repairStage.status !== "completed") {
+    const repairFailureContext = extractFailureArtifactContext(
+      repairStage.failedArtifact
+    );
+
     return {
       status: "failed",
       failure: createFailureDetail({
@@ -207,6 +212,9 @@ export const resolveSegmentDraft = async (
         stage: "segment_repair",
         errorCode: "SEGMENT_REPAIR_FAILED",
         message: repairStage.error || "segment_repair_failed",
+        provider: repairFailureContext.provider ?? undefined,
+        rawResponse: repairFailureContext.rawResponse,
+        structuredResult: repairFailureContext.structuredResult,
         retryable: repairStage.status === "retrying",
       }),
       counters,

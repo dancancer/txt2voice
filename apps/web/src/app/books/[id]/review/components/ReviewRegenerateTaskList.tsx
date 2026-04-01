@@ -42,7 +42,13 @@ const formatDateTime = (value: string | null): string => {
 };
 
 const toSourceLabel = (source: ReviewRegenerateTask["source"]): string => {
-  return source === "manual_review_batch" ? "批量重生" : "单条重生";
+  if (source === "manual_review_batch") {
+    return "批量重生";
+  }
+  if (source === "manual_review_bulk_pending") {
+    return "全量待复核重生";
+  }
+  return "单条重生";
 };
 
 const toStatusIcon = (status: ReviewRegenerateTask["status"]) => {

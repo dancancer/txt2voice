@@ -375,6 +375,56 @@ describe("segment repair stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
+  it("preserves raw response and parsed payload in failedArtifact for invalid repair lines", async () => {
+    const responseContent = JSON.stringify({
+      lines: [
+        {
+          id: "line-1",
+          sourceText: "宁采臣抬头。",
+          text: "",
+          speaker: "旁白",
+          orderInSegment: 0,
+        },
+      ],
+    });
+    const adapter = createMockAdapter(responseContent);
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-invalid-fields-artifact",
+      segmentId: "segment-invalid-fields-artifact",
+      segmentText: "宁采臣抬头。",
+      failureKind: "format_repair",
+      failedArtifact: {
+        kind: "segment-scripting-failure",
+        rawResponse: "not-json",
+      },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect("failedArtifact" in result ? result.failedArtifact : undefined).toEqual({
+      kind: "segment-repair-failure",
+      rawResponse: responseContent,
+      structuredResult: {
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      },
+      provider: "mock-provider",
+      model: "mock-model",
+      message: "Invalid repair payload line: required fields are invalid",
+    });
+  });
+
   it("degrades format_repair to input_refinement when input is over budget", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({

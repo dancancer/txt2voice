@@ -1,24 +1,41 @@
 # 文档索引
 
-文档目录已按“**活跃文档** / **历史归档**”两层整理，便于维护。
+## 核心入口
 
-## 目录结构（当前）
+- [../README.md](../README.md)：项目总览、快速开始、主入口文档
+- [../ARCHITECTURE.md](../ARCHITECTURE.md)：技术架构文档
+- [BUSINESS_ARCHITECTURE.md](./BUSINESS_ARCHITECTURE.md)：业务架构文档
+- [../DEV_GUIDE.md](../DEV_GUIDE.md)：本地与 Docker 开发指南
+- [../AGENTS.md](../AGENTS.md)：Agent 协作说明
+
+## 当前目录结构
 
 ```text
 docs/
 ├── README.md
+├── BUSINESS_ARCHITECTURE.md
 ├── API_RESTRUCTURE.md
 ├── CHAPTER_EDITOR_DESIGN.md
 ├── IndexTTS-API.md
-├── epic/               # 按 Epic 聚合的计划/任务/交接文档
-├── technical/          # 当前仍在参考的技术文档
-└── archive/
-    └── history/        # 历史文档（仅追溯，不代表当前实现）
+├── technical/          # 技术专题、运行手册、UI/UX 设计资料
+├── roadmap/            # 路线图
+├── epic/               # Epic 级规划与交接
+├── plan/               # 长期规划与运行手册
+├── plans/              # 具体实现计划
+├── task/               # 执行任务文档
+├── review/             # 审查记录
+├── handoff/            # 交接文档
+└── archive/            # 历史归档
 ```
 
 ## 活跃文档
 
-### 根目录
+### 架构与总览
+
+- [BUSINESS_ARCHITECTURE.md](./BUSINESS_ARCHITECTURE.md)：产品流程、角色分工、业务闭环
+- [../ARCHITECTURE.md](../ARCHITECTURE.md)：技术分层、运行时、数据与队列架构
+
+### 根目录专题
 
 - [API_RESTRUCTURE.md](./API_RESTRUCTURE.md)：API 拆分与分页思路
 - [CHAPTER_EDITOR_DESIGN.md](./CHAPTER_EDITOR_DESIGN.md)：章节编辑设计
@@ -26,36 +43,20 @@ docs/
 
 ### technical/
 
-- [DOCKER_NOTES.md](./technical/DOCKER_NOTES.md)
-- [DOCKER_HOT_RELOAD.md](./technical/DOCKER_HOT_RELOAD.md)
-- [DOCKER_DEV_SETUP_SUMMARY.md](./technical/DOCKER_DEV_SETUP_SUMMARY.md)
-- [ENCODING_SUPPORT.md](./technical/ENCODING_SUPPORT.md)
-- [TEXT_SPLITTING_OPTIMIZATION.md](./technical/TEXT_SPLITTING_OPTIMIZATION.md)
-- [TEXT_SPLITTING_SUMMARY.md](./technical/TEXT_SPLITTING_SUMMARY.md)
-- [NAVIGATION_OPTIMIZATION.md](./technical/NAVIGATION_OPTIMIZATION.md)
-- [NAVIGATION_QUICK_REFERENCE.md](./technical/NAVIGATION_QUICK_REFERENCE.md)
-- [NAVIGATION_SUMMARY.md](./technical/NAVIGATION_SUMMARY.md)
+- [technical/DOCKER_NOTES.md](./technical/DOCKER_NOTES.md)
+- [technical/DOCKER_HOT_RELOAD.md](./technical/DOCKER_HOT_RELOAD.md)
+- [technical/DOCKER_DEV_SETUP_SUMMARY.md](./technical/DOCKER_DEV_SETUP_SUMMARY.md)
+- [technical/ENCODING_SUPPORT.md](./technical/ENCODING_SUPPORT.md)
+- [technical/REMOTE_TTS_RUNTIME_RUNBOOK.md](./technical/REMOTE_TTS_RUNTIME_RUNBOOK.md)
+- [technical/TEXT_SPLITTING_OPTIMIZATION.md](./technical/TEXT_SPLITTING_OPTIMIZATION.md)
+- [technical/NAVIGATION_SUMMARY.md](./technical/NAVIGATION_SUMMARY.md)
 
-### epic/
+### 规划与执行
 
-- [2026-03-05-autobook-v2](./epic/2026-03-05-autobook-v2/README.md)：AutoBook V2 计划、任务、交接与实施卡
+- [roadmap/2026-03-08-project-realignment-roadmap.md](./roadmap/2026-03-08-project-realignment-roadmap.md)
+- [epic/2026-03-05-autobook-v2/README.md](./epic/2026-03-05-autobook-v2/README.md)
+- [plan/2026-03-01-audiobook-quality-improvement-plan.md](./plan/2026-03-01-audiobook-quality-improvement-plan.md)
 
-## 历史归档（archive/history）
+## 历史归档
 
-以下文档仅用于追溯历史决策：
-
-- [BUGFIX_TEXT_ESCAPE.md](./archive/history/BUGFIX_TEXT_ESCAPE.md)
-- [FIXES_APPLIED.md](./archive/history/FIXES_APPLIED.md)
-- [MIGRATION_SUCCESS.md](./archive/history/MIGRATION_SUCCESS.md)
-- [MONOREPO_MIGRATION.md](./archive/history/MONOREPO_MIGRATION.md)
-- [QUICK_START_AFTER_FIXES.md](./archive/history/QUICK_START_AFTER_FIXES.md)
-- [SCRIPT_PAGE_REFACTORING.md](./archive/history/SCRIPT_PAGE_REFACTORING.md)
-- [SETUP_GUIDE.md](./archive/history/SETUP_GUIDE.md)
-- [TROUBLESHOOTING_TEXT_ESCAPE.md](./archive/history/TROUBLESHOOTING_TEXT_ESCAPE.md)
-
-## 主入口文档
-
-- [../README.md](../README.md)
-- [../ARCHITECTURE.md](../ARCHITECTURE.md)
-- [../DEV_GUIDE.md](../DEV_GUIDE.md)
-- [../AGENTS.md](../AGENTS.md)
+`archive/` 与其子目录只用于追溯历史决策，不代表当前实现。

@@ -58,6 +58,7 @@ export default function ReviewWorkbenchPage() {
     batchActionLoading,
     dispatchEventActionId,
     scriptSaveLoadingItemId,
+    allPendingRegenerateLoading,
     error,
     issueTypeOptions,
     recommendedActionOptions,
@@ -77,6 +78,7 @@ export default function ReviewWorkbenchPage() {
     updatePriorityFilter,
     resolveItem,
     resolveItemsInBatch,
+    regenerateAllPendingItems,
     resolveDispatchEvent,
     exportReviewLogs,
     saveScriptEdit,
@@ -164,6 +166,8 @@ export default function ReviewWorkbenchPage() {
               scriptSubtype={filters.scriptSubtype}
               recommendedAction={filters.recommendedAction}
               priority={filters.priority}
+              pendingCount={summary.pendingCount}
+              allPendingRegenerateLoading={allPendingRegenerateLoading}
               issueTypeOptions={issueTypeOptions}
               scriptSubtypeOptions={scriptSubtypeOptions}
               recommendedActionOptions={recommendedActionOptions}
@@ -176,6 +180,9 @@ export default function ReviewWorkbenchPage() {
               onPriorityChange={updatePriorityFilter}
               onRefresh={() => loadReviewData(true)}
               onExport={exportReviewLogs}
+              onRegenerateAllPending={() =>
+                regenerateAllPendingItems(summary.pendingCount)
+              }
               refreshing={reviewLoading}
             />
             <ReviewQueueList

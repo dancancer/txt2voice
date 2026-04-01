@@ -169,6 +169,35 @@ describe("quality stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("passes prompt guardrails that limit reasons to script-generation quality", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.91,
+        confidence: 0.92,
+        reasons: ["角色归属稳定"],
+        summary: "台本质量稳定，可自动通过",
+      })
+    );
+
+    await runQualityStage({
+      workflowRunId: "wf-quality-prompt-guardrails-1",
+      segmentId: "segment-quality-prompt-guardrails-1",
+      segmentScriptDraft: createDraft("segment-quality-prompt-guardrails-1"),
+      validationReport: createValidationReport("segment-quality-prompt-guardrails-1"),
+      adapter,
+    });
+
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+    const request = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      systemPrompt?: string;
+      prompt?: string;
+    };
+
+    expect(request.systemPrompt).toContain("只评估台本生成质量");
+    expect(request.systemPrompt).toContain("不要把原文题材、叙事质量、受众适宜性");
+    expect(request.prompt).toContain("不要把原文叙事连贯性、题材敏感性、受众适宜性");
+  });
+
   it("converts low score output into manual_review_required", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({

@@ -1,6 +1,7 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type { SegmentScriptDraft, SegmentScriptDraftLine } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
+import { normalizeSegmentScriptDraft } from "../script-production/helpers/script-draft-normalizer";
 
 export interface ScriptGenerationPrompts {
   systemPrompt: string;
@@ -113,10 +114,10 @@ const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
   const id = asText(value.id);
   const sourceText = asText(value.sourceText);
   const text = asText(value.text);
-  const speaker = asText(value.speaker);
+  const speaker = asText(value.speaker) ?? "未知";
   const orderInSegment = asOrderInSegment(value.orderInSegment);
 
-  if (!id || !sourceText || !text || !speaker || orderInSegment === null) {
+  if (!id || !sourceText || !text || orderInSegment === null) {
     throw new Error("Invalid script line: required fields are empty or invalid");
   }
 
@@ -142,6 +143,7 @@ const assertContiguousOrderInSegment = (lines: SegmentScriptDraftLine[]) => {
 const toSegmentScriptDraft = (params: {
   content: string;
   segmentId: string;
+  segmentText: string;
   now: () => Date;
 }): SegmentScriptDraft => {
   const payload = extractJsonPayload(params.content);
@@ -162,14 +164,18 @@ const toSegmentScriptDraft = (params: {
     );
   }
 
-  const lines = payload.lines.map((line) => toDraftLine(line));
+  const normalizedDraft = normalizeSegmentScriptDraft({
+    segmentText: params.segmentText,
+    draft: {
+      segmentId: params.segmentId,
+      lines: payload.lines.map((line) => toDraftLine(line)),
+      createdAt: params.now().toISOString(),
+    },
+  });
+  const lines = normalizedDraft.lines;
   assertContiguousOrderInSegment(lines);
 
-  return {
-    segmentId: params.segmentId,
-    lines,
-    createdAt: params.now().toISOString(),
-  };
+  return normalizedDraft;
 };
 
 const renderUserPrompt = (
@@ -225,12 +231,20 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
     const now = deps.now ?? (() => new Date());
 
     try {
+      const segmentScriptDraft = toSegmentScriptDraft({
+        content: response.content,
+        segmentId: input.segmentId,
+        segmentText: input.segmentText,
+        now,
+      });
+
       return {
-        segmentScriptDraft: toSegmentScriptDraft({
-          content: response.content,
-          segmentId: input.segmentId,
-          now,
-        }),
+        segmentScriptDraft: {
+          ...segmentScriptDraft,
+          rawResponse: response.content,
+          provider: response.provider,
+          model: response.model,
+        },
         rawResponse: response.content,
         provider: response.provider,
         model: response.model,

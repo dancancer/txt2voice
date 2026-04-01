@@ -68,6 +68,7 @@ interface RunSegmentRepairStageNonCompletedResult {
   agentRunId?: string;
   status: "failed" | "retrying" | "repairing";
   error?: string;
+  failedArtifact?: unknown;
 }
 
 export type RunSegmentRepairStageResult =
@@ -349,6 +350,7 @@ export const runSegmentRepairStage = async (
       agentRunId: stageResult.agent.runId,
       status: stageResult.status,
       error: stageResult.agent.error,
+      failedArtifact: stageResult.agent.output?.failedArtifact,
     };
   }
 

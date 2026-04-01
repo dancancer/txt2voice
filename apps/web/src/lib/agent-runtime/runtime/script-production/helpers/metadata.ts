@@ -60,6 +60,44 @@ export const asErrorMessage = (error: unknown): string => {
   return "unknown_runtime_error";
 };
 
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  return value as Record<string, unknown>;
+};
+
+const asNullableString = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
+export interface FailureArtifactContext {
+  provider: string | null;
+  rawResponse: string | null;
+  structuredResult: Record<string, unknown> | null;
+}
+
+export const extractFailureArtifactContext = (
+  value: unknown
+): FailureArtifactContext => {
+  const record = asRecord(value);
+  const structuredResult = asRecord(record?.structuredResult);
+
+  return {
+    provider: asNullableString(record?.provider),
+    rawResponse: asNullableString(record?.rawResponse),
+    structuredResult: structuredResult
+      ? (JSON.parse(JSON.stringify(structuredResult)) as Record<string, unknown>)
+      : null,
+  };
+};
+
 const buildSegmentPreview = (content: string): string =>
   content.replace(/\s+/g, " ").trim().slice(0, 120);
 

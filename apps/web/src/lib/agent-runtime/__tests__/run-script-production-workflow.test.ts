@@ -775,6 +775,153 @@ describe("runScriptProductionWorkflow", () => {
     );
   });
 
+  it("preserves repair failure raw response and structured payload in failed segment details", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-fail",
+      status: "repairing",
+      error: "Invalid script generation payload: expected JSON object",
+      failedArtifact: {
+        kind: "segment-scripting-failure",
+        rawResponse: "not-json",
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        message: "Invalid script generation payload: expected JSON object",
+      },
+    } as any);
+
+    mockRunSegmentRepairStage.mockResolvedValue({
+      stageRunId: "stage-repair-failed",
+      status: "failed",
+      error: "Invalid repair payload line: required fields are invalid",
+      failedArtifact: {
+        kind: "segment-repair-failure",
+        rawResponse:
+          '{"lines":[{"id":"line-1","sourceText":"第一段原文。","text":"","speaker":"旁白","orderInSegment":0}]}',
+        structuredResult: {
+          lines: [
+            {
+              id: "line-1",
+              sourceText: "第一段原文。",
+              text: "",
+              speaker: "旁白",
+              orderInSegment: 0,
+            },
+          ],
+        },
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        message: "Invalid repair payload line: required fields are invalid",
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(result.summary.failedSegmentDetails).toEqual([
+      expect.objectContaining({
+        segmentId: "seg-1",
+        stage: "segment_repair",
+        errorCode: "SEGMENT_REPAIR_FAILED",
+        message: "Invalid repair payload line: required fields are invalid",
+        rawResponse:
+          '{"lines":[{"id":"line-1","sourceText":"第一段原文。","text":"","speaker":"旁白","orderInSegment":0}]}',
+        structuredResult: {
+          lines: [
+            {
+              id: "line-1",
+              sourceText: "第一段原文。",
+              text: "",
+              speaker: "旁白",
+              orderInSegment: 0,
+            },
+          ],
+        },
+      }),
+    ]);
+  });
+
+  it("preserves scripting raw response and structured draft when validation ends in manual review", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-validation-fail",
+      status: "completed",
+      artifact: {
+        kind: "segment-script-draft",
+        skillId: "script-generation",
+        segmentScriptDraft: {
+          segmentId: "seg-1",
+          createdAt: "2026-03-24T00:00:00.000Z",
+          rawResponse:
+            '{"lines":[{"id":"seg-1-line-1","sourceText":"第一段","text":"第一段","speaker":"旁白","orderInSegment":0}]}',
+          lines: [
+            {
+              id: "seg-1-line-1",
+              sourceText: "第一段",
+              text: "第一段",
+              speaker: "旁白",
+              orderInSegment: 0,
+            },
+          ],
+        },
+      },
+    } as any);
+    mockRunSegmentRepairStage.mockResolvedValue({
+      stageRunId: "stage-repair-manual-review",
+      status: "completed",
+      decision: {
+        segmentId: "seg-1",
+        action: "manual_review",
+        reason: "coverage_not_met",
+        retryable: false,
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(result.summary.failedSegmentDetails).toEqual([
+      expect.objectContaining({
+        segmentId: "seg-1",
+        stage: "segment_repair",
+        errorCode: "SEGMENT_MANUAL_REVIEW_REQUIRED",
+        rawResponse:
+          '{"lines":[{"id":"seg-1-line-1","sourceText":"第一段","text":"第一段","speaker":"旁白","orderInSegment":0}]}',
+        structuredResult: {
+          segmentId: "seg-1",
+          createdAt: "2026-03-24T00:00:00.000Z",
+          lines: [
+            {
+              id: "seg-1-line-1",
+              sourceText: "第一段",
+              text: "第一段",
+              speaker: "旁白",
+              orderInSegment: 0,
+            },
+          ],
+        },
+      }),
+    ]);
+    expect(mockRunQualityStage).not.toHaveBeenCalled();
+    expect(mockRunPersistStage).not.toHaveBeenCalled();
+  });
+
   it("refines oversized format repair input into slices and persists merged parent draft once", async () => {
     mockPrisma.book.findUnique.mockResolvedValue({
       id: "book-1",
@@ -1080,6 +1227,269 @@ describe("runScriptProductionWorkflow", () => {
       })
     );
     expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(4);
+    expect(result.summary.failedSegments).toBe(0);
+  });
+
+  it("skips quality judgement for input-refined leaves and only judges the merged parent draft", async () => {
+    const refinedContent = '前文。\n\n后文。“好。”';
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [
+        {
+          id: "seg-1",
+          chapterId: "chapter-1",
+          orderIndex: 0,
+          content: refinedContent,
+        },
+      ],
+      characterProfiles: [],
+    });
+
+    mockRunSegmentScriptingStage.mockImplementation(async ({ segmentId }: any) => {
+      if (segmentId === "seg-1::refined-1") {
+        return {
+          stageRunId: "stage-script-refined-1",
+          status: "completed",
+          artifact: createDraftArtifact("seg-1::refined-1", "前文。\n\n后文。"),
+        } as any;
+      }
+
+      if (segmentId === "seg-1::refined-2") {
+        return {
+          stageRunId: "stage-script-refined-2",
+          status: "completed",
+          artifact: createDraftArtifact("seg-1::refined-2", "“好。”", {
+            text: "好。",
+            speaker: "未知",
+          }),
+        } as any;
+      }
+
+      return {
+        stageRunId: `stage-script-${segmentId}`,
+        status: "completed",
+        artifact: createDraftArtifact(segmentId, "错误片段"),
+      } as any;
+    });
+
+    mockRunSegmentRepairStage.mockImplementation(async (input: any) => {
+      if (input.failureKind === "semantic_retry") {
+        return {
+          stageRunId: `stage-repair-${input.failureKind}-${input.segmentId}`,
+          status: "completed",
+          decision: {
+            segmentId: input.segmentId,
+            action: "retry",
+            reason: "semantic_retry",
+            retryable: true,
+          },
+        } as any;
+      }
+
+      if (input.failureKind === "input_refinement") {
+        return {
+          stageRunId: `stage-repair-${input.failureKind}-${input.segmentId}`,
+          status: "completed",
+          decision: {
+            segmentId: input.segmentId,
+            action: "refine",
+            reason: "input_refinement",
+            retryable: true,
+          },
+        } as any;
+      }
+
+      throw new Error(`unexpected failureKind: ${input.failureKind}`);
+    });
+
+    const qualityJudgedSegments: string[] = [];
+    mockRunQualityStage.mockImplementation(async (input: any) => {
+      qualityJudgedSegments.push(input.segmentId);
+
+      if (input.segmentId !== "seg-1") {
+        return {
+          stageRunId: `quality-${input.segmentId}`,
+          status: "completed",
+          decision: "manual_review_required",
+          verdict: {
+            segmentId: input.segmentId,
+            verdict: "manual_review",
+            score: 0.5,
+            reasons: ["short leaf should not be judged independently"],
+          },
+          handoff: {
+            segmentId: input.segmentId,
+            summary: "short_leaf",
+            reasons: ["short leaf should not be judged independently"],
+            evidence: {
+              score: 0.5,
+              confidence: 0.8,
+              validation: {
+                coverageRatio: 1,
+                issues: [],
+              },
+            },
+          },
+        } as any;
+      }
+
+      return {
+        stageRunId: "quality-parent",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: "seg-1",
+          verdict: "pass",
+          score: 0.95,
+          reasons: ["ok"],
+        },
+      } as any;
+    });
+
+    mockRunPersistStage.mockResolvedValue({
+      stageRunId: "persist-pass",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 2,
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(result.summary.failedSegments).toBe(0);
+    expect(qualityJudgedSegments).toEqual(["seg-1"]);
+  });
+
+  it("normalizes merged parent draft after input refinement before quality judgement", async () => {
+    const refinedContent =
+      "“宗主……您分神期修为，怎忽地动起了凡欲尘心，只怕这样下去有损修行。您是一宗主心之人，只盼能以宗门为先，远小人亲贤者……";
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [
+        {
+          id: "seg-1",
+          chapterId: "chapter-1",
+          orderIndex: 0,
+          content: refinedContent,
+        },
+      ],
+      characterProfiles: [],
+    });
+
+    mockRunSegmentScriptingStage.mockImplementation(
+      async ({ segmentId, segmentText }: any) => {
+        if (segmentId.startsWith("seg-1::refined-")) {
+          return {
+            stageRunId: `stage-script-${segmentId}`,
+            status: "completed",
+            artifact: {
+              kind: "segment-script-draft",
+              skillId: "script-generation",
+              segmentScriptDraft: {
+                segmentId,
+                createdAt: "2026-03-31T00:00:00.000Z",
+                lines: [
+                  {
+                    id: `${segmentId}-line-1`,
+                    sourceText: segmentText,
+                    text: segmentText.startsWith("“")
+                      ? segmentText.slice(1)
+                      : segmentText,
+                    speaker: segmentText.startsWith("“") ? "未知" : "旁白",
+                    orderInSegment: 0,
+                  },
+                ],
+              },
+            },
+          } as any;
+        }
+
+        return {
+          stageRunId: `stage-script-${segmentId}`,
+          status: "completed",
+          artifact: createDraftArtifact(segmentId, "错误片段"),
+        } as any;
+      }
+    );
+
+    mockRunSegmentRepairStage.mockImplementation(async (input: any) => {
+      if (input.failureKind === "semantic_retry") {
+        return {
+          stageRunId: `stage-repair-${input.failureKind}-${input.segmentId}`,
+          status: "completed",
+          decision: {
+            segmentId: input.segmentId,
+            action: "retry",
+            reason: "semantic_retry",
+            retryable: true,
+          },
+        } as any;
+      }
+
+      if (input.failureKind === "input_refinement") {
+        return {
+          stageRunId: `stage-repair-${input.failureKind}-${input.segmentId}`,
+          status: "completed",
+          decision: {
+            segmentId: input.segmentId,
+            action: "refine",
+            reason: "input_refinement",
+            retryable: true,
+          },
+        } as any;
+      }
+
+      throw new Error(`unexpected failureKind: ${input.failureKind}`);
+    });
+
+    const qualityInputs: any[] = [];
+    mockRunQualityStage.mockImplementation(async (input: any) => {
+      qualityInputs.push(input);
+      return {
+        stageRunId: "quality-parent",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: input.segmentId,
+          verdict: "pass",
+          score: 0.95,
+          reasons: ["ok"],
+        },
+      } as any;
+    });
+
+    mockRunPersistStage.mockResolvedValue({
+      stageRunId: "persist-pass",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 1,
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(qualityInputs).toHaveLength(1);
+    expect(qualityInputs[0].segmentScriptDraft.lines).toEqual([
+      expect.objectContaining({
+        sourceText: refinedContent,
+        text:
+          "宗主……您分神期修为，怎忽地动起了凡欲尘心，只怕这样下去有损修行。您是一宗主心之人，只盼能以宗门为先，远小人亲贤者……",
+        speaker: "未知",
+        orderInSegment: 0,
+      }),
+    ]);
     expect(result.summary.failedSegments).toBe(0);
   });
 

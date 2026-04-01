@@ -3,6 +3,14 @@ import {
   DIALOGUE_QUOTE_PAIRS,
   updateDialogueQuoteStack,
 } from "@/lib/dialogue-quote-tracker";
+import {
+  hasReportReadingCue,
+  hasSpeechAttributionCue,
+  isDisplayTextCue,
+  looksLikeColonAttribution,
+  looksLikeGenericDaoAttribution,
+  PUNCTUATION_ONLY_PATTERN,
+} from "../dialogue-attribution-heuristics";
 
 export interface FailedSegmentRefinementInput {
   segment: {
@@ -44,15 +52,6 @@ const SENTENCE_BOUNDARY_CHARS = new Set([
   "?",
   "…",
 ]);
-
-const ATTRIBUTION_TOKEN_PATTERN =
-  /(说道|说着|说完|说|问道|问|回答|答道|答|应道|应|回应|回道|回|喊道|喊|叫道|叫|吼道|吼|嚷道|嚷|嘀咕|嘟囔|喃喃|低声说|轻声说|低声道|轻声道|笑道|哭道|提醒|解释|告诉|补充|反问|脱口而出|承认|念起|念起来|念道|念)/;
-const GENERIC_DAO_PATTERN = /[^，。！？；：,:]{0,12}道(?:[：:,，。\s]|$)/;
-const DISPLAY_TEXT_PATTERN =
-  /(写着|写道|写有|写明|标着|标明|贴着|贴有|印着|印有|显示着|显示|注明|题着)/;
-const PUNCTUATION_ONLY_PATTERN = /^[，。！？；：,:、…—\-\s]+$/;
-const REPORT_READING_PATTERN =
-  /(一字一句念起来|一字一句念起|照着.*念|念起宗门呈报|取出宗门呈报|宣读|朗读|念了小半个时辰|念了半天|念道)/;
 
 interface QuoteSpan {
   start: number;
@@ -202,40 +201,62 @@ const buildNonQuotedFragments = (content: string, spans: QuoteSpan[]) => {
 };
 
 const isAttributionFragment = (value: string) => {
-  if (!value || DISPLAY_TEXT_PATTERN.test(value)) {
+  if (!value || isDisplayTextCue(value)) {
     return false;
   }
 
   return (
-    ATTRIBUTION_TOKEN_PATTERN.test(value) ||
-    GENERIC_DAO_PATTERN.test(value) ||
+    hasSpeechAttributionCue(value) ||
+    looksLikeGenericDaoAttribution(value) ||
     PUNCTUATION_ONLY_PATTERN.test(value)
   );
 };
 
 const hasAttributionContext = (value: string) => {
-  if (!value || DISPLAY_TEXT_PATTERN.test(value)) {
+  if (!value || isDisplayTextCue(value)) {
     return false;
   }
 
   return (
-    ATTRIBUTION_TOKEN_PATTERN.test(value) ||
-    GENERIC_DAO_PATTERN.test(value)
+    hasSpeechAttributionCue(value) ||
+    looksLikeGenericDaoAttribution(value)
   );
 };
 
 const hasReportReadingContext = (value: string) => {
-  if (!value || DISPLAY_TEXT_PATTERN.test(value)) {
+  if (!value || isDisplayTextCue(value)) {
     return false;
   }
 
-  return REPORT_READING_PATTERN.test(value);
+  return hasReportReadingCue(value);
+};
+
+const hasExplicitSpeechAttribution = (value: string) => {
+  if (!value || isDisplayTextCue(value)) {
+    return false;
+  }
+
+  return (
+    hasSpeechAttributionCue(value) ||
+    looksLikeGenericDaoAttribution(value)
+  );
+};
+
+const isBareSpeakerLabel = (value: string) => {
+  if (!value || isDisplayTextCue(value)) {
+    return false;
+  }
+
+  return /^[\p{Script=Han}A-Za-z0-9_]{1,6}[：:]\s*$/u.test(value.trim());
 };
 
 const stripOuterQuotes = (value: string) => {
   const matched = value.match(LEADING_AND_TRAILING_QUOTE_PATTERN);
   return matched ? matched[1].trim() : value.trim();
 };
+
+const countSentenceBoundaries = (value: string) =>
+  Array.from(value).filter((char) => SENTENCE_BOUNDARY_CHARS.has(char)).length;
 
 const isLikelyReportQuoteSlice = (value: string) => {
   if (!isPureQuotedSlice(value)) {
@@ -244,6 +265,19 @@ const isLikelyReportQuoteSlice = (value: string) => {
 
   const body = stripOuterQuotes(value);
   return body.length >= 10;
+};
+
+const isLongMultiSentenceQuoteRun = (value: string) => {
+  const spans = findQuotedSpans(value);
+  if (spans.length >= 2) {
+    return true;
+  }
+
+  if (!isPureQuotedSlice(value)) {
+    return false;
+  }
+
+  return countSentenceBoundaries(stripOuterQuotes(value)) >= 2;
 };
 
 const shouldKeepQuotedSentenceAsWhole = (content: string, spans: QuoteSpan[]) => {
@@ -263,7 +297,7 @@ const shouldKeepQuotedSentenceAsWhole = (content: string, spans: QuoteSpan[]) =>
   let hasAttribution = false;
 
   for (const fragment of fragments) {
-    if (DISPLAY_TEXT_PATTERN.test(fragment)) {
+    if (isDisplayTextCue(fragment)) {
       return false;
     }
 
@@ -381,7 +415,13 @@ const mergeAdjacentNarrationSlices = (
     if (
       last &&
       !QUOTE_CHAR_PATTERN.test(last.content) &&
-      !QUOTE_CHAR_PATTERN.test(slice.content)
+      !QUOTE_CHAR_PATTERN.test(slice.content) &&
+      !hasAttributionContext(last.content) &&
+      !hasAttributionContext(slice.content) &&
+      !hasReportReadingContext(last.content) &&
+      !hasReportReadingContext(slice.content) &&
+      !looksLikeColonAttribution(last.content) &&
+      !looksLikeColonAttribution(slice.content)
     ) {
       last.content = sourceContent.slice(last.start, slice.end);
       last.end = slice.end;
@@ -595,6 +635,68 @@ const mergeReportContinuationRuns = (
   return merged;
 };
 
+const mergeImplicitActionAttributionWithFollowingQuote = (
+  sourceContent: string,
+  slices: Array<{ start: number; end: number; content: string }>
+) => {
+  const merged: Array<{ start: number; end: number; content: string }> = [];
+
+  for (let index = 0; index < slices.length; index += 1) {
+    const current = { ...slices[index] };
+    const next = slices[index + 1];
+
+    if (
+      next &&
+      !QUOTE_CHAR_PATTERN.test(current.content) &&
+      looksLikeColonAttribution(current.content) &&
+      !isBareSpeakerLabel(current.content) &&
+      !hasExplicitSpeechAttribution(current.content) &&
+      isPureQuotedSlice(next.content)
+    ) {
+      current.end = next.end;
+      current.content = sourceContent.slice(current.start, current.end);
+      index += 1;
+    }
+
+    merged.push(current);
+  }
+
+  return merged;
+};
+
+const mergeInterQuoteNarrationWithFollowingQuote = (
+  sourceContent: string,
+  slices: Array<{ start: number; end: number; content: string }>
+) => {
+  const merged: Array<{ start: number; end: number; content: string }> = [];
+
+  for (let index = 0; index < slices.length; index += 1) {
+    const current = { ...slices[index] };
+    const previous = merged[merged.length - 1];
+    const next = slices[index + 1];
+
+    if (
+      previous &&
+      next &&
+      isPureQuotedSlice(previous.content) &&
+      !QUOTE_CHAR_PATTERN.test(current.content) &&
+      !isBareSpeakerLabel(current.content) &&
+      !hasExplicitSpeechAttribution(current.content) &&
+      !hasReportReadingContext(current.content) &&
+      current.content.length <= 80 &&
+      isLongMultiSentenceQuoteRun(next.content)
+    ) {
+      current.end = next.end;
+      current.content = sourceContent.slice(current.start, current.end);
+      index += 1;
+    }
+
+    merged.push(current);
+  }
+
+  return merged;
+};
+
 export const shouldRefineSegmentFailure = (failure: {
   errorCode?: string;
   issueCodes?: string[];
@@ -609,10 +711,18 @@ export const shouldRefineSegmentFailure = (failure: {
     return false;
   }
 
+  const shouldRefineHighCoverageMismatch = issueCodes.some(
+    (code) =>
+      code === "TEXT_SOURCE_MISMATCH" ||
+      code === "SOURCE_NOT_FOUND" ||
+      code === "QUOTED_NARRATION"
+  );
+
   if (
     typeof failure.coverageRatio === "number" &&
     Number.isFinite(failure.coverageRatio) &&
-    failure.coverageRatio >= 0.99
+    failure.coverageRatio >= 0.99 &&
+    !shouldRefineHighCoverageMismatch
   ) {
     return false;
   }
@@ -639,7 +749,13 @@ export const refineFailedSegment = (
       )
     )
   );
-  const normalizedSlices = mergeReportContinuationRuns(segment.content, rawSlices);
+  const normalizedSlices = mergeInterQuoteNarrationWithFollowingQuote(
+    segment.content,
+    mergeImplicitActionAttributionWithFollowingQuote(
+      segment.content,
+      mergeReportContinuationRuns(segment.content, rawSlices)
+    )
+  );
   const fallbackSlices =
     normalizedSlices.length > 1
       ? normalizedSlices

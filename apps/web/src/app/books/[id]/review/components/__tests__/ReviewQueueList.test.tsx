@@ -73,4 +73,42 @@ describe("ReviewQueueList", () => {
     expect(html).toContain("打开修订工作台");
     expect(html).toContain("优先重生台本，确认这一段是否需要更小粒度切段。");
   });
+
+  it("should render generated preview when structured result uses runtime draft lines", () => {
+    const item = buildItem();
+    item.issueDetail = {
+      ...(item.issueDetail as Record<string, unknown>),
+      rawResponse: null,
+      structuredResult: {
+        segmentId: "segment-7",
+        createdAt: "2026-03-12T00:00:00.000Z",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "第二段原文",
+            text: "这是运行时回填出来的生成台词",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ReviewQueueList
+        items={[item]}
+        loading={false}
+        actionLoadingItemId={null}
+        batchActionLoading={false}
+        scriptSaveLoadingItemId={null}
+        onResolve={() => undefined}
+        onBatchResolve={async () => true}
+        onSaveScriptEdit={async () => true}
+      />
+    );
+
+    expect(html).toContain("当前生成结果预览");
+    expect(html).toContain("这是运行时回填出来的生成台词");
+    expect(html).not.toContain("暂无原始生成结果");
+  });
 });

@@ -10,3 +10,6 @@
 - 只输出 JSON，不要代码块，不要解释。
 - 必须输出 `lines` 数组。
 - 每一行必须包含：`id`、`sourceText`、`text`、`speaker`、`orderInSegment`。
+- 不要输出空字符串 `text`。
+- 如果一行没有真正对白，就保留原句，不要压成括号说明。
+- 优先修复为可直接通过结构校验和基本 sourceText 对齐校验的结果。

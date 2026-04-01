@@ -31,6 +31,16 @@ interface RepairAgentDeps {
   now?: () => Date;
 }
 
+interface RepairErrorContext {
+  rawResponse: string;
+  provider: string;
+  model: string;
+}
+
+interface RepairExecutionError extends Error {
+  output?: Record<string, unknown>;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
 
@@ -187,6 +197,47 @@ const renderUserPrompt = (
     .split("{{failed_artifact_json}}")
     .join(stringifyArtifact(params.failedArtifact));
 
+const asErrorMessage = (value: unknown): string => {
+  if (value instanceof Error) {
+    return value.message;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "segment_repair_parse_failed";
+};
+
+const tryExtractStructuredResult = (
+  rawResponse: string
+): Record<string, unknown> | null => {
+  try {
+    return extractJsonPayload(rawResponse);
+  } catch {
+    return null;
+  }
+};
+
+const toRepairExecutionError = (params: {
+  error: unknown;
+  context: RepairErrorContext;
+}): RepairExecutionError => {
+  const wrapped = new Error(asErrorMessage(params.error)) as RepairExecutionError;
+  wrapped.output = {
+    failedArtifact: {
+      kind: "segment-repair-failure",
+      rawResponse: params.context.rawResponse,
+      structuredResult: tryExtractStructuredResult(params.context.rawResponse),
+      provider: params.context.provider,
+      model: params.context.model,
+      message: wrapped.message,
+    },
+  };
+
+  return wrapped;
+};
+
 export const createRepairAgent = (deps: RepairAgentDeps) => ({
   async execute(input: RepairAgentInput): Promise<RepairAgentResult> {
     const response = await deps.adapter.call({
@@ -202,23 +253,40 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
       },
     });
     const now = deps.now ?? (() => new Date());
-    const repairedDraft = toSegmentScriptDraft({
-      content: response.content,
-      segmentId: input.segmentId,
-      now,
-    });
 
-    return {
-      decision: {
+    try {
+      const repairedDraft = toSegmentScriptDraft({
+        content: response.content,
         segmentId: input.segmentId,
-        action: "retry",
-        reason: "format_repair",
-        retryable: true,
-      },
-      repairedDraft,
-      rawResponse: response.content,
-      provider: response.provider,
-      model: response.model,
-    };
+        now,
+      });
+
+      return {
+        decision: {
+          segmentId: input.segmentId,
+          action: "retry",
+          reason: "format_repair",
+          retryable: true,
+        },
+        repairedDraft: {
+          ...repairedDraft,
+          rawResponse: response.content,
+          provider: response.provider,
+          model: response.model,
+        },
+        rawResponse: response.content,
+        provider: response.provider,
+        model: response.model,
+      };
+    } catch (error) {
+      throw toRepairExecutionError({
+        error,
+        context: {
+          rawResponse: response.content,
+          provider: response.provider,
+          model: response.model,
+        },
+      });
+    }
   },
 });

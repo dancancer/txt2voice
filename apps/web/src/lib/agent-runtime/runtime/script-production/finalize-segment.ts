@@ -18,6 +18,30 @@ export const finalizeSegment = async (params: {
   validationReport: ValidationReport;
   counters: SegmentRuntimeCounters;
 }): Promise<FinalizeSegmentResult> => {
+  if (params.context.deferPersist) {
+    // 细分叶子只是为了拼回父段草案，不应在叶子层独立触发质量闸门。
+    const deferredDialogueLines = mapSegmentScriptDraftToDialogueLines({
+      segmentScriptDraft: params.draft,
+      chapterId: params.context.segment.chapterId ?? null,
+    });
+
+    return {
+      status: "success",
+      dialogueLines: deferredDialogueLines,
+      summary: toSegmentSummary(
+        params.context.segment.id,
+        deferredDialogueLines.length,
+        [
+          ...new Set(
+            deferredDialogueLines.map((line) => line.characterName || "未知")
+          ),
+        ]
+      ),
+      counters: params.counters,
+      draft: params.draft,
+    };
+  }
+
   const runQualityJudgeStage =
     params.context.runQualityStage || runQualityStage;
   const runPersistCommitStage =
@@ -148,29 +172,6 @@ export const finalizeSegment = async (params: {
         issueMessages: qualityStage.verdict.reasons,
       }),
       counters: params.counters,
-    };
-  }
-
-  if (params.context.deferPersist) {
-    const deferredDialogueLines = mapSegmentScriptDraftToDialogueLines({
-      segmentScriptDraft: params.draft,
-      chapterId: params.context.segment.chapterId ?? null,
-    });
-
-    return {
-      status: "success",
-      dialogueLines: deferredDialogueLines,
-      summary: toSegmentSummary(
-        params.context.segment.id,
-        deferredDialogueLines.length,
-        [
-          ...new Set(
-            deferredDialogueLines.map((line) => line.characterName || "未知")
-          ),
-        ]
-      ),
-      counters: params.counters,
-      draft: params.draft,
     };
   }
 
