@@ -3,6 +3,7 @@ import path from "path";
 
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import { buildAgentContext, type CharacterMemory, type MemoryPatch } from "../../context";
+import type { StageExecutor } from "../executor-policy";
 import { loadSkillDefinition } from "../../registry";
 import { createCharacterDiscoveryAgent } from "../agents/character-discovery-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
@@ -25,6 +26,11 @@ export interface RunCharacterDiscoveryStageInput
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;
+  executor?: StageExecutor;
+  shadowMode?: boolean;
+  runMastraCharacterDiscoveryStage?: (
+    input: RunCharacterDiscoveryStageInput
+  ) => Promise<RunCharacterDiscoveryStageResult>;
 }
 
 export interface CharacterDiscoveryArtifact {
@@ -331,7 +337,7 @@ const assertSkillCompatibleWithAgent = (
   throw new Error(`Skill ${skillId} is not compatible with ${agentId}`);
 };
 
-export const runCharacterDiscoveryStage = async (
+export const runCharacterDiscoveryStageNative = async (
   input: RunCharacterDiscoveryStageInput
 ): Promise<RunCharacterDiscoveryStageResult> => {
   const runtimeAgentId = "character-discovery-agent";
@@ -426,4 +432,42 @@ export const runCharacterDiscoveryStage = async (
       characterMemoryDraft: memoryDraft,
     },
   };
+};
+
+const buildShadowInput = (
+  input: RunCharacterDiscoveryStageInput
+): RunCharacterDiscoveryStageInput => ({
+  ...input,
+  createStageRun: undefined,
+  updateStageRun: undefined,
+  appendTrace: async () => undefined,
+});
+
+export const runCharacterDiscoveryStage = async (
+  input: RunCharacterDiscoveryStageInput
+): Promise<RunCharacterDiscoveryStageResult> => {
+  const runMastraCharacterDiscoveryStage =
+    input.runMastraCharacterDiscoveryStage ??
+    (
+      await import("../../mastra/runtime/run-mastra-character-discovery")
+    ).runMastraCharacterDiscovery;
+
+  if (input.executor === "mastra") {
+    return runMastraCharacterDiscoveryStage(input);
+  }
+
+  if (input.shadowMode) {
+    const nativePromise = runCharacterDiscoveryStageNative(input);
+    const shadowPromise = runMastraCharacterDiscoveryStage(
+      buildShadowInput(input)
+    );
+    const [nativeResult] = await Promise.all([
+      nativePromise,
+      shadowPromise.catch(() => null),
+    ]);
+
+    return nativeResult;
+  }
+
+  return runCharacterDiscoveryStageNative(input);
 };

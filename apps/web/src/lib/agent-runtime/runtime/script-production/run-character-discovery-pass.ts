@@ -3,6 +3,7 @@ import type { ExecutionEvent } from "../../protocol/events";
 import type { ScriptProductionRuntimeStore } from "../script-production-runtime-store";
 import type { RunStageResult, StageRunRecord } from "../run-stage";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
+import type { StageExecutor } from "../executor-policy";
 import { runCharacterDiscoveryStage } from "../stages/run-character-discovery-stage";
 import { runPersistStage } from "../stages/run-persist-stage";
 import type {
@@ -59,6 +60,8 @@ interface RunCharacterDiscoveryPassParams {
   onStageResult?: (result: RunStageResult) => void;
   runCharacterDiscoveryStage?: typeof runCharacterDiscoveryStage;
   runPersistStage?: typeof runPersistStage;
+  executor?: StageExecutor;
+  shadowMode?: boolean;
 }
 
 export const runCharacterDiscoveryPass = async (
@@ -94,6 +97,8 @@ export const runCharacterDiscoveryPass = async (
     workflowRunId: params.workflowRunId,
     segmentText: sampleText,
     adapter: params.adapter,
+    executor: params.executor,
+    shadowMode: params.shadowMode,
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,
