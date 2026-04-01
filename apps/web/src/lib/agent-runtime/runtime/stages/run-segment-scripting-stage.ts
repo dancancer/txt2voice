@@ -3,6 +3,7 @@ import path from "path";
 
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import { buildAgentContext, type SegmentScriptDraft } from "../../context";
+import type { StageExecutor } from "../executor-policy";
 import { loadSkillDefinition } from "../../registry";
 import { createScriptGenerationAgent } from "../agents/script-generation-agent";
 import type { AgentRunRecord } from "../run-agent";
@@ -30,6 +31,11 @@ export interface RunSegmentScriptingStageInput
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;
+  executor?: StageExecutor;
+  shadowMode?: boolean;
+  runMastraSegmentScriptingStage?: (
+    input: RunSegmentScriptingStageInput
+  ) => Promise<RunSegmentScriptingStageResult>;
 }
 
 export interface SegmentScriptingArtifact {
@@ -191,7 +197,7 @@ const isRepairableError = (message: string): boolean =>
   message.startsWith("Invalid script line") ||
   message.startsWith("Input context over budget");
 
-export const runSegmentScriptingStage = async (
+export const runSegmentScriptingStageNative = async (
   input: RunSegmentScriptingStageInput
 ): Promise<RunSegmentScriptingStageResult> => {
   const runtimeAgentId = "script-generation-agent";
@@ -301,4 +307,42 @@ export const runSegmentScriptingStage = async (
       segmentScriptDraft,
     },
   };
+};
+
+const buildShadowInput = (
+  input: RunSegmentScriptingStageInput
+): RunSegmentScriptingStageInput => ({
+  ...input,
+  createStageRun: undefined,
+  updateStageRun: undefined,
+  createAgentRun: undefined,
+  updateAgentRun: undefined,
+  appendTrace: async () => undefined,
+});
+
+export const runSegmentScriptingStage = async (
+  input: RunSegmentScriptingStageInput
+): Promise<RunSegmentScriptingStageResult> => {
+  const runMastraSegmentScriptingStage =
+    input.runMastraSegmentScriptingStage ??
+    (
+      await import("../../mastra/runtime/run-mastra-segment-scripting")
+    ).runMastraSegmentScripting;
+
+  if (input.executor === "mastra") {
+    return runMastraSegmentScriptingStage(input);
+  }
+
+  if (input.shadowMode) {
+    const nativePromise = runSegmentScriptingStageNative(input);
+    const shadowPromise = runMastraSegmentScriptingStage(buildShadowInput(input));
+    const [nativeResult] = await Promise.all([
+      nativePromise,
+      shadowPromise.catch(() => null),
+    ]);
+
+    return nativeResult;
+  }
+
+  return runSegmentScriptingStageNative(input);
 };

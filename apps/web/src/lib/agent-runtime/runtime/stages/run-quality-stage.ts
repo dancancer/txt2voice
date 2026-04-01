@@ -3,6 +3,7 @@ import path from "path";
 
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type { QualityVerdict, SegmentScriptDraft, ValidationReport } from "../../context";
+import type { StageExecutor } from "../executor-policy";
 import { loadSkillDefinition } from "../../registry";
 import {
   createQualityJudgeAgent,
@@ -38,6 +39,11 @@ export interface RunQualityStageInput extends QualityStageRuntimeDeps {
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;
+  executor?: StageExecutor;
+  shadowMode?: boolean;
+  runMastraQualityStage?: (
+    input: RunQualityStageInput
+  ) => Promise<RunQualityStageResult>;
 }
 
 export interface QualityReviewHandoff {
@@ -342,7 +348,7 @@ const resolveSemanticDecision = (params: {
   };
 };
 
-export const runQualityStage = async (
+export const runQualityStageNative = async (
   input: RunQualityStageInput
 ): Promise<RunQualityStageResult> => {
   const runtimeAgentId = "quality-judge-agent";
@@ -450,4 +456,44 @@ export const runQualityStage = async (
     handoff: stageResult.agent.output
       ?.handoff as QualityReviewHandoff | undefined,
   };
+};
+
+const buildShadowInput = (
+  input: RunQualityStageInput
+): RunQualityStageInput => ({
+  ...input,
+  createStageRun: undefined,
+  updateStageRun: undefined,
+  createAgentRun: undefined,
+  updateAgentRun: undefined,
+  createToolCall: undefined,
+  updateToolCall: undefined,
+  appendTrace: async () => undefined,
+});
+
+export const runQualityStage = async (
+  input: RunQualityStageInput
+): Promise<RunQualityStageResult> => {
+  const runMastraQualityStage =
+    input.runMastraQualityStage ??
+    (
+      await import("../../mastra/runtime/run-mastra-quality-stage")
+    ).runMastraQualityStage;
+
+  if (input.executor === "mastra") {
+    return runMastraQualityStage(input);
+  }
+
+  if (input.shadowMode) {
+    const nativePromise = runQualityStageNative(input);
+    const shadowPromise = runMastraQualityStage(buildShadowInput(input));
+    const [nativeResult] = await Promise.all([
+      nativePromise,
+      shadowPromise.catch(() => null),
+    ]);
+
+    return nativeResult;
+  }
+
+  return runQualityStageNative(input);
 };

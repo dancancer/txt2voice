@@ -620,6 +620,182 @@ describe("runScriptProductionWorkflow", () => {
     );
   });
 
+  it("passes mastra executor selection into workflow stages when allowlisted", async () => {
+    const previousExecutor = process.env.AGENT_RUNTIME_EXECUTOR;
+    const previousStages = process.env.AGENT_RUNTIME_MASTRA_STAGES;
+
+    process.env.AGENT_RUNTIME_EXECUTOR = "mastra";
+    process.env.AGENT_RUNTIME_MASTRA_STAGES =
+      "character_discovery,segment_scripting,quality_judgement";
+
+    try {
+      mockPrisma.book.findUnique.mockResolvedValue({
+        id: "book-1",
+        textSegments: [createBookFixture().textSegments[0]],
+        characterProfiles: [],
+      });
+      mockRunCharacterDiscoveryStage.mockResolvedValue({
+        stageRunId: "discovery-stage-mastra",
+        status: "completed",
+        artifact: createEmptyCharacterMemoryDraftArtifact(),
+      } as any);
+      mockRunSegmentScriptingStage.mockResolvedValue({
+        stageRunId: "stage-script-mastra",
+        status: "completed",
+        artifact: createDraftArtifact("seg-1", "第一段原文。"),
+      } as any);
+      mockRunQualityStage.mockResolvedValue({
+        stageRunId: "quality-mastra",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: "seg-1",
+          verdict: "pass",
+          score: 0.99,
+          reasons: ["ok"],
+        },
+      } as any);
+      mockRunPersistStage.mockResolvedValue({
+        stageRunId: "persist-mastra",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount: 0,
+          persistedSentenceCount: 1,
+        },
+      } as any);
+
+      await runScriptProductionWorkflow({
+        bookId: "book-1",
+        options: {},
+        mode: "full",
+      });
+
+      expect(mockRunCharacterDiscoveryStage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executor: "mastra",
+          shadowMode: false,
+        })
+      );
+      expect(mockRunSegmentScriptingStage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executor: "mastra",
+          shadowMode: false,
+        })
+      );
+      expect(mockRunQualityStage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executor: "mastra",
+          shadowMode: false,
+        })
+      );
+    } finally {
+      if (previousExecutor === undefined) {
+        delete process.env.AGENT_RUNTIME_EXECUTOR;
+      } else {
+        process.env.AGENT_RUNTIME_EXECUTOR = previousExecutor;
+      }
+
+      if (previousStages === undefined) {
+        delete process.env.AGENT_RUNTIME_MASTRA_STAGES;
+      } else {
+        process.env.AGENT_RUNTIME_MASTRA_STAGES = previousStages;
+      }
+    }
+  });
+
+  it("passes native executor plus shadow mode when only shadow validation is enabled", async () => {
+    const previousExecutor = process.env.AGENT_RUNTIME_EXECUTOR;
+    const previousStages = process.env.AGENT_RUNTIME_MASTRA_STAGES;
+    const previousShadow = process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE;
+
+    delete process.env.AGENT_RUNTIME_EXECUTOR;
+    process.env.AGENT_RUNTIME_MASTRA_STAGES =
+      "character_discovery,segment_scripting,quality_judgement";
+    process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE = "true";
+
+    try {
+      mockPrisma.book.findUnique.mockResolvedValue({
+        id: "book-1",
+        textSegments: [createBookFixture().textSegments[0]],
+        characterProfiles: [],
+      });
+      mockRunCharacterDiscoveryStage.mockResolvedValue({
+        stageRunId: "discovery-stage-shadow",
+        status: "completed",
+        artifact: createEmptyCharacterMemoryDraftArtifact(),
+      } as any);
+      mockRunSegmentScriptingStage.mockResolvedValue({
+        stageRunId: "stage-script-shadow",
+        status: "completed",
+        artifact: createDraftArtifact("seg-1", "第一段原文。"),
+      } as any);
+      mockRunQualityStage.mockResolvedValue({
+        stageRunId: "quality-shadow",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: "seg-1",
+          verdict: "pass",
+          score: 0.99,
+          reasons: ["ok"],
+        },
+      } as any);
+      mockRunPersistStage.mockResolvedValue({
+        stageRunId: "persist-shadow",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount: 0,
+          persistedSentenceCount: 1,
+        },
+      } as any);
+
+      await runScriptProductionWorkflow({
+        bookId: "book-1",
+        options: {},
+        mode: "full",
+      });
+
+      expect(mockRunCharacterDiscoveryStage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executor: "native",
+          shadowMode: true,
+        })
+      );
+      expect(mockRunSegmentScriptingStage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executor: "native",
+          shadowMode: true,
+        })
+      );
+      expect(mockRunQualityStage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executor: "native",
+          shadowMode: true,
+        })
+      );
+    } finally {
+      if (previousExecutor === undefined) {
+        delete process.env.AGENT_RUNTIME_EXECUTOR;
+      } else {
+        process.env.AGENT_RUNTIME_EXECUTOR = previousExecutor;
+      }
+
+      if (previousStages === undefined) {
+        delete process.env.AGENT_RUNTIME_MASTRA_STAGES;
+      } else {
+        process.env.AGENT_RUNTIME_MASTRA_STAGES = previousStages;
+      }
+
+      if (previousShadow === undefined) {
+        delete process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE;
+      } else {
+        process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE = previousShadow;
+      }
+    }
+  });
+
   it("keeps regenerate mode segment order aligned with legacy book order", async () => {
     mockRunSegmentScriptingStage.mockImplementation(async ({ segmentId }) => ({
       stageRunId: `stage-${segmentId}`,

@@ -53,6 +53,8 @@ export const finalizeSegment = async (params: {
     segmentScriptDraft: params.draft,
     validationReport: params.validationReport,
     adapter: params.context.adapter,
+    executor: params.context.executorPolicy?.qualityJudgement,
+    shadowMode: params.context.executorPolicy?.shadowModeEnabled,
     createId: params.context.createId,
     now: params.context.now,
     createStageRun: params.context.createStageRun,
