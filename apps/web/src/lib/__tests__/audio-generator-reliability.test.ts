@@ -11,6 +11,7 @@ jest.mock("@/lib/tts-service", () => ({
 }));
 
 import { AudioGenerator } from "@/lib/audio-generator";
+import { generateBatchAudioWithReliability as generateBatchAudioWithReliabilityFromModule } from "@/lib/audio-generation/execution/batch-audio-runtime";
 
 describe("audio-generator reliability", () => {
   it("should retry failed items in staged passes and keep final order", async () => {
@@ -121,5 +122,67 @@ describe("audio-generator reliability", () => {
       }),
     ]);
     expect(summary.reliability.averageDurationMs).toBe(2000);
+  });
+
+  it("batch runtime helper should match AudioGenerator reliability contract", async () => {
+    const generator = new AudioGenerator();
+    const generateSingleAudio = jest
+      .spyOn(generator, "generateSingleAudio")
+      .mockResolvedValueOnce({
+        success: true,
+        audioFileId: "audio-1",
+        duration: 1,
+        metadata: {
+          routerDecision: {
+            selectedEngine: "voxcpm",
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        success: false,
+        error: "timeout-1",
+        metadata: {
+          routerDecision: {
+            selectedEngine: "voxcpm",
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        audioFileId: "audio-2",
+        duration: 2,
+        metadata: {
+          routerDecision: {
+            selectedEngine: "voxcpm",
+          },
+        },
+      });
+
+    const summary = await generateBatchAudioWithReliabilityFromModule({
+      requests: [
+        { scriptSentenceId: "sentence-1", outputFormat: "mp3" },
+        { scriptSentenceId: "sentence-2", outputFormat: "mp3" },
+      ],
+      options: {
+        provider: "voxcpm",
+      },
+      defaultOptions: {
+        batchSize: 5,
+        maxRetries: 3,
+        retryDelay: 1000,
+        priority: "normal",
+        skipExisting: true,
+        overwriteExisting: false,
+      },
+      generateSingleAudio: (request, options) =>
+        generator.generateSingleAudio(request, options),
+    });
+
+    expect(generateSingleAudio).toHaveBeenCalledTimes(3);
+    expect(summary.results.map((result) => result.audioFileId || result.error)).toEqual([
+      "audio-1",
+      "audio-2",
+    ]);
+    expect(summary.reliability.firstPassSuccessRate).toBe(0.5);
   });
 });
