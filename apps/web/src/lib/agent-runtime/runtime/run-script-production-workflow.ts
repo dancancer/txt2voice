@@ -352,6 +352,8 @@ export const runScriptProductionWorkflow = async (
         onStageResult: (stageResult) => {
           coordinatorStageResults.push(stageResult);
         },
+        executor: executorPolicy.stageExecutors.character_discovery,
+        shadowMode: executorPolicy.shadowModeEnabled,
         runCharacterDiscoveryStage: runDiscoveryStage,
         runPersistStage: runPersistCommitStage,
       });
@@ -387,6 +389,12 @@ export const runScriptProductionWorkflow = async (
             });
           },
           appendTrace: appendTrackedTrace,
+          executorPolicy: {
+            segmentScripting: executorPolicy.stageExecutors.segment_scripting,
+            segmentRepair: executorPolicy.stageExecutors.segment_repair,
+            qualityJudgement: executorPolicy.stageExecutors.quality_judgement,
+            shadowModeEnabled: executorPolicy.shadowModeEnabled,
+          },
           onStageResult: (stageResult) => {
             coordinatorStageResults.push(stageResult);
           },

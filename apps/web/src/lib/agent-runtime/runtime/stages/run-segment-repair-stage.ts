@@ -8,6 +8,7 @@ import {
   type SegmentScriptDraft,
   type ValidationReport,
 } from "../../context";
+import type { StageExecutor } from "../executor-policy";
 import { loadSkillDefinition } from "../../registry";
 import { createRepairAgent } from "../agents/repair-agent";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
@@ -47,6 +48,11 @@ export interface RunSegmentRepairStageInput extends SegmentRepairRuntimeDeps {
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;
+  executor?: StageExecutor;
+  shadowMode?: boolean;
+  runMastraSegmentRepairStage?: (
+    input: RunSegmentRepairStageInput
+  ) => Promise<RunSegmentRepairStageResult>;
 }
 
 export interface SegmentRepairArtifact {
@@ -224,7 +230,7 @@ const createInputRefinementDecision = (segmentId: string): RepairDecision => ({
   retryable: true,
 });
 
-export const runSegmentRepairStage = async (
+export const runSegmentRepairStageNative = async (
   input: RunSegmentRepairStageInput
 ): Promise<RunSegmentRepairStageResult> => {
   const runtimeAgentId = "repair-agent";
@@ -378,4 +384,44 @@ export const runSegmentRepairStage = async (
           }
         : undefined,
   };
+};
+
+const buildShadowInput = (
+  input: RunSegmentRepairStageInput
+): RunSegmentRepairStageInput => ({
+  ...input,
+  createStageRun: undefined,
+  updateStageRun: undefined,
+  createAgentRun: undefined,
+  updateAgentRun: undefined,
+  createToolCall: undefined,
+  updateToolCall: undefined,
+  appendTrace: async () => undefined,
+});
+
+export const runSegmentRepairStage = async (
+  input: RunSegmentRepairStageInput
+): Promise<RunSegmentRepairStageResult> => {
+  const runMastraSegmentRepairStage =
+    input.runMastraSegmentRepairStage ??
+    (
+      await import("../../mastra/runtime/run-mastra-segment-repair")
+    ).runMastraSegmentRepair;
+
+  if (input.executor === "mastra") {
+    return runMastraSegmentRepairStage(input);
+  }
+
+  if (input.shadowMode) {
+    const nativePromise = runSegmentRepairStageNative(input);
+    const shadowPromise = runMastraSegmentRepairStage(buildShadowInput(input));
+    const [nativeResult] = await Promise.all([
+      nativePromise,
+      shadowPromise.catch(() => null),
+    ]);
+
+    return nativeResult;
+  }
+
+  return runSegmentRepairStageNative(input);
 };

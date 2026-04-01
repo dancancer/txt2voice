@@ -3,6 +3,7 @@ import type { ExecutionEvent } from "../../protocol/events";
 import type { ScriptProductionRuntimeStore } from "../script-production-runtime-store";
 import type { RunStageResult, StageRunRecord } from "../run-stage";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
+import type { StageExecutor } from "../executor-policy";
 import type { runPersistStage } from "../stages/run-persist-stage";
 import type { runQualityStage } from "../stages/run-quality-stage";
 import type { runSegmentRepairStage } from "../stages/run-segment-repair-stage";
@@ -39,6 +40,12 @@ export interface RunSingleSegmentParams {
     record: ToolCallRecord & { completedAt?: Date }
   ) => Promise<void>;
   appendTrace: (event: ExecutionEvent) => Promise<void>;
+  executorPolicy?: {
+    segmentScripting: StageExecutor;
+    segmentRepair: StageExecutor;
+    qualityJudgement: StageExecutor;
+    shadowModeEnabled: boolean;
+  };
   runSegmentScriptingStage?: typeof runSegmentScriptingStage;
   runSegmentRepairStage?: typeof runSegmentRepairStage;
   runQualityStage?: typeof runQualityStage;

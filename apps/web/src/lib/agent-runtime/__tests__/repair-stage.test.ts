@@ -463,4 +463,99 @@ describe("segment repair stage", () => {
     expect(completed.artifact).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
+
+  it("uses mastra executor path when repair executor is mastra", async () => {
+    const adapter = createMockAdapter("{}");
+    const runMastraSegmentRepairStage = jest.fn().mockResolvedValue({
+      stageRunId: "mastra-repair-stage-1",
+      agentRunId: "mastra-repair-agent-1",
+      status: "completed",
+      decision: {
+        segmentId: "segment-mastra-repair",
+        action: "retry",
+        reason: "format_repair",
+        retryable: true,
+      },
+      artifact: {
+        kind: "segment-script-draft",
+        skillId: "json-repair",
+        segmentScriptDraft: {
+          segmentId: "segment-mastra-repair",
+          createdAt: "2026-04-01T00:00:00.000Z",
+          lines: [
+            {
+              id: "line-1",
+              sourceText: "宁采臣抬头。",
+              text: "宁采臣抬头。",
+              speaker: "旁白",
+              orderInSegment: 0,
+            },
+          ],
+        },
+      },
+    } satisfies RunSegmentRepairStageResult);
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-mastra",
+      segmentId: "segment-mastra-repair",
+      segmentText: "宁采臣抬头。",
+      failureKind: "format_repair",
+      failedArtifact: "not-json",
+      repairDepth: 0,
+      skillDir,
+      adapter,
+      executor: "mastra",
+      runMastraSegmentRepairStage,
+    });
+
+    expect(result.status).toBe("completed");
+    expect(runMastraSegmentRepairStage).toHaveBeenCalledTimes(1);
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+    expect(asCompletedResult(result).decision.action).toBe("retry");
+  });
+
+  it("keeps native result as primary output when repair shadow mode is enabled", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+    const runMastraSegmentRepairStage = jest.fn().mockResolvedValue({
+      stageRunId: "mastra-repair-shadow-stage-1",
+      agentRunId: "mastra-repair-shadow-agent-1",
+      status: "completed",
+      decision: {
+        segmentId: "segment-shadow-repair",
+        action: "manual_review",
+        reason: "shadow_only",
+        retryable: false,
+      },
+    } satisfies RunSegmentRepairStageResult);
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-shadow",
+      segmentId: "segment-shadow-repair",
+      segmentText: "宁采臣抬头。",
+      failureKind: "format_repair",
+      failedArtifact: "not-json",
+      repairDepth: 0,
+      skillDir,
+      adapter,
+      shadowMode: true,
+      runMastraSegmentRepairStage,
+    });
+
+    expect(result.status).toBe("completed");
+    expect(runMastraSegmentRepairStage).toHaveBeenCalledTimes(1);
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+    expect(asCompletedResult(result).decision.action).toBe("retry");
+  });
 });
