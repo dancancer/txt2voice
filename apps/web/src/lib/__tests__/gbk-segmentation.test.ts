@@ -8,6 +8,7 @@
 
 import iconv from 'iconv-lite'
 import { processFileContent, segmentText } from '@/lib/text-processor'
+import { segmentText as segmentTextFromModule } from '@/lib/text-processing/segmentation/segmenter'
 
 const buildGbkSampleText = (): string => {
   const sentence = '张三沿着老街慢慢往前走，路边摊贩的吆喝声和自行车铃声交织在一起。'
@@ -46,5 +47,15 @@ describe('GBK 文本分段', () => {
 
     expect(oversized).toHaveLength(0)
     expect(undersized).toHaveLength(0)
+  })
+
+  it('facade 与新分段模块对同一文本给出相同分段结果', () => {
+    const sourceText = buildGbkSampleText()
+    const options = { useSmartSplitter: true, preserveFormatting: true }
+
+    const facadeSegments = segmentText(sourceText, options)
+    const moduleSegments = segmentTextFromModule(sourceText, options)
+
+    expect(moduleSegments).toEqual(facadeSegments)
   })
 })
