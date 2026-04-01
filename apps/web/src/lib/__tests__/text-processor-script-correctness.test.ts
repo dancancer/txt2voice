@@ -3,7 +3,31 @@
 // output: 风险感知切段断言
 // pos: 单元测试
 import { createChapterSegmentRecords } from "../text-processor";
+import { createChapterSegmentRecords as createChapterSegmentRecordsFromModule } from "../text-processing/chapters/chapter-segmentation";
 import { resolveTextSegmentationRiskProfile } from "../text-segmentation-profile";
+
+const normalizeChapterSegmentationResult = (
+  result: ReturnType<typeof createChapterSegmentRecords>
+) => {
+  const chapterIdMap = new Map(
+    result.chapterRecords.map((chapter, index) => [chapter.id, `chapter-${index}`])
+  );
+
+  return {
+    ...result,
+    chapterRecords: result.chapterRecords.map((chapter, index) => ({
+      ...chapter,
+      id: `chapter-${index}`,
+    })),
+    segmentRecords: result.segmentRecords.map((segment) => ({
+      ...segment,
+      chapterId:
+        typeof segment.chapterId === "string"
+          ? chapterIdMap.get(segment.chapterId) || segment.chapterId
+          : segment.chapterId,
+    })),
+  };
+};
 
 describe("text processor script correctness safeguards", () => {
   it("should shrink target segment length for dialogue-dense content", () => {
@@ -226,5 +250,25 @@ describe("text processor script correctness safeguards", () => {
     });
 
     expect(hasUnbalancedQuoteSegment).toBe(false);
+  });
+
+  it("should keep facade chapter segmentation identical to the extracted module", () => {
+    const content = `第一章 开始\n\n“宁采臣抬头。”张三说。\n\n第二章 继续\n\n李四回答：“收到。”`;
+    const options = {
+      maxSegmentLength: 1200,
+      minSegmentLength: 400,
+      preserveFormatting: true,
+    };
+
+    const facadeResult = createChapterSegmentRecords("book-compare", content, options);
+    const moduleResult = createChapterSegmentRecordsFromModule(
+      "book-compare",
+      content,
+      options
+    );
+
+    expect(normalizeChapterSegmentationResult(moduleResult)).toEqual(
+      normalizeChapterSegmentationResult(facadeResult)
+    );
   });
 });

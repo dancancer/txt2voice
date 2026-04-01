@@ -28,6 +28,9 @@ export interface ScriptValidationDetailView {
   issueMessages: string[];
   issuePreviews: string[];
   segmentPreview: string;
+  segmentContent: string;
+  rawResponse: string;
+  structuredResult: Record<string, unknown> | null;
   actionHints: string[];
   recommendedAction: ScriptValidationRecommendedAction | null;
   recommendedActionLabel: string;
@@ -143,6 +146,51 @@ const normalizeSummary = (value: string): string => {
   return value.replace(/^段落台本校验失败[:：]?\s*/, "").trim();
 };
 
+const translateRepairPayloadMessage = (value: string): string => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return "";
+  }
+
+  const missingKeysMatch = normalized.match(
+    /^Invalid repair payload line: missing keys (.+)$/
+  );
+  if (missingKeysMatch) {
+    return `修复阶段返回的台词条目缺少必要字段：${missingKeysMatch[1]}。`;
+  }
+
+  if (normalized === "Invalid repair payload: expected JSON object") {
+    return "修复阶段返回的不是合法 JSON，无法解析修复结果。";
+  }
+  if (normalized === "Invalid repair payload: lines is required") {
+    return "修复阶段返回缺少 lines 字段，无法生成可用台本。";
+  }
+  if (normalized === "Invalid repair payload: lines must be an array") {
+    return "修复阶段返回的 lines 不是数组，无法生成可用台本。";
+  }
+  if (normalized === "Invalid repair payload: lines must not be empty") {
+    return "修复阶段返回的 lines 为空，无法生成可用台本。";
+  }
+  if (normalized === "Invalid repair payload line: line must be an object") {
+    return "修复阶段返回的台词条目不是对象，无法回写台本。";
+  }
+  if (normalized === "Invalid repair payload line: required fields are invalid") {
+    return "修复阶段返回的台词条目存在空值或非法字段，无法回写台本。";
+  }
+  if (
+    normalized ===
+    "Invalid repair payload line: orderInSegment must start at 0 and increment by 1"
+  ) {
+    return "修复阶段返回的台词顺序字段不连续，无法回写台本。";
+  }
+
+  return normalized;
+};
+
+const toReviewerMessage = (value: string): string => {
+  return translateRepairPayloadMessage(value);
+};
+
 export const getScriptValidationRecommendedActionLabel = (
   action: ScriptValidationRecommendedAction | null
 ): string => {
@@ -174,15 +222,25 @@ export const buildScriptValidationDetailView = (params: {
 }): ScriptValidationDetailView => {
   const { issueSubtype, issueDetail } = params;
   const detail = asRecord(issueDetail);
-  const issueMessages = asStringArray(detail?.issueMessages);
+  const issueMessages = asStringArray(detail?.issueMessages).map(toReviewerMessage);
   const issuePreviews = asStringArray(detail?.issuePreviews);
   const issueCodes = asStringArray(detail?.issueCodes);
-  const fallbackMessage = normalizeSummary(asString(detail?.message));
+  const fallbackMessage = toReviewerMessage(
+    normalizeSummary(asString(detail?.message))
+  );
   const summary = issueMessages[0] || fallbackMessage;
   const stage = asString(detail?.stage);
   const errorCode = asString(detail?.errorCode);
   const coverageLabel = asCoverageLabel(detail?.coverageRatio);
   const segmentPreview = asString(detail?.segmentPreview);
+  const segmentContent = asString(detail?.segmentContent);
+  const rawResponse = asString(detail?.rawResponse);
+  const structuredResult =
+    detail?.structuredResult &&
+    typeof detail.structuredResult === "object" &&
+    !Array.isArray(detail.structuredResult)
+      ? (detail.structuredResult as Record<string, unknown>)
+      : null;
   const subtype = resolveScriptValidationSubtype({
     ...(detail ?? {}),
     scriptSubtype: issueSubtype || asString(detail?.scriptSubtype),
@@ -201,6 +259,9 @@ export const buildScriptValidationDetailView = (params: {
     issueMessages,
     issuePreviews,
     segmentPreview,
+    segmentContent,
+    rawResponse,
+    structuredResult,
     actionHints,
     recommendedAction,
     recommendedActionLabel: getScriptValidationRecommendedActionLabel(
@@ -213,6 +274,9 @@ export const buildScriptValidationDetailView = (params: {
       Boolean(coverageLabel) ||
       issueCodes.length > 0 ||
       issuePreviews.length > 0 ||
-      Boolean(segmentPreview),
+      Boolean(segmentPreview) ||
+      Boolean(segmentContent) ||
+      Boolean(rawResponse) ||
+      Boolean(structuredResult),
   };
 };

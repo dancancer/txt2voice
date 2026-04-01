@@ -3,16 +3,15 @@
 // output: 台本任务执行结果
 // pos: 任务执行器
 import prisma from "@/lib/prisma";
-import { getScriptGenerator } from "@/lib/script-generator";
+import type { LLMExecutionEvent } from "@/lib/llm-service";
 import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import { runScriptProductionWorkflow } from "@/lib/agent-runtime/runtime/run-script-production-workflow";
 import {
   jsonObject,
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
-import { Prisma } from "@/lib/prisma";
-import { resolveScriptValidationSubtype } from "@/lib/script-validation-review";
 
 export interface ScriptGenerationExtraParams {
   startFromSegmentId?: string | null;
@@ -30,12 +29,47 @@ export interface ScriptGenerationRunParams {
 }
 
 const MANUAL_REVIEW_ISSUE_TYPE = "SCRIPT_VALIDATION";
-const MANUAL_REVIEW_HIGH_PRIORITY_CODES = new Set([
-  "LOW_COVERAGE",
-  "NON_WHITESPACE_GAP",
-  "SOURCE_NOT_FOUND",
-  "MISSING_SOURCE_TEXT",
-]);
+
+interface ScriptGenerationLLMProviderMetrics {
+  provider: string;
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  averageLatencyMs: number;
+  averageWaitMs: number;
+}
+
+interface ScriptGenerationLLMMetrics {
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  averageLatencyMs: number;
+  averageWaitMs: number;
+  providers: ScriptGenerationLLMProviderMetrics[];
+}
+
+interface AgentRuntimeMetadata {
+  workflowRunId: string;
+  workflowId?: string;
+  status: string;
+  mode?: string;
+  startedAt?: string;
+  completedAt?: string;
+  durationMs?: number;
+  traceEventCount?: number;
+  stageRunCount?: number;
+  summary?: Record<string, unknown>;
+}
+
+interface RuntimeManualReviewSync {
+  issueType: string;
+  created: number;
+  updated: number;
+  pending: number;
+  resolved: number;
+}
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
@@ -67,6 +101,186 @@ const asStringList = (value: unknown): string[] => {
     .filter((entry) => entry.length > 0);
 };
 
+const asAgentRuntimeMetadata = (
+  value: unknown
+): AgentRuntimeMetadata | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const workflowRunId = asString(record.workflowRunId);
+  const status = asString(record.status);
+
+  if (!workflowRunId || !status) {
+    return null;
+  }
+
+  const summary = asRecord(record.summary) || undefined;
+
+  return {
+    workflowRunId,
+    workflowId: asString(record.workflowId) || undefined,
+    status,
+    mode: asString(record.mode) || undefined,
+    startedAt: asString(record.startedAt) || undefined,
+    completedAt: asString(record.completedAt) || undefined,
+    durationMs: asNumber(record.durationMs) ?? undefined,
+    traceEventCount: asNumber(record.traceEventCount) ?? undefined,
+    stageRunCount: asNumber(record.stageRunCount) ?? undefined,
+    summary: summary ? JSON.parse(JSON.stringify(summary)) : undefined,
+  };
+};
+
+const asRuntimeManualReviewSync = (
+  runtimeMetadata: AgentRuntimeMetadata | null
+): RuntimeManualReviewSync | null => {
+  const summary = asRecord(runtimeMetadata?.summary);
+  const reviewSync = asRecord(summary?.manualReviewSync);
+  if (!reviewSync) {
+    return null;
+  }
+
+  const issueType = asString(reviewSync.issueType);
+  if (!issueType) {
+    return null;
+  }
+
+  return {
+    issueType,
+    created: asNumber(reviewSync.created) ?? 0,
+    updated: asNumber(reviewSync.updated) ?? 0,
+    pending: asNumber(reviewSync.pending) ?? 0,
+    resolved: asNumber(reviewSync.resolved) ?? 0,
+  };
+};
+
+const buildBookRuntimePointers = (params: {
+  runtimeMetadata: AgentRuntimeMetadata | null;
+  isFailure: boolean;
+}): Record<string, unknown> => {
+  const { runtimeMetadata, isFailure } = params;
+  if (!runtimeMetadata) {
+    return {};
+  }
+
+  return {
+    lastScriptWorkflowRunId: runtimeMetadata.workflowRunId,
+    lastScriptRuntimeStatus: runtimeMetadata.status,
+    ...(runtimeMetadata.completedAt
+      ? {
+          lastScriptRuntimeCompletedAt: runtimeMetadata.completedAt,
+        }
+      : {}),
+    ...(isFailure
+      ? {
+          lastFailedScriptWorkflowRunId: runtimeMetadata.workflowRunId,
+        }
+      : {}),
+  };
+};
+
+const createLLMMetricsCollector = () => {
+  const providerBuckets = new Map<
+    string,
+    {
+      submitted: number;
+      completed: number;
+      failed: number;
+      retried: number;
+      totalLatencyMs: number;
+      totalWaitMs: number;
+    }
+  >();
+  let submitted = 0;
+  let completed = 0;
+  let failed = 0;
+  let retried = 0;
+  let totalLatencyMs = 0;
+  let totalWaitMs = 0;
+
+  const getBucket = (provider: string) => {
+    const key = provider.trim() || "unknown";
+    const existing = providerBuckets.get(key);
+    if (existing) {
+      return existing;
+    }
+
+    const created = {
+      submitted: 0,
+      completed: 0,
+      failed: 0,
+      retried: 0,
+      totalLatencyMs: 0,
+      totalWaitMs: 0,
+    };
+    providerBuckets.set(key, created);
+    return created;
+  };
+
+  return {
+    observe(event: LLMExecutionEvent) {
+      const bucket = getBucket(event.provider);
+      if (event.status === "submitted") {
+        submitted += 1;
+        bucket.submitted += 1;
+        return;
+      }
+
+      const retriesUsed =
+        typeof event.retriesUsed === "number"
+          ? Math.max(event.retriesUsed, 0)
+          : typeof event.attempt === "number"
+            ? Math.max(event.attempt - 1, 0)
+            : 0;
+
+      retried += retriesUsed;
+      bucket.retried += retriesUsed;
+
+      if (event.status === "completed") {
+        completed += 1;
+        bucket.completed += 1;
+        totalLatencyMs += event.latencyMs;
+        bucket.totalLatencyMs += event.latencyMs;
+        totalWaitMs += event.waitMs || 0;
+        bucket.totalWaitMs += event.waitMs || 0;
+        return;
+      }
+
+      failed += 1;
+      bucket.failed += 1;
+    },
+
+    snapshot(): ScriptGenerationLLMMetrics {
+      return {
+        submitted,
+        completed,
+        failed,
+        retried,
+        averageLatencyMs: completed > 0 ? Math.round(totalLatencyMs / completed) : 0,
+        averageWaitMs: completed > 0 ? Math.round(totalWaitMs / completed) : 0,
+        providers: Array.from(providerBuckets.entries())
+          .map(([provider, bucket]) => ({
+            provider,
+            submitted: bucket.submitted,
+            completed: bucket.completed,
+            failed: bucket.failed,
+            retried: bucket.retried,
+            averageLatencyMs:
+              bucket.completed > 0
+                ? Math.round(bucket.totalLatencyMs / bucket.completed)
+                : 0,
+            averageWaitMs:
+              bucket.completed > 0
+                ? Math.round(bucket.totalWaitMs / bucket.completed)
+                : 0,
+          }))
+          .sort((left, right) => left.provider.localeCompare(right.provider)),
+      };
+    },
+  };
+};
+
 const normalizeSegmentFailureDetail = (value: unknown): SegmentFailureDetail | null => {
   const record = asRecord(value);
   if (!record) {
@@ -93,6 +307,16 @@ const normalizeSegmentFailureDetail = (value: unknown): SegmentFailureDetail | n
     issueMessages: asStringList(record.issueMessages),
     issuePreviews: asStringList(record.issuePreviews),
     segmentPreview: asString(record.segmentPreview),
+    segmentContent: asString(record.segmentContent),
+    rawResponse: asString(record.rawResponse) || null,
+    structuredResult:
+      record.structuredResult &&
+      typeof record.structuredResult === "object" &&
+      !Array.isArray(record.structuredResult)
+        ? (JSON.parse(
+            JSON.stringify(record.structuredResult)
+          ) as Record<string, unknown>)
+        : null,
   };
 };
 
@@ -188,158 +412,6 @@ const resolveBookStatusAfterPartialRun = (params: {
   return "script_generated";
 };
 
-const pickManualReviewPriority = (detail: SegmentFailureDetail): "high" | "normal" => {
-  if (detail.coverageRatio !== null && detail.coverageRatio < 0.9) {
-    return "high";
-  }
-
-  for (const issueCode of detail.issueCodes) {
-    if (MANUAL_REVIEW_HIGH_PRIORITY_CODES.has(issueCode)) {
-      return "high";
-    }
-  }
-
-  return "normal";
-};
-
-const toInputJson = (value: unknown): Prisma.InputJsonValue =>
-  JSON.parse(JSON.stringify(value ?? {})) as Prisma.InputJsonValue;
-
-const syncScriptFailureManualReviewItems = async (params: {
-  taskId: string;
-  bookId: string;
-  failures: SegmentFailureDetail[];
-}) => {
-  const { taskId, bookId, failures } = params;
-  if (failures.length === 0) {
-    return {
-      created: 0,
-      updated: 0,
-      totalPending: 0,
-    };
-  }
-
-  let created = 0;
-  let updated = 0;
-
-  await prisma.$transaction(async (tx) => {
-    for (const failure of failures) {
-      const scriptSubtype = resolveScriptValidationSubtype({
-        errorCode: failure.errorCode,
-        issueCodes: failure.issueCodes,
-      });
-      const issueDetail = {
-        source: "script_generation",
-        taskId,
-        segmentId: failure.segmentId,
-        chapterId: failure.chapterId,
-        orderIndex: failure.orderIndex,
-        stage: failure.stage,
-        errorCode: failure.errorCode,
-        message: failure.message,
-        provider: failure.provider,
-        retryable: failure.retryable,
-        coverageRatio: failure.coverageRatio,
-        issueCodes: failure.issueCodes,
-        issueMessages: failure.issueMessages,
-        issuePreviews: failure.issuePreviews,
-        segmentPreview: failure.segmentPreview,
-        scriptSubtype,
-      };
-      const priority = pickManualReviewPriority(failure);
-
-      const existing = await tx.manualReviewItem.findFirst({
-        where: {
-          bookId,
-          issueType: MANUAL_REVIEW_ISSUE_TYPE,
-          segmentId: failure.segmentId,
-          status: {
-            in: ["pending", "reprocessing"],
-          },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (existing) {
-        await tx.manualReviewItem.update({
-          where: { id: existing.id },
-          data: {
-            status: "pending",
-            priority,
-            issueDetail: toInputJson(issueDetail),
-            resolutionType: null,
-            resolutionNote: null,
-            resolvedAt: null,
-          },
-        });
-        updated += 1;
-        continue;
-      }
-
-      await tx.manualReviewItem.create({
-        data: {
-          bookId,
-          chapterId: failure.chapterId,
-          segmentId: failure.segmentId,
-          issueType: MANUAL_REVIEW_ISSUE_TYPE,
-          priority,
-          status: "pending",
-          issueDetail: toInputJson(issueDetail),
-        },
-      });
-      created += 1;
-    }
-  });
-
-  return {
-    created,
-    updated,
-    totalPending: created + updated,
-  };
-};
-
-const resolveSuccessfulScriptValidationManualReviewItems = async (params: {
-  taskId: string;
-  bookId: string;
-  processedSegmentIds: string[];
-  failedSegmentIds: string[];
-}) => {
-  const { taskId, bookId, processedSegmentIds, failedSegmentIds } = params;
-  const failedSegmentIdSet = new Set(failedSegmentIds);
-  const successfulSegmentIds = processedSegmentIds.filter(
-    (segmentId) => segmentId && !failedSegmentIdSet.has(segmentId)
-  );
-
-  if (successfulSegmentIds.length === 0) {
-    return { resolved: 0 };
-  }
-
-  const result = await prisma.manualReviewItem.updateMany({
-    where: {
-      bookId,
-      issueType: MANUAL_REVIEW_ISSUE_TYPE,
-      segmentId: {
-        in: successfulSegmentIds,
-      },
-      status: {
-        in: ["pending", "reprocessing"],
-      },
-    },
-    data: {
-      status: "resolved",
-      resolutionType: "auto_resolved",
-      resolutionNote: `script_generation_success:task=${taskId}`,
-      resolvedAt: new Date(),
-    },
-  });
-
-  return {
-    resolved: typeof result.count === "number" ? result.count : 0,
-  };
-};
-
 /**
  * 执行台本生成任务。
  * 注意：异常交由队列层决定是否重试和最终失败落库。
@@ -352,10 +424,18 @@ export async function runScriptGenerationTask({
 }: ScriptGenerationRunParams): Promise<void> {
   const isSampleRun = isSampleScriptGenerationRun(extraParams);
   const isPartialRun = isPartialScriptGenerationRun(extraParams);
+  const taskSnapshot = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: {
+      taskData: true,
+    },
+  });
+  const taskMetadata = asRecord(asRecord(taskSnapshot?.taskData)?.metadata);
+  const previousBookStatusFromTask = asString(taskMetadata?.previousBookStatus);
 
   await updateTaskProgress(taskId, 10, "准备生成台本");
 
-  const scriptGenerator = getScriptGenerator();
+  const llmMetricsCollector = createLLMMetricsCollector();
   let script: any;
 
   await updateTaskProgress(taskId, 30, "开始分析文本");
@@ -369,12 +449,17 @@ export async function runScriptGenerationTask({
   };
 
   if (extraParams.regenerateSegments && extraParams.segmentIds) {
-    script = await scriptGenerator.regenerateSegmentScript(
+    script = await runScriptProductionWorkflow({
+      taskId,
       bookId,
-      extraParams.segmentIds,
       options,
-      segmentProgress
-    );
+      mode: "regenerate",
+      segmentIds: extraParams.segmentIds,
+      onProgress: segmentProgress,
+      onExecutionEvent: (event: LLMExecutionEvent) => {
+        llmMetricsCollector.observe(event);
+      },
+    });
     await updateTaskProgress(taskId, 70, "段落台本生成完成");
   } else if (
     extraParams.limitToSegments ||
@@ -383,16 +468,19 @@ export async function runScriptGenerationTask({
       extraParams.startFromOrderIndex !== undefined)
   ) {
     if (extraParams.limitToSegments) {
-      script = await scriptGenerator.generatePartialScript(
+      script = await runScriptProductionWorkflow({
+        taskId,
         bookId,
         options,
-        {
-          startFromSegmentId: extraParams.startFromSegmentId,
-          startFromOrderIndex: extraParams.startFromOrderIndex,
-          limitToSegments: extraParams.limitToSegments,
+        mode: "partial",
+        startFromSegmentId: extraParams.startFromSegmentId,
+        startFromOrderIndex: extraParams.startFromOrderIndex,
+        limitToSegments: extraParams.limitToSegments,
+        onProgress: segmentProgress,
+        onExecutionEvent: (event: LLMExecutionEvent) => {
+          llmMetricsCollector.observe(event);
         },
-        segmentProgress
-      );
+      });
       script.segments = script.segments.slice(0, extraParams.limitToSegments);
       await updateTaskProgress(
         taskId,
@@ -400,22 +488,34 @@ export async function runScriptGenerationTask({
         `完成前${extraParams.limitToSegments}个段落的台本生成`
       );
     } else {
-      script = await scriptGenerator.generatePartialScript(
+      script = await runScriptProductionWorkflow({
+        taskId,
         bookId,
         options,
-        {
-          startFromSegmentId: extraParams.startFromSegmentId,
-          startFromOrderIndex: extraParams.startFromOrderIndex,
+        mode: "partial",
+        startFromSegmentId: extraParams.startFromSegmentId,
+        startFromOrderIndex: extraParams.startFromOrderIndex,
+        onProgress: segmentProgress,
+        onExecutionEvent: (event: LLMExecutionEvent) => {
+          llmMetricsCollector.observe(event);
         },
-        segmentProgress
-      );
+      });
       await updateTaskProgress(taskId, 70, "增量台本生成完成");
     }
   } else {
     await prisma.scriptSentence.deleteMany({
       where: { bookId },
     });
-    script = await scriptGenerator.generateScript(bookId, options, segmentProgress);
+    script = await runScriptProductionWorkflow({
+      taskId,
+      bookId,
+      options,
+      mode: "full",
+      onProgress: segmentProgress,
+      onExecutionEvent: (event: LLMExecutionEvent) => {
+        llmMetricsCollector.observe(event);
+      },
+    });
     await updateTaskProgress(taskId, 70, "台本生成完成");
   }
 
@@ -426,10 +526,15 @@ export async function runScriptGenerationTask({
   });
   const bookMetadata = jsonObject(book?.metadata);
   const previousBookStatus =
-    typeof book?.status === "string" ? book.status : "";
+    previousBookStatusFromTask ||
+    (typeof book?.status === "string" ? book.status : "");
 
   const failedSegments = Number(script.summary.failedSegments || 0);
   const totalSegments = Number(script.summary.totalSegments || 0);
+  const runtimeMetadata = asAgentRuntimeMetadata(
+    asRecord(script)?.runtimeMetadata
+  );
+  const runtimeReviewSync = asRuntimeManualReviewSync(runtimeMetadata);
   const hasSegmentFailures = failedSegments > 0;
   const failedSegmentIds = asStringList(script.summary.failedSegmentIds);
   const processedSegmentIds = Array.isArray(script.segments)
@@ -447,23 +552,15 @@ export async function runScriptGenerationTask({
     isPartialRun,
   });
   const outstandingFailedSegments = outstandingFailedSegmentIds.length;
-  const resolvedReviewResult = await resolveSuccessfulScriptValidationManualReviewItems({
-    taskId,
-    bookId,
-    processedSegmentIds,
-    failedSegmentIds,
-  });
-  const reviewSyncResult = hasSegmentFailures
-    ? await syncScriptFailureManualReviewItems({
-        taskId,
-        bookId,
-        failures: failedSegmentDetails,
-      })
-    : {
-        created: 0,
-        updated: 0,
-        totalPending: 0,
-      };
+  const resolvedReviewResult = {
+    resolved: runtimeReviewSync?.resolved ?? 0,
+  };
+  const reviewSyncResult = {
+    created: runtimeReviewSync?.created ?? 0,
+    updated: runtimeReviewSync?.updated ?? 0,
+    totalPending: runtimeReviewSync?.pending ?? 0,
+  };
+  const llmMetrics = llmMetricsCollector.snapshot();
 
   if (hasSegmentFailures) {
     const failureMessage = `台本生成部分失败：${failedSegments}/${totalSegments} 个段落未生成成功`;
@@ -491,6 +588,16 @@ export async function runScriptGenerationTask({
           updated: reviewSyncResult.updated,
           pending: reviewSyncResult.totalPending,
         },
+        ...(runtimeMetadata
+          ? {
+              agentRuntime: runtimeMetadata,
+            }
+          : {}),
+        ...(llmMetrics.submitted > 0
+          ? {
+              llmMetrics,
+            }
+          : {}),
       },
     });
 
@@ -525,6 +632,10 @@ export async function runScriptGenerationTask({
           scriptFailureManualReviewCreated: reviewSyncResult.created,
           scriptFailureManualReviewUpdated: reviewSyncResult.updated,
           scriptFailureManualReviewResolved: resolvedReviewResult.resolved,
+          ...buildBookRuntimePointers({
+            runtimeMetadata,
+            isFailure: true,
+          }),
         },
       },
     });
@@ -548,6 +659,16 @@ export async function runScriptGenerationTask({
       isPartial: isPartialRun,
       regeneratedSegments: extraParams.segmentIds?.length || 0,
       autoResolvedScriptReviewItems: resolvedReviewResult.resolved,
+      ...(runtimeMetadata
+        ? {
+            agentRuntime: runtimeMetadata,
+          }
+        : {}),
+      ...(llmMetrics.submitted > 0
+        ? {
+            llmMetrics,
+          }
+        : {}),
     },
   });
 
@@ -583,6 +704,10 @@ export async function runScriptGenerationTask({
             }),
         failedSegments: outstandingFailedSegments,
         failedSegmentIds: outstandingFailedSegmentIds,
+        ...buildBookRuntimePointers({
+          runtimeMetadata,
+          isFailure: false,
+        }),
       },
     },
   });

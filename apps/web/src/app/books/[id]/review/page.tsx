@@ -23,6 +23,7 @@ import {
   ReviewPaginationBar,
   ReviewQueueList,
 } from "./components/ReviewQueuePanel";
+import { ReviewRegenerateTaskList } from "./components/ReviewRegenerateTaskList";
 import {
   ReviewWindowIndicator,
   SloCardSection,
@@ -44,16 +45,20 @@ export default function ReviewWorkbenchPage() {
     sloMetrics,
     dispatchEvents,
     dispatchEventSummary,
+    recentRegenerateTasks,
     filters,
     page,
     windowDays,
     sourceFilter,
     reviewLoading,
     sloLoading,
+    taskLoading,
     refreshing,
     actionLoadingItemId,
     batchActionLoading,
     dispatchEventActionId,
+    scriptSaveLoadingItemId,
+    allPendingRegenerateLoading,
     error,
     issueTypeOptions,
     recommendedActionOptions,
@@ -73,8 +78,10 @@ export default function ReviewWorkbenchPage() {
     updatePriorityFilter,
     resolveItem,
     resolveItemsInBatch,
+    regenerateAllPendingItems,
     resolveDispatchEvent,
     exportReviewLogs,
+    saveScriptEdit,
   } = useReviewWorkbenchData(bookId);
 
   const backlog = summary.pendingCount + summary.reprocessingCount;
@@ -149,12 +156,18 @@ export default function ReviewWorkbenchPage() {
 
           <TabsContent value="queue" className="mt-4 space-y-4">
             <SloCardSection sloMetrics={sloMetrics} />
+            <ReviewRegenerateTaskList
+              tasks={recentRegenerateTasks}
+              loading={taskLoading}
+            />
             <ReviewFilterBar
               status={filters.status}
               issueType={filters.issueType}
               scriptSubtype={filters.scriptSubtype}
               recommendedAction={filters.recommendedAction}
               priority={filters.priority}
+              pendingCount={summary.pendingCount}
+              allPendingRegenerateLoading={allPendingRegenerateLoading}
               issueTypeOptions={issueTypeOptions}
               scriptSubtypeOptions={scriptSubtypeOptions}
               recommendedActionOptions={recommendedActionOptions}
@@ -167,6 +180,9 @@ export default function ReviewWorkbenchPage() {
               onPriorityChange={updatePriorityFilter}
               onRefresh={() => loadReviewData(true)}
               onExport={exportReviewLogs}
+              onRegenerateAllPending={() =>
+                regenerateAllPendingItems(summary.pendingCount)
+              }
               refreshing={reviewLoading}
             />
             <ReviewQueueList
@@ -174,8 +190,10 @@ export default function ReviewWorkbenchPage() {
               loading={reviewLoading}
               actionLoadingItemId={actionLoadingItemId}
               batchActionLoading={batchActionLoading}
+              scriptSaveLoadingItemId={scriptSaveLoadingItemId}
               onResolve={resolveItem}
               onBatchResolve={resolveItemsInBatch}
+              onSaveScriptEdit={saveScriptEdit}
             />
             <ReviewPaginationBar
               pagination={pagination}

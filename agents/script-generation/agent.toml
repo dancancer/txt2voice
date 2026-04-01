@@ -1,0 +1,6 @@
+id = "script-generation-agent"
+version = "1"
+role = "generate_segment_script_draft"
+compatibleWorkflowStages = ["segment_scripting"]
+allowedSkills = ["script-generation"]
+allowedTools = []

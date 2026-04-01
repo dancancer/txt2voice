@@ -9,6 +9,29 @@ export type TaskStatusMeta = {
   className: string;
 };
 
+export interface TaskChildJobProviderSummary {
+  provider: string;
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  averageWaitMs: number;
+  averageLatencyMs: number;
+}
+
+export interface TaskChildJobSummary {
+  key: "llm" | "audio_synthesis";
+  label: string;
+  submitted: number;
+  completed: number;
+  failed: number;
+  retried: number;
+  inFlight: number;
+  averageWaitMs: number;
+  averageLatencyMs: number;
+  providers: TaskChildJobProviderSummary[];
+}
+
 const TASK_TYPE_LABEL: Record<string, string> = {
   TEXT_PROCESSING: "文本处理",
   SCRIPT_GENERATION: "台本生成",
@@ -53,4 +76,133 @@ export const getTaskStatusMeta = (status: string): TaskStatusMeta => {
     label: status,
     className: "bg-slate-100 text-slate-700",
   };
+};
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const asNumber = (value: unknown): number | null => {
+  if (typeof value !== "number" || Number.isNaN(value)) {
+    return null;
+  }
+  return value;
+};
+
+const toNonNegativeNumber = (value: unknown): number | null => {
+  const numeric = asNumber(value);
+  if (numeric === null || numeric < 0) {
+    return null;
+  }
+  return numeric;
+};
+
+const normalizeProviderSummaries = (
+  value: unknown
+): TaskChildJobProviderSummary[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((entry) => {
+      const record = asRecord(entry);
+      if (!record || typeof record.provider !== "string" || !record.provider.trim()) {
+        return null;
+      }
+
+      const submitted = toNonNegativeNumber(record.submitted);
+      const completed = toNonNegativeNumber(record.completed);
+      const failed = toNonNegativeNumber(record.failed);
+      const retried = toNonNegativeNumber(record.retried);
+      const averageWaitMs = toNonNegativeNumber(record.averageWaitMs);
+      const averageLatencyMs = toNonNegativeNumber(record.averageLatencyMs);
+
+      if (
+        submitted === null ||
+        completed === null ||
+        failed === null ||
+        retried === null ||
+        averageWaitMs === null ||
+        averageLatencyMs === null
+      ) {
+        return null;
+      }
+
+      return {
+        provider: record.provider.trim().toLowerCase(),
+        submitted,
+        completed,
+        failed,
+        retried,
+        averageWaitMs,
+        averageLatencyMs,
+      };
+    })
+    .filter((entry): entry is TaskChildJobProviderSummary => Boolean(entry));
+};
+
+const normalizeChildSummary = (
+  key: TaskChildJobSummary["key"],
+  label: TaskChildJobSummary["label"],
+  value: unknown
+): TaskChildJobSummary | null => {
+  const record = asRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const submitted = toNonNegativeNumber(record.submitted);
+  const completed = toNonNegativeNumber(record.completed);
+  const failed = toNonNegativeNumber(record.failed);
+  const retried = toNonNegativeNumber(record.retried);
+  const averageWaitMs = toNonNegativeNumber(record.averageWaitMs);
+  const averageLatencyMs = toNonNegativeNumber(record.averageLatencyMs);
+
+  if (
+    submitted === null ||
+    completed === null ||
+    failed === null ||
+    retried === null ||
+    averageWaitMs === null ||
+    averageLatencyMs === null
+  ) {
+    return null;
+  }
+
+  return {
+    key,
+    label,
+    submitted,
+    completed,
+    failed,
+    retried,
+    inFlight: Math.max(submitted - completed - failed, 0),
+    averageWaitMs,
+    averageLatencyMs,
+    providers: normalizeProviderSummaries(record.providers),
+  };
+};
+
+export const getTaskChildJobSummaries = (
+  metadata: unknown
+): TaskChildJobSummary[] => {
+  const record = asRecord(metadata);
+  if (!record) {
+    return [];
+  }
+
+  const summaries = [
+    normalizeChildSummary("llm", "LLM 子任务", record.llmMetrics),
+    normalizeChildSummary(
+      "audio_synthesis",
+      "TTS 子任务",
+      record.audioChildJobMetrics
+    ),
+  ].filter((entry): entry is TaskChildJobSummary => Boolean(entry));
+
+  return summaries;
 };

@@ -1,0 +1,13 @@
+id = "script-generation"
+version = "1"
+kind = "generation"
+compatibleAgents = ["script-generation-agent"]
+inputSchemaRef = "segment-script-input"
+outputSchemaRef = "segment-script-draft"
+contextRequirements = ["segment"]
+toolAllowlist = []
+promptBundle = ["prompts/system.md", "prompts/user.md"]
+modelPolicy = "balanced"
+repairPolicy = "handoff-to-json-repair"
+successCriteria = ["returns-segment-script-draft", "keeps-source-text-aligned"]
+telemetryTags = ["runtime", "segment-scripting"]

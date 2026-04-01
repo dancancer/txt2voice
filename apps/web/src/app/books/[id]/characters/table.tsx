@@ -54,6 +54,7 @@ export function CharactersTable({
             </TableHeader>
             <TableBody>
               {characters.map((character) => {
+                const isSystemRole = character.isSystemRole === true;
                 const defaultSpeaker =
                   character.speakerBindings?.find(
                     (binding: any) => binding.isPreferred || binding.isDefault
@@ -62,8 +63,15 @@ export function CharactersTable({
                   <TableRow key={character.id}>
                     <TableCell>
                       <div className="max-w-[200px]">
-                        <div className="font-medium text-gray-900 truncate">
-                          {character.canonicalName}
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-900 truncate">
+                            {character.canonicalName}
+                          </div>
+                          {isSystemRole ? (
+                            <Badge variant="secondary" className="text-xs">
+                              系统
+                            </Badge>
+                          ) : null}
                         </div>
                         {(character as any).characteristics?.description && (
                           <div className="text-sm text-gray-500 mt-1 line-clamp-2">
@@ -177,6 +185,7 @@ export function CharactersTable({
                           size="sm"
                           onClick={() => onEdit(character)}
                           className="min-h-11 min-w-11 p-0 flex-shrink-0"
+                          disabled={isSystemRole}
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -193,7 +202,7 @@ export function CharactersTable({
                           size="sm"
                           onClick={() => onDelete(character.id)}
                           className="min-h-11 min-w-11 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
-                          disabled={deletingId === character.id}
+                          disabled={isSystemRole || deletingId === character.id}
                         >
                           {deletingId === character.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

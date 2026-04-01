@@ -11,7 +11,7 @@ import type {
   SegmentProcessingResult,
 } from "../types";
 
-interface ProcessSegmentAndSaveInput {
+interface ProcessSegmentInput {
   segment: any;
   characterMap: Map<string, string>;
   characterProfiles: any[];
@@ -19,9 +19,21 @@ interface ProcessSegmentAndSaveInput {
   bookId: string;
 }
 
-type ProcessSegmentAndSaveFn = (
-  input: ProcessSegmentAndSaveInput
+interface PersistSegmentResultInput {
+  segment: any;
+  result: SegmentProcessingResult;
+  characterMap: Map<string, string>;
+  characterProfiles: any[];
+  bookId: string;
+}
+
+type ProcessSegmentFn = (
+  input: ProcessSegmentInput
 ) => Promise<SegmentProcessingResult>;
+
+type PersistSegmentResultFn = (
+  input: PersistSegmentResultInput
+) => Promise<void>;
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
   value && typeof value === "object" && !Array.isArray(value)
@@ -100,7 +112,7 @@ const normalizeSegmentFailure = (params: {
   };
 };
 
-const loadBookForGeneration = async (params: {
+export const loadBookForGeneration = async (params: {
   bookId: string;
   segmentIds?: string[];
 }) => {
@@ -154,7 +166,8 @@ const runSegmentGeneration = async (params: {
   characterProfiles: any[];
   options: ScriptGenerationOptions;
   onProgress?: (done: number, total: number) => Promise<void> | void;
-  processSegmentAndSave: ProcessSegmentAndSaveFn;
+  processSegment: ProcessSegmentFn;
+  persistSegmentResult: PersistSegmentResultFn;
   errorPrefix: string;
 }): Promise<GeneratedScript> => {
   const {
@@ -163,7 +176,8 @@ const runSegmentGeneration = async (params: {
     characterProfiles,
     options,
     onProgress,
-    processSegmentAndSave,
+    processSegment,
+    persistSegmentResult,
     errorPrefix,
   } = params;
 
@@ -172,15 +186,42 @@ const runSegmentGeneration = async (params: {
   const segmentSummaries: SegmentSummary[] = [];
   const failedSegmentIds: string[] = [];
   const failedSegmentDetails: SegmentFailureDetail[] = [];
+  const inferenceResults = await Promise.allSettled(
+    segments.map((segment) =>
+      processSegment({
+        segment,
+        characterMap: new Map(characterMap),
+        characterProfiles,
+        options,
+        bookId,
+      })
+    )
+  );
 
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index];
+    const inferenceResult = inferenceResults[index];
+
+    if (inferenceResult.status === "rejected") {
+      console.error(`${errorPrefix} ${segment.id} 失败:`, inferenceResult.reason);
+      failedSegmentIds.push(segment.id);
+      failedSegmentDetails.push(
+        normalizeSegmentFailure({
+          segment,
+          error: inferenceResult.reason,
+        })
+      );
+      continue;
+    }
+
     try {
-      const segmentResult = await processSegmentAndSave({
+      const segmentResult = inferenceResult.value;
+
+      await persistSegmentResult({
         segment,
+        result: segmentResult,
         characterMap,
         characterProfiles,
-        options,
         bookId,
       });
 
@@ -223,7 +264,7 @@ const runSegmentGeneration = async (params: {
   };
 };
 
-const resolvePartialSegments = (params: {
+export const resolvePartialSegments = (params: {
   segments: any[];
   startFromSegmentId?: string | null;
   startFromOrderIndex?: number | null;
@@ -273,9 +314,10 @@ export async function generateScriptByBook(params: {
   bookId: string;
   options: ScriptGenerationOptions;
   onProgress?: (done: number, total: number) => Promise<void> | void;
-  processSegmentAndSave: ProcessSegmentAndSaveFn;
+  processSegment: ProcessSegmentFn;
+  persistSegmentResult: PersistSegmentResultFn;
 }): Promise<GeneratedScript> {
-  const { bookId, options, onProgress, processSegmentAndSave } = params;
+  const { bookId, options, onProgress, processSegment, persistSegmentResult } = params;
 
   const book = await loadBookForGeneration({ bookId });
   ensureSegments(book.textSegments, "没有可处理的文本段落");
@@ -286,7 +328,8 @@ export async function generateScriptByBook(params: {
     characterProfiles: book.characterProfiles,
     options,
     onProgress,
-    processSegmentAndSave,
+    processSegment,
+    persistSegmentResult,
     errorPrefix: "处理段落",
   });
 }
@@ -300,9 +343,10 @@ export async function generatePartialScriptByBook(params: {
     limitToSegments?: number;
   };
   onProgress?: (done: number, total: number) => Promise<void> | void;
-  processSegmentAndSave: ProcessSegmentAndSaveFn;
+  processSegment: ProcessSegmentFn;
+  persistSegmentResult: PersistSegmentResultFn;
 }): Promise<GeneratedScript> {
-  const { bookId, options, generationParams, onProgress, processSegmentAndSave } =
+  const { bookId, options, generationParams, onProgress, processSegment, persistSegmentResult } =
     params;
 
   const book = await loadBookForGeneration({ bookId });
@@ -321,7 +365,8 @@ export async function generatePartialScriptByBook(params: {
     characterProfiles: book.characterProfiles,
     options,
     onProgress,
-    processSegmentAndSave,
+    processSegment,
+    persistSegmentResult,
     errorPrefix: "处理段落",
   });
 }
@@ -331,9 +376,10 @@ export async function regenerateSegmentsByBook(params: {
   segmentIds: string[];
   options: ScriptGenerationOptions;
   onProgress?: (done: number, total: number) => Promise<void> | void;
-  processSegmentAndSave: ProcessSegmentAndSaveFn;
+  processSegment: ProcessSegmentFn;
+  persistSegmentResult: PersistSegmentResultFn;
 }): Promise<GeneratedScript> {
-  const { bookId, segmentIds, options, onProgress, processSegmentAndSave } =
+  const { bookId, segmentIds, options, onProgress, processSegment, persistSegmentResult } =
     params;
 
   const book = await loadBookForGeneration({ bookId, segmentIds });
@@ -345,7 +391,8 @@ export async function regenerateSegmentsByBook(params: {
     characterProfiles: book.characterProfiles,
     options,
     onProgress,
-    processSegmentAndSave,
+    processSegment,
+    persistSegmentResult,
     errorPrefix: "重新处理段落",
   });
 }

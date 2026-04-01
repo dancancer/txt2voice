@@ -6,16 +6,17 @@ export interface ScriptSentence {
   id: string;
   text: string;
   orderInSegment: number;
-  characterId?: string | null; // 当是旁白时为 null
+  characterId?: string | null;
   segmentId: string;
   tone?: string;
+  roleType?: string;
   rawSpeaker?: string; // 原始说话人信息
   strength?: number;
   pauseAfter?: number;
   character?: {
     id: string;
     canonicalName: string;
-  } | null; // 当是旁白时为 null
+  } | null;
   segment?: {
     id: string;
     content: string;

@@ -1,0 +1,141 @@
+import type { CharacterMemory, SegmentScriptDraft } from "../context";
+import {
+  buildCharacterMap,
+  mapCharacterMemoryToCandidates,
+  upsertCharacterCandidates,
+} from "@/lib/script-generator/storage/character-utils";
+import {
+  mapSegmentScriptDraftToDialogueLines,
+  saveSegmentScriptToDatabase,
+} from "@/lib/script-generator/storage/persistence";
+import type { CharacterCandidate, DialogueLine } from "@/lib/script-generator/types";
+
+interface CharacterProfileLike {
+  id?: string;
+  canonicalName?: string;
+  aliases?: Array<{ alias: string }>;
+}
+
+interface PersistToolsDeps {
+  mapCharacterMemoryToCandidates?: typeof mapCharacterMemoryToCandidates;
+  upsertCharacterCandidates?: typeof upsertCharacterCandidates;
+  mapSegmentScriptDraftToDialogueLines?: typeof mapSegmentScriptDraftToDialogueLines;
+  saveSegmentScriptToDatabase?: typeof saveSegmentScriptToDatabase;
+}
+
+export interface PersistCharacterMemoryDraftInput {
+  bookId: string;
+  characterProfiles: CharacterProfileLike[];
+  characterMap: Map<string, string>;
+  candidates: CharacterCandidate[];
+}
+
+export interface PersistSegmentScriptDraftInput {
+  bookId: string;
+  segmentId: string;
+  dialogueLines: DialogueLine[];
+  characterProfiles: CharacterProfileLike[];
+  characterMap: Map<string, string>;
+}
+
+export interface PersistCharacterMemoryDraftRequest {
+  bookId: string;
+  characterMemory: CharacterMemory;
+  characterProfiles?: CharacterProfileLike[];
+  characterMap?: Map<string, string>;
+}
+
+export interface PersistSegmentScriptDraftRequest {
+  bookId: string;
+  segmentScriptDraft: SegmentScriptDraft;
+  chapterId?: string | null;
+  characterProfiles?: CharacterProfileLike[];
+  characterMap?: Map<string, string>;
+}
+
+export interface PersistCharacterMemoryDraftResult {
+  persistedCharacterCount: number;
+}
+
+export interface PersistSegmentScriptDraftResult {
+  persistedSentenceCount: number;
+}
+
+export interface PersistTools {
+  persistCharacterMemoryDraft: (
+    input: PersistCharacterMemoryDraftRequest
+  ) => Promise<PersistCharacterMemoryDraftResult>;
+  persistSegmentScriptDraft: (
+    input: PersistSegmentScriptDraftRequest
+  ) => Promise<PersistSegmentScriptDraftResult>;
+}
+
+const createPersistenceContext = (params: {
+  characterProfiles?: CharacterProfileLike[];
+  characterMap?: Map<string, string>;
+}): {
+  characterProfiles: CharacterProfileLike[];
+  characterMap: Map<string, string>;
+} => {
+  const characterProfiles = params.characterProfiles || [];
+  const characterMap = params.characterMap || buildCharacterMap(characterProfiles);
+
+  return {
+    characterProfiles,
+    characterMap,
+  };
+};
+
+export const createPersistTools = (deps: PersistToolsDeps = {}): PersistTools => {
+  const mapMemoryToCandidates =
+    deps.mapCharacterMemoryToCandidates || mapCharacterMemoryToCandidates;
+  const persistCharacters = deps.upsertCharacterCandidates || upsertCharacterCandidates;
+  const mapDraftToDialogueLines =
+    deps.mapSegmentScriptDraftToDialogueLines || mapSegmentScriptDraftToDialogueLines;
+  const persistSegmentSentences =
+    deps.saveSegmentScriptToDatabase || saveSegmentScriptToDatabase;
+
+  return {
+    persistCharacterMemoryDraft: async (input) => {
+      const context = createPersistenceContext({
+        characterProfiles: input.characterProfiles,
+        characterMap: input.characterMap,
+      });
+      const candidates = mapMemoryToCandidates(input.characterMemory);
+
+      await persistCharacters({
+        bookId: input.bookId,
+        candidates,
+        characterProfiles: context.characterProfiles,
+        characterMap: context.characterMap,
+      });
+
+      return {
+        persistedCharacterCount: candidates.length,
+      };
+    },
+
+    persistSegmentScriptDraft: async (input) => {
+      const context = createPersistenceContext({
+        characterProfiles: input.characterProfiles,
+        characterMap: input.characterMap,
+      });
+      const dialogueLines = mapDraftToDialogueLines({
+        segmentScriptDraft: input.segmentScriptDraft,
+        chapterId: input.chapterId,
+      });
+
+      await persistSegmentSentences({
+        bookId: input.bookId,
+        segmentId: input.segmentScriptDraft.segmentId,
+        dialogueLines,
+        characterProfiles: context.characterProfiles,
+        characterMap: context.characterMap,
+      });
+
+      return {
+        persistedSentenceCount: dialogueLines.length,
+      };
+    },
+  };
+};

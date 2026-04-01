@@ -1,6 +1,7 @@
 import type Bull from "bull";
 import type { AutoPipelineOptions } from "@/lib/auto-pipeline-runner";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
+import type { AudioGenerationRequest, AudioGenerationResult } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
 import type { QualitySignalSyncTaskType } from "@/lib/quality-signal-sync-runner";
@@ -26,6 +27,13 @@ export interface AudioGenerationQueueInput {
   voiceProfileId?: string;
   autoMerge?: boolean;
   options?: AudioGenerationOptions;
+}
+
+export interface AudioSynthesisQueueInput {
+  requestId: string;
+  request: AudioGenerationRequest;
+  options?: AudioGenerationOptions;
+  metadata?: Record<string, unknown>;
 }
 
 export interface QualityCheckQueueInput {
@@ -63,6 +71,28 @@ export interface AutoPipelineQueueInput {
   workflowPayload?: Record<string, unknown>;
 }
 
+export interface LLMProviderSnapshot {
+  name: string;
+  apiKey: string;
+  baseURL?: string;
+  model: string;
+}
+
+export interface LLMExecutionRequestOptions {
+  temperature?: number;
+  maxTokens?: number;
+  timeoutMs?: number;
+}
+
+export interface LLMExecutionQueueInput {
+  requestId: string;
+  provider: LLMProviderSnapshot;
+  prompt: string;
+  systemPrompt?: string;
+  metadata?: Record<string, unknown>;
+  requestOptions?: LLMExecutionRequestOptions;
+}
+
 export interface ScriptGenerationJobData extends ScriptGenerationQueueInput {
   options: Partial<ScriptGenerationOptions>;
   extraParams: ScriptGenerationExtraParams;
@@ -73,6 +103,22 @@ export interface AudioGenerationJobData extends AudioGenerationQueueInput {
   autoMerge: boolean;
   options: AudioGenerationOptions;
   dedupeKey: string;
+}
+
+export interface AudioSynthesisJobData extends AudioSynthesisQueueInput {
+  options: AudioGenerationOptions;
+  metadata: Record<string, unknown>;
+}
+
+export interface AudioSynthesisJobResult extends AudioGenerationResult {
+  provider?: string | null;
+  attempt: number;
+  retriesUsed?: number;
+  waitMs?: number;
+  totalElapsedMs?: number;
+  queueJobId?: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
 }
 
 export interface QualityCheckJobData extends QualityCheckQueueInput {
@@ -94,6 +140,26 @@ export interface AutoPipelineJobData extends AutoPipelineQueueInput {
   dedupeKey: string;
 }
 
+export interface LLMExecutionJobData extends LLMExecutionQueueInput {
+  metadata: Record<string, unknown>;
+  requestOptions: LLMExecutionRequestOptions;
+}
+
+export interface LLMExecutionJobResult {
+  content: string;
+  model: string;
+  provider: string;
+  latencyMs: number;
+  attempt: number;
+  usage: Record<string, unknown> | null;
+  waitMs?: number;
+  totalElapsedMs?: number;
+  retriesUsed?: number;
+  queueJobId?: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+}
+
 export interface DeadLetterJobData {
   taskId: string;
   taskType: QueueTaskType;
@@ -109,9 +175,11 @@ export interface DeadLetterJobData {
 export interface TaskQueueState {
   scriptQueue: Bull.Queue<ScriptGenerationJobData> | null;
   audioQueue: Bull.Queue<AudioGenerationJobData> | null;
+  audioSynthesisQueue: Bull.Queue<AudioSynthesisJobData> | null;
   qualityQueue: Bull.Queue<QualityCheckJobData> | null;
   signalSyncQueue: Bull.Queue<QualitySignalSyncJobData> | null;
   autoPipelineQueue: Bull.Queue<AutoPipelineJobData> | null;
+  llmQueue: Bull.Queue<LLMExecutionJobData> | null;
   deadLetterQueue: Bull.Queue<DeadLetterJobData> | null;
   workerStarted: boolean;
   recovering: boolean;

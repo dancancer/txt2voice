@@ -6,6 +6,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, ValidationError } from '@/lib/error-handler'
 import prisma, { Prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import {
+  getNarrationSystemRoleGuardReason,
+  isNarrationCharacterProfile,
+  NARRATION_CHARACTER_NAME,
+} from '@/lib/narration-character'
 
 const genderSchema = z.union([
   z.literal('male'),
@@ -96,6 +101,8 @@ export const GET = withErrorHandler(async (
       importance: (character.characteristics as any)?.importance,
       relationships: (character.characteristics as any)?.relationships,
       isActive: character.isActive,
+      isSystemRole: character.isSystemRole,
+      systemRoleType: character.systemRoleType,
       aliases: character.aliases.map(a => a.alias),
       voiceBindings: character.voiceBindings.map(binding => ({
         id: binding.id,
@@ -156,6 +163,14 @@ export const PUT = withErrorHandler(async (
 
   if (!character) {
     throw new ValidationError('角色不存在')
+  }
+
+  const guardReason = getNarrationSystemRoleGuardReason(character, {
+    canonicalName: validatedData.canonicalName,
+    isActive: validatedData.isActive,
+  })
+  if (guardReason) {
+    throw new ValidationError(guardReason)
   }
 
   // 如果更新名称，检查是否与其他角色重复
@@ -267,6 +282,8 @@ export const PUT = withErrorHandler(async (
       importance: (result!.characteristics as any)?.importance,
       relationships: (result!.characteristics as any)?.relationships,
       isActive: result!.isActive,
+      isSystemRole: result!.isSystemRole,
+      systemRoleType: result!.systemRoleType,
       aliases: result!.aliases.map(a => a.alias),
       scriptSentencesCount: result!._count.scriptSentences,
       updatedAt: result!.updatedAt
@@ -294,6 +311,10 @@ export const DELETE = withErrorHandler(async (
 
   if (!character) {
     throw new ValidationError('角色不存在')
+  }
+
+  if (isNarrationCharacterProfile(character)) {
+    throw new ValidationError(`${NARRATION_CHARACTER_NAME}系统角色不允许删除`)
   }
 
   // 检查是否有关联的台词

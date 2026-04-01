@@ -4,7 +4,7 @@
 // pos: 路由页面入口
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { BookList } from "@/components/BookList";
@@ -18,18 +18,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export default function Home() {
+function HomePageContent() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const shouldOpenUpload = searchParams.get("create") === "1";
-
-  useEffect(() => {
-    if (shouldOpenUpload) {
-      setUploadDialogOpen(true);
-    }
-  }, [shouldOpenUpload]);
+  const isUploadDialogOpen = uploadDialogOpen || shouldOpenUpload;
 
   const closeUploadDialog = () => {
     setUploadDialogOpen(false);
@@ -58,7 +53,7 @@ export default function Home() {
               </p>
             </div>
             <Dialog
-              open={uploadDialogOpen}
+              open={isUploadDialogOpen}
               onOpenChange={(open) => {
                 if (open) {
                   setUploadDialogOpen(true);
@@ -103,5 +98,13 @@ export default function Home() {
         </Card>
       </section>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomePageContent />
+    </Suspense>
   );
 }

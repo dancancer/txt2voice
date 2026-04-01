@@ -20,6 +20,7 @@ interface EditSentenceModalProps {
       tone?: string;
       characterId?: string | null;
       rawSpeaker?: string | null;
+      roleType?: string;
     }
   ) => void;
 }
@@ -30,15 +31,29 @@ export function EditSentenceModal({
   onClose,
   onSave,
 }: EditSentenceModalProps) {
-  const narrationValue = "__narration__";
+  const narrationCharacter = useMemo(
+    () =>
+      characters.find(
+        (character) =>
+          character.isSystemRole === true &&
+          character.systemRoleType === "narration"
+      ) || null,
+    [characters]
+  );
+  const narrationValue = narrationCharacter?.id || "__narration__";
   const [text, setText] = useState(sentence.text);
   const [tone, setTone] = useState(sentence.tone ?? "");
   const [characterId, setCharacterId] = useState(
-    sentence.characterId ?? narrationValue
+    sentence.characterId ??
+      (sentence.rawSpeaker === "旁白" || sentence.roleType === "narration"
+        ? narrationValue
+        : "")
   );
 
   const availableCharacters = useMemo(() => {
-    const activeCharacters = characters.filter((c) => c.isActive !== false);
+    const activeCharacters = characters.filter(
+      (c) => c.isActive !== false && c.id !== narrationCharacter?.id
+    );
     const hasCurrent = activeCharacters.some((c) => c.id === sentence.characterId);
     if (!hasCurrent && sentence.characterId) {
       return [
@@ -52,7 +67,13 @@ export function EditSentenceModal({
       ];
     }
     return activeCharacters;
-  }, [characters, sentence.characterId, sentence.character?.canonicalName, sentence.rawSpeaker]);
+  }, [
+    characters,
+    narrationCharacter?.id,
+    sentence.characterId,
+    sentence.character?.canonicalName,
+    sentence.rawSpeaker,
+  ]);
 
   const handleSave = () => {
     const trimmedText = text.trim();
@@ -61,14 +82,17 @@ export function EditSentenceModal({
     }
 
     const normalizedTone = tone.trim();
-    const resolvedCharacterId =
-      characterId === narrationValue ? null : characterId;
+    const isNarration = characterId === narrationValue;
+    const resolvedCharacterId = isNarration
+      ? narrationCharacter?.id ?? null
+      : characterId || null;
 
     onSave(sentence.id, {
       text: trimmedText,
       tone: normalizedTone,
       characterId: resolvedCharacterId,
-      rawSpeaker: resolvedCharacterId ? undefined : null,
+      rawSpeaker: isNarration ? "旁白" : undefined,
+      roleType: isNarration ? "narration" : "dialogue",
     });
   };
 

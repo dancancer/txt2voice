@@ -122,7 +122,9 @@ jest.mock("../prisma", () => ({
       update: jest.fn(),
     },
     characterProfile: {
+      upsert: jest.fn(),
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       createMany: jest.fn(),
     },
@@ -146,6 +148,24 @@ describe("ScriptGenerator - 新数据结构适配", () => {
     mockPrisma.$transaction.mockImplementation(async (fn: any) => fn(mockPrisma));
     mockPrisma.scriptSentence.deleteMany.mockResolvedValue({ count: 0 });
     mockPrisma.book.update.mockResolvedValue({});
+    mockPrisma.characterProfile.upsert.mockResolvedValue({
+      id: "narration-char",
+      canonicalName: "旁白",
+      isSystemRole: true,
+      systemRoleType: "narration",
+    });
+    mockPrisma.characterProfile.findMany.mockResolvedValue([]);
+    mockPrisma.characterProfile.findFirst.mockResolvedValue(null);
+    mockPrisma.scriptSentence.create.mockResolvedValue({
+      id: "sentence-default",
+      characterId: "narration-char",
+      rawSpeaker: "旁白",
+      orderInSegment: 0,
+      tone: "中性",
+      strength: 75,
+      pauseAfter: 1.5,
+      ttsParameters: {},
+    });
 
     mockBook = {
       id: "test-book-id",
@@ -242,14 +262,13 @@ describe("ScriptGenerator - 新数据结构适配", () => {
       expect(mockPrisma.scriptSentence.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            characterId: expect.any(String),
+            characterId: expect.anything(),
+            rawSpeaker: expect.any(String),
             orderInSegment: expect.any(Number),
             tone: expect.any(String),
-            ttsParameters: expect.objectContaining({
-              strength: expect.any(Number),
-              pauseAfter: expect.any(Number),
-              originalSpeaker: expect.any(String),
-            }),
+            strength: expect.any(Number),
+            pauseAfter: expect.any(Number),
+            ttsParameters: expect.any(Object),
           }),
         })
       );
@@ -407,8 +426,8 @@ describe("ScriptGenerator - 新数据结构适配", () => {
         textSegments: segments,
       });
 
-      const processSpy = jest
-        .spyOn<any, any>(scriptGenerator as any, "processSegmentAndSave")
+      const inferSpy = jest
+        .spyOn<any, any>(scriptGenerator as any, "inferSegment")
         .mockImplementation(async (segment: any) => ({
           dialogueLines: [
             {
@@ -421,6 +440,7 @@ describe("ScriptGenerator - 新数据结构适配", () => {
               isNarration: true,
             },
           ],
+          characterCandidates: [],
         }));
 
       try {
@@ -430,8 +450,8 @@ describe("ScriptGenerator - 新数据结构适配", () => {
           { limitToSegments: 2 }
         );
 
-        expect(processSpy).toHaveBeenCalledTimes(2);
-        const processedIds = processSpy.mock.calls.map(
+        expect(inferSpy).toHaveBeenCalledTimes(2);
+        const processedIds = inferSpy.mock.calls.map(
           (call) => (call[0] as { id: string }).id
         );
         expect(processedIds).toEqual([
@@ -440,7 +460,7 @@ describe("ScriptGenerator - 新数据结构适配", () => {
         ]);
         expect(result.segments).toHaveLength(2);
       } finally {
-        processSpy.mockRestore();
+        inferSpy.mockRestore();
       }
     });
   });
@@ -472,7 +492,8 @@ describe("ScriptGenerator - 新数据结构适配", () => {
       expect(mockPrisma.scriptSentence.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            characterId: expect.any(String),
+            characterId: expect.anything(),
+            rawSpeaker: expect.any(String),
             orderInSegment: expect.any(Number),
             tone: expect.any(String),
           }),

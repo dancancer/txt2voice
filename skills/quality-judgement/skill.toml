@@ -1,0 +1,13 @@
+id = "quality-judgement"
+version = "1"
+kind = "quality"
+compatibleAgents = ["quality-judge-agent"]
+inputSchemaRef = "quality-stage-input"
+outputSchemaRef = "quality-verdict"
+contextRequirements = ["segment_script_draft", "validation_report", "quality_signals", "failed_artifact"]
+toolAllowlist = []
+promptBundle = ["prompts/system.md", "prompts/user.md"]
+modelPolicy = "balanced"
+repairPolicy = "escalate-low-confidence"
+successCriteria = ["returns-quality-verdict", "includes-review-handoff-when-needed"]
+telemetryTags = ["runtime", "quality"]

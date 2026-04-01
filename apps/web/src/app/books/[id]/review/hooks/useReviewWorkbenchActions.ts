@@ -9,6 +9,8 @@ import type {
   ManualReviewItem,
   ManualReviewResolveAction,
   ReviewBatchResolveResponse,
+  ReviewRegenerateAllPendingResponse,
+  ReviewScriptSaveResponse,
 } from "../models/types";
 
 interface ReviewWorkbenchActionInput {
@@ -38,6 +40,10 @@ export function useReviewWorkbenchActions({
   const [batchActionLoading, setBatchActionLoading] = useState(false);
   const [dispatchEventActionId, setDispatchEventActionId] =
     useState<string | null>(null);
+  const [scriptSaveLoadingItemId, setScriptSaveLoadingItemId] =
+    useState<string | null>(null);
+  const [allPendingRegenerateLoading, setAllPendingRegenerateLoading] =
+    useState(false);
 
   const resolveItem = useCallback(
     async (item: ManualReviewItem, action: ManualReviewResolveAction) => {
@@ -198,13 +204,112 @@ export function useReviewWorkbenchActions({
     }
   }, [bookId, buildReviewParams]);
 
+  const regenerateAllPendingItems = useCallback(
+    async (pendingCount: number): Promise<boolean> => {
+      if (pendingCount <= 0) {
+        toast.error("当前没有待复核项可重生");
+        return false;
+      }
+
+      const confirmed = window.confirm(
+        `确认要重生当前书籍下全部 ${pendingCount} 条待复核项吗？`
+      );
+      if (!confirmed) {
+        return false;
+      }
+
+      setAllPendingRegenerateLoading(true);
+      try {
+        const response = await fetch(
+          `/api/books/${bookId}/review/items/regenerate-all-pending`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        const payload =
+          (await response.json().catch(() => ({}))) as ReviewRegenerateAllPendingResponse;
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error?.message || "全量待复核重生失败");
+        }
+
+        const taskCount = [payload.data.scriptTask, payload.data.audioTask].filter(Boolean)
+          .length;
+        toast.success(
+          `已触发全量待复核重生，覆盖 ${payload.data.reviewItemCount} 条，创建 ${taskCount} 个任务`
+        );
+        await refreshAfterReviewMutation();
+        return true;
+      } catch (regenerateError) {
+        console.error("Failed to regenerate all pending review items:", regenerateError);
+        toast.error(
+          regenerateError instanceof Error
+            ? regenerateError.message
+            : "全量待复核重生失败"
+        );
+        return false;
+      } finally {
+        setAllPendingRegenerateLoading(false);
+      }
+    },
+    [bookId, refreshAfterReviewMutation]
+  );
+
+  const saveScriptEdit = useCallback(
+    async (
+      item: ManualReviewItem,
+      structuredResult: Record<string, unknown>
+    ): Promise<boolean> => {
+      setScriptSaveLoadingItemId(item.id);
+      try {
+        const response = await fetch(
+          `/api/books/${bookId}/review/items/${item.id}/script-save`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              structuredResult,
+            }),
+          }
+        );
+        const payload = (await response.json().catch(() => ({}))) as ReviewScriptSaveResponse;
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error?.message || "保存人工修订台本失败");
+        }
+
+        toast.success("人工修订台本已保存");
+        await refreshAfterReviewMutation();
+        return true;
+      } catch (saveError) {
+        console.error("Failed to save manual review script edit:", saveError);
+        toast.error(
+          saveError instanceof Error ? saveError.message : "保存人工修订台本失败"
+        );
+        return false;
+      } finally {
+        setScriptSaveLoadingItemId(null);
+      }
+    },
+    [bookId, refreshAfterReviewMutation]
+  );
+
   return {
     actionLoadingItemId,
     batchActionLoading,
     dispatchEventActionId,
+    scriptSaveLoadingItemId,
+    allPendingRegenerateLoading,
     resolveItem,
     resolveItemsInBatch,
+    regenerateAllPendingItems,
     resolveDispatchEvent,
     exportReviewLogs,
+    saveScriptEdit,
   };
 }

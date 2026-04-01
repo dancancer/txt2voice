@@ -12,9 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import {
+  getTaskChildJobSummaries,
   getTaskStatusMeta,
   getTaskTypeLabel,
   type ProcessingTaskStatus,
+  type TaskChildJobSummary,
 } from "@/lib/view-models/tasks";
 import {
   RefreshCw,
@@ -34,10 +36,50 @@ type TaskItem = {
   status: ProcessingTaskStatus;
   progress: number;
   message?: string | null;
+  metadata?: Record<string, unknown> | null;
   errorMessage?: string | null;
   createdAt: string;
   updatedAt: string;
   completedAt?: string | null;
+};
+
+const formatDurationMs = (value: number): string => {
+  if (value < 1000) {
+    return `${value}ms`;
+  }
+  return `${(value / 1000).toFixed(value >= 10_000 ? 0 : 1)}s`;
+};
+
+const renderChildJobSummary = (summary: TaskChildJobSummary) => {
+  return (
+    <div
+      key={summary.key}
+      className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="outline">{summary.label}</Badge>
+        <Badge variant="outline">已提交 {summary.submitted}</Badge>
+        <Badge variant="outline">完成 {summary.completed}</Badge>
+        <Badge variant="outline">失败 {summary.failed}</Badge>
+        <Badge variant="outline">重试 {summary.retried}</Badge>
+        <Badge variant="outline">处理中 {summary.inFlight}</Badge>
+      </div>
+      <div className="mt-2 text-sm text-slate-600 leading-6">
+        平均等待 {formatDurationMs(summary.averageWaitMs)} · 平均耗时{" "}
+        {formatDurationMs(summary.averageLatencyMs)}
+      </div>
+      {summary.providers.length > 0 ? (
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+          {summary.providers.map((provider) => (
+            <span key={`${summary.key}-${provider.provider}`}>
+              {provider.provider} · 完成 {provider.completed} · 失败 {provider.failed} ·
+              重试 {provider.retried}
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
 };
 
 export default function TasksPage() {
@@ -208,6 +250,7 @@ export default function TasksPage() {
               const isProcessing = task.status === "processing";
               const canRetry = task.status === "failed";
               const statusMeta = getTaskStatusMeta(task.status);
+              const childJobSummaries = getTaskChildJobSummaries(task.metadata);
               return (
                 <Card key={task.id} className="border-slate-200 shadow-sm">
                   <CardContent className="p-4 !pt-4 sm:p-5 sm:!pt-5 space-y-4">
@@ -273,6 +316,12 @@ export default function TasksPage() {
                     {task.errorMessage ? (
                       <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700 leading-6">
                         {task.errorMessage}
+                      </div>
+                    ) : null}
+
+                    {childJobSummaries.length > 0 ? (
+                      <div className="space-y-2">
+                        {childJobSummaries.map((summary) => renderChildJobSummary(summary))}
                       </div>
                     ) : null}
 

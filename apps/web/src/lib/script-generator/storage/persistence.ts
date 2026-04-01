@@ -1,11 +1,30 @@
 import prisma, { Prisma } from "@/lib/prisma";
 import { addCharacterToMap } from "./character-utils";
 import type { DialogueLine, GeneratedScript } from "../types";
+import {
+  ensureNarrationCharacter,
+  isNarrationSpeaker,
+  NARRATION_CHARACTER_NAME,
+} from "@/lib/narration-character";
+import { normalizeNarrationText } from "@/lib/script-generator/narration-text-normalizer";
 
 interface CharacterProfileLike {
   id?: string;
   canonicalName?: string;
   aliases?: Array<{ alias: string }>;
+}
+
+export interface SegmentScriptDraftLikeLine {
+  id: string;
+  text: string;
+  sourceText?: string;
+  speaker: string;
+  orderInSegment: number;
+}
+
+export interface SegmentScriptDraftLike {
+  segmentId: string;
+  lines: SegmentScriptDraftLikeLine[];
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null =>
@@ -40,8 +59,13 @@ export const normalizeEmotionLabel = (tone?: string | null): string => {
 
 const resolveRoleType = (line: DialogueLine): string => {
   const speaker = (line.characterName || line.rawSpeaker || "").trim();
-  return line.isNarration || speaker === "旁白" ? "narration" : "dialogue";
+  return line.isNarration || isNarrationSpeaker(speaker) ? "narration" : "dialogue";
 };
+
+const isNarrationLine = (line: DialogueLine): boolean =>
+  resolveRoleType(line) === "narration" ||
+  isNarrationSpeaker(line.characterName) ||
+  isNarrationSpeaker(line.rawSpeaker);
 
 const resolveEmotionIntensity = (strength?: number): number | null => {
   if (typeof strength !== "number" || Number.isNaN(strength)) {
@@ -105,6 +129,57 @@ const resolveProsody = (line: DialogueLine): Record<string, number> => {
   };
 };
 
+const mergeAliases = (
+  left: Array<{ alias: string }> | undefined,
+  right: Array<{ alias: string }> | undefined
+): Array<{ alias: string }> => {
+  const seen = new Set<string>();
+  const merged: Array<{ alias: string }> = [];
+
+  for (const item of [...(left || []), ...(right || [])]) {
+    const alias = typeof item?.alias === "string" ? item.alias.trim() : "";
+    if (!alias || seen.has(alias)) {
+      continue;
+    }
+    seen.add(alias);
+    merged.push({ alias });
+  }
+
+  return merged;
+};
+
+const mergeProfileBuckets = (
+  primary: CharacterProfileLike[],
+  secondary: CharacterProfileLike[]
+): CharacterProfileLike[] => {
+  const merged: CharacterProfileLike[] = [...primary];
+
+  for (const profile of secondary) {
+    if (!profile?.canonicalName) {
+      continue;
+    }
+
+    const index = merged.findIndex(
+      (item) =>
+        (profile.id && item.id === profile.id) ||
+        item.canonicalName === profile.canonicalName
+    );
+
+    if (index < 0) {
+      merged.push(profile);
+      continue;
+    }
+
+    merged[index] = {
+      ...merged[index],
+      ...profile,
+      aliases: mergeAliases(merged[index].aliases, profile.aliases),
+    };
+  }
+
+  return merged;
+};
+
 const buildSentenceData = (
   bookId: string,
   line: DialogueLine,
@@ -117,7 +192,9 @@ const buildSentenceData = (
     segmentId: line.segmentId,
     chapterId: line.chapterId ?? null,
     characterId,
-    rawSpeaker: line.rawSpeaker || line.characterName || null,
+    rawSpeaker: isNarrationLine(line)
+      ? NARRATION_CHARACTER_NAME
+      : line.rawSpeaker || line.characterName || null,
     text: line.text,
     tone: line.tone,
     roleType,
@@ -139,6 +216,45 @@ const buildSentenceData = (
   };
 };
 
+export const mapSegmentScriptDraftToDialogueLines = (params: {
+  segmentScriptDraft: SegmentScriptDraftLike;
+  chapterId?: string | null;
+}): DialogueLine[] => {
+  const { segmentScriptDraft, chapterId } = params;
+  const lines = Array.isArray(segmentScriptDraft.lines) ? segmentScriptDraft.lines : [];
+
+  return lines
+    .filter(
+      (line) =>
+        line &&
+        typeof line.id === "string" &&
+        typeof line.text === "string" &&
+        typeof line.speaker === "string" &&
+        typeof line.orderInSegment === "number"
+    )
+    .map((line) => {
+      const speaker = line.speaker.trim();
+      const text = isNarrationSpeaker(speaker)
+        ? normalizeNarrationText({
+            sourceText:
+              typeof line.sourceText === "string" ? line.sourceText : line.text,
+            text: line.text,
+          }).trim()
+        : line.text.trim();
+
+      return {
+        id: line.id,
+        segmentId: segmentScriptDraft.segmentId,
+        chapterId: chapterId ?? null,
+        characterName: speaker,
+        rawSpeaker: speaker,
+        text,
+        orderInSegment: line.orderInSegment,
+        isNarration: isNarrationSpeaker(speaker),
+      };
+    });
+};
+
 export async function saveSegmentScriptToDatabase(params: {
   bookId: string;
   segmentId: string;
@@ -150,6 +266,28 @@ export async function saveSegmentScriptToDatabase(params: {
     params;
 
   await prisma.$transaction(async (tx) => {
+    const existingProfiles = await tx.characterProfile.findMany({
+      where: {
+        bookId,
+        isActive: true,
+      },
+      include: {
+        aliases: true,
+      },
+    });
+    const runtimeProfiles = mergeProfileBuckets(characterProfiles, existingProfiles);
+    const runtimeMap = new Map(characterMap);
+    const profileByCanonical = new Map<string, CharacterProfileLike>();
+
+    for (const profile of runtimeProfiles) {
+      if (!profile?.canonicalName) {
+        continue;
+      }
+      profileByCanonical.set(profile.canonicalName, profile);
+      addCharacterToMap(runtimeMap, profile);
+      addCharacterToMap(characterMap, profile);
+    }
+
     await tx.scriptSentence.deleteMany({
       where: {
         bookId,
@@ -158,45 +296,18 @@ export async function saveSegmentScriptToDatabase(params: {
     });
 
     for (const line of dialogueLines) {
-      let character = characterProfiles.find(
-        (char) => char.canonicalName === line.characterName
-      );
-
-      if (!character && line.characterName && line.characterName !== "旁白") {
-        const newCharacter = await tx.characterProfile.create({
-          data: {
-            bookId,
-            canonicalName: line.characterName,
-            characteristics: {
-              description: `台本生成自动创建的角色：${line.characterName}`,
-              personality: [],
-              importance: "minor",
-              relationships: {},
-            },
-            voicePreferences: {
-              dialogueStyle: "自然",
-            },
-            genderHint: "unknown",
-            ageHint: null,
-            emotionBaseline: "neutral",
-            isActive: true,
-          },
-        });
-
-        character = {
-          ...newCharacter,
-          aliases: [],
-        };
-
-        characterProfiles.push(character);
-        addCharacterToMap(characterMap, character);
-        console.log(`自动创建新角色: ${line.characterName}`);
-      }
+      const speaker = (line.characterName || "").trim();
+      const canonicalName = speaker
+        ? runtimeMap.get(speaker) || speaker
+        : undefined;
+      const character = canonicalName
+        ? profileByCanonical.get(canonicalName)
+        : undefined;
 
       let characterId: string | null = null;
       if (character?.id) {
         characterId = character.id;
-      } else if (line.characterName !== "旁白") {
+      } else if (!isNarrationLine(line)) {
         console.warn(`未找到角色: ${line.characterName}`);
       }
 
@@ -211,8 +322,17 @@ const resolveCharacterId = async (params: {
   tx: any;
   bookId: string;
   line: DialogueLine;
+  narrationCharacterId?: string | null;
 }): Promise<string | null> => {
-  const { tx, bookId, line } = params;
+  const { tx, bookId, line, narrationCharacterId } = params;
+
+  if (isNarrationLine(line)) {
+    if (narrationCharacterId) {
+      return narrationCharacterId;
+    }
+    const narrationCharacter = await ensureNarrationCharacter(bookId, tx);
+    return narrationCharacter.id;
+  }
 
   const character = await tx.characterProfile.findFirst({
     where: {
@@ -226,7 +346,7 @@ const resolveCharacterId = async (params: {
     return character.id;
   }
 
-  if (line.characterName !== "旁白") {
+  if (!isNarrationLine(line)) {
     console.warn(`未找到角色: ${line.characterName}`);
   }
 
@@ -238,6 +358,9 @@ export async function savePartialScriptToDatabase(
   script: GeneratedScript
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    const narrationCharacter = script.dialogueLines.some(isNarrationLine)
+      ? await ensureNarrationCharacter(bookId, tx)
+      : null;
     const segmentIds = script.segments.map((seg) => seg.segmentId);
 
     await tx.scriptSentence.deleteMany({
@@ -248,7 +371,12 @@ export async function savePartialScriptToDatabase(
     });
 
     for (const line of script.dialogueLines) {
-      const characterId = await resolveCharacterId({ tx, bookId, line });
+      const characterId = await resolveCharacterId({
+        tx,
+        bookId,
+        line,
+        narrationCharacterId: narrationCharacter?.id ?? null,
+      });
       await tx.scriptSentence.create({
         data: buildSentenceData(bookId, line, characterId),
       });
@@ -273,12 +401,20 @@ export async function saveScriptToDatabase(
   script: GeneratedScript
 ): Promise<void> {
   await prisma.$transaction(async (tx) => {
+    const narrationCharacter = script.dialogueLines.some(isNarrationLine)
+      ? await ensureNarrationCharacter(bookId, tx)
+      : null;
     await tx.scriptSentence.deleteMany({
       where: { bookId },
     });
 
     for (const line of script.dialogueLines) {
-      const characterId = await resolveCharacterId({ tx, bookId, line });
+      const characterId = await resolveCharacterId({
+        tx,
+        bookId,
+        line,
+        narrationCharacterId: narrationCharacter?.id ?? null,
+      });
       await tx.scriptSentence.create({
         data: buildSentenceData(bookId, line, characterId),
       });

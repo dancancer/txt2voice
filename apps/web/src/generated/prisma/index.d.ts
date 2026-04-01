@@ -69,6 +69,36 @@ export type CharacterMergeAudit = $Result.DefaultSelection<Prisma.$CharacterMerg
  */
 export type ProcessingTask = $Result.DefaultSelection<Prisma.$ProcessingTaskPayload>
 /**
+ * Model WorkflowRun
+ * 
+ */
+export type WorkflowRun = $Result.DefaultSelection<Prisma.$WorkflowRunPayload>
+/**
+ * Model StageRun
+ * 
+ */
+export type StageRun = $Result.DefaultSelection<Prisma.$StageRunPayload>
+/**
+ * Model AgentRun
+ * 
+ */
+export type AgentRun = $Result.DefaultSelection<Prisma.$AgentRunPayload>
+/**
+ * Model ToolCall
+ * 
+ */
+export type ToolCall = $Result.DefaultSelection<Prisma.$ToolCallPayload>
+/**
+ * Model TraceEvent
+ * 
+ */
+export type TraceEvent = $Result.DefaultSelection<Prisma.$TraceEventPayload>
+/**
+ * Model RuntimeArtifact
+ * 
+ */
+export type RuntimeArtifact = $Result.DefaultSelection<Prisma.$RuntimeArtifactPayload>
+/**
  * Model SpeakerProfile
  * 
  */
@@ -351,6 +381,66 @@ export class PrismaClient<
     * ```
     */
   get processingTask(): Prisma.ProcessingTaskDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.workflowRun`: Exposes CRUD operations for the **WorkflowRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more WorkflowRuns
+    * const workflowRuns = await prisma.workflowRun.findMany()
+    * ```
+    */
+  get workflowRun(): Prisma.WorkflowRunDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.stageRun`: Exposes CRUD operations for the **StageRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more StageRuns
+    * const stageRuns = await prisma.stageRun.findMany()
+    * ```
+    */
+  get stageRun(): Prisma.StageRunDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.agentRun`: Exposes CRUD operations for the **AgentRun** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AgentRuns
+    * const agentRuns = await prisma.agentRun.findMany()
+    * ```
+    */
+  get agentRun(): Prisma.AgentRunDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.toolCall`: Exposes CRUD operations for the **ToolCall** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ToolCalls
+    * const toolCalls = await prisma.toolCall.findMany()
+    * ```
+    */
+  get toolCall(): Prisma.ToolCallDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.traceEvent`: Exposes CRUD operations for the **TraceEvent** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more TraceEvents
+    * const traceEvents = await prisma.traceEvent.findMany()
+    * ```
+    */
+  get traceEvent(): Prisma.TraceEventDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.runtimeArtifact`: Exposes CRUD operations for the **RuntimeArtifact** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RuntimeArtifacts
+    * const runtimeArtifacts = await prisma.runtimeArtifact.findMany()
+    * ```
+    */
+  get runtimeArtifact(): Prisma.RuntimeArtifactDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.speakerProfile`: Exposes CRUD operations for the **SpeakerProfile** model.
@@ -913,6 +1003,12 @@ export namespace Prisma {
     AudioFile: 'AudioFile',
     CharacterMergeAudit: 'CharacterMergeAudit',
     ProcessingTask: 'ProcessingTask',
+    WorkflowRun: 'WorkflowRun',
+    StageRun: 'StageRun',
+    AgentRun: 'AgentRun',
+    ToolCall: 'ToolCall',
+    TraceEvent: 'TraceEvent',
+    RuntimeArtifact: 'RuntimeArtifact',
     SpeakerProfile: 'SpeakerProfile',
     CharacterSpeakerBinding: 'CharacterSpeakerBinding',
     SpeakerEngineVariant: 'SpeakerEngineVariant',
@@ -942,7 +1038,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "qcDispatchAlertEvent" | "qcDispatchPolicyConfig" | "qcDispatchPolicyRevision" | "chapterQualityAudit"
+      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "workflowRun" | "stageRun" | "agentRun" | "toolCall" | "traceEvent" | "runtimeArtifact" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "qcDispatchAlertEvent" | "qcDispatchPolicyConfig" | "qcDispatchPolicyRevision" | "chapterQualityAudit"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1757,6 +1853,450 @@ export namespace Prisma {
           count: {
             args: Prisma.ProcessingTaskCountArgs<ExtArgs>
             result: $Utils.Optional<ProcessingTaskCountAggregateOutputType> | number
+          }
+        }
+      }
+      WorkflowRun: {
+        payload: Prisma.$WorkflowRunPayload<ExtArgs>
+        fields: Prisma.WorkflowRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.WorkflowRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.WorkflowRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>
+          }
+          findFirst: {
+            args: Prisma.WorkflowRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.WorkflowRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>
+          }
+          findMany: {
+            args: Prisma.WorkflowRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>[]
+          }
+          create: {
+            args: Prisma.WorkflowRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>
+          }
+          createMany: {
+            args: Prisma.WorkflowRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.WorkflowRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>[]
+          }
+          delete: {
+            args: Prisma.WorkflowRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>
+          }
+          update: {
+            args: Prisma.WorkflowRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.WorkflowRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.WorkflowRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.WorkflowRunUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>[]
+          }
+          upsert: {
+            args: Prisma.WorkflowRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$WorkflowRunPayload>
+          }
+          aggregate: {
+            args: Prisma.WorkflowRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateWorkflowRun>
+          }
+          groupBy: {
+            args: Prisma.WorkflowRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<WorkflowRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.WorkflowRunCountArgs<ExtArgs>
+            result: $Utils.Optional<WorkflowRunCountAggregateOutputType> | number
+          }
+        }
+      }
+      StageRun: {
+        payload: Prisma.$StageRunPayload<ExtArgs>
+        fields: Prisma.StageRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.StageRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.StageRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>
+          }
+          findFirst: {
+            args: Prisma.StageRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.StageRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>
+          }
+          findMany: {
+            args: Prisma.StageRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>[]
+          }
+          create: {
+            args: Prisma.StageRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>
+          }
+          createMany: {
+            args: Prisma.StageRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.StageRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>[]
+          }
+          delete: {
+            args: Prisma.StageRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>
+          }
+          update: {
+            args: Prisma.StageRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.StageRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.StageRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.StageRunUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>[]
+          }
+          upsert: {
+            args: Prisma.StageRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$StageRunPayload>
+          }
+          aggregate: {
+            args: Prisma.StageRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateStageRun>
+          }
+          groupBy: {
+            args: Prisma.StageRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<StageRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.StageRunCountArgs<ExtArgs>
+            result: $Utils.Optional<StageRunCountAggregateOutputType> | number
+          }
+        }
+      }
+      AgentRun: {
+        payload: Prisma.$AgentRunPayload<ExtArgs>
+        fields: Prisma.AgentRunFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AgentRunFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AgentRunFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          findFirst: {
+            args: Prisma.AgentRunFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AgentRunFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          findMany: {
+            args: Prisma.AgentRunFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+          }
+          create: {
+            args: Prisma.AgentRunCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          createMany: {
+            args: Prisma.AgentRunCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AgentRunCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+          }
+          delete: {
+            args: Prisma.AgentRunDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          update: {
+            args: Prisma.AgentRunUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          deleteMany: {
+            args: Prisma.AgentRunDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AgentRunUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AgentRunUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>[]
+          }
+          upsert: {
+            args: Prisma.AgentRunUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AgentRunPayload>
+          }
+          aggregate: {
+            args: Prisma.AgentRunAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAgentRun>
+          }
+          groupBy: {
+            args: Prisma.AgentRunGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AgentRunGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AgentRunCountArgs<ExtArgs>
+            result: $Utils.Optional<AgentRunCountAggregateOutputType> | number
+          }
+        }
+      }
+      ToolCall: {
+        payload: Prisma.$ToolCallPayload<ExtArgs>
+        fields: Prisma.ToolCallFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ToolCallFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ToolCallFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>
+          }
+          findFirst: {
+            args: Prisma.ToolCallFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ToolCallFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>
+          }
+          findMany: {
+            args: Prisma.ToolCallFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>[]
+          }
+          create: {
+            args: Prisma.ToolCallCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>
+          }
+          createMany: {
+            args: Prisma.ToolCallCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ToolCallCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>[]
+          }
+          delete: {
+            args: Prisma.ToolCallDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>
+          }
+          update: {
+            args: Prisma.ToolCallUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>
+          }
+          deleteMany: {
+            args: Prisma.ToolCallDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ToolCallUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ToolCallUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>[]
+          }
+          upsert: {
+            args: Prisma.ToolCallUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ToolCallPayload>
+          }
+          aggregate: {
+            args: Prisma.ToolCallAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateToolCall>
+          }
+          groupBy: {
+            args: Prisma.ToolCallGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ToolCallGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ToolCallCountArgs<ExtArgs>
+            result: $Utils.Optional<ToolCallCountAggregateOutputType> | number
+          }
+        }
+      }
+      TraceEvent: {
+        payload: Prisma.$TraceEventPayload<ExtArgs>
+        fields: Prisma.TraceEventFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.TraceEventFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.TraceEventFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>
+          }
+          findFirst: {
+            args: Prisma.TraceEventFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.TraceEventFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>
+          }
+          findMany: {
+            args: Prisma.TraceEventFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>[]
+          }
+          create: {
+            args: Prisma.TraceEventCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>
+          }
+          createMany: {
+            args: Prisma.TraceEventCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.TraceEventCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>[]
+          }
+          delete: {
+            args: Prisma.TraceEventDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>
+          }
+          update: {
+            args: Prisma.TraceEventUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>
+          }
+          deleteMany: {
+            args: Prisma.TraceEventDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.TraceEventUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.TraceEventUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>[]
+          }
+          upsert: {
+            args: Prisma.TraceEventUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$TraceEventPayload>
+          }
+          aggregate: {
+            args: Prisma.TraceEventAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateTraceEvent>
+          }
+          groupBy: {
+            args: Prisma.TraceEventGroupByArgs<ExtArgs>
+            result: $Utils.Optional<TraceEventGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.TraceEventCountArgs<ExtArgs>
+            result: $Utils.Optional<TraceEventCountAggregateOutputType> | number
+          }
+        }
+      }
+      RuntimeArtifact: {
+        payload: Prisma.$RuntimeArtifactPayload<ExtArgs>
+        fields: Prisma.RuntimeArtifactFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RuntimeArtifactFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RuntimeArtifactFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>
+          }
+          findFirst: {
+            args: Prisma.RuntimeArtifactFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RuntimeArtifactFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>
+          }
+          findMany: {
+            args: Prisma.RuntimeArtifactFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>[]
+          }
+          create: {
+            args: Prisma.RuntimeArtifactCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>
+          }
+          createMany: {
+            args: Prisma.RuntimeArtifactCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RuntimeArtifactCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>[]
+          }
+          delete: {
+            args: Prisma.RuntimeArtifactDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>
+          }
+          update: {
+            args: Prisma.RuntimeArtifactUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>
+          }
+          deleteMany: {
+            args: Prisma.RuntimeArtifactDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RuntimeArtifactUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RuntimeArtifactUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>[]
+          }
+          upsert: {
+            args: Prisma.RuntimeArtifactUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeArtifactPayload>
+          }
+          aggregate: {
+            args: Prisma.RuntimeArtifactAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRuntimeArtifact>
+          }
+          groupBy: {
+            args: Prisma.RuntimeArtifactGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RuntimeArtifactGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RuntimeArtifactCountArgs<ExtArgs>
+            result: $Utils.Optional<RuntimeArtifactCountAggregateOutputType> | number
           }
         }
       }
@@ -2681,6 +3221,12 @@ export namespace Prisma {
     audioFile?: AudioFileOmit
     characterMergeAudit?: CharacterMergeAuditOmit
     processingTask?: ProcessingTaskOmit
+    workflowRun?: WorkflowRunOmit
+    stageRun?: StageRunOmit
+    agentRun?: AgentRunOmit
+    toolCall?: ToolCallOmit
+    traceEvent?: TraceEventOmit
+    runtimeArtifact?: RuntimeArtifactOmit
     speakerProfile?: SpeakerProfileOmit
     characterSpeakerBinding?: CharacterSpeakerBindingOmit
     speakerEngineVariant?: SpeakerEngineVariantOmit
@@ -2776,6 +3322,7 @@ export namespace Prisma {
     mergeAudits: number
     characterProfiles: number
     processingTasks: number
+    workflowRuns: number
     scriptSentences: number
     synthesisAttempts: number
     textSegments: number
@@ -2792,6 +3339,7 @@ export namespace Prisma {
     mergeAudits?: boolean | BookCountOutputTypeCountMergeAuditsArgs
     characterProfiles?: boolean | BookCountOutputTypeCountCharacterProfilesArgs
     processingTasks?: boolean | BookCountOutputTypeCountProcessingTasksArgs
+    workflowRuns?: boolean | BookCountOutputTypeCountWorkflowRunsArgs
     scriptSentences?: boolean | BookCountOutputTypeCountScriptSentencesArgs
     synthesisAttempts?: boolean | BookCountOutputTypeCountSynthesisAttemptsArgs
     textSegments?: boolean | BookCountOutputTypeCountTextSegmentsArgs
@@ -2840,6 +3388,13 @@ export namespace Prisma {
    */
   export type BookCountOutputTypeCountProcessingTasksArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProcessingTaskWhereInput
+  }
+
+  /**
+   * BookCountOutputType without action
+   */
+  export type BookCountOutputTypeCountWorkflowRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkflowRunWhereInput
   }
 
   /**
@@ -3278,6 +3833,184 @@ export namespace Prisma {
    */
   export type AudioFileCountOutputTypeCountManualReviewItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ManualReviewItemWhereInput
+  }
+
+
+  /**
+   * Count Type ProcessingTaskCountOutputType
+   */
+
+  export type ProcessingTaskCountOutputType = {
+    workflowRuns: number
+  }
+
+  export type ProcessingTaskCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRuns?: boolean | ProcessingTaskCountOutputTypeCountWorkflowRunsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ProcessingTaskCountOutputType without action
+   */
+  export type ProcessingTaskCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProcessingTaskCountOutputType
+     */
+    select?: ProcessingTaskCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ProcessingTaskCountOutputType without action
+   */
+  export type ProcessingTaskCountOutputTypeCountWorkflowRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkflowRunWhereInput
+  }
+
+
+  /**
+   * Count Type WorkflowRunCountOutputType
+   */
+
+  export type WorkflowRunCountOutputType = {
+    stageRuns: number
+    traceEvents: number
+    runtimeArtifacts: number
+  }
+
+  export type WorkflowRunCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stageRuns?: boolean | WorkflowRunCountOutputTypeCountStageRunsArgs
+    traceEvents?: boolean | WorkflowRunCountOutputTypeCountTraceEventsArgs
+    runtimeArtifacts?: boolean | WorkflowRunCountOutputTypeCountRuntimeArtifactsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * WorkflowRunCountOutputType without action
+   */
+  export type WorkflowRunCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRunCountOutputType
+     */
+    select?: WorkflowRunCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * WorkflowRunCountOutputType without action
+   */
+  export type WorkflowRunCountOutputTypeCountStageRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: StageRunWhereInput
+  }
+
+  /**
+   * WorkflowRunCountOutputType without action
+   */
+  export type WorkflowRunCountOutputTypeCountTraceEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TraceEventWhereInput
+  }
+
+  /**
+   * WorkflowRunCountOutputType without action
+   */
+  export type WorkflowRunCountOutputTypeCountRuntimeArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RuntimeArtifactWhereInput
+  }
+
+
+  /**
+   * Count Type StageRunCountOutputType
+   */
+
+  export type StageRunCountOutputType = {
+    agentRuns: number
+    traceEvents: number
+    runtimeArtifacts: number
+  }
+
+  export type StageRunCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    agentRuns?: boolean | StageRunCountOutputTypeCountAgentRunsArgs
+    traceEvents?: boolean | StageRunCountOutputTypeCountTraceEventsArgs
+    runtimeArtifacts?: boolean | StageRunCountOutputTypeCountRuntimeArtifactsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * StageRunCountOutputType without action
+   */
+  export type StageRunCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRunCountOutputType
+     */
+    select?: StageRunCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * StageRunCountOutputType without action
+   */
+  export type StageRunCountOutputTypeCountAgentRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRunWhereInput
+  }
+
+  /**
+   * StageRunCountOutputType without action
+   */
+  export type StageRunCountOutputTypeCountTraceEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TraceEventWhereInput
+  }
+
+  /**
+   * StageRunCountOutputType without action
+   */
+  export type StageRunCountOutputTypeCountRuntimeArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RuntimeArtifactWhereInput
+  }
+
+
+  /**
+   * Count Type AgentRunCountOutputType
+   */
+
+  export type AgentRunCountOutputType = {
+    toolCalls: number
+    traceEvents: number
+    runtimeArtifacts: number
+  }
+
+  export type AgentRunCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    toolCalls?: boolean | AgentRunCountOutputTypeCountToolCallsArgs
+    traceEvents?: boolean | AgentRunCountOutputTypeCountTraceEventsArgs
+    runtimeArtifacts?: boolean | AgentRunCountOutputTypeCountRuntimeArtifactsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * AgentRunCountOutputType without action
+   */
+  export type AgentRunCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRunCountOutputType
+     */
+    select?: AgentRunCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * AgentRunCountOutputType without action
+   */
+  export type AgentRunCountOutputTypeCountToolCallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ToolCallWhereInput
+  }
+
+  /**
+   * AgentRunCountOutputType without action
+   */
+  export type AgentRunCountOutputTypeCountTraceEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TraceEventWhereInput
+  }
+
+  /**
+   * AgentRunCountOutputType without action
+   */
+  export type AgentRunCountOutputTypeCountRuntimeArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RuntimeArtifactWhereInput
   }
 
 
@@ -3794,6 +4527,7 @@ export namespace Prisma {
     mergeAudits?: boolean | Book$mergeAuditsArgs<ExtArgs>
     characterProfiles?: boolean | Book$characterProfilesArgs<ExtArgs>
     processingTasks?: boolean | Book$processingTasksArgs<ExtArgs>
+    workflowRuns?: boolean | Book$workflowRunsArgs<ExtArgs>
     scriptSentences?: boolean | Book$scriptSentencesArgs<ExtArgs>
     synthesisAttempts?: boolean | Book$synthesisAttemptsArgs<ExtArgs>
     textSegments?: boolean | Book$textSegmentsArgs<ExtArgs>
@@ -3875,6 +4609,7 @@ export namespace Prisma {
     mergeAudits?: boolean | Book$mergeAuditsArgs<ExtArgs>
     characterProfiles?: boolean | Book$characterProfilesArgs<ExtArgs>
     processingTasks?: boolean | Book$processingTasksArgs<ExtArgs>
+    workflowRuns?: boolean | Book$workflowRunsArgs<ExtArgs>
     scriptSentences?: boolean | Book$scriptSentencesArgs<ExtArgs>
     synthesisAttempts?: boolean | Book$synthesisAttemptsArgs<ExtArgs>
     textSegments?: boolean | Book$textSegmentsArgs<ExtArgs>
@@ -3896,6 +4631,7 @@ export namespace Prisma {
       mergeAudits: Prisma.$CharacterMergeAuditPayload<ExtArgs>[]
       characterProfiles: Prisma.$CharacterProfilePayload<ExtArgs>[]
       processingTasks: Prisma.$ProcessingTaskPayload<ExtArgs>[]
+      workflowRuns: Prisma.$WorkflowRunPayload<ExtArgs>[]
       scriptSentences: Prisma.$ScriptSentencePayload<ExtArgs>[]
       synthesisAttempts: Prisma.$SynthesisAttemptPayload<ExtArgs>[]
       textSegments: Prisma.$TextSegmentPayload<ExtArgs>[]
@@ -4323,6 +5059,7 @@ export namespace Prisma {
     mergeAudits<T extends Book$mergeAuditsArgs<ExtArgs> = {}>(args?: Subset<T, Book$mergeAuditsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterMergeAuditPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     characterProfiles<T extends Book$characterProfilesArgs<ExtArgs> = {}>(args?: Subset<T, Book$characterProfilesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CharacterProfilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     processingTasks<T extends Book$processingTasksArgs<ExtArgs> = {}>(args?: Subset<T, Book$processingTasksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProcessingTaskPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    workflowRuns<T extends Book$workflowRunsArgs<ExtArgs> = {}>(args?: Subset<T, Book$workflowRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     scriptSentences<T extends Book$scriptSentencesArgs<ExtArgs> = {}>(args?: Subset<T, Book$scriptSentencesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ScriptSentencePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     synthesisAttempts<T extends Book$synthesisAttemptsArgs<ExtArgs> = {}>(args?: Subset<T, Book$synthesisAttemptsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SynthesisAttemptPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     textSegments<T extends Book$textSegmentsArgs<ExtArgs> = {}>(args?: Subset<T, Book$textSegmentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TextSegmentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -4860,6 +5597,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProcessingTaskScalarFieldEnum | ProcessingTaskScalarFieldEnum[]
+  }
+
+  /**
+   * Book.workflowRuns
+   */
+  export type Book$workflowRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    where?: WorkflowRunWhereInput
+    orderBy?: WorkflowRunOrderByWithRelationInput | WorkflowRunOrderByWithRelationInput[]
+    cursor?: WorkflowRunWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WorkflowRunScalarFieldEnum | WorkflowRunScalarFieldEnum[]
   }
 
   /**
@@ -6548,6 +7309,8 @@ export namespace Prisma {
     id: string | null
     bookId: string | null
     canonicalName: string | null
+    isSystemRole: boolean | null
+    systemRoleType: string | null
     genderHint: string | null
     ageHint: number | null
     emotionBaseline: string | null
@@ -6562,6 +7325,8 @@ export namespace Prisma {
     id: string | null
     bookId: string | null
     canonicalName: string | null
+    isSystemRole: boolean | null
+    systemRoleType: string | null
     genderHint: string | null
     ageHint: number | null
     emotionBaseline: string | null
@@ -6576,6 +7341,8 @@ export namespace Prisma {
     id: number
     bookId: number
     canonicalName: number
+    isSystemRole: number
+    systemRoleType: number
     characteristics: number
     voicePreferences: number
     emotionProfile: number
@@ -6607,6 +7374,8 @@ export namespace Prisma {
     id?: true
     bookId?: true
     canonicalName?: true
+    isSystemRole?: true
+    systemRoleType?: true
     genderHint?: true
     ageHint?: true
     emotionBaseline?: true
@@ -6621,6 +7390,8 @@ export namespace Prisma {
     id?: true
     bookId?: true
     canonicalName?: true
+    isSystemRole?: true
+    systemRoleType?: true
     genderHint?: true
     ageHint?: true
     emotionBaseline?: true
@@ -6635,6 +7406,8 @@ export namespace Prisma {
     id?: true
     bookId?: true
     canonicalName?: true
+    isSystemRole?: true
+    systemRoleType?: true
     characteristics?: true
     voicePreferences?: true
     emotionProfile?: true
@@ -6739,6 +7512,8 @@ export namespace Prisma {
     id: string
     bookId: string
     canonicalName: string
+    isSystemRole: boolean
+    systemRoleType: string | null
     characteristics: JsonValue
     voicePreferences: JsonValue
     emotionProfile: JsonValue
@@ -6775,6 +7550,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6800,6 +7577,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6818,6 +7597,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6836,6 +7617,8 @@ export namespace Prisma {
     id?: boolean
     bookId?: boolean
     canonicalName?: boolean
+    isSystemRole?: boolean
+    systemRoleType?: boolean
     characteristics?: boolean
     voicePreferences?: boolean
     emotionProfile?: boolean
@@ -6849,7 +7632,7 @@ export namespace Prisma {
     quotes?: boolean
   }
 
-  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "createdAt" | "updatedAt" | "mentions" | "quotes", ExtArgs["result"]["characterProfile"]>
+  export type CharacterProfileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "canonicalName" | "isSystemRole" | "systemRoleType" | "characteristics" | "voicePreferences" | "emotionProfile" | "genderHint" | "ageHint" | "emotionBaseline" | "isActive" | "createdAt" | "updatedAt" | "mentions" | "quotes", ExtArgs["result"]["characterProfile"]>
   export type CharacterProfileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     aliases?: boolean | CharacterProfile$aliasesArgs<ExtArgs>
     mergeAuditsSource?: boolean | CharacterProfile$mergeAuditsSourceArgs<ExtArgs>
@@ -6882,6 +7665,8 @@ export namespace Prisma {
       id: string
       bookId: string
       canonicalName: string
+      isSystemRole: boolean
+      systemRoleType: string | null
       characteristics: Prisma.JsonValue
       voicePreferences: Prisma.JsonValue
       emotionProfile: Prisma.JsonValue
@@ -7326,6 +8111,8 @@ export namespace Prisma {
     readonly id: FieldRef<"CharacterProfile", 'String'>
     readonly bookId: FieldRef<"CharacterProfile", 'String'>
     readonly canonicalName: FieldRef<"CharacterProfile", 'String'>
+    readonly isSystemRole: FieldRef<"CharacterProfile", 'Boolean'>
+    readonly systemRoleType: FieldRef<"CharacterProfile", 'String'>
     readonly characteristics: FieldRef<"CharacterProfile", 'Json'>
     readonly voicePreferences: FieldRef<"CharacterProfile", 'Json'>
     readonly emotionProfile: FieldRef<"CharacterProfile", 'Json'>
@@ -17084,6 +17871,8 @@ export namespace Prisma {
     updatedAt?: boolean
     externalTaskId?: boolean
     book?: boolean | BookDefaultArgs<ExtArgs>
+    workflowRuns?: boolean | ProcessingTask$workflowRunsArgs<ExtArgs>
+    _count?: boolean | ProcessingTaskCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["processingTask"]>
 
   export type ProcessingTaskSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -17142,6 +17931,8 @@ export namespace Prisma {
   export type ProcessingTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "bookId" | "taskType" | "status" | "progress" | "totalItems" | "processedItems" | "taskData" | "errorMessage" | "startedAt" | "completedAt" | "createdAt" | "updatedAt" | "externalTaskId", ExtArgs["result"]["processingTask"]>
   export type ProcessingTaskInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
+    workflowRuns?: boolean | ProcessingTask$workflowRunsArgs<ExtArgs>
+    _count?: boolean | ProcessingTaskCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProcessingTaskIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     book?: boolean | BookDefaultArgs<ExtArgs>
@@ -17154,6 +17945,7 @@ export namespace Prisma {
     name: "ProcessingTask"
     objects: {
       book: Prisma.$BookPayload<ExtArgs>
+      workflowRuns: Prisma.$WorkflowRunPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -17565,6 +18357,7 @@ export namespace Prisma {
   export interface Prisma__ProcessingTaskClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     book<T extends BookDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BookDefaultArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    workflowRuns<T extends ProcessingTask$workflowRunsArgs<ExtArgs> = {}>(args?: Subset<T, ProcessingTask$workflowRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -18004,6 +18797,30 @@ export namespace Prisma {
   }
 
   /**
+   * ProcessingTask.workflowRuns
+   */
+  export type ProcessingTask$workflowRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    where?: WorkflowRunWhereInput
+    orderBy?: WorkflowRunOrderByWithRelationInput | WorkflowRunOrderByWithRelationInput[]
+    cursor?: WorkflowRunWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: WorkflowRunScalarFieldEnum | WorkflowRunScalarFieldEnum[]
+  }
+
+  /**
    * ProcessingTask without action
    */
   export type ProcessingTaskDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -18019,6 +18836,6967 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProcessingTaskInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model WorkflowRun
+   */
+
+  export type AggregateWorkflowRun = {
+    _count: WorkflowRunCountAggregateOutputType | null
+    _min: WorkflowRunMinAggregateOutputType | null
+    _max: WorkflowRunMaxAggregateOutputType | null
+  }
+
+  export type WorkflowRunMinAggregateOutputType = {
+    id: string | null
+    workflowId: string | null
+    bookId: string | null
+    processingTaskId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type WorkflowRunMaxAggregateOutputType = {
+    id: string | null
+    workflowId: string | null
+    bookId: string | null
+    processingTaskId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type WorkflowRunCountAggregateOutputType = {
+    id: number
+    workflowId: number
+    bookId: number
+    processingTaskId: number
+    status: number
+    entryPayload: number
+    runtimeConfig: number
+    summary: number
+    startedAt: number
+    completedAt: number
+    _all: number
+  }
+
+
+  export type WorkflowRunMinAggregateInputType = {
+    id?: true
+    workflowId?: true
+    bookId?: true
+    processingTaskId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type WorkflowRunMaxAggregateInputType = {
+    id?: true
+    workflowId?: true
+    bookId?: true
+    processingTaskId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type WorkflowRunCountAggregateInputType = {
+    id?: true
+    workflowId?: true
+    bookId?: true
+    processingTaskId?: true
+    status?: true
+    entryPayload?: true
+    runtimeConfig?: true
+    summary?: true
+    startedAt?: true
+    completedAt?: true
+    _all?: true
+  }
+
+  export type WorkflowRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkflowRun to aggregate.
+     */
+    where?: WorkflowRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkflowRuns to fetch.
+     */
+    orderBy?: WorkflowRunOrderByWithRelationInput | WorkflowRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: WorkflowRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkflowRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkflowRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned WorkflowRuns
+    **/
+    _count?: true | WorkflowRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: WorkflowRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: WorkflowRunMaxAggregateInputType
+  }
+
+  export type GetWorkflowRunAggregateType<T extends WorkflowRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateWorkflowRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateWorkflowRun[P]>
+      : GetScalarType<T[P], AggregateWorkflowRun[P]>
+  }
+
+
+
+
+  export type WorkflowRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: WorkflowRunWhereInput
+    orderBy?: WorkflowRunOrderByWithAggregationInput | WorkflowRunOrderByWithAggregationInput[]
+    by: WorkflowRunScalarFieldEnum[] | WorkflowRunScalarFieldEnum
+    having?: WorkflowRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: WorkflowRunCountAggregateInputType | true
+    _min?: WorkflowRunMinAggregateInputType
+    _max?: WorkflowRunMaxAggregateInputType
+  }
+
+  export type WorkflowRunGroupByOutputType = {
+    id: string
+    workflowId: string
+    bookId: string
+    processingTaskId: string | null
+    status: string
+    entryPayload: JsonValue | null
+    runtimeConfig: JsonValue | null
+    summary: JsonValue | null
+    startedAt: Date
+    completedAt: Date | null
+    _count: WorkflowRunCountAggregateOutputType | null
+    _min: WorkflowRunMinAggregateOutputType | null
+    _max: WorkflowRunMaxAggregateOutputType | null
+  }
+
+  type GetWorkflowRunGroupByPayload<T extends WorkflowRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<WorkflowRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof WorkflowRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], WorkflowRunGroupByOutputType[P]>
+            : GetScalarType<T[P], WorkflowRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type WorkflowRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowId?: boolean
+    bookId?: boolean
+    processingTaskId?: boolean
+    status?: boolean
+    entryPayload?: boolean
+    runtimeConfig?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    processingTask?: boolean | WorkflowRun$processingTaskArgs<ExtArgs>
+    stageRuns?: boolean | WorkflowRun$stageRunsArgs<ExtArgs>
+    traceEvents?: boolean | WorkflowRun$traceEventsArgs<ExtArgs>
+    runtimeArtifacts?: boolean | WorkflowRun$runtimeArtifactsArgs<ExtArgs>
+    _count?: boolean | WorkflowRunCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["workflowRun"]>
+
+  export type WorkflowRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowId?: boolean
+    bookId?: boolean
+    processingTaskId?: boolean
+    status?: boolean
+    entryPayload?: boolean
+    runtimeConfig?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    processingTask?: boolean | WorkflowRun$processingTaskArgs<ExtArgs>
+  }, ExtArgs["result"]["workflowRun"]>
+
+  export type WorkflowRunSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowId?: boolean
+    bookId?: boolean
+    processingTaskId?: boolean
+    status?: boolean
+    entryPayload?: boolean
+    runtimeConfig?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    processingTask?: boolean | WorkflowRun$processingTaskArgs<ExtArgs>
+  }, ExtArgs["result"]["workflowRun"]>
+
+  export type WorkflowRunSelectScalar = {
+    id?: boolean
+    workflowId?: boolean
+    bookId?: boolean
+    processingTaskId?: boolean
+    status?: boolean
+    entryPayload?: boolean
+    runtimeConfig?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+  }
+
+  export type WorkflowRunOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workflowId" | "bookId" | "processingTaskId" | "status" | "entryPayload" | "runtimeConfig" | "summary" | "startedAt" | "completedAt", ExtArgs["result"]["workflowRun"]>
+  export type WorkflowRunInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    processingTask?: boolean | WorkflowRun$processingTaskArgs<ExtArgs>
+    stageRuns?: boolean | WorkflowRun$stageRunsArgs<ExtArgs>
+    traceEvents?: boolean | WorkflowRun$traceEventsArgs<ExtArgs>
+    runtimeArtifacts?: boolean | WorkflowRun$runtimeArtifactsArgs<ExtArgs>
+    _count?: boolean | WorkflowRunCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type WorkflowRunIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    processingTask?: boolean | WorkflowRun$processingTaskArgs<ExtArgs>
+  }
+  export type WorkflowRunIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    book?: boolean | BookDefaultArgs<ExtArgs>
+    processingTask?: boolean | WorkflowRun$processingTaskArgs<ExtArgs>
+  }
+
+  export type $WorkflowRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "WorkflowRun"
+    objects: {
+      book: Prisma.$BookPayload<ExtArgs>
+      processingTask: Prisma.$ProcessingTaskPayload<ExtArgs> | null
+      stageRuns: Prisma.$StageRunPayload<ExtArgs>[]
+      traceEvents: Prisma.$TraceEventPayload<ExtArgs>[]
+      runtimeArtifacts: Prisma.$RuntimeArtifactPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      workflowId: string
+      bookId: string
+      processingTaskId: string | null
+      status: string
+      entryPayload: Prisma.JsonValue | null
+      runtimeConfig: Prisma.JsonValue | null
+      summary: Prisma.JsonValue | null
+      startedAt: Date
+      completedAt: Date | null
+    }, ExtArgs["result"]["workflowRun"]>
+    composites: {}
+  }
+
+  type WorkflowRunGetPayload<S extends boolean | null | undefined | WorkflowRunDefaultArgs> = $Result.GetResult<Prisma.$WorkflowRunPayload, S>
+
+  type WorkflowRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<WorkflowRunFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: WorkflowRunCountAggregateInputType | true
+    }
+
+  export interface WorkflowRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['WorkflowRun'], meta: { name: 'WorkflowRun' } }
+    /**
+     * Find zero or one WorkflowRun that matches the filter.
+     * @param {WorkflowRunFindUniqueArgs} args - Arguments to find a WorkflowRun
+     * @example
+     * // Get one WorkflowRun
+     * const workflowRun = await prisma.workflowRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends WorkflowRunFindUniqueArgs>(args: SelectSubset<T, WorkflowRunFindUniqueArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one WorkflowRun that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {WorkflowRunFindUniqueOrThrowArgs} args - Arguments to find a WorkflowRun
+     * @example
+     * // Get one WorkflowRun
+     * const workflowRun = await prisma.workflowRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends WorkflowRunFindUniqueOrThrowArgs>(args: SelectSubset<T, WorkflowRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkflowRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkflowRunFindFirstArgs} args - Arguments to find a WorkflowRun
+     * @example
+     * // Get one WorkflowRun
+     * const workflowRun = await prisma.workflowRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends WorkflowRunFindFirstArgs>(args?: SelectSubset<T, WorkflowRunFindFirstArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first WorkflowRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkflowRunFindFirstOrThrowArgs} args - Arguments to find a WorkflowRun
+     * @example
+     * // Get one WorkflowRun
+     * const workflowRun = await prisma.workflowRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends WorkflowRunFindFirstOrThrowArgs>(args?: SelectSubset<T, WorkflowRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more WorkflowRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkflowRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all WorkflowRuns
+     * const workflowRuns = await prisma.workflowRun.findMany()
+     * 
+     * // Get first 10 WorkflowRuns
+     * const workflowRuns = await prisma.workflowRun.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const workflowRunWithIdOnly = await prisma.workflowRun.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends WorkflowRunFindManyArgs>(args?: SelectSubset<T, WorkflowRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a WorkflowRun.
+     * @param {WorkflowRunCreateArgs} args - Arguments to create a WorkflowRun.
+     * @example
+     * // Create one WorkflowRun
+     * const WorkflowRun = await prisma.workflowRun.create({
+     *   data: {
+     *     // ... data to create a WorkflowRun
+     *   }
+     * })
+     * 
+     */
+    create<T extends WorkflowRunCreateArgs>(args: SelectSubset<T, WorkflowRunCreateArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many WorkflowRuns.
+     * @param {WorkflowRunCreateManyArgs} args - Arguments to create many WorkflowRuns.
+     * @example
+     * // Create many WorkflowRuns
+     * const workflowRun = await prisma.workflowRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends WorkflowRunCreateManyArgs>(args?: SelectSubset<T, WorkflowRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many WorkflowRuns and returns the data saved in the database.
+     * @param {WorkflowRunCreateManyAndReturnArgs} args - Arguments to create many WorkflowRuns.
+     * @example
+     * // Create many WorkflowRuns
+     * const workflowRun = await prisma.workflowRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many WorkflowRuns and only return the `id`
+     * const workflowRunWithIdOnly = await prisma.workflowRun.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends WorkflowRunCreateManyAndReturnArgs>(args?: SelectSubset<T, WorkflowRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a WorkflowRun.
+     * @param {WorkflowRunDeleteArgs} args - Arguments to delete one WorkflowRun.
+     * @example
+     * // Delete one WorkflowRun
+     * const WorkflowRun = await prisma.workflowRun.delete({
+     *   where: {
+     *     // ... filter to delete one WorkflowRun
+     *   }
+     * })
+     * 
+     */
+    delete<T extends WorkflowRunDeleteArgs>(args: SelectSubset<T, WorkflowRunDeleteArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one WorkflowRun.
+     * @param {WorkflowRunUpdateArgs} args - Arguments to update one WorkflowRun.
+     * @example
+     * // Update one WorkflowRun
+     * const workflowRun = await prisma.workflowRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends WorkflowRunUpdateArgs>(args: SelectSubset<T, WorkflowRunUpdateArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more WorkflowRuns.
+     * @param {WorkflowRunDeleteManyArgs} args - Arguments to filter WorkflowRuns to delete.
+     * @example
+     * // Delete a few WorkflowRuns
+     * const { count } = await prisma.workflowRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends WorkflowRunDeleteManyArgs>(args?: SelectSubset<T, WorkflowRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkflowRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkflowRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many WorkflowRuns
+     * const workflowRun = await prisma.workflowRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends WorkflowRunUpdateManyArgs>(args: SelectSubset<T, WorkflowRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more WorkflowRuns and returns the data updated in the database.
+     * @param {WorkflowRunUpdateManyAndReturnArgs} args - Arguments to update many WorkflowRuns.
+     * @example
+     * // Update many WorkflowRuns
+     * const workflowRun = await prisma.workflowRun.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more WorkflowRuns and only return the `id`
+     * const workflowRunWithIdOnly = await prisma.workflowRun.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends WorkflowRunUpdateManyAndReturnArgs>(args: SelectSubset<T, WorkflowRunUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one WorkflowRun.
+     * @param {WorkflowRunUpsertArgs} args - Arguments to update or create a WorkflowRun.
+     * @example
+     * // Update or create a WorkflowRun
+     * const workflowRun = await prisma.workflowRun.upsert({
+     *   create: {
+     *     // ... data to create a WorkflowRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the WorkflowRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends WorkflowRunUpsertArgs>(args: SelectSubset<T, WorkflowRunUpsertArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of WorkflowRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkflowRunCountArgs} args - Arguments to filter WorkflowRuns to count.
+     * @example
+     * // Count the number of WorkflowRuns
+     * const count = await prisma.workflowRun.count({
+     *   where: {
+     *     // ... the filter for the WorkflowRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends WorkflowRunCountArgs>(
+      args?: Subset<T, WorkflowRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], WorkflowRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a WorkflowRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkflowRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends WorkflowRunAggregateArgs>(args: Subset<T, WorkflowRunAggregateArgs>): Prisma.PrismaPromise<GetWorkflowRunAggregateType<T>>
+
+    /**
+     * Group by WorkflowRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {WorkflowRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends WorkflowRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: WorkflowRunGroupByArgs['orderBy'] }
+        : { orderBy?: WorkflowRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, WorkflowRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetWorkflowRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the WorkflowRun model
+   */
+  readonly fields: WorkflowRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for WorkflowRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__WorkflowRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    book<T extends BookDefaultArgs<ExtArgs> = {}>(args?: Subset<T, BookDefaultArgs<ExtArgs>>): Prisma__BookClient<$Result.GetResult<Prisma.$BookPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    processingTask<T extends WorkflowRun$processingTaskArgs<ExtArgs> = {}>(args?: Subset<T, WorkflowRun$processingTaskArgs<ExtArgs>>): Prisma__ProcessingTaskClient<$Result.GetResult<Prisma.$ProcessingTaskPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    stageRuns<T extends WorkflowRun$stageRunsArgs<ExtArgs> = {}>(args?: Subset<T, WorkflowRun$stageRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    traceEvents<T extends WorkflowRun$traceEventsArgs<ExtArgs> = {}>(args?: Subset<T, WorkflowRun$traceEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    runtimeArtifacts<T extends WorkflowRun$runtimeArtifactsArgs<ExtArgs> = {}>(args?: Subset<T, WorkflowRun$runtimeArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the WorkflowRun model
+   */
+  interface WorkflowRunFieldRefs {
+    readonly id: FieldRef<"WorkflowRun", 'String'>
+    readonly workflowId: FieldRef<"WorkflowRun", 'String'>
+    readonly bookId: FieldRef<"WorkflowRun", 'String'>
+    readonly processingTaskId: FieldRef<"WorkflowRun", 'String'>
+    readonly status: FieldRef<"WorkflowRun", 'String'>
+    readonly entryPayload: FieldRef<"WorkflowRun", 'Json'>
+    readonly runtimeConfig: FieldRef<"WorkflowRun", 'Json'>
+    readonly summary: FieldRef<"WorkflowRun", 'Json'>
+    readonly startedAt: FieldRef<"WorkflowRun", 'DateTime'>
+    readonly completedAt: FieldRef<"WorkflowRun", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * WorkflowRun findUnique
+   */
+  export type WorkflowRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkflowRun to fetch.
+     */
+    where: WorkflowRunWhereUniqueInput
+  }
+
+  /**
+   * WorkflowRun findUniqueOrThrow
+   */
+  export type WorkflowRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkflowRun to fetch.
+     */
+    where: WorkflowRunWhereUniqueInput
+  }
+
+  /**
+   * WorkflowRun findFirst
+   */
+  export type WorkflowRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkflowRun to fetch.
+     */
+    where?: WorkflowRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkflowRuns to fetch.
+     */
+    orderBy?: WorkflowRunOrderByWithRelationInput | WorkflowRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkflowRuns.
+     */
+    cursor?: WorkflowRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkflowRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkflowRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkflowRuns.
+     */
+    distinct?: WorkflowRunScalarFieldEnum | WorkflowRunScalarFieldEnum[]
+  }
+
+  /**
+   * WorkflowRun findFirstOrThrow
+   */
+  export type WorkflowRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkflowRun to fetch.
+     */
+    where?: WorkflowRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkflowRuns to fetch.
+     */
+    orderBy?: WorkflowRunOrderByWithRelationInput | WorkflowRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for WorkflowRuns.
+     */
+    cursor?: WorkflowRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkflowRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkflowRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of WorkflowRuns.
+     */
+    distinct?: WorkflowRunScalarFieldEnum | WorkflowRunScalarFieldEnum[]
+  }
+
+  /**
+   * WorkflowRun findMany
+   */
+  export type WorkflowRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * Filter, which WorkflowRuns to fetch.
+     */
+    where?: WorkflowRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of WorkflowRuns to fetch.
+     */
+    orderBy?: WorkflowRunOrderByWithRelationInput | WorkflowRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing WorkflowRuns.
+     */
+    cursor?: WorkflowRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` WorkflowRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` WorkflowRuns.
+     */
+    skip?: number
+    distinct?: WorkflowRunScalarFieldEnum | WorkflowRunScalarFieldEnum[]
+  }
+
+  /**
+   * WorkflowRun create
+   */
+  export type WorkflowRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * The data needed to create a WorkflowRun.
+     */
+    data: XOR<WorkflowRunCreateInput, WorkflowRunUncheckedCreateInput>
+  }
+
+  /**
+   * WorkflowRun createMany
+   */
+  export type WorkflowRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many WorkflowRuns.
+     */
+    data: WorkflowRunCreateManyInput | WorkflowRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * WorkflowRun createManyAndReturn
+   */
+  export type WorkflowRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * The data used to create many WorkflowRuns.
+     */
+    data: WorkflowRunCreateManyInput | WorkflowRunCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkflowRun update
+   */
+  export type WorkflowRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * The data needed to update a WorkflowRun.
+     */
+    data: XOR<WorkflowRunUpdateInput, WorkflowRunUncheckedUpdateInput>
+    /**
+     * Choose, which WorkflowRun to update.
+     */
+    where: WorkflowRunWhereUniqueInput
+  }
+
+  /**
+   * WorkflowRun updateMany
+   */
+  export type WorkflowRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update WorkflowRuns.
+     */
+    data: XOR<WorkflowRunUpdateManyMutationInput, WorkflowRunUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkflowRuns to update
+     */
+    where?: WorkflowRunWhereInput
+    /**
+     * Limit how many WorkflowRuns to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkflowRun updateManyAndReturn
+   */
+  export type WorkflowRunUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * The data used to update WorkflowRuns.
+     */
+    data: XOR<WorkflowRunUpdateManyMutationInput, WorkflowRunUncheckedUpdateManyInput>
+    /**
+     * Filter which WorkflowRuns to update
+     */
+    where?: WorkflowRunWhereInput
+    /**
+     * Limit how many WorkflowRuns to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * WorkflowRun upsert
+   */
+  export type WorkflowRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * The filter to search for the WorkflowRun to update in case it exists.
+     */
+    where: WorkflowRunWhereUniqueInput
+    /**
+     * In case the WorkflowRun found by the `where` argument doesn't exist, create a new WorkflowRun with this data.
+     */
+    create: XOR<WorkflowRunCreateInput, WorkflowRunUncheckedCreateInput>
+    /**
+     * In case the WorkflowRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<WorkflowRunUpdateInput, WorkflowRunUncheckedUpdateInput>
+  }
+
+  /**
+   * WorkflowRun delete
+   */
+  export type WorkflowRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+    /**
+     * Filter which WorkflowRun to delete.
+     */
+    where: WorkflowRunWhereUniqueInput
+  }
+
+  /**
+   * WorkflowRun deleteMany
+   */
+  export type WorkflowRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which WorkflowRuns to delete
+     */
+    where?: WorkflowRunWhereInput
+    /**
+     * Limit how many WorkflowRuns to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * WorkflowRun.processingTask
+   */
+  export type WorkflowRun$processingTaskArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProcessingTask
+     */
+    select?: ProcessingTaskSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProcessingTask
+     */
+    omit?: ProcessingTaskOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProcessingTaskInclude<ExtArgs> | null
+    where?: ProcessingTaskWhereInput
+  }
+
+  /**
+   * WorkflowRun.stageRuns
+   */
+  export type WorkflowRun$stageRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    where?: StageRunWhereInput
+    orderBy?: StageRunOrderByWithRelationInput | StageRunOrderByWithRelationInput[]
+    cursor?: StageRunWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: StageRunScalarFieldEnum | StageRunScalarFieldEnum[]
+  }
+
+  /**
+   * WorkflowRun.traceEvents
+   */
+  export type WorkflowRun$traceEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    where?: TraceEventWhereInput
+    orderBy?: TraceEventOrderByWithRelationInput | TraceEventOrderByWithRelationInput[]
+    cursor?: TraceEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TraceEventScalarFieldEnum | TraceEventScalarFieldEnum[]
+  }
+
+  /**
+   * WorkflowRun.runtimeArtifacts
+   */
+  export type WorkflowRun$runtimeArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    where?: RuntimeArtifactWhereInput
+    orderBy?: RuntimeArtifactOrderByWithRelationInput | RuntimeArtifactOrderByWithRelationInput[]
+    cursor?: RuntimeArtifactWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RuntimeArtifactScalarFieldEnum | RuntimeArtifactScalarFieldEnum[]
+  }
+
+  /**
+   * WorkflowRun without action
+   */
+  export type WorkflowRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the WorkflowRun
+     */
+    select?: WorkflowRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the WorkflowRun
+     */
+    omit?: WorkflowRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: WorkflowRunInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model StageRun
+   */
+
+  export type AggregateStageRun = {
+    _count: StageRunCountAggregateOutputType | null
+    _min: StageRunMinAggregateOutputType | null
+    _max: StageRunMaxAggregateOutputType | null
+  }
+
+  export type StageRunMinAggregateOutputType = {
+    id: string | null
+    workflowRunId: string | null
+    stageId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type StageRunMaxAggregateOutputType = {
+    id: string | null
+    workflowRunId: string | null
+    stageId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type StageRunCountAggregateOutputType = {
+    id: number
+    workflowRunId: number
+    stageId: number
+    status: number
+    summary: number
+    startedAt: number
+    completedAt: number
+    _all: number
+  }
+
+
+  export type StageRunMinAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type StageRunMaxAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type StageRunCountAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageId?: true
+    status?: true
+    summary?: true
+    startedAt?: true
+    completedAt?: true
+    _all?: true
+  }
+
+  export type StageRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StageRun to aggregate.
+     */
+    where?: StageRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StageRuns to fetch.
+     */
+    orderBy?: StageRunOrderByWithRelationInput | StageRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: StageRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StageRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StageRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned StageRuns
+    **/
+    _count?: true | StageRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: StageRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: StageRunMaxAggregateInputType
+  }
+
+  export type GetStageRunAggregateType<T extends StageRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateStageRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateStageRun[P]>
+      : GetScalarType<T[P], AggregateStageRun[P]>
+  }
+
+
+
+
+  export type StageRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: StageRunWhereInput
+    orderBy?: StageRunOrderByWithAggregationInput | StageRunOrderByWithAggregationInput[]
+    by: StageRunScalarFieldEnum[] | StageRunScalarFieldEnum
+    having?: StageRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: StageRunCountAggregateInputType | true
+    _min?: StageRunMinAggregateInputType
+    _max?: StageRunMaxAggregateInputType
+  }
+
+  export type StageRunGroupByOutputType = {
+    id: string
+    workflowRunId: string
+    stageId: string
+    status: string
+    summary: JsonValue | null
+    startedAt: Date
+    completedAt: Date | null
+    _count: StageRunCountAggregateOutputType | null
+    _min: StageRunMinAggregateOutputType | null
+    _max: StageRunMaxAggregateOutputType | null
+  }
+
+  type GetStageRunGroupByPayload<T extends StageRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<StageRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof StageRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], StageRunGroupByOutputType[P]>
+            : GetScalarType<T[P], StageRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type StageRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageId?: boolean
+    status?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    agentRuns?: boolean | StageRun$agentRunsArgs<ExtArgs>
+    traceEvents?: boolean | StageRun$traceEventsArgs<ExtArgs>
+    runtimeArtifacts?: boolean | StageRun$runtimeArtifactsArgs<ExtArgs>
+    _count?: boolean | StageRunCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["stageRun"]>
+
+  export type StageRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageId?: boolean
+    status?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["stageRun"]>
+
+  export type StageRunSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageId?: boolean
+    status?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["stageRun"]>
+
+  export type StageRunSelectScalar = {
+    id?: boolean
+    workflowRunId?: boolean
+    stageId?: boolean
+    status?: boolean
+    summary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+  }
+
+  export type StageRunOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workflowRunId" | "stageId" | "status" | "summary" | "startedAt" | "completedAt", ExtArgs["result"]["stageRun"]>
+  export type StageRunInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    agentRuns?: boolean | StageRun$agentRunsArgs<ExtArgs>
+    traceEvents?: boolean | StageRun$traceEventsArgs<ExtArgs>
+    runtimeArtifacts?: boolean | StageRun$runtimeArtifactsArgs<ExtArgs>
+    _count?: boolean | StageRunCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type StageRunIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+  }
+  export type StageRunIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+  }
+
+  export type $StageRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "StageRun"
+    objects: {
+      workflowRun: Prisma.$WorkflowRunPayload<ExtArgs>
+      agentRuns: Prisma.$AgentRunPayload<ExtArgs>[]
+      traceEvents: Prisma.$TraceEventPayload<ExtArgs>[]
+      runtimeArtifacts: Prisma.$RuntimeArtifactPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      workflowRunId: string
+      stageId: string
+      status: string
+      summary: Prisma.JsonValue | null
+      startedAt: Date
+      completedAt: Date | null
+    }, ExtArgs["result"]["stageRun"]>
+    composites: {}
+  }
+
+  type StageRunGetPayload<S extends boolean | null | undefined | StageRunDefaultArgs> = $Result.GetResult<Prisma.$StageRunPayload, S>
+
+  type StageRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<StageRunFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: StageRunCountAggregateInputType | true
+    }
+
+  export interface StageRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['StageRun'], meta: { name: 'StageRun' } }
+    /**
+     * Find zero or one StageRun that matches the filter.
+     * @param {StageRunFindUniqueArgs} args - Arguments to find a StageRun
+     * @example
+     * // Get one StageRun
+     * const stageRun = await prisma.stageRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends StageRunFindUniqueArgs>(args: SelectSubset<T, StageRunFindUniqueArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one StageRun that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {StageRunFindUniqueOrThrowArgs} args - Arguments to find a StageRun
+     * @example
+     * // Get one StageRun
+     * const stageRun = await prisma.stageRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends StageRunFindUniqueOrThrowArgs>(args: SelectSubset<T, StageRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first StageRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StageRunFindFirstArgs} args - Arguments to find a StageRun
+     * @example
+     * // Get one StageRun
+     * const stageRun = await prisma.stageRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends StageRunFindFirstArgs>(args?: SelectSubset<T, StageRunFindFirstArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first StageRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StageRunFindFirstOrThrowArgs} args - Arguments to find a StageRun
+     * @example
+     * // Get one StageRun
+     * const stageRun = await prisma.stageRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends StageRunFindFirstOrThrowArgs>(args?: SelectSubset<T, StageRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more StageRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StageRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all StageRuns
+     * const stageRuns = await prisma.stageRun.findMany()
+     * 
+     * // Get first 10 StageRuns
+     * const stageRuns = await prisma.stageRun.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const stageRunWithIdOnly = await prisma.stageRun.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends StageRunFindManyArgs>(args?: SelectSubset<T, StageRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a StageRun.
+     * @param {StageRunCreateArgs} args - Arguments to create a StageRun.
+     * @example
+     * // Create one StageRun
+     * const StageRun = await prisma.stageRun.create({
+     *   data: {
+     *     // ... data to create a StageRun
+     *   }
+     * })
+     * 
+     */
+    create<T extends StageRunCreateArgs>(args: SelectSubset<T, StageRunCreateArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many StageRuns.
+     * @param {StageRunCreateManyArgs} args - Arguments to create many StageRuns.
+     * @example
+     * // Create many StageRuns
+     * const stageRun = await prisma.stageRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends StageRunCreateManyArgs>(args?: SelectSubset<T, StageRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many StageRuns and returns the data saved in the database.
+     * @param {StageRunCreateManyAndReturnArgs} args - Arguments to create many StageRuns.
+     * @example
+     * // Create many StageRuns
+     * const stageRun = await prisma.stageRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many StageRuns and only return the `id`
+     * const stageRunWithIdOnly = await prisma.stageRun.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends StageRunCreateManyAndReturnArgs>(args?: SelectSubset<T, StageRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a StageRun.
+     * @param {StageRunDeleteArgs} args - Arguments to delete one StageRun.
+     * @example
+     * // Delete one StageRun
+     * const StageRun = await prisma.stageRun.delete({
+     *   where: {
+     *     // ... filter to delete one StageRun
+     *   }
+     * })
+     * 
+     */
+    delete<T extends StageRunDeleteArgs>(args: SelectSubset<T, StageRunDeleteArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one StageRun.
+     * @param {StageRunUpdateArgs} args - Arguments to update one StageRun.
+     * @example
+     * // Update one StageRun
+     * const stageRun = await prisma.stageRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends StageRunUpdateArgs>(args: SelectSubset<T, StageRunUpdateArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more StageRuns.
+     * @param {StageRunDeleteManyArgs} args - Arguments to filter StageRuns to delete.
+     * @example
+     * // Delete a few StageRuns
+     * const { count } = await prisma.stageRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends StageRunDeleteManyArgs>(args?: SelectSubset<T, StageRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more StageRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StageRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many StageRuns
+     * const stageRun = await prisma.stageRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends StageRunUpdateManyArgs>(args: SelectSubset<T, StageRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more StageRuns and returns the data updated in the database.
+     * @param {StageRunUpdateManyAndReturnArgs} args - Arguments to update many StageRuns.
+     * @example
+     * // Update many StageRuns
+     * const stageRun = await prisma.stageRun.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more StageRuns and only return the `id`
+     * const stageRunWithIdOnly = await prisma.stageRun.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends StageRunUpdateManyAndReturnArgs>(args: SelectSubset<T, StageRunUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one StageRun.
+     * @param {StageRunUpsertArgs} args - Arguments to update or create a StageRun.
+     * @example
+     * // Update or create a StageRun
+     * const stageRun = await prisma.stageRun.upsert({
+     *   create: {
+     *     // ... data to create a StageRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the StageRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends StageRunUpsertArgs>(args: SelectSubset<T, StageRunUpsertArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of StageRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StageRunCountArgs} args - Arguments to filter StageRuns to count.
+     * @example
+     * // Count the number of StageRuns
+     * const count = await prisma.stageRun.count({
+     *   where: {
+     *     // ... the filter for the StageRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends StageRunCountArgs>(
+      args?: Subset<T, StageRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], StageRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a StageRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StageRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends StageRunAggregateArgs>(args: Subset<T, StageRunAggregateArgs>): Prisma.PrismaPromise<GetStageRunAggregateType<T>>
+
+    /**
+     * Group by StageRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {StageRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends StageRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: StageRunGroupByArgs['orderBy'] }
+        : { orderBy?: StageRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, StageRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetStageRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the StageRun model
+   */
+  readonly fields: StageRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for StageRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__StageRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    workflowRun<T extends WorkflowRunDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkflowRunDefaultArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    agentRuns<T extends StageRun$agentRunsArgs<ExtArgs> = {}>(args?: Subset<T, StageRun$agentRunsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    traceEvents<T extends StageRun$traceEventsArgs<ExtArgs> = {}>(args?: Subset<T, StageRun$traceEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    runtimeArtifacts<T extends StageRun$runtimeArtifactsArgs<ExtArgs> = {}>(args?: Subset<T, StageRun$runtimeArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the StageRun model
+   */
+  interface StageRunFieldRefs {
+    readonly id: FieldRef<"StageRun", 'String'>
+    readonly workflowRunId: FieldRef<"StageRun", 'String'>
+    readonly stageId: FieldRef<"StageRun", 'String'>
+    readonly status: FieldRef<"StageRun", 'String'>
+    readonly summary: FieldRef<"StageRun", 'Json'>
+    readonly startedAt: FieldRef<"StageRun", 'DateTime'>
+    readonly completedAt: FieldRef<"StageRun", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * StageRun findUnique
+   */
+  export type StageRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * Filter, which StageRun to fetch.
+     */
+    where: StageRunWhereUniqueInput
+  }
+
+  /**
+   * StageRun findUniqueOrThrow
+   */
+  export type StageRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * Filter, which StageRun to fetch.
+     */
+    where: StageRunWhereUniqueInput
+  }
+
+  /**
+   * StageRun findFirst
+   */
+  export type StageRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * Filter, which StageRun to fetch.
+     */
+    where?: StageRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StageRuns to fetch.
+     */
+    orderBy?: StageRunOrderByWithRelationInput | StageRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StageRuns.
+     */
+    cursor?: StageRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StageRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StageRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StageRuns.
+     */
+    distinct?: StageRunScalarFieldEnum | StageRunScalarFieldEnum[]
+  }
+
+  /**
+   * StageRun findFirstOrThrow
+   */
+  export type StageRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * Filter, which StageRun to fetch.
+     */
+    where?: StageRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StageRuns to fetch.
+     */
+    orderBy?: StageRunOrderByWithRelationInput | StageRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for StageRuns.
+     */
+    cursor?: StageRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StageRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StageRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of StageRuns.
+     */
+    distinct?: StageRunScalarFieldEnum | StageRunScalarFieldEnum[]
+  }
+
+  /**
+   * StageRun findMany
+   */
+  export type StageRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * Filter, which StageRuns to fetch.
+     */
+    where?: StageRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of StageRuns to fetch.
+     */
+    orderBy?: StageRunOrderByWithRelationInput | StageRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing StageRuns.
+     */
+    cursor?: StageRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` StageRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` StageRuns.
+     */
+    skip?: number
+    distinct?: StageRunScalarFieldEnum | StageRunScalarFieldEnum[]
+  }
+
+  /**
+   * StageRun create
+   */
+  export type StageRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * The data needed to create a StageRun.
+     */
+    data: XOR<StageRunCreateInput, StageRunUncheckedCreateInput>
+  }
+
+  /**
+   * StageRun createMany
+   */
+  export type StageRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many StageRuns.
+     */
+    data: StageRunCreateManyInput | StageRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * StageRun createManyAndReturn
+   */
+  export type StageRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * The data used to create many StageRuns.
+     */
+    data: StageRunCreateManyInput | StageRunCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * StageRun update
+   */
+  export type StageRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * The data needed to update a StageRun.
+     */
+    data: XOR<StageRunUpdateInput, StageRunUncheckedUpdateInput>
+    /**
+     * Choose, which StageRun to update.
+     */
+    where: StageRunWhereUniqueInput
+  }
+
+  /**
+   * StageRun updateMany
+   */
+  export type StageRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update StageRuns.
+     */
+    data: XOR<StageRunUpdateManyMutationInput, StageRunUncheckedUpdateManyInput>
+    /**
+     * Filter which StageRuns to update
+     */
+    where?: StageRunWhereInput
+    /**
+     * Limit how many StageRuns to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * StageRun updateManyAndReturn
+   */
+  export type StageRunUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * The data used to update StageRuns.
+     */
+    data: XOR<StageRunUpdateManyMutationInput, StageRunUncheckedUpdateManyInput>
+    /**
+     * Filter which StageRuns to update
+     */
+    where?: StageRunWhereInput
+    /**
+     * Limit how many StageRuns to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * StageRun upsert
+   */
+  export type StageRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * The filter to search for the StageRun to update in case it exists.
+     */
+    where: StageRunWhereUniqueInput
+    /**
+     * In case the StageRun found by the `where` argument doesn't exist, create a new StageRun with this data.
+     */
+    create: XOR<StageRunCreateInput, StageRunUncheckedCreateInput>
+    /**
+     * In case the StageRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<StageRunUpdateInput, StageRunUncheckedUpdateInput>
+  }
+
+  /**
+   * StageRun delete
+   */
+  export type StageRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    /**
+     * Filter which StageRun to delete.
+     */
+    where: StageRunWhereUniqueInput
+  }
+
+  /**
+   * StageRun deleteMany
+   */
+  export type StageRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which StageRuns to delete
+     */
+    where?: StageRunWhereInput
+    /**
+     * Limit how many StageRuns to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * StageRun.agentRuns
+   */
+  export type StageRun$agentRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    where?: AgentRunWhereInput
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    cursor?: AgentRunWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * StageRun.traceEvents
+   */
+  export type StageRun$traceEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    where?: TraceEventWhereInput
+    orderBy?: TraceEventOrderByWithRelationInput | TraceEventOrderByWithRelationInput[]
+    cursor?: TraceEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TraceEventScalarFieldEnum | TraceEventScalarFieldEnum[]
+  }
+
+  /**
+   * StageRun.runtimeArtifacts
+   */
+  export type StageRun$runtimeArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    where?: RuntimeArtifactWhereInput
+    orderBy?: RuntimeArtifactOrderByWithRelationInput | RuntimeArtifactOrderByWithRelationInput[]
+    cursor?: RuntimeArtifactWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RuntimeArtifactScalarFieldEnum | RuntimeArtifactScalarFieldEnum[]
+  }
+
+  /**
+   * StageRun without action
+   */
+  export type StageRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AgentRun
+   */
+
+  export type AggregateAgentRun = {
+    _count: AgentRunCountAggregateOutputType | null
+    _min: AgentRunMinAggregateOutputType | null
+    _max: AgentRunMaxAggregateOutputType | null
+  }
+
+  export type AgentRunMinAggregateOutputType = {
+    id: string | null
+    stageRunId: string | null
+    agentId: string | null
+    skillId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type AgentRunMaxAggregateOutputType = {
+    id: string | null
+    stageRunId: string | null
+    agentId: string | null
+    skillId: string | null
+    status: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type AgentRunCountAggregateOutputType = {
+    id: number
+    stageRunId: number
+    agentId: number
+    skillId: number
+    status: number
+    inputSummary: number
+    outputSummary: number
+    startedAt: number
+    completedAt: number
+    _all: number
+  }
+
+
+  export type AgentRunMinAggregateInputType = {
+    id?: true
+    stageRunId?: true
+    agentId?: true
+    skillId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type AgentRunMaxAggregateInputType = {
+    id?: true
+    stageRunId?: true
+    agentId?: true
+    skillId?: true
+    status?: true
+    startedAt?: true
+    completedAt?: true
+  }
+
+  export type AgentRunCountAggregateInputType = {
+    id?: true
+    stageRunId?: true
+    agentId?: true
+    skillId?: true
+    status?: true
+    inputSummary?: true
+    outputSummary?: true
+    startedAt?: true
+    completedAt?: true
+    _all?: true
+  }
+
+  export type AgentRunAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRun to aggregate.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AgentRuns
+    **/
+    _count?: true | AgentRunCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AgentRunMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AgentRunMaxAggregateInputType
+  }
+
+  export type GetAgentRunAggregateType<T extends AgentRunAggregateArgs> = {
+        [P in keyof T & keyof AggregateAgentRun]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAgentRun[P]>
+      : GetScalarType<T[P], AggregateAgentRun[P]>
+  }
+
+
+
+
+  export type AgentRunGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AgentRunWhereInput
+    orderBy?: AgentRunOrderByWithAggregationInput | AgentRunOrderByWithAggregationInput[]
+    by: AgentRunScalarFieldEnum[] | AgentRunScalarFieldEnum
+    having?: AgentRunScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AgentRunCountAggregateInputType | true
+    _min?: AgentRunMinAggregateInputType
+    _max?: AgentRunMaxAggregateInputType
+  }
+
+  export type AgentRunGroupByOutputType = {
+    id: string
+    stageRunId: string
+    agentId: string
+    skillId: string | null
+    status: string
+    inputSummary: JsonValue | null
+    outputSummary: JsonValue | null
+    startedAt: Date
+    completedAt: Date | null
+    _count: AgentRunCountAggregateOutputType | null
+    _min: AgentRunMinAggregateOutputType | null
+    _max: AgentRunMaxAggregateOutputType | null
+  }
+
+  type GetAgentRunGroupByPayload<T extends AgentRunGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AgentRunGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AgentRunGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AgentRunGroupByOutputType[P]>
+            : GetScalarType<T[P], AgentRunGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AgentRunSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    stageRunId?: boolean
+    agentId?: boolean
+    skillId?: boolean
+    status?: boolean
+    inputSummary?: boolean
+    outputSummary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    stageRun?: boolean | StageRunDefaultArgs<ExtArgs>
+    toolCalls?: boolean | AgentRun$toolCallsArgs<ExtArgs>
+    traceEvents?: boolean | AgentRun$traceEventsArgs<ExtArgs>
+    runtimeArtifacts?: boolean | AgentRun$runtimeArtifactsArgs<ExtArgs>
+    _count?: boolean | AgentRunCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRun"]>
+
+  export type AgentRunSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    stageRunId?: boolean
+    agentId?: boolean
+    skillId?: boolean
+    status?: boolean
+    inputSummary?: boolean
+    outputSummary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    stageRun?: boolean | StageRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRun"]>
+
+  export type AgentRunSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    stageRunId?: boolean
+    agentId?: boolean
+    skillId?: boolean
+    status?: boolean
+    inputSummary?: boolean
+    outputSummary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    stageRun?: boolean | StageRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["agentRun"]>
+
+  export type AgentRunSelectScalar = {
+    id?: boolean
+    stageRunId?: boolean
+    agentId?: boolean
+    skillId?: boolean
+    status?: boolean
+    inputSummary?: boolean
+    outputSummary?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+  }
+
+  export type AgentRunOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "stageRunId" | "agentId" | "skillId" | "status" | "inputSummary" | "outputSummary" | "startedAt" | "completedAt", ExtArgs["result"]["agentRun"]>
+  export type AgentRunInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stageRun?: boolean | StageRunDefaultArgs<ExtArgs>
+    toolCalls?: boolean | AgentRun$toolCallsArgs<ExtArgs>
+    traceEvents?: boolean | AgentRun$traceEventsArgs<ExtArgs>
+    runtimeArtifacts?: boolean | AgentRun$runtimeArtifactsArgs<ExtArgs>
+    _count?: boolean | AgentRunCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type AgentRunIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stageRun?: boolean | StageRunDefaultArgs<ExtArgs>
+  }
+  export type AgentRunIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stageRun?: boolean | StageRunDefaultArgs<ExtArgs>
+  }
+
+  export type $AgentRunPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AgentRun"
+    objects: {
+      stageRun: Prisma.$StageRunPayload<ExtArgs>
+      toolCalls: Prisma.$ToolCallPayload<ExtArgs>[]
+      traceEvents: Prisma.$TraceEventPayload<ExtArgs>[]
+      runtimeArtifacts: Prisma.$RuntimeArtifactPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      stageRunId: string
+      agentId: string
+      skillId: string | null
+      status: string
+      inputSummary: Prisma.JsonValue | null
+      outputSummary: Prisma.JsonValue | null
+      startedAt: Date
+      completedAt: Date | null
+    }, ExtArgs["result"]["agentRun"]>
+    composites: {}
+  }
+
+  type AgentRunGetPayload<S extends boolean | null | undefined | AgentRunDefaultArgs> = $Result.GetResult<Prisma.$AgentRunPayload, S>
+
+  type AgentRunCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AgentRunFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AgentRunCountAggregateInputType | true
+    }
+
+  export interface AgentRunDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AgentRun'], meta: { name: 'AgentRun' } }
+    /**
+     * Find zero or one AgentRun that matches the filter.
+     * @param {AgentRunFindUniqueArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AgentRunFindUniqueArgs>(args: SelectSubset<T, AgentRunFindUniqueArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AgentRun that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AgentRunFindUniqueOrThrowArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AgentRunFindUniqueOrThrowArgs>(args: SelectSubset<T, AgentRunFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRun that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunFindFirstArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AgentRunFindFirstArgs>(args?: SelectSubset<T, AgentRunFindFirstArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AgentRun that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunFindFirstOrThrowArgs} args - Arguments to find a AgentRun
+     * @example
+     * // Get one AgentRun
+     * const agentRun = await prisma.agentRun.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AgentRunFindFirstOrThrowArgs>(args?: SelectSubset<T, AgentRunFindFirstOrThrowArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AgentRuns that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AgentRuns
+     * const agentRuns = await prisma.agentRun.findMany()
+     * 
+     * // Get first 10 AgentRuns
+     * const agentRuns = await prisma.agentRun.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const agentRunWithIdOnly = await prisma.agentRun.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AgentRunFindManyArgs>(args?: SelectSubset<T, AgentRunFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AgentRun.
+     * @param {AgentRunCreateArgs} args - Arguments to create a AgentRun.
+     * @example
+     * // Create one AgentRun
+     * const AgentRun = await prisma.agentRun.create({
+     *   data: {
+     *     // ... data to create a AgentRun
+     *   }
+     * })
+     * 
+     */
+    create<T extends AgentRunCreateArgs>(args: SelectSubset<T, AgentRunCreateArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AgentRuns.
+     * @param {AgentRunCreateManyArgs} args - Arguments to create many AgentRuns.
+     * @example
+     * // Create many AgentRuns
+     * const agentRun = await prisma.agentRun.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AgentRunCreateManyArgs>(args?: SelectSubset<T, AgentRunCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AgentRuns and returns the data saved in the database.
+     * @param {AgentRunCreateManyAndReturnArgs} args - Arguments to create many AgentRuns.
+     * @example
+     * // Create many AgentRuns
+     * const agentRun = await prisma.agentRun.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AgentRuns and only return the `id`
+     * const agentRunWithIdOnly = await prisma.agentRun.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AgentRunCreateManyAndReturnArgs>(args?: SelectSubset<T, AgentRunCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AgentRun.
+     * @param {AgentRunDeleteArgs} args - Arguments to delete one AgentRun.
+     * @example
+     * // Delete one AgentRun
+     * const AgentRun = await prisma.agentRun.delete({
+     *   where: {
+     *     // ... filter to delete one AgentRun
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AgentRunDeleteArgs>(args: SelectSubset<T, AgentRunDeleteArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AgentRun.
+     * @param {AgentRunUpdateArgs} args - Arguments to update one AgentRun.
+     * @example
+     * // Update one AgentRun
+     * const agentRun = await prisma.agentRun.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AgentRunUpdateArgs>(args: SelectSubset<T, AgentRunUpdateArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AgentRuns.
+     * @param {AgentRunDeleteManyArgs} args - Arguments to filter AgentRuns to delete.
+     * @example
+     * // Delete a few AgentRuns
+     * const { count } = await prisma.agentRun.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AgentRunDeleteManyArgs>(args?: SelectSubset<T, AgentRunDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AgentRuns
+     * const agentRun = await prisma.agentRun.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AgentRunUpdateManyArgs>(args: SelectSubset<T, AgentRunUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AgentRuns and returns the data updated in the database.
+     * @param {AgentRunUpdateManyAndReturnArgs} args - Arguments to update many AgentRuns.
+     * @example
+     * // Update many AgentRuns
+     * const agentRun = await prisma.agentRun.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AgentRuns and only return the `id`
+     * const agentRunWithIdOnly = await prisma.agentRun.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AgentRunUpdateManyAndReturnArgs>(args: SelectSubset<T, AgentRunUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AgentRun.
+     * @param {AgentRunUpsertArgs} args - Arguments to update or create a AgentRun.
+     * @example
+     * // Update or create a AgentRun
+     * const agentRun = await prisma.agentRun.upsert({
+     *   create: {
+     *     // ... data to create a AgentRun
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AgentRun we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AgentRunUpsertArgs>(args: SelectSubset<T, AgentRunUpsertArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AgentRuns.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunCountArgs} args - Arguments to filter AgentRuns to count.
+     * @example
+     * // Count the number of AgentRuns
+     * const count = await prisma.agentRun.count({
+     *   where: {
+     *     // ... the filter for the AgentRuns we want to count
+     *   }
+     * })
+    **/
+    count<T extends AgentRunCountArgs>(
+      args?: Subset<T, AgentRunCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AgentRunCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AgentRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AgentRunAggregateArgs>(args: Subset<T, AgentRunAggregateArgs>): Prisma.PrismaPromise<GetAgentRunAggregateType<T>>
+
+    /**
+     * Group by AgentRun.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AgentRunGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AgentRunGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AgentRunGroupByArgs['orderBy'] }
+        : { orderBy?: AgentRunGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AgentRunGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAgentRunGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AgentRun model
+   */
+  readonly fields: AgentRunFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AgentRun.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AgentRunClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    stageRun<T extends StageRunDefaultArgs<ExtArgs> = {}>(args?: Subset<T, StageRunDefaultArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    toolCalls<T extends AgentRun$toolCallsArgs<ExtArgs> = {}>(args?: Subset<T, AgentRun$toolCallsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    traceEvents<T extends AgentRun$traceEventsArgs<ExtArgs> = {}>(args?: Subset<T, AgentRun$traceEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    runtimeArtifacts<T extends AgentRun$runtimeArtifactsArgs<ExtArgs> = {}>(args?: Subset<T, AgentRun$runtimeArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AgentRun model
+   */
+  interface AgentRunFieldRefs {
+    readonly id: FieldRef<"AgentRun", 'String'>
+    readonly stageRunId: FieldRef<"AgentRun", 'String'>
+    readonly agentId: FieldRef<"AgentRun", 'String'>
+    readonly skillId: FieldRef<"AgentRun", 'String'>
+    readonly status: FieldRef<"AgentRun", 'String'>
+    readonly inputSummary: FieldRef<"AgentRun", 'Json'>
+    readonly outputSummary: FieldRef<"AgentRun", 'Json'>
+    readonly startedAt: FieldRef<"AgentRun", 'DateTime'>
+    readonly completedAt: FieldRef<"AgentRun", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AgentRun findUnique
+   */
+  export type AgentRunFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun findUniqueOrThrow
+   */
+  export type AgentRunFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun findFirst
+   */
+  export type AgentRunFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentRuns.
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRuns.
+     */
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun findFirstOrThrow
+   */
+  export type AgentRunFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRun to fetch.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AgentRuns.
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AgentRuns.
+     */
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun findMany
+   */
+  export type AgentRunFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter, which AgentRuns to fetch.
+     */
+    where?: AgentRunWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AgentRuns to fetch.
+     */
+    orderBy?: AgentRunOrderByWithRelationInput | AgentRunOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AgentRuns.
+     */
+    cursor?: AgentRunWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AgentRuns from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AgentRuns.
+     */
+    skip?: number
+    distinct?: AgentRunScalarFieldEnum | AgentRunScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun create
+   */
+  export type AgentRunCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AgentRun.
+     */
+    data: XOR<AgentRunCreateInput, AgentRunUncheckedCreateInput>
+  }
+
+  /**
+   * AgentRun createMany
+   */
+  export type AgentRunCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AgentRuns.
+     */
+    data: AgentRunCreateManyInput | AgentRunCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AgentRun createManyAndReturn
+   */
+  export type AgentRunCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * The data used to create many AgentRuns.
+     */
+    data: AgentRunCreateManyInput | AgentRunCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRun update
+   */
+  export type AgentRunUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AgentRun.
+     */
+    data: XOR<AgentRunUpdateInput, AgentRunUncheckedUpdateInput>
+    /**
+     * Choose, which AgentRun to update.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun updateMany
+   */
+  export type AgentRunUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AgentRuns.
+     */
+    data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRuns to update
+     */
+    where?: AgentRunWhereInput
+    /**
+     * Limit how many AgentRuns to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRun updateManyAndReturn
+   */
+  export type AgentRunUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * The data used to update AgentRuns.
+     */
+    data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyInput>
+    /**
+     * Filter which AgentRuns to update
+     */
+    where?: AgentRunWhereInput
+    /**
+     * Limit how many AgentRuns to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AgentRun upsert
+   */
+  export type AgentRunUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AgentRun to update in case it exists.
+     */
+    where: AgentRunWhereUniqueInput
+    /**
+     * In case the AgentRun found by the `where` argument doesn't exist, create a new AgentRun with this data.
+     */
+    create: XOR<AgentRunCreateInput, AgentRunUncheckedCreateInput>
+    /**
+     * In case the AgentRun was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AgentRunUpdateInput, AgentRunUncheckedUpdateInput>
+  }
+
+  /**
+   * AgentRun delete
+   */
+  export type AgentRunDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    /**
+     * Filter which AgentRun to delete.
+     */
+    where: AgentRunWhereUniqueInput
+  }
+
+  /**
+   * AgentRun deleteMany
+   */
+  export type AgentRunDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AgentRuns to delete
+     */
+    where?: AgentRunWhereInput
+    /**
+     * Limit how many AgentRuns to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AgentRun.toolCalls
+   */
+  export type AgentRun$toolCallsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    where?: ToolCallWhereInput
+    orderBy?: ToolCallOrderByWithRelationInput | ToolCallOrderByWithRelationInput[]
+    cursor?: ToolCallWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ToolCallScalarFieldEnum | ToolCallScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun.traceEvents
+   */
+  export type AgentRun$traceEventsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    where?: TraceEventWhereInput
+    orderBy?: TraceEventOrderByWithRelationInput | TraceEventOrderByWithRelationInput[]
+    cursor?: TraceEventWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: TraceEventScalarFieldEnum | TraceEventScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun.runtimeArtifacts
+   */
+  export type AgentRun$runtimeArtifactsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    where?: RuntimeArtifactWhereInput
+    orderBy?: RuntimeArtifactOrderByWithRelationInput | RuntimeArtifactOrderByWithRelationInput[]
+    cursor?: RuntimeArtifactWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RuntimeArtifactScalarFieldEnum | RuntimeArtifactScalarFieldEnum[]
+  }
+
+  /**
+   * AgentRun without action
+   */
+  export type AgentRunDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ToolCall
+   */
+
+  export type AggregateToolCall = {
+    _count: ToolCallCountAggregateOutputType | null
+    _min: ToolCallMinAggregateOutputType | null
+    _max: ToolCallMaxAggregateOutputType | null
+  }
+
+  export type ToolCallMinAggregateOutputType = {
+    id: string | null
+    agentRunId: string | null
+    toolName: string | null
+    status: string | null
+    createdAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type ToolCallMaxAggregateOutputType = {
+    id: string | null
+    agentRunId: string | null
+    toolName: string | null
+    status: string | null
+    createdAt: Date | null
+    completedAt: Date | null
+  }
+
+  export type ToolCallCountAggregateOutputType = {
+    id: number
+    agentRunId: number
+    toolName: number
+    status: number
+    argumentsSummary: number
+    resultSummary: number
+    createdAt: number
+    completedAt: number
+    _all: number
+  }
+
+
+  export type ToolCallMinAggregateInputType = {
+    id?: true
+    agentRunId?: true
+    toolName?: true
+    status?: true
+    createdAt?: true
+    completedAt?: true
+  }
+
+  export type ToolCallMaxAggregateInputType = {
+    id?: true
+    agentRunId?: true
+    toolName?: true
+    status?: true
+    createdAt?: true
+    completedAt?: true
+  }
+
+  export type ToolCallCountAggregateInputType = {
+    id?: true
+    agentRunId?: true
+    toolName?: true
+    status?: true
+    argumentsSummary?: true
+    resultSummary?: true
+    createdAt?: true
+    completedAt?: true
+    _all?: true
+  }
+
+  export type ToolCallAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ToolCall to aggregate.
+     */
+    where?: ToolCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ToolCalls to fetch.
+     */
+    orderBy?: ToolCallOrderByWithRelationInput | ToolCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ToolCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ToolCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ToolCalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ToolCalls
+    **/
+    _count?: true | ToolCallCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ToolCallMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ToolCallMaxAggregateInputType
+  }
+
+  export type GetToolCallAggregateType<T extends ToolCallAggregateArgs> = {
+        [P in keyof T & keyof AggregateToolCall]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateToolCall[P]>
+      : GetScalarType<T[P], AggregateToolCall[P]>
+  }
+
+
+
+
+  export type ToolCallGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ToolCallWhereInput
+    orderBy?: ToolCallOrderByWithAggregationInput | ToolCallOrderByWithAggregationInput[]
+    by: ToolCallScalarFieldEnum[] | ToolCallScalarFieldEnum
+    having?: ToolCallScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ToolCallCountAggregateInputType | true
+    _min?: ToolCallMinAggregateInputType
+    _max?: ToolCallMaxAggregateInputType
+  }
+
+  export type ToolCallGroupByOutputType = {
+    id: string
+    agentRunId: string
+    toolName: string
+    status: string
+    argumentsSummary: JsonValue | null
+    resultSummary: JsonValue | null
+    createdAt: Date
+    completedAt: Date | null
+    _count: ToolCallCountAggregateOutputType | null
+    _min: ToolCallMinAggregateOutputType | null
+    _max: ToolCallMaxAggregateOutputType | null
+  }
+
+  type GetToolCallGroupByPayload<T extends ToolCallGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ToolCallGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ToolCallGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ToolCallGroupByOutputType[P]>
+            : GetScalarType<T[P], ToolCallGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ToolCallSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    agentRunId?: boolean
+    toolName?: boolean
+    status?: boolean
+    argumentsSummary?: boolean
+    resultSummary?: boolean
+    createdAt?: boolean
+    completedAt?: boolean
+    agentRun?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["toolCall"]>
+
+  export type ToolCallSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    agentRunId?: boolean
+    toolName?: boolean
+    status?: boolean
+    argumentsSummary?: boolean
+    resultSummary?: boolean
+    createdAt?: boolean
+    completedAt?: boolean
+    agentRun?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["toolCall"]>
+
+  export type ToolCallSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    agentRunId?: boolean
+    toolName?: boolean
+    status?: boolean
+    argumentsSummary?: boolean
+    resultSummary?: boolean
+    createdAt?: boolean
+    completedAt?: boolean
+    agentRun?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["toolCall"]>
+
+  export type ToolCallSelectScalar = {
+    id?: boolean
+    agentRunId?: boolean
+    toolName?: boolean
+    status?: boolean
+    argumentsSummary?: boolean
+    resultSummary?: boolean
+    createdAt?: boolean
+    completedAt?: boolean
+  }
+
+  export type ToolCallOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "agentRunId" | "toolName" | "status" | "argumentsSummary" | "resultSummary" | "createdAt" | "completedAt", ExtArgs["result"]["toolCall"]>
+  export type ToolCallInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    agentRun?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+  export type ToolCallIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    agentRun?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+  export type ToolCallIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    agentRun?: boolean | AgentRunDefaultArgs<ExtArgs>
+  }
+
+  export type $ToolCallPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ToolCall"
+    objects: {
+      agentRun: Prisma.$AgentRunPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      agentRunId: string
+      toolName: string
+      status: string
+      argumentsSummary: Prisma.JsonValue | null
+      resultSummary: Prisma.JsonValue | null
+      createdAt: Date
+      completedAt: Date | null
+    }, ExtArgs["result"]["toolCall"]>
+    composites: {}
+  }
+
+  type ToolCallGetPayload<S extends boolean | null | undefined | ToolCallDefaultArgs> = $Result.GetResult<Prisma.$ToolCallPayload, S>
+
+  type ToolCallCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ToolCallFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ToolCallCountAggregateInputType | true
+    }
+
+  export interface ToolCallDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ToolCall'], meta: { name: 'ToolCall' } }
+    /**
+     * Find zero or one ToolCall that matches the filter.
+     * @param {ToolCallFindUniqueArgs} args - Arguments to find a ToolCall
+     * @example
+     * // Get one ToolCall
+     * const toolCall = await prisma.toolCall.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ToolCallFindUniqueArgs>(args: SelectSubset<T, ToolCallFindUniqueArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ToolCall that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ToolCallFindUniqueOrThrowArgs} args - Arguments to find a ToolCall
+     * @example
+     * // Get one ToolCall
+     * const toolCall = await prisma.toolCall.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ToolCallFindUniqueOrThrowArgs>(args: SelectSubset<T, ToolCallFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ToolCall that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ToolCallFindFirstArgs} args - Arguments to find a ToolCall
+     * @example
+     * // Get one ToolCall
+     * const toolCall = await prisma.toolCall.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ToolCallFindFirstArgs>(args?: SelectSubset<T, ToolCallFindFirstArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ToolCall that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ToolCallFindFirstOrThrowArgs} args - Arguments to find a ToolCall
+     * @example
+     * // Get one ToolCall
+     * const toolCall = await prisma.toolCall.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ToolCallFindFirstOrThrowArgs>(args?: SelectSubset<T, ToolCallFindFirstOrThrowArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ToolCalls that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ToolCallFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ToolCalls
+     * const toolCalls = await prisma.toolCall.findMany()
+     * 
+     * // Get first 10 ToolCalls
+     * const toolCalls = await prisma.toolCall.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const toolCallWithIdOnly = await prisma.toolCall.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ToolCallFindManyArgs>(args?: SelectSubset<T, ToolCallFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ToolCall.
+     * @param {ToolCallCreateArgs} args - Arguments to create a ToolCall.
+     * @example
+     * // Create one ToolCall
+     * const ToolCall = await prisma.toolCall.create({
+     *   data: {
+     *     // ... data to create a ToolCall
+     *   }
+     * })
+     * 
+     */
+    create<T extends ToolCallCreateArgs>(args: SelectSubset<T, ToolCallCreateArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ToolCalls.
+     * @param {ToolCallCreateManyArgs} args - Arguments to create many ToolCalls.
+     * @example
+     * // Create many ToolCalls
+     * const toolCall = await prisma.toolCall.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ToolCallCreateManyArgs>(args?: SelectSubset<T, ToolCallCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ToolCalls and returns the data saved in the database.
+     * @param {ToolCallCreateManyAndReturnArgs} args - Arguments to create many ToolCalls.
+     * @example
+     * // Create many ToolCalls
+     * const toolCall = await prisma.toolCall.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ToolCalls and only return the `id`
+     * const toolCallWithIdOnly = await prisma.toolCall.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ToolCallCreateManyAndReturnArgs>(args?: SelectSubset<T, ToolCallCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ToolCall.
+     * @param {ToolCallDeleteArgs} args - Arguments to delete one ToolCall.
+     * @example
+     * // Delete one ToolCall
+     * const ToolCall = await prisma.toolCall.delete({
+     *   where: {
+     *     // ... filter to delete one ToolCall
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ToolCallDeleteArgs>(args: SelectSubset<T, ToolCallDeleteArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ToolCall.
+     * @param {ToolCallUpdateArgs} args - Arguments to update one ToolCall.
+     * @example
+     * // Update one ToolCall
+     * const toolCall = await prisma.toolCall.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ToolCallUpdateArgs>(args: SelectSubset<T, ToolCallUpdateArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ToolCalls.
+     * @param {ToolCallDeleteManyArgs} args - Arguments to filter ToolCalls to delete.
+     * @example
+     * // Delete a few ToolCalls
+     * const { count } = await prisma.toolCall.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ToolCallDeleteManyArgs>(args?: SelectSubset<T, ToolCallDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ToolCalls.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ToolCallUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ToolCalls
+     * const toolCall = await prisma.toolCall.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ToolCallUpdateManyArgs>(args: SelectSubset<T, ToolCallUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ToolCalls and returns the data updated in the database.
+     * @param {ToolCallUpdateManyAndReturnArgs} args - Arguments to update many ToolCalls.
+     * @example
+     * // Update many ToolCalls
+     * const toolCall = await prisma.toolCall.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ToolCalls and only return the `id`
+     * const toolCallWithIdOnly = await prisma.toolCall.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ToolCallUpdateManyAndReturnArgs>(args: SelectSubset<T, ToolCallUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ToolCall.
+     * @param {ToolCallUpsertArgs} args - Arguments to update or create a ToolCall.
+     * @example
+     * // Update or create a ToolCall
+     * const toolCall = await prisma.toolCall.upsert({
+     *   create: {
+     *     // ... data to create a ToolCall
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ToolCall we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ToolCallUpsertArgs>(args: SelectSubset<T, ToolCallUpsertArgs<ExtArgs>>): Prisma__ToolCallClient<$Result.GetResult<Prisma.$ToolCallPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ToolCalls.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ToolCallCountArgs} args - Arguments to filter ToolCalls to count.
+     * @example
+     * // Count the number of ToolCalls
+     * const count = await prisma.toolCall.count({
+     *   where: {
+     *     // ... the filter for the ToolCalls we want to count
+     *   }
+     * })
+    **/
+    count<T extends ToolCallCountArgs>(
+      args?: Subset<T, ToolCallCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ToolCallCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ToolCall.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ToolCallAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ToolCallAggregateArgs>(args: Subset<T, ToolCallAggregateArgs>): Prisma.PrismaPromise<GetToolCallAggregateType<T>>
+
+    /**
+     * Group by ToolCall.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ToolCallGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ToolCallGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ToolCallGroupByArgs['orderBy'] }
+        : { orderBy?: ToolCallGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ToolCallGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetToolCallGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ToolCall model
+   */
+  readonly fields: ToolCallFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ToolCall.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ToolCallClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    agentRun<T extends AgentRunDefaultArgs<ExtArgs> = {}>(args?: Subset<T, AgentRunDefaultArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ToolCall model
+   */
+  interface ToolCallFieldRefs {
+    readonly id: FieldRef<"ToolCall", 'String'>
+    readonly agentRunId: FieldRef<"ToolCall", 'String'>
+    readonly toolName: FieldRef<"ToolCall", 'String'>
+    readonly status: FieldRef<"ToolCall", 'String'>
+    readonly argumentsSummary: FieldRef<"ToolCall", 'Json'>
+    readonly resultSummary: FieldRef<"ToolCall", 'Json'>
+    readonly createdAt: FieldRef<"ToolCall", 'DateTime'>
+    readonly completedAt: FieldRef<"ToolCall", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ToolCall findUnique
+   */
+  export type ToolCallFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * Filter, which ToolCall to fetch.
+     */
+    where: ToolCallWhereUniqueInput
+  }
+
+  /**
+   * ToolCall findUniqueOrThrow
+   */
+  export type ToolCallFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * Filter, which ToolCall to fetch.
+     */
+    where: ToolCallWhereUniqueInput
+  }
+
+  /**
+   * ToolCall findFirst
+   */
+  export type ToolCallFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * Filter, which ToolCall to fetch.
+     */
+    where?: ToolCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ToolCalls to fetch.
+     */
+    orderBy?: ToolCallOrderByWithRelationInput | ToolCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ToolCalls.
+     */
+    cursor?: ToolCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ToolCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ToolCalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ToolCalls.
+     */
+    distinct?: ToolCallScalarFieldEnum | ToolCallScalarFieldEnum[]
+  }
+
+  /**
+   * ToolCall findFirstOrThrow
+   */
+  export type ToolCallFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * Filter, which ToolCall to fetch.
+     */
+    where?: ToolCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ToolCalls to fetch.
+     */
+    orderBy?: ToolCallOrderByWithRelationInput | ToolCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ToolCalls.
+     */
+    cursor?: ToolCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ToolCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ToolCalls.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ToolCalls.
+     */
+    distinct?: ToolCallScalarFieldEnum | ToolCallScalarFieldEnum[]
+  }
+
+  /**
+   * ToolCall findMany
+   */
+  export type ToolCallFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * Filter, which ToolCalls to fetch.
+     */
+    where?: ToolCallWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ToolCalls to fetch.
+     */
+    orderBy?: ToolCallOrderByWithRelationInput | ToolCallOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ToolCalls.
+     */
+    cursor?: ToolCallWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ToolCalls from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ToolCalls.
+     */
+    skip?: number
+    distinct?: ToolCallScalarFieldEnum | ToolCallScalarFieldEnum[]
+  }
+
+  /**
+   * ToolCall create
+   */
+  export type ToolCallCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ToolCall.
+     */
+    data: XOR<ToolCallCreateInput, ToolCallUncheckedCreateInput>
+  }
+
+  /**
+   * ToolCall createMany
+   */
+  export type ToolCallCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ToolCalls.
+     */
+    data: ToolCallCreateManyInput | ToolCallCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ToolCall createManyAndReturn
+   */
+  export type ToolCallCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * The data used to create many ToolCalls.
+     */
+    data: ToolCallCreateManyInput | ToolCallCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ToolCall update
+   */
+  export type ToolCallUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ToolCall.
+     */
+    data: XOR<ToolCallUpdateInput, ToolCallUncheckedUpdateInput>
+    /**
+     * Choose, which ToolCall to update.
+     */
+    where: ToolCallWhereUniqueInput
+  }
+
+  /**
+   * ToolCall updateMany
+   */
+  export type ToolCallUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ToolCalls.
+     */
+    data: XOR<ToolCallUpdateManyMutationInput, ToolCallUncheckedUpdateManyInput>
+    /**
+     * Filter which ToolCalls to update
+     */
+    where?: ToolCallWhereInput
+    /**
+     * Limit how many ToolCalls to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ToolCall updateManyAndReturn
+   */
+  export type ToolCallUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * The data used to update ToolCalls.
+     */
+    data: XOR<ToolCallUpdateManyMutationInput, ToolCallUncheckedUpdateManyInput>
+    /**
+     * Filter which ToolCalls to update
+     */
+    where?: ToolCallWhereInput
+    /**
+     * Limit how many ToolCalls to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ToolCall upsert
+   */
+  export type ToolCallUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ToolCall to update in case it exists.
+     */
+    where: ToolCallWhereUniqueInput
+    /**
+     * In case the ToolCall found by the `where` argument doesn't exist, create a new ToolCall with this data.
+     */
+    create: XOR<ToolCallCreateInput, ToolCallUncheckedCreateInput>
+    /**
+     * In case the ToolCall was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ToolCallUpdateInput, ToolCallUncheckedUpdateInput>
+  }
+
+  /**
+   * ToolCall delete
+   */
+  export type ToolCallDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+    /**
+     * Filter which ToolCall to delete.
+     */
+    where: ToolCallWhereUniqueInput
+  }
+
+  /**
+   * ToolCall deleteMany
+   */
+  export type ToolCallDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ToolCalls to delete
+     */
+    where?: ToolCallWhereInput
+    /**
+     * Limit how many ToolCalls to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ToolCall without action
+   */
+  export type ToolCallDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ToolCall
+     */
+    select?: ToolCallSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ToolCall
+     */
+    omit?: ToolCallOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ToolCallInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model TraceEvent
+   */
+
+  export type AggregateTraceEvent = {
+    _count: TraceEventCountAggregateOutputType | null
+    _min: TraceEventMinAggregateOutputType | null
+    _max: TraceEventMaxAggregateOutputType | null
+  }
+
+  export type TraceEventMinAggregateOutputType = {
+    id: string | null
+    workflowRunId: string | null
+    stageRunId: string | null
+    agentRunId: string | null
+    eventType: string | null
+    createdAt: Date | null
+  }
+
+  export type TraceEventMaxAggregateOutputType = {
+    id: string | null
+    workflowRunId: string | null
+    stageRunId: string | null
+    agentRunId: string | null
+    eventType: string | null
+    createdAt: Date | null
+  }
+
+  export type TraceEventCountAggregateOutputType = {
+    id: number
+    workflowRunId: number
+    stageRunId: number
+    agentRunId: number
+    eventType: number
+    payload: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type TraceEventMinAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageRunId?: true
+    agentRunId?: true
+    eventType?: true
+    createdAt?: true
+  }
+
+  export type TraceEventMaxAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageRunId?: true
+    agentRunId?: true
+    eventType?: true
+    createdAt?: true
+  }
+
+  export type TraceEventCountAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageRunId?: true
+    agentRunId?: true
+    eventType?: true
+    payload?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type TraceEventAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TraceEvent to aggregate.
+     */
+    where?: TraceEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TraceEvents to fetch.
+     */
+    orderBy?: TraceEventOrderByWithRelationInput | TraceEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: TraceEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TraceEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TraceEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned TraceEvents
+    **/
+    _count?: true | TraceEventCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: TraceEventMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: TraceEventMaxAggregateInputType
+  }
+
+  export type GetTraceEventAggregateType<T extends TraceEventAggregateArgs> = {
+        [P in keyof T & keyof AggregateTraceEvent]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateTraceEvent[P]>
+      : GetScalarType<T[P], AggregateTraceEvent[P]>
+  }
+
+
+
+
+  export type TraceEventGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: TraceEventWhereInput
+    orderBy?: TraceEventOrderByWithAggregationInput | TraceEventOrderByWithAggregationInput[]
+    by: TraceEventScalarFieldEnum[] | TraceEventScalarFieldEnum
+    having?: TraceEventScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: TraceEventCountAggregateInputType | true
+    _min?: TraceEventMinAggregateInputType
+    _max?: TraceEventMaxAggregateInputType
+  }
+
+  export type TraceEventGroupByOutputType = {
+    id: string
+    workflowRunId: string
+    stageRunId: string | null
+    agentRunId: string | null
+    eventType: string
+    payload: JsonValue | null
+    createdAt: Date
+    _count: TraceEventCountAggregateOutputType | null
+    _min: TraceEventMinAggregateOutputType | null
+    _max: TraceEventMaxAggregateOutputType | null
+  }
+
+  type GetTraceEventGroupByPayload<T extends TraceEventGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<TraceEventGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof TraceEventGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], TraceEventGroupByOutputType[P]>
+            : GetScalarType<T[P], TraceEventGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type TraceEventSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    eventType?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | TraceEvent$stageRunArgs<ExtArgs>
+    agentRun?: boolean | TraceEvent$agentRunArgs<ExtArgs>
+  }, ExtArgs["result"]["traceEvent"]>
+
+  export type TraceEventSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    eventType?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | TraceEvent$stageRunArgs<ExtArgs>
+    agentRun?: boolean | TraceEvent$agentRunArgs<ExtArgs>
+  }, ExtArgs["result"]["traceEvent"]>
+
+  export type TraceEventSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    eventType?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | TraceEvent$stageRunArgs<ExtArgs>
+    agentRun?: boolean | TraceEvent$agentRunArgs<ExtArgs>
+  }, ExtArgs["result"]["traceEvent"]>
+
+  export type TraceEventSelectScalar = {
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    eventType?: boolean
+    payload?: boolean
+    createdAt?: boolean
+  }
+
+  export type TraceEventOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workflowRunId" | "stageRunId" | "agentRunId" | "eventType" | "payload" | "createdAt", ExtArgs["result"]["traceEvent"]>
+  export type TraceEventInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | TraceEvent$stageRunArgs<ExtArgs>
+    agentRun?: boolean | TraceEvent$agentRunArgs<ExtArgs>
+  }
+  export type TraceEventIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | TraceEvent$stageRunArgs<ExtArgs>
+    agentRun?: boolean | TraceEvent$agentRunArgs<ExtArgs>
+  }
+  export type TraceEventIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | TraceEvent$stageRunArgs<ExtArgs>
+    agentRun?: boolean | TraceEvent$agentRunArgs<ExtArgs>
+  }
+
+  export type $TraceEventPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "TraceEvent"
+    objects: {
+      workflowRun: Prisma.$WorkflowRunPayload<ExtArgs>
+      stageRun: Prisma.$StageRunPayload<ExtArgs> | null
+      agentRun: Prisma.$AgentRunPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      workflowRunId: string
+      stageRunId: string | null
+      agentRunId: string | null
+      eventType: string
+      payload: Prisma.JsonValue | null
+      createdAt: Date
+    }, ExtArgs["result"]["traceEvent"]>
+    composites: {}
+  }
+
+  type TraceEventGetPayload<S extends boolean | null | undefined | TraceEventDefaultArgs> = $Result.GetResult<Prisma.$TraceEventPayload, S>
+
+  type TraceEventCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<TraceEventFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: TraceEventCountAggregateInputType | true
+    }
+
+  export interface TraceEventDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['TraceEvent'], meta: { name: 'TraceEvent' } }
+    /**
+     * Find zero or one TraceEvent that matches the filter.
+     * @param {TraceEventFindUniqueArgs} args - Arguments to find a TraceEvent
+     * @example
+     * // Get one TraceEvent
+     * const traceEvent = await prisma.traceEvent.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends TraceEventFindUniqueArgs>(args: SelectSubset<T, TraceEventFindUniqueArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one TraceEvent that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {TraceEventFindUniqueOrThrowArgs} args - Arguments to find a TraceEvent
+     * @example
+     * // Get one TraceEvent
+     * const traceEvent = await prisma.traceEvent.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends TraceEventFindUniqueOrThrowArgs>(args: SelectSubset<T, TraceEventFindUniqueOrThrowArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TraceEvent that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TraceEventFindFirstArgs} args - Arguments to find a TraceEvent
+     * @example
+     * // Get one TraceEvent
+     * const traceEvent = await prisma.traceEvent.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends TraceEventFindFirstArgs>(args?: SelectSubset<T, TraceEventFindFirstArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first TraceEvent that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TraceEventFindFirstOrThrowArgs} args - Arguments to find a TraceEvent
+     * @example
+     * // Get one TraceEvent
+     * const traceEvent = await prisma.traceEvent.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends TraceEventFindFirstOrThrowArgs>(args?: SelectSubset<T, TraceEventFindFirstOrThrowArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more TraceEvents that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TraceEventFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all TraceEvents
+     * const traceEvents = await prisma.traceEvent.findMany()
+     * 
+     * // Get first 10 TraceEvents
+     * const traceEvents = await prisma.traceEvent.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const traceEventWithIdOnly = await prisma.traceEvent.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends TraceEventFindManyArgs>(args?: SelectSubset<T, TraceEventFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a TraceEvent.
+     * @param {TraceEventCreateArgs} args - Arguments to create a TraceEvent.
+     * @example
+     * // Create one TraceEvent
+     * const TraceEvent = await prisma.traceEvent.create({
+     *   data: {
+     *     // ... data to create a TraceEvent
+     *   }
+     * })
+     * 
+     */
+    create<T extends TraceEventCreateArgs>(args: SelectSubset<T, TraceEventCreateArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many TraceEvents.
+     * @param {TraceEventCreateManyArgs} args - Arguments to create many TraceEvents.
+     * @example
+     * // Create many TraceEvents
+     * const traceEvent = await prisma.traceEvent.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends TraceEventCreateManyArgs>(args?: SelectSubset<T, TraceEventCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many TraceEvents and returns the data saved in the database.
+     * @param {TraceEventCreateManyAndReturnArgs} args - Arguments to create many TraceEvents.
+     * @example
+     * // Create many TraceEvents
+     * const traceEvent = await prisma.traceEvent.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many TraceEvents and only return the `id`
+     * const traceEventWithIdOnly = await prisma.traceEvent.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends TraceEventCreateManyAndReturnArgs>(args?: SelectSubset<T, TraceEventCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a TraceEvent.
+     * @param {TraceEventDeleteArgs} args - Arguments to delete one TraceEvent.
+     * @example
+     * // Delete one TraceEvent
+     * const TraceEvent = await prisma.traceEvent.delete({
+     *   where: {
+     *     // ... filter to delete one TraceEvent
+     *   }
+     * })
+     * 
+     */
+    delete<T extends TraceEventDeleteArgs>(args: SelectSubset<T, TraceEventDeleteArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one TraceEvent.
+     * @param {TraceEventUpdateArgs} args - Arguments to update one TraceEvent.
+     * @example
+     * // Update one TraceEvent
+     * const traceEvent = await prisma.traceEvent.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends TraceEventUpdateArgs>(args: SelectSubset<T, TraceEventUpdateArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more TraceEvents.
+     * @param {TraceEventDeleteManyArgs} args - Arguments to filter TraceEvents to delete.
+     * @example
+     * // Delete a few TraceEvents
+     * const { count } = await prisma.traceEvent.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends TraceEventDeleteManyArgs>(args?: SelectSubset<T, TraceEventDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TraceEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TraceEventUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many TraceEvents
+     * const traceEvent = await prisma.traceEvent.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends TraceEventUpdateManyArgs>(args: SelectSubset<T, TraceEventUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more TraceEvents and returns the data updated in the database.
+     * @param {TraceEventUpdateManyAndReturnArgs} args - Arguments to update many TraceEvents.
+     * @example
+     * // Update many TraceEvents
+     * const traceEvent = await prisma.traceEvent.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more TraceEvents and only return the `id`
+     * const traceEventWithIdOnly = await prisma.traceEvent.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends TraceEventUpdateManyAndReturnArgs>(args: SelectSubset<T, TraceEventUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one TraceEvent.
+     * @param {TraceEventUpsertArgs} args - Arguments to update or create a TraceEvent.
+     * @example
+     * // Update or create a TraceEvent
+     * const traceEvent = await prisma.traceEvent.upsert({
+     *   create: {
+     *     // ... data to create a TraceEvent
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the TraceEvent we want to update
+     *   }
+     * })
+     */
+    upsert<T extends TraceEventUpsertArgs>(args: SelectSubset<T, TraceEventUpsertArgs<ExtArgs>>): Prisma__TraceEventClient<$Result.GetResult<Prisma.$TraceEventPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of TraceEvents.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TraceEventCountArgs} args - Arguments to filter TraceEvents to count.
+     * @example
+     * // Count the number of TraceEvents
+     * const count = await prisma.traceEvent.count({
+     *   where: {
+     *     // ... the filter for the TraceEvents we want to count
+     *   }
+     * })
+    **/
+    count<T extends TraceEventCountArgs>(
+      args?: Subset<T, TraceEventCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], TraceEventCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a TraceEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TraceEventAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends TraceEventAggregateArgs>(args: Subset<T, TraceEventAggregateArgs>): Prisma.PrismaPromise<GetTraceEventAggregateType<T>>
+
+    /**
+     * Group by TraceEvent.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {TraceEventGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends TraceEventGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: TraceEventGroupByArgs['orderBy'] }
+        : { orderBy?: TraceEventGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, TraceEventGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetTraceEventGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the TraceEvent model
+   */
+  readonly fields: TraceEventFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for TraceEvent.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__TraceEventClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    workflowRun<T extends WorkflowRunDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkflowRunDefaultArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    stageRun<T extends TraceEvent$stageRunArgs<ExtArgs> = {}>(args?: Subset<T, TraceEvent$stageRunArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    agentRun<T extends TraceEvent$agentRunArgs<ExtArgs> = {}>(args?: Subset<T, TraceEvent$agentRunArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the TraceEvent model
+   */
+  interface TraceEventFieldRefs {
+    readonly id: FieldRef<"TraceEvent", 'String'>
+    readonly workflowRunId: FieldRef<"TraceEvent", 'String'>
+    readonly stageRunId: FieldRef<"TraceEvent", 'String'>
+    readonly agentRunId: FieldRef<"TraceEvent", 'String'>
+    readonly eventType: FieldRef<"TraceEvent", 'String'>
+    readonly payload: FieldRef<"TraceEvent", 'Json'>
+    readonly createdAt: FieldRef<"TraceEvent", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * TraceEvent findUnique
+   */
+  export type TraceEventFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * Filter, which TraceEvent to fetch.
+     */
+    where: TraceEventWhereUniqueInput
+  }
+
+  /**
+   * TraceEvent findUniqueOrThrow
+   */
+  export type TraceEventFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * Filter, which TraceEvent to fetch.
+     */
+    where: TraceEventWhereUniqueInput
+  }
+
+  /**
+   * TraceEvent findFirst
+   */
+  export type TraceEventFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * Filter, which TraceEvent to fetch.
+     */
+    where?: TraceEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TraceEvents to fetch.
+     */
+    orderBy?: TraceEventOrderByWithRelationInput | TraceEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TraceEvents.
+     */
+    cursor?: TraceEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TraceEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TraceEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TraceEvents.
+     */
+    distinct?: TraceEventScalarFieldEnum | TraceEventScalarFieldEnum[]
+  }
+
+  /**
+   * TraceEvent findFirstOrThrow
+   */
+  export type TraceEventFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * Filter, which TraceEvent to fetch.
+     */
+    where?: TraceEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TraceEvents to fetch.
+     */
+    orderBy?: TraceEventOrderByWithRelationInput | TraceEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for TraceEvents.
+     */
+    cursor?: TraceEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TraceEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TraceEvents.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of TraceEvents.
+     */
+    distinct?: TraceEventScalarFieldEnum | TraceEventScalarFieldEnum[]
+  }
+
+  /**
+   * TraceEvent findMany
+   */
+  export type TraceEventFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * Filter, which TraceEvents to fetch.
+     */
+    where?: TraceEventWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of TraceEvents to fetch.
+     */
+    orderBy?: TraceEventOrderByWithRelationInput | TraceEventOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing TraceEvents.
+     */
+    cursor?: TraceEventWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` TraceEvents from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` TraceEvents.
+     */
+    skip?: number
+    distinct?: TraceEventScalarFieldEnum | TraceEventScalarFieldEnum[]
+  }
+
+  /**
+   * TraceEvent create
+   */
+  export type TraceEventCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * The data needed to create a TraceEvent.
+     */
+    data: XOR<TraceEventCreateInput, TraceEventUncheckedCreateInput>
+  }
+
+  /**
+   * TraceEvent createMany
+   */
+  export type TraceEventCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many TraceEvents.
+     */
+    data: TraceEventCreateManyInput | TraceEventCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * TraceEvent createManyAndReturn
+   */
+  export type TraceEventCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * The data used to create many TraceEvents.
+     */
+    data: TraceEventCreateManyInput | TraceEventCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TraceEvent update
+   */
+  export type TraceEventUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * The data needed to update a TraceEvent.
+     */
+    data: XOR<TraceEventUpdateInput, TraceEventUncheckedUpdateInput>
+    /**
+     * Choose, which TraceEvent to update.
+     */
+    where: TraceEventWhereUniqueInput
+  }
+
+  /**
+   * TraceEvent updateMany
+   */
+  export type TraceEventUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update TraceEvents.
+     */
+    data: XOR<TraceEventUpdateManyMutationInput, TraceEventUncheckedUpdateManyInput>
+    /**
+     * Filter which TraceEvents to update
+     */
+    where?: TraceEventWhereInput
+    /**
+     * Limit how many TraceEvents to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * TraceEvent updateManyAndReturn
+   */
+  export type TraceEventUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * The data used to update TraceEvents.
+     */
+    data: XOR<TraceEventUpdateManyMutationInput, TraceEventUncheckedUpdateManyInput>
+    /**
+     * Filter which TraceEvents to update
+     */
+    where?: TraceEventWhereInput
+    /**
+     * Limit how many TraceEvents to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * TraceEvent upsert
+   */
+  export type TraceEventUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * The filter to search for the TraceEvent to update in case it exists.
+     */
+    where: TraceEventWhereUniqueInput
+    /**
+     * In case the TraceEvent found by the `where` argument doesn't exist, create a new TraceEvent with this data.
+     */
+    create: XOR<TraceEventCreateInput, TraceEventUncheckedCreateInput>
+    /**
+     * In case the TraceEvent was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<TraceEventUpdateInput, TraceEventUncheckedUpdateInput>
+  }
+
+  /**
+   * TraceEvent delete
+   */
+  export type TraceEventDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+    /**
+     * Filter which TraceEvent to delete.
+     */
+    where: TraceEventWhereUniqueInput
+  }
+
+  /**
+   * TraceEvent deleteMany
+   */
+  export type TraceEventDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which TraceEvents to delete
+     */
+    where?: TraceEventWhereInput
+    /**
+     * Limit how many TraceEvents to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * TraceEvent.stageRun
+   */
+  export type TraceEvent$stageRunArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    where?: StageRunWhereInput
+  }
+
+  /**
+   * TraceEvent.agentRun
+   */
+  export type TraceEvent$agentRunArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    where?: AgentRunWhereInput
+  }
+
+  /**
+   * TraceEvent without action
+   */
+  export type TraceEventDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the TraceEvent
+     */
+    select?: TraceEventSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the TraceEvent
+     */
+    omit?: TraceEventOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: TraceEventInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RuntimeArtifact
+   */
+
+  export type AggregateRuntimeArtifact = {
+    _count: RuntimeArtifactCountAggregateOutputType | null
+    _min: RuntimeArtifactMinAggregateOutputType | null
+    _max: RuntimeArtifactMaxAggregateOutputType | null
+  }
+
+  export type RuntimeArtifactMinAggregateOutputType = {
+    id: string | null
+    workflowRunId: string | null
+    stageRunId: string | null
+    agentRunId: string | null
+    segmentId: string | null
+    artifactKind: string | null
+    artifactVersion: string | null
+    createdAt: Date | null
+  }
+
+  export type RuntimeArtifactMaxAggregateOutputType = {
+    id: string | null
+    workflowRunId: string | null
+    stageRunId: string | null
+    agentRunId: string | null
+    segmentId: string | null
+    artifactKind: string | null
+    artifactVersion: string | null
+    createdAt: Date | null
+  }
+
+  export type RuntimeArtifactCountAggregateOutputType = {
+    id: number
+    workflowRunId: number
+    stageRunId: number
+    agentRunId: number
+    segmentId: number
+    artifactKind: number
+    artifactVersion: number
+    payload: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type RuntimeArtifactMinAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageRunId?: true
+    agentRunId?: true
+    segmentId?: true
+    artifactKind?: true
+    artifactVersion?: true
+    createdAt?: true
+  }
+
+  export type RuntimeArtifactMaxAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageRunId?: true
+    agentRunId?: true
+    segmentId?: true
+    artifactKind?: true
+    artifactVersion?: true
+    createdAt?: true
+  }
+
+  export type RuntimeArtifactCountAggregateInputType = {
+    id?: true
+    workflowRunId?: true
+    stageRunId?: true
+    agentRunId?: true
+    segmentId?: true
+    artifactKind?: true
+    artifactVersion?: true
+    payload?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type RuntimeArtifactAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RuntimeArtifact to aggregate.
+     */
+    where?: RuntimeArtifactWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeArtifacts to fetch.
+     */
+    orderBy?: RuntimeArtifactOrderByWithRelationInput | RuntimeArtifactOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RuntimeArtifactWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeArtifacts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeArtifacts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RuntimeArtifacts
+    **/
+    _count?: true | RuntimeArtifactCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RuntimeArtifactMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RuntimeArtifactMaxAggregateInputType
+  }
+
+  export type GetRuntimeArtifactAggregateType<T extends RuntimeArtifactAggregateArgs> = {
+        [P in keyof T & keyof AggregateRuntimeArtifact]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRuntimeArtifact[P]>
+      : GetScalarType<T[P], AggregateRuntimeArtifact[P]>
+  }
+
+
+
+
+  export type RuntimeArtifactGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RuntimeArtifactWhereInput
+    orderBy?: RuntimeArtifactOrderByWithAggregationInput | RuntimeArtifactOrderByWithAggregationInput[]
+    by: RuntimeArtifactScalarFieldEnum[] | RuntimeArtifactScalarFieldEnum
+    having?: RuntimeArtifactScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RuntimeArtifactCountAggregateInputType | true
+    _min?: RuntimeArtifactMinAggregateInputType
+    _max?: RuntimeArtifactMaxAggregateInputType
+  }
+
+  export type RuntimeArtifactGroupByOutputType = {
+    id: string
+    workflowRunId: string
+    stageRunId: string | null
+    agentRunId: string | null
+    segmentId: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonValue
+    createdAt: Date
+    _count: RuntimeArtifactCountAggregateOutputType | null
+    _min: RuntimeArtifactMinAggregateOutputType | null
+    _max: RuntimeArtifactMaxAggregateOutputType | null
+  }
+
+  type GetRuntimeArtifactGroupByPayload<T extends RuntimeArtifactGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RuntimeArtifactGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RuntimeArtifactGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RuntimeArtifactGroupByOutputType[P]>
+            : GetScalarType<T[P], RuntimeArtifactGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RuntimeArtifactSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    segmentId?: boolean
+    artifactKind?: boolean
+    artifactVersion?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | RuntimeArtifact$stageRunArgs<ExtArgs>
+    agentRun?: boolean | RuntimeArtifact$agentRunArgs<ExtArgs>
+  }, ExtArgs["result"]["runtimeArtifact"]>
+
+  export type RuntimeArtifactSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    segmentId?: boolean
+    artifactKind?: boolean
+    artifactVersion?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | RuntimeArtifact$stageRunArgs<ExtArgs>
+    agentRun?: boolean | RuntimeArtifact$agentRunArgs<ExtArgs>
+  }, ExtArgs["result"]["runtimeArtifact"]>
+
+  export type RuntimeArtifactSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    segmentId?: boolean
+    artifactKind?: boolean
+    artifactVersion?: boolean
+    payload?: boolean
+    createdAt?: boolean
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | RuntimeArtifact$stageRunArgs<ExtArgs>
+    agentRun?: boolean | RuntimeArtifact$agentRunArgs<ExtArgs>
+  }, ExtArgs["result"]["runtimeArtifact"]>
+
+  export type RuntimeArtifactSelectScalar = {
+    id?: boolean
+    workflowRunId?: boolean
+    stageRunId?: boolean
+    agentRunId?: boolean
+    segmentId?: boolean
+    artifactKind?: boolean
+    artifactVersion?: boolean
+    payload?: boolean
+    createdAt?: boolean
+  }
+
+  export type RuntimeArtifactOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "workflowRunId" | "stageRunId" | "agentRunId" | "segmentId" | "artifactKind" | "artifactVersion" | "payload" | "createdAt", ExtArgs["result"]["runtimeArtifact"]>
+  export type RuntimeArtifactInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | RuntimeArtifact$stageRunArgs<ExtArgs>
+    agentRun?: boolean | RuntimeArtifact$agentRunArgs<ExtArgs>
+  }
+  export type RuntimeArtifactIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | RuntimeArtifact$stageRunArgs<ExtArgs>
+    agentRun?: boolean | RuntimeArtifact$agentRunArgs<ExtArgs>
+  }
+  export type RuntimeArtifactIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    workflowRun?: boolean | WorkflowRunDefaultArgs<ExtArgs>
+    stageRun?: boolean | RuntimeArtifact$stageRunArgs<ExtArgs>
+    agentRun?: boolean | RuntimeArtifact$agentRunArgs<ExtArgs>
+  }
+
+  export type $RuntimeArtifactPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RuntimeArtifact"
+    objects: {
+      workflowRun: Prisma.$WorkflowRunPayload<ExtArgs>
+      stageRun: Prisma.$StageRunPayload<ExtArgs> | null
+      agentRun: Prisma.$AgentRunPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      workflowRunId: string
+      stageRunId: string | null
+      agentRunId: string | null
+      segmentId: string | null
+      artifactKind: string
+      artifactVersion: string
+      payload: Prisma.JsonValue
+      createdAt: Date
+    }, ExtArgs["result"]["runtimeArtifact"]>
+    composites: {}
+  }
+
+  type RuntimeArtifactGetPayload<S extends boolean | null | undefined | RuntimeArtifactDefaultArgs> = $Result.GetResult<Prisma.$RuntimeArtifactPayload, S>
+
+  type RuntimeArtifactCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RuntimeArtifactFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RuntimeArtifactCountAggregateInputType | true
+    }
+
+  export interface RuntimeArtifactDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RuntimeArtifact'], meta: { name: 'RuntimeArtifact' } }
+    /**
+     * Find zero or one RuntimeArtifact that matches the filter.
+     * @param {RuntimeArtifactFindUniqueArgs} args - Arguments to find a RuntimeArtifact
+     * @example
+     * // Get one RuntimeArtifact
+     * const runtimeArtifact = await prisma.runtimeArtifact.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RuntimeArtifactFindUniqueArgs>(args: SelectSubset<T, RuntimeArtifactFindUniqueArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one RuntimeArtifact that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RuntimeArtifactFindUniqueOrThrowArgs} args - Arguments to find a RuntimeArtifact
+     * @example
+     * // Get one RuntimeArtifact
+     * const runtimeArtifact = await prisma.runtimeArtifact.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RuntimeArtifactFindUniqueOrThrowArgs>(args: SelectSubset<T, RuntimeArtifactFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RuntimeArtifact that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeArtifactFindFirstArgs} args - Arguments to find a RuntimeArtifact
+     * @example
+     * // Get one RuntimeArtifact
+     * const runtimeArtifact = await prisma.runtimeArtifact.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RuntimeArtifactFindFirstArgs>(args?: SelectSubset<T, RuntimeArtifactFindFirstArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RuntimeArtifact that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeArtifactFindFirstOrThrowArgs} args - Arguments to find a RuntimeArtifact
+     * @example
+     * // Get one RuntimeArtifact
+     * const runtimeArtifact = await prisma.runtimeArtifact.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RuntimeArtifactFindFirstOrThrowArgs>(args?: SelectSubset<T, RuntimeArtifactFindFirstOrThrowArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more RuntimeArtifacts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeArtifactFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RuntimeArtifacts
+     * const runtimeArtifacts = await prisma.runtimeArtifact.findMany()
+     * 
+     * // Get first 10 RuntimeArtifacts
+     * const runtimeArtifacts = await prisma.runtimeArtifact.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const runtimeArtifactWithIdOnly = await prisma.runtimeArtifact.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RuntimeArtifactFindManyArgs>(args?: SelectSubset<T, RuntimeArtifactFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a RuntimeArtifact.
+     * @param {RuntimeArtifactCreateArgs} args - Arguments to create a RuntimeArtifact.
+     * @example
+     * // Create one RuntimeArtifact
+     * const RuntimeArtifact = await prisma.runtimeArtifact.create({
+     *   data: {
+     *     // ... data to create a RuntimeArtifact
+     *   }
+     * })
+     * 
+     */
+    create<T extends RuntimeArtifactCreateArgs>(args: SelectSubset<T, RuntimeArtifactCreateArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many RuntimeArtifacts.
+     * @param {RuntimeArtifactCreateManyArgs} args - Arguments to create many RuntimeArtifacts.
+     * @example
+     * // Create many RuntimeArtifacts
+     * const runtimeArtifact = await prisma.runtimeArtifact.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RuntimeArtifactCreateManyArgs>(args?: SelectSubset<T, RuntimeArtifactCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RuntimeArtifacts and returns the data saved in the database.
+     * @param {RuntimeArtifactCreateManyAndReturnArgs} args - Arguments to create many RuntimeArtifacts.
+     * @example
+     * // Create many RuntimeArtifacts
+     * const runtimeArtifact = await prisma.runtimeArtifact.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RuntimeArtifacts and only return the `id`
+     * const runtimeArtifactWithIdOnly = await prisma.runtimeArtifact.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RuntimeArtifactCreateManyAndReturnArgs>(args?: SelectSubset<T, RuntimeArtifactCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a RuntimeArtifact.
+     * @param {RuntimeArtifactDeleteArgs} args - Arguments to delete one RuntimeArtifact.
+     * @example
+     * // Delete one RuntimeArtifact
+     * const RuntimeArtifact = await prisma.runtimeArtifact.delete({
+     *   where: {
+     *     // ... filter to delete one RuntimeArtifact
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RuntimeArtifactDeleteArgs>(args: SelectSubset<T, RuntimeArtifactDeleteArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one RuntimeArtifact.
+     * @param {RuntimeArtifactUpdateArgs} args - Arguments to update one RuntimeArtifact.
+     * @example
+     * // Update one RuntimeArtifact
+     * const runtimeArtifact = await prisma.runtimeArtifact.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RuntimeArtifactUpdateArgs>(args: SelectSubset<T, RuntimeArtifactUpdateArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more RuntimeArtifacts.
+     * @param {RuntimeArtifactDeleteManyArgs} args - Arguments to filter RuntimeArtifacts to delete.
+     * @example
+     * // Delete a few RuntimeArtifacts
+     * const { count } = await prisma.runtimeArtifact.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RuntimeArtifactDeleteManyArgs>(args?: SelectSubset<T, RuntimeArtifactDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RuntimeArtifacts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeArtifactUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RuntimeArtifacts
+     * const runtimeArtifact = await prisma.runtimeArtifact.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RuntimeArtifactUpdateManyArgs>(args: SelectSubset<T, RuntimeArtifactUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RuntimeArtifacts and returns the data updated in the database.
+     * @param {RuntimeArtifactUpdateManyAndReturnArgs} args - Arguments to update many RuntimeArtifacts.
+     * @example
+     * // Update many RuntimeArtifacts
+     * const runtimeArtifact = await prisma.runtimeArtifact.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more RuntimeArtifacts and only return the `id`
+     * const runtimeArtifactWithIdOnly = await prisma.runtimeArtifact.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RuntimeArtifactUpdateManyAndReturnArgs>(args: SelectSubset<T, RuntimeArtifactUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one RuntimeArtifact.
+     * @param {RuntimeArtifactUpsertArgs} args - Arguments to update or create a RuntimeArtifact.
+     * @example
+     * // Update or create a RuntimeArtifact
+     * const runtimeArtifact = await prisma.runtimeArtifact.upsert({
+     *   create: {
+     *     // ... data to create a RuntimeArtifact
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RuntimeArtifact we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RuntimeArtifactUpsertArgs>(args: SelectSubset<T, RuntimeArtifactUpsertArgs<ExtArgs>>): Prisma__RuntimeArtifactClient<$Result.GetResult<Prisma.$RuntimeArtifactPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of RuntimeArtifacts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeArtifactCountArgs} args - Arguments to filter RuntimeArtifacts to count.
+     * @example
+     * // Count the number of RuntimeArtifacts
+     * const count = await prisma.runtimeArtifact.count({
+     *   where: {
+     *     // ... the filter for the RuntimeArtifacts we want to count
+     *   }
+     * })
+    **/
+    count<T extends RuntimeArtifactCountArgs>(
+      args?: Subset<T, RuntimeArtifactCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RuntimeArtifactCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RuntimeArtifact.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeArtifactAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RuntimeArtifactAggregateArgs>(args: Subset<T, RuntimeArtifactAggregateArgs>): Prisma.PrismaPromise<GetRuntimeArtifactAggregateType<T>>
+
+    /**
+     * Group by RuntimeArtifact.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeArtifactGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RuntimeArtifactGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RuntimeArtifactGroupByArgs['orderBy'] }
+        : { orderBy?: RuntimeArtifactGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RuntimeArtifactGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRuntimeArtifactGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RuntimeArtifact model
+   */
+  readonly fields: RuntimeArtifactFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RuntimeArtifact.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RuntimeArtifactClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    workflowRun<T extends WorkflowRunDefaultArgs<ExtArgs> = {}>(args?: Subset<T, WorkflowRunDefaultArgs<ExtArgs>>): Prisma__WorkflowRunClient<$Result.GetResult<Prisma.$WorkflowRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    stageRun<T extends RuntimeArtifact$stageRunArgs<ExtArgs> = {}>(args?: Subset<T, RuntimeArtifact$stageRunArgs<ExtArgs>>): Prisma__StageRunClient<$Result.GetResult<Prisma.$StageRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    agentRun<T extends RuntimeArtifact$agentRunArgs<ExtArgs> = {}>(args?: Subset<T, RuntimeArtifact$agentRunArgs<ExtArgs>>): Prisma__AgentRunClient<$Result.GetResult<Prisma.$AgentRunPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RuntimeArtifact model
+   */
+  interface RuntimeArtifactFieldRefs {
+    readonly id: FieldRef<"RuntimeArtifact", 'String'>
+    readonly workflowRunId: FieldRef<"RuntimeArtifact", 'String'>
+    readonly stageRunId: FieldRef<"RuntimeArtifact", 'String'>
+    readonly agentRunId: FieldRef<"RuntimeArtifact", 'String'>
+    readonly segmentId: FieldRef<"RuntimeArtifact", 'String'>
+    readonly artifactKind: FieldRef<"RuntimeArtifact", 'String'>
+    readonly artifactVersion: FieldRef<"RuntimeArtifact", 'String'>
+    readonly payload: FieldRef<"RuntimeArtifact", 'Json'>
+    readonly createdAt: FieldRef<"RuntimeArtifact", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RuntimeArtifact findUnique
+   */
+  export type RuntimeArtifactFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeArtifact to fetch.
+     */
+    where: RuntimeArtifactWhereUniqueInput
+  }
+
+  /**
+   * RuntimeArtifact findUniqueOrThrow
+   */
+  export type RuntimeArtifactFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeArtifact to fetch.
+     */
+    where: RuntimeArtifactWhereUniqueInput
+  }
+
+  /**
+   * RuntimeArtifact findFirst
+   */
+  export type RuntimeArtifactFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeArtifact to fetch.
+     */
+    where?: RuntimeArtifactWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeArtifacts to fetch.
+     */
+    orderBy?: RuntimeArtifactOrderByWithRelationInput | RuntimeArtifactOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RuntimeArtifacts.
+     */
+    cursor?: RuntimeArtifactWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeArtifacts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeArtifacts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RuntimeArtifacts.
+     */
+    distinct?: RuntimeArtifactScalarFieldEnum | RuntimeArtifactScalarFieldEnum[]
+  }
+
+  /**
+   * RuntimeArtifact findFirstOrThrow
+   */
+  export type RuntimeArtifactFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeArtifact to fetch.
+     */
+    where?: RuntimeArtifactWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeArtifacts to fetch.
+     */
+    orderBy?: RuntimeArtifactOrderByWithRelationInput | RuntimeArtifactOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RuntimeArtifacts.
+     */
+    cursor?: RuntimeArtifactWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeArtifacts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeArtifacts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RuntimeArtifacts.
+     */
+    distinct?: RuntimeArtifactScalarFieldEnum | RuntimeArtifactScalarFieldEnum[]
+  }
+
+  /**
+   * RuntimeArtifact findMany
+   */
+  export type RuntimeArtifactFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeArtifacts to fetch.
+     */
+    where?: RuntimeArtifactWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeArtifacts to fetch.
+     */
+    orderBy?: RuntimeArtifactOrderByWithRelationInput | RuntimeArtifactOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RuntimeArtifacts.
+     */
+    cursor?: RuntimeArtifactWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeArtifacts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeArtifacts.
+     */
+    skip?: number
+    distinct?: RuntimeArtifactScalarFieldEnum | RuntimeArtifactScalarFieldEnum[]
+  }
+
+  /**
+   * RuntimeArtifact create
+   */
+  export type RuntimeArtifactCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * The data needed to create a RuntimeArtifact.
+     */
+    data: XOR<RuntimeArtifactCreateInput, RuntimeArtifactUncheckedCreateInput>
+  }
+
+  /**
+   * RuntimeArtifact createMany
+   */
+  export type RuntimeArtifactCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RuntimeArtifacts.
+     */
+    data: RuntimeArtifactCreateManyInput | RuntimeArtifactCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RuntimeArtifact createManyAndReturn
+   */
+  export type RuntimeArtifactCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * The data used to create many RuntimeArtifacts.
+     */
+    data: RuntimeArtifactCreateManyInput | RuntimeArtifactCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RuntimeArtifact update
+   */
+  export type RuntimeArtifactUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * The data needed to update a RuntimeArtifact.
+     */
+    data: XOR<RuntimeArtifactUpdateInput, RuntimeArtifactUncheckedUpdateInput>
+    /**
+     * Choose, which RuntimeArtifact to update.
+     */
+    where: RuntimeArtifactWhereUniqueInput
+  }
+
+  /**
+   * RuntimeArtifact updateMany
+   */
+  export type RuntimeArtifactUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RuntimeArtifacts.
+     */
+    data: XOR<RuntimeArtifactUpdateManyMutationInput, RuntimeArtifactUncheckedUpdateManyInput>
+    /**
+     * Filter which RuntimeArtifacts to update
+     */
+    where?: RuntimeArtifactWhereInput
+    /**
+     * Limit how many RuntimeArtifacts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RuntimeArtifact updateManyAndReturn
+   */
+  export type RuntimeArtifactUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * The data used to update RuntimeArtifacts.
+     */
+    data: XOR<RuntimeArtifactUpdateManyMutationInput, RuntimeArtifactUncheckedUpdateManyInput>
+    /**
+     * Filter which RuntimeArtifacts to update
+     */
+    where?: RuntimeArtifactWhereInput
+    /**
+     * Limit how many RuntimeArtifacts to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RuntimeArtifact upsert
+   */
+  export type RuntimeArtifactUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * The filter to search for the RuntimeArtifact to update in case it exists.
+     */
+    where: RuntimeArtifactWhereUniqueInput
+    /**
+     * In case the RuntimeArtifact found by the `where` argument doesn't exist, create a new RuntimeArtifact with this data.
+     */
+    create: XOR<RuntimeArtifactCreateInput, RuntimeArtifactUncheckedCreateInput>
+    /**
+     * In case the RuntimeArtifact was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RuntimeArtifactUpdateInput, RuntimeArtifactUncheckedUpdateInput>
+  }
+
+  /**
+   * RuntimeArtifact delete
+   */
+  export type RuntimeArtifactDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
+    /**
+     * Filter which RuntimeArtifact to delete.
+     */
+    where: RuntimeArtifactWhereUniqueInput
+  }
+
+  /**
+   * RuntimeArtifact deleteMany
+   */
+  export type RuntimeArtifactDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RuntimeArtifacts to delete
+     */
+    where?: RuntimeArtifactWhereInput
+    /**
+     * Limit how many RuntimeArtifacts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * RuntimeArtifact.stageRun
+   */
+  export type RuntimeArtifact$stageRunArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the StageRun
+     */
+    select?: StageRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the StageRun
+     */
+    omit?: StageRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: StageRunInclude<ExtArgs> | null
+    where?: StageRunWhereInput
+  }
+
+  /**
+   * RuntimeArtifact.agentRun
+   */
+  export type RuntimeArtifact$agentRunArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AgentRun
+     */
+    select?: AgentRunSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AgentRun
+     */
+    omit?: AgentRunOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AgentRunInclude<ExtArgs> | null
+    where?: AgentRunWhereInput
+  }
+
+  /**
+   * RuntimeArtifact without action
+   */
+  export type RuntimeArtifactDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeArtifact
+     */
+    select?: RuntimeArtifactSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeArtifact
+     */
+    omit?: RuntimeArtifactOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeArtifactInclude<ExtArgs> | null
   }
 
 
@@ -32089,6 +39867,8 @@ export namespace Prisma {
     id: 'id',
     bookId: 'bookId',
     canonicalName: 'canonicalName',
+    isSystemRole: 'isSystemRole',
+    systemRoleType: 'systemRoleType',
     characteristics: 'characteristics',
     voicePreferences: 'voicePreferences',
     emotionProfile: 'emotionProfile',
@@ -32255,6 +40035,92 @@ export namespace Prisma {
   };
 
   export type ProcessingTaskScalarFieldEnum = (typeof ProcessingTaskScalarFieldEnum)[keyof typeof ProcessingTaskScalarFieldEnum]
+
+
+  export const WorkflowRunScalarFieldEnum: {
+    id: 'id',
+    workflowId: 'workflowId',
+    bookId: 'bookId',
+    processingTaskId: 'processingTaskId',
+    status: 'status',
+    entryPayload: 'entryPayload',
+    runtimeConfig: 'runtimeConfig',
+    summary: 'summary',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt'
+  };
+
+  export type WorkflowRunScalarFieldEnum = (typeof WorkflowRunScalarFieldEnum)[keyof typeof WorkflowRunScalarFieldEnum]
+
+
+  export const StageRunScalarFieldEnum: {
+    id: 'id',
+    workflowRunId: 'workflowRunId',
+    stageId: 'stageId',
+    status: 'status',
+    summary: 'summary',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt'
+  };
+
+  export type StageRunScalarFieldEnum = (typeof StageRunScalarFieldEnum)[keyof typeof StageRunScalarFieldEnum]
+
+
+  export const AgentRunScalarFieldEnum: {
+    id: 'id',
+    stageRunId: 'stageRunId',
+    agentId: 'agentId',
+    skillId: 'skillId',
+    status: 'status',
+    inputSummary: 'inputSummary',
+    outputSummary: 'outputSummary',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt'
+  };
+
+  export type AgentRunScalarFieldEnum = (typeof AgentRunScalarFieldEnum)[keyof typeof AgentRunScalarFieldEnum]
+
+
+  export const ToolCallScalarFieldEnum: {
+    id: 'id',
+    agentRunId: 'agentRunId',
+    toolName: 'toolName',
+    status: 'status',
+    argumentsSummary: 'argumentsSummary',
+    resultSummary: 'resultSummary',
+    createdAt: 'createdAt',
+    completedAt: 'completedAt'
+  };
+
+  export type ToolCallScalarFieldEnum = (typeof ToolCallScalarFieldEnum)[keyof typeof ToolCallScalarFieldEnum]
+
+
+  export const TraceEventScalarFieldEnum: {
+    id: 'id',
+    workflowRunId: 'workflowRunId',
+    stageRunId: 'stageRunId',
+    agentRunId: 'agentRunId',
+    eventType: 'eventType',
+    payload: 'payload',
+    createdAt: 'createdAt'
+  };
+
+  export type TraceEventScalarFieldEnum = (typeof TraceEventScalarFieldEnum)[keyof typeof TraceEventScalarFieldEnum]
+
+
+  export const RuntimeArtifactScalarFieldEnum: {
+    id: 'id',
+    workflowRunId: 'workflowRunId',
+    stageRunId: 'stageRunId',
+    agentRunId: 'agentRunId',
+    segmentId: 'segmentId',
+    artifactKind: 'artifactKind',
+    artifactVersion: 'artifactVersion',
+    payload: 'payload',
+    createdAt: 'createdAt'
+  };
+
+  export type RuntimeArtifactScalarFieldEnum = (typeof RuntimeArtifactScalarFieldEnum)[keyof typeof RuntimeArtifactScalarFieldEnum]
 
 
   export const SpeakerProfileScalarFieldEnum: {
@@ -32683,6 +40549,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditListRelationFilter
     characterProfiles?: CharacterProfileListRelationFilter
     processingTasks?: ProcessingTaskListRelationFilter
+    workflowRuns?: WorkflowRunListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
     synthesisAttempts?: SynthesisAttemptListRelationFilter
     textSegments?: TextSegmentListRelationFilter
@@ -32717,6 +40584,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditOrderByRelationAggregateInput
     characterProfiles?: CharacterProfileOrderByRelationAggregateInput
     processingTasks?: ProcessingTaskOrderByRelationAggregateInput
+    workflowRuns?: WorkflowRunOrderByRelationAggregateInput
     scriptSentences?: ScriptSentenceOrderByRelationAggregateInput
     synthesisAttempts?: SynthesisAttemptOrderByRelationAggregateInput
     textSegments?: TextSegmentOrderByRelationAggregateInput
@@ -32754,6 +40622,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditListRelationFilter
     characterProfiles?: CharacterProfileListRelationFilter
     processingTasks?: ProcessingTaskListRelationFilter
+    workflowRuns?: WorkflowRunListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
     synthesisAttempts?: SynthesisAttemptListRelationFilter
     textSegments?: TextSegmentListRelationFilter
@@ -32946,6 +40815,8 @@ export namespace Prisma {
     id?: StringFilter<"CharacterProfile"> | string
     bookId?: StringFilter<"CharacterProfile"> | string
     canonicalName?: StringFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableFilter<"CharacterProfile"> | string | null
     characteristics?: JsonFilter<"CharacterProfile">
     voicePreferences?: JsonFilter<"CharacterProfile">
     emotionProfile?: JsonFilter<"CharacterProfile">
@@ -32970,6 +40841,8 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrderInput | SortOrder
     characteristics?: SortOrder
     voicePreferences?: SortOrder
     emotionProfile?: SortOrder
@@ -32992,11 +40865,14 @@ export namespace Prisma {
 
   export type CharacterProfileWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    bookId_systemRoleType?: CharacterProfileBookIdSystemRoleTypeCompoundUniqueInput
     AND?: CharacterProfileWhereInput | CharacterProfileWhereInput[]
     OR?: CharacterProfileWhereInput[]
     NOT?: CharacterProfileWhereInput | CharacterProfileWhereInput[]
     bookId?: StringFilter<"CharacterProfile"> | string
     canonicalName?: StringFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableFilter<"CharacterProfile"> | string | null
     characteristics?: JsonFilter<"CharacterProfile">
     voicePreferences?: JsonFilter<"CharacterProfile">
     emotionProfile?: JsonFilter<"CharacterProfile">
@@ -33015,12 +40891,14 @@ export namespace Prisma {
     voiceBindings?: CharacterVoiceBindingListRelationFilter
     speakerBindings?: CharacterSpeakerBindingListRelationFilter
     scriptSentences?: ScriptSentenceListRelationFilter
-  }, "id">
+  }, "id" | "bookId_systemRoleType">
 
   export type CharacterProfileOrderByWithAggregationInput = {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrderInput | SortOrder
     characteristics?: SortOrder
     voicePreferences?: SortOrder
     emotionProfile?: SortOrder
@@ -33046,6 +40924,8 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"CharacterProfile"> | string
     bookId?: StringWithAggregatesFilter<"CharacterProfile"> | string
     canonicalName?: StringWithAggregatesFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolWithAggregatesFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableWithAggregatesFilter<"CharacterProfile"> | string | null
     characteristics?: JsonWithAggregatesFilter<"CharacterProfile">
     voicePreferences?: JsonWithAggregatesFilter<"CharacterProfile">
     emotionProfile?: JsonWithAggregatesFilter<"CharacterProfile">
@@ -33821,6 +41701,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ProcessingTask"> | Date | string
     externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    workflowRuns?: WorkflowRunListRelationFilter
   }
 
   export type ProcessingTaskOrderByWithRelationInput = {
@@ -33839,6 +41720,7 @@ export namespace Prisma {
     updatedAt?: SortOrder
     externalTaskId?: SortOrderInput | SortOrder
     book?: BookOrderByWithRelationInput
+    workflowRuns?: WorkflowRunOrderByRelationAggregateInput
   }
 
   export type ProcessingTaskWhereUniqueInput = Prisma.AtLeast<{
@@ -33860,6 +41742,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ProcessingTask"> | Date | string
     externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
     book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    workflowRuns?: WorkflowRunListRelationFilter
   }, "id">
 
   export type ProcessingTaskOrderByWithAggregationInput = {
@@ -33902,6 +41785,478 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"ProcessingTask"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ProcessingTask"> | Date | string
     externalTaskId?: StringNullableWithAggregatesFilter<"ProcessingTask"> | string | null
+  }
+
+  export type WorkflowRunWhereInput = {
+    AND?: WorkflowRunWhereInput | WorkflowRunWhereInput[]
+    OR?: WorkflowRunWhereInput[]
+    NOT?: WorkflowRunWhereInput | WorkflowRunWhereInput[]
+    id?: StringFilter<"WorkflowRun"> | string
+    workflowId?: StringFilter<"WorkflowRun"> | string
+    bookId?: StringFilter<"WorkflowRun"> | string
+    processingTaskId?: StringNullableFilter<"WorkflowRun"> | string | null
+    status?: StringFilter<"WorkflowRun"> | string
+    entryPayload?: JsonNullableFilter<"WorkflowRun">
+    runtimeConfig?: JsonNullableFilter<"WorkflowRun">
+    summary?: JsonNullableFilter<"WorkflowRun">
+    startedAt?: DateTimeFilter<"WorkflowRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"WorkflowRun"> | Date | string | null
+    book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    processingTask?: XOR<ProcessingTaskNullableScalarRelationFilter, ProcessingTaskWhereInput> | null
+    stageRuns?: StageRunListRelationFilter
+    traceEvents?: TraceEventListRelationFilter
+    runtimeArtifacts?: RuntimeArtifactListRelationFilter
+  }
+
+  export type WorkflowRunOrderByWithRelationInput = {
+    id?: SortOrder
+    workflowId?: SortOrder
+    bookId?: SortOrder
+    processingTaskId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    entryPayload?: SortOrderInput | SortOrder
+    runtimeConfig?: SortOrderInput | SortOrder
+    summary?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    book?: BookOrderByWithRelationInput
+    processingTask?: ProcessingTaskOrderByWithRelationInput
+    stageRuns?: StageRunOrderByRelationAggregateInput
+    traceEvents?: TraceEventOrderByRelationAggregateInput
+    runtimeArtifacts?: RuntimeArtifactOrderByRelationAggregateInput
+  }
+
+  export type WorkflowRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: WorkflowRunWhereInput | WorkflowRunWhereInput[]
+    OR?: WorkflowRunWhereInput[]
+    NOT?: WorkflowRunWhereInput | WorkflowRunWhereInput[]
+    workflowId?: StringFilter<"WorkflowRun"> | string
+    bookId?: StringFilter<"WorkflowRun"> | string
+    processingTaskId?: StringNullableFilter<"WorkflowRun"> | string | null
+    status?: StringFilter<"WorkflowRun"> | string
+    entryPayload?: JsonNullableFilter<"WorkflowRun">
+    runtimeConfig?: JsonNullableFilter<"WorkflowRun">
+    summary?: JsonNullableFilter<"WorkflowRun">
+    startedAt?: DateTimeFilter<"WorkflowRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"WorkflowRun"> | Date | string | null
+    book?: XOR<BookScalarRelationFilter, BookWhereInput>
+    processingTask?: XOR<ProcessingTaskNullableScalarRelationFilter, ProcessingTaskWhereInput> | null
+    stageRuns?: StageRunListRelationFilter
+    traceEvents?: TraceEventListRelationFilter
+    runtimeArtifacts?: RuntimeArtifactListRelationFilter
+  }, "id">
+
+  export type WorkflowRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    workflowId?: SortOrder
+    bookId?: SortOrder
+    processingTaskId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    entryPayload?: SortOrderInput | SortOrder
+    runtimeConfig?: SortOrderInput | SortOrder
+    summary?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    _count?: WorkflowRunCountOrderByAggregateInput
+    _max?: WorkflowRunMaxOrderByAggregateInput
+    _min?: WorkflowRunMinOrderByAggregateInput
+  }
+
+  export type WorkflowRunScalarWhereWithAggregatesInput = {
+    AND?: WorkflowRunScalarWhereWithAggregatesInput | WorkflowRunScalarWhereWithAggregatesInput[]
+    OR?: WorkflowRunScalarWhereWithAggregatesInput[]
+    NOT?: WorkflowRunScalarWhereWithAggregatesInput | WorkflowRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"WorkflowRun"> | string
+    workflowId?: StringWithAggregatesFilter<"WorkflowRun"> | string
+    bookId?: StringWithAggregatesFilter<"WorkflowRun"> | string
+    processingTaskId?: StringNullableWithAggregatesFilter<"WorkflowRun"> | string | null
+    status?: StringWithAggregatesFilter<"WorkflowRun"> | string
+    entryPayload?: JsonNullableWithAggregatesFilter<"WorkflowRun">
+    runtimeConfig?: JsonNullableWithAggregatesFilter<"WorkflowRun">
+    summary?: JsonNullableWithAggregatesFilter<"WorkflowRun">
+    startedAt?: DateTimeWithAggregatesFilter<"WorkflowRun"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"WorkflowRun"> | Date | string | null
+  }
+
+  export type StageRunWhereInput = {
+    AND?: StageRunWhereInput | StageRunWhereInput[]
+    OR?: StageRunWhereInput[]
+    NOT?: StageRunWhereInput | StageRunWhereInput[]
+    id?: StringFilter<"StageRun"> | string
+    workflowRunId?: StringFilter<"StageRun"> | string
+    stageId?: StringFilter<"StageRun"> | string
+    status?: StringFilter<"StageRun"> | string
+    summary?: JsonNullableFilter<"StageRun">
+    startedAt?: DateTimeFilter<"StageRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"StageRun"> | Date | string | null
+    workflowRun?: XOR<WorkflowRunScalarRelationFilter, WorkflowRunWhereInput>
+    agentRuns?: AgentRunListRelationFilter
+    traceEvents?: TraceEventListRelationFilter
+    runtimeArtifacts?: RuntimeArtifactListRelationFilter
+  }
+
+  export type StageRunOrderByWithRelationInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    workflowRun?: WorkflowRunOrderByWithRelationInput
+    agentRuns?: AgentRunOrderByRelationAggregateInput
+    traceEvents?: TraceEventOrderByRelationAggregateInput
+    runtimeArtifacts?: RuntimeArtifactOrderByRelationAggregateInput
+  }
+
+  export type StageRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: StageRunWhereInput | StageRunWhereInput[]
+    OR?: StageRunWhereInput[]
+    NOT?: StageRunWhereInput | StageRunWhereInput[]
+    workflowRunId?: StringFilter<"StageRun"> | string
+    stageId?: StringFilter<"StageRun"> | string
+    status?: StringFilter<"StageRun"> | string
+    summary?: JsonNullableFilter<"StageRun">
+    startedAt?: DateTimeFilter<"StageRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"StageRun"> | Date | string | null
+    workflowRun?: XOR<WorkflowRunScalarRelationFilter, WorkflowRunWhereInput>
+    agentRuns?: AgentRunListRelationFilter
+    traceEvents?: TraceEventListRelationFilter
+    runtimeArtifacts?: RuntimeArtifactListRelationFilter
+  }, "id">
+
+  export type StageRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    _count?: StageRunCountOrderByAggregateInput
+    _max?: StageRunMaxOrderByAggregateInput
+    _min?: StageRunMinOrderByAggregateInput
+  }
+
+  export type StageRunScalarWhereWithAggregatesInput = {
+    AND?: StageRunScalarWhereWithAggregatesInput | StageRunScalarWhereWithAggregatesInput[]
+    OR?: StageRunScalarWhereWithAggregatesInput[]
+    NOT?: StageRunScalarWhereWithAggregatesInput | StageRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"StageRun"> | string
+    workflowRunId?: StringWithAggregatesFilter<"StageRun"> | string
+    stageId?: StringWithAggregatesFilter<"StageRun"> | string
+    status?: StringWithAggregatesFilter<"StageRun"> | string
+    summary?: JsonNullableWithAggregatesFilter<"StageRun">
+    startedAt?: DateTimeWithAggregatesFilter<"StageRun"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"StageRun"> | Date | string | null
+  }
+
+  export type AgentRunWhereInput = {
+    AND?: AgentRunWhereInput | AgentRunWhereInput[]
+    OR?: AgentRunWhereInput[]
+    NOT?: AgentRunWhereInput | AgentRunWhereInput[]
+    id?: StringFilter<"AgentRun"> | string
+    stageRunId?: StringFilter<"AgentRun"> | string
+    agentId?: StringFilter<"AgentRun"> | string
+    skillId?: StringNullableFilter<"AgentRun"> | string | null
+    status?: StringFilter<"AgentRun"> | string
+    inputSummary?: JsonNullableFilter<"AgentRun">
+    outputSummary?: JsonNullableFilter<"AgentRun">
+    startedAt?: DateTimeFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRun"> | Date | string | null
+    stageRun?: XOR<StageRunScalarRelationFilter, StageRunWhereInput>
+    toolCalls?: ToolCallListRelationFilter
+    traceEvents?: TraceEventListRelationFilter
+    runtimeArtifacts?: RuntimeArtifactListRelationFilter
+  }
+
+  export type AgentRunOrderByWithRelationInput = {
+    id?: SortOrder
+    stageRunId?: SortOrder
+    agentId?: SortOrder
+    skillId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    inputSummary?: SortOrderInput | SortOrder
+    outputSummary?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    stageRun?: StageRunOrderByWithRelationInput
+    toolCalls?: ToolCallOrderByRelationAggregateInput
+    traceEvents?: TraceEventOrderByRelationAggregateInput
+    runtimeArtifacts?: RuntimeArtifactOrderByRelationAggregateInput
+  }
+
+  export type AgentRunWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AgentRunWhereInput | AgentRunWhereInput[]
+    OR?: AgentRunWhereInput[]
+    NOT?: AgentRunWhereInput | AgentRunWhereInput[]
+    stageRunId?: StringFilter<"AgentRun"> | string
+    agentId?: StringFilter<"AgentRun"> | string
+    skillId?: StringNullableFilter<"AgentRun"> | string | null
+    status?: StringFilter<"AgentRun"> | string
+    inputSummary?: JsonNullableFilter<"AgentRun">
+    outputSummary?: JsonNullableFilter<"AgentRun">
+    startedAt?: DateTimeFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRun"> | Date | string | null
+    stageRun?: XOR<StageRunScalarRelationFilter, StageRunWhereInput>
+    toolCalls?: ToolCallListRelationFilter
+    traceEvents?: TraceEventListRelationFilter
+    runtimeArtifacts?: RuntimeArtifactListRelationFilter
+  }, "id">
+
+  export type AgentRunOrderByWithAggregationInput = {
+    id?: SortOrder
+    stageRunId?: SortOrder
+    agentId?: SortOrder
+    skillId?: SortOrderInput | SortOrder
+    status?: SortOrder
+    inputSummary?: SortOrderInput | SortOrder
+    outputSummary?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    _count?: AgentRunCountOrderByAggregateInput
+    _max?: AgentRunMaxOrderByAggregateInput
+    _min?: AgentRunMinOrderByAggregateInput
+  }
+
+  export type AgentRunScalarWhereWithAggregatesInput = {
+    AND?: AgentRunScalarWhereWithAggregatesInput | AgentRunScalarWhereWithAggregatesInput[]
+    OR?: AgentRunScalarWhereWithAggregatesInput[]
+    NOT?: AgentRunScalarWhereWithAggregatesInput | AgentRunScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AgentRun"> | string
+    stageRunId?: StringWithAggregatesFilter<"AgentRun"> | string
+    agentId?: StringWithAggregatesFilter<"AgentRun"> | string
+    skillId?: StringNullableWithAggregatesFilter<"AgentRun"> | string | null
+    status?: StringWithAggregatesFilter<"AgentRun"> | string
+    inputSummary?: JsonNullableWithAggregatesFilter<"AgentRun">
+    outputSummary?: JsonNullableWithAggregatesFilter<"AgentRun">
+    startedAt?: DateTimeWithAggregatesFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"AgentRun"> | Date | string | null
+  }
+
+  export type ToolCallWhereInput = {
+    AND?: ToolCallWhereInput | ToolCallWhereInput[]
+    OR?: ToolCallWhereInput[]
+    NOT?: ToolCallWhereInput | ToolCallWhereInput[]
+    id?: StringFilter<"ToolCall"> | string
+    agentRunId?: StringFilter<"ToolCall"> | string
+    toolName?: StringFilter<"ToolCall"> | string
+    status?: StringFilter<"ToolCall"> | string
+    argumentsSummary?: JsonNullableFilter<"ToolCall">
+    resultSummary?: JsonNullableFilter<"ToolCall">
+    createdAt?: DateTimeFilter<"ToolCall"> | Date | string
+    completedAt?: DateTimeNullableFilter<"ToolCall"> | Date | string | null
+    agentRun?: XOR<AgentRunScalarRelationFilter, AgentRunWhereInput>
+  }
+
+  export type ToolCallOrderByWithRelationInput = {
+    id?: SortOrder
+    agentRunId?: SortOrder
+    toolName?: SortOrder
+    status?: SortOrder
+    argumentsSummary?: SortOrderInput | SortOrder
+    resultSummary?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    agentRun?: AgentRunOrderByWithRelationInput
+  }
+
+  export type ToolCallWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ToolCallWhereInput | ToolCallWhereInput[]
+    OR?: ToolCallWhereInput[]
+    NOT?: ToolCallWhereInput | ToolCallWhereInput[]
+    agentRunId?: StringFilter<"ToolCall"> | string
+    toolName?: StringFilter<"ToolCall"> | string
+    status?: StringFilter<"ToolCall"> | string
+    argumentsSummary?: JsonNullableFilter<"ToolCall">
+    resultSummary?: JsonNullableFilter<"ToolCall">
+    createdAt?: DateTimeFilter<"ToolCall"> | Date | string
+    completedAt?: DateTimeNullableFilter<"ToolCall"> | Date | string | null
+    agentRun?: XOR<AgentRunScalarRelationFilter, AgentRunWhereInput>
+  }, "id">
+
+  export type ToolCallOrderByWithAggregationInput = {
+    id?: SortOrder
+    agentRunId?: SortOrder
+    toolName?: SortOrder
+    status?: SortOrder
+    argumentsSummary?: SortOrderInput | SortOrder
+    resultSummary?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    _count?: ToolCallCountOrderByAggregateInput
+    _max?: ToolCallMaxOrderByAggregateInput
+    _min?: ToolCallMinOrderByAggregateInput
+  }
+
+  export type ToolCallScalarWhereWithAggregatesInput = {
+    AND?: ToolCallScalarWhereWithAggregatesInput | ToolCallScalarWhereWithAggregatesInput[]
+    OR?: ToolCallScalarWhereWithAggregatesInput[]
+    NOT?: ToolCallScalarWhereWithAggregatesInput | ToolCallScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ToolCall"> | string
+    agentRunId?: StringWithAggregatesFilter<"ToolCall"> | string
+    toolName?: StringWithAggregatesFilter<"ToolCall"> | string
+    status?: StringWithAggregatesFilter<"ToolCall"> | string
+    argumentsSummary?: JsonNullableWithAggregatesFilter<"ToolCall">
+    resultSummary?: JsonNullableWithAggregatesFilter<"ToolCall">
+    createdAt?: DateTimeWithAggregatesFilter<"ToolCall"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"ToolCall"> | Date | string | null
+  }
+
+  export type TraceEventWhereInput = {
+    AND?: TraceEventWhereInput | TraceEventWhereInput[]
+    OR?: TraceEventWhereInput[]
+    NOT?: TraceEventWhereInput | TraceEventWhereInput[]
+    id?: StringFilter<"TraceEvent"> | string
+    workflowRunId?: StringFilter<"TraceEvent"> | string
+    stageRunId?: StringNullableFilter<"TraceEvent"> | string | null
+    agentRunId?: StringNullableFilter<"TraceEvent"> | string | null
+    eventType?: StringFilter<"TraceEvent"> | string
+    payload?: JsonNullableFilter<"TraceEvent">
+    createdAt?: DateTimeFilter<"TraceEvent"> | Date | string
+    workflowRun?: XOR<WorkflowRunScalarRelationFilter, WorkflowRunWhereInput>
+    stageRun?: XOR<StageRunNullableScalarRelationFilter, StageRunWhereInput> | null
+    agentRun?: XOR<AgentRunNullableScalarRelationFilter, AgentRunWhereInput> | null
+  }
+
+  export type TraceEventOrderByWithRelationInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrderInput | SortOrder
+    agentRunId?: SortOrderInput | SortOrder
+    eventType?: SortOrder
+    payload?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    workflowRun?: WorkflowRunOrderByWithRelationInput
+    stageRun?: StageRunOrderByWithRelationInput
+    agentRun?: AgentRunOrderByWithRelationInput
+  }
+
+  export type TraceEventWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: TraceEventWhereInput | TraceEventWhereInput[]
+    OR?: TraceEventWhereInput[]
+    NOT?: TraceEventWhereInput | TraceEventWhereInput[]
+    workflowRunId?: StringFilter<"TraceEvent"> | string
+    stageRunId?: StringNullableFilter<"TraceEvent"> | string | null
+    agentRunId?: StringNullableFilter<"TraceEvent"> | string | null
+    eventType?: StringFilter<"TraceEvent"> | string
+    payload?: JsonNullableFilter<"TraceEvent">
+    createdAt?: DateTimeFilter<"TraceEvent"> | Date | string
+    workflowRun?: XOR<WorkflowRunScalarRelationFilter, WorkflowRunWhereInput>
+    stageRun?: XOR<StageRunNullableScalarRelationFilter, StageRunWhereInput> | null
+    agentRun?: XOR<AgentRunNullableScalarRelationFilter, AgentRunWhereInput> | null
+  }, "id">
+
+  export type TraceEventOrderByWithAggregationInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrderInput | SortOrder
+    agentRunId?: SortOrderInput | SortOrder
+    eventType?: SortOrder
+    payload?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: TraceEventCountOrderByAggregateInput
+    _max?: TraceEventMaxOrderByAggregateInput
+    _min?: TraceEventMinOrderByAggregateInput
+  }
+
+  export type TraceEventScalarWhereWithAggregatesInput = {
+    AND?: TraceEventScalarWhereWithAggregatesInput | TraceEventScalarWhereWithAggregatesInput[]
+    OR?: TraceEventScalarWhereWithAggregatesInput[]
+    NOT?: TraceEventScalarWhereWithAggregatesInput | TraceEventScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"TraceEvent"> | string
+    workflowRunId?: StringWithAggregatesFilter<"TraceEvent"> | string
+    stageRunId?: StringNullableWithAggregatesFilter<"TraceEvent"> | string | null
+    agentRunId?: StringNullableWithAggregatesFilter<"TraceEvent"> | string | null
+    eventType?: StringWithAggregatesFilter<"TraceEvent"> | string
+    payload?: JsonNullableWithAggregatesFilter<"TraceEvent">
+    createdAt?: DateTimeWithAggregatesFilter<"TraceEvent"> | Date | string
+  }
+
+  export type RuntimeArtifactWhereInput = {
+    AND?: RuntimeArtifactWhereInput | RuntimeArtifactWhereInput[]
+    OR?: RuntimeArtifactWhereInput[]
+    NOT?: RuntimeArtifactWhereInput | RuntimeArtifactWhereInput[]
+    id?: StringFilter<"RuntimeArtifact"> | string
+    workflowRunId?: StringFilter<"RuntimeArtifact"> | string
+    stageRunId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    agentRunId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    segmentId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    artifactKind?: StringFilter<"RuntimeArtifact"> | string
+    artifactVersion?: StringFilter<"RuntimeArtifact"> | string
+    payload?: JsonFilter<"RuntimeArtifact">
+    createdAt?: DateTimeFilter<"RuntimeArtifact"> | Date | string
+    workflowRun?: XOR<WorkflowRunScalarRelationFilter, WorkflowRunWhereInput>
+    stageRun?: XOR<StageRunNullableScalarRelationFilter, StageRunWhereInput> | null
+    agentRun?: XOR<AgentRunNullableScalarRelationFilter, AgentRunWhereInput> | null
+  }
+
+  export type RuntimeArtifactOrderByWithRelationInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrderInput | SortOrder
+    agentRunId?: SortOrderInput | SortOrder
+    segmentId?: SortOrderInput | SortOrder
+    artifactKind?: SortOrder
+    artifactVersion?: SortOrder
+    payload?: SortOrder
+    createdAt?: SortOrder
+    workflowRun?: WorkflowRunOrderByWithRelationInput
+    stageRun?: StageRunOrderByWithRelationInput
+    agentRun?: AgentRunOrderByWithRelationInput
+  }
+
+  export type RuntimeArtifactWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: RuntimeArtifactWhereInput | RuntimeArtifactWhereInput[]
+    OR?: RuntimeArtifactWhereInput[]
+    NOT?: RuntimeArtifactWhereInput | RuntimeArtifactWhereInput[]
+    workflowRunId?: StringFilter<"RuntimeArtifact"> | string
+    stageRunId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    agentRunId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    segmentId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    artifactKind?: StringFilter<"RuntimeArtifact"> | string
+    artifactVersion?: StringFilter<"RuntimeArtifact"> | string
+    payload?: JsonFilter<"RuntimeArtifact">
+    createdAt?: DateTimeFilter<"RuntimeArtifact"> | Date | string
+    workflowRun?: XOR<WorkflowRunScalarRelationFilter, WorkflowRunWhereInput>
+    stageRun?: XOR<StageRunNullableScalarRelationFilter, StageRunWhereInput> | null
+    agentRun?: XOR<AgentRunNullableScalarRelationFilter, AgentRunWhereInput> | null
+  }, "id">
+
+  export type RuntimeArtifactOrderByWithAggregationInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrderInput | SortOrder
+    agentRunId?: SortOrderInput | SortOrder
+    segmentId?: SortOrderInput | SortOrder
+    artifactKind?: SortOrder
+    artifactVersion?: SortOrder
+    payload?: SortOrder
+    createdAt?: SortOrder
+    _count?: RuntimeArtifactCountOrderByAggregateInput
+    _max?: RuntimeArtifactMaxOrderByAggregateInput
+    _min?: RuntimeArtifactMinOrderByAggregateInput
+  }
+
+  export type RuntimeArtifactScalarWhereWithAggregatesInput = {
+    AND?: RuntimeArtifactScalarWhereWithAggregatesInput | RuntimeArtifactScalarWhereWithAggregatesInput[]
+    OR?: RuntimeArtifactScalarWhereWithAggregatesInput[]
+    NOT?: RuntimeArtifactScalarWhereWithAggregatesInput | RuntimeArtifactScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RuntimeArtifact"> | string
+    workflowRunId?: StringWithAggregatesFilter<"RuntimeArtifact"> | string
+    stageRunId?: StringNullableWithAggregatesFilter<"RuntimeArtifact"> | string | null
+    agentRunId?: StringNullableWithAggregatesFilter<"RuntimeArtifact"> | string | null
+    segmentId?: StringNullableWithAggregatesFilter<"RuntimeArtifact"> | string | null
+    artifactKind?: StringWithAggregatesFilter<"RuntimeArtifact"> | string
+    artifactVersion?: StringWithAggregatesFilter<"RuntimeArtifact"> | string
+    payload?: JsonWithAggregatesFilter<"RuntimeArtifact">
+    createdAt?: DateTimeWithAggregatesFilter<"RuntimeArtifact"> | Date | string
   }
 
   export type SpeakerProfileWhereInput = {
@@ -35158,6 +43513,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -35192,6 +43548,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -35226,6 +43583,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -35260,6 +43618,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -35483,6 +43842,8 @@ export namespace Prisma {
   export type CharacterProfileCreateInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35507,6 +43868,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35529,6 +43892,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35553,6 +43918,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35576,6 +43943,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35592,6 +43961,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -35609,6 +43980,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -36453,6 +44826,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     externalTaskId?: string | null
     book: BookCreateNestedOneWithoutProcessingTasksInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutProcessingTaskInput
   }
 
   export type ProcessingTaskUncheckedCreateInput = {
@@ -36470,6 +44844,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     externalTaskId?: string | null
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutProcessingTaskInput
   }
 
   export type ProcessingTaskUpdateInput = {
@@ -36487,6 +44862,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
     book?: BookUpdateOneRequiredWithoutProcessingTasksNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutProcessingTaskNestedInput
   }
 
   export type ProcessingTaskUncheckedUpdateInput = {
@@ -36504,6 +44880,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutProcessingTaskNestedInput
   }
 
   export type ProcessingTaskCreateManyInput = {
@@ -36554,6 +44931,507 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type WorkflowRunCreateInput = {
+    id?: string
+    workflowId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    book: BookCreateNestedOneWithoutWorkflowRunsInput
+    processingTask?: ProcessingTaskCreateNestedOneWithoutWorkflowRunsInput
+    stageRuns?: StageRunCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunUncheckedCreateInput = {
+    id?: string
+    workflowId: string
+    bookId: string
+    processingTaskId?: string | null
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRuns?: StageRunUncheckedCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    book?: BookUpdateOneRequiredWithoutWorkflowRunsNestedInput
+    processingTask?: ProcessingTaskUpdateOneWithoutWorkflowRunsNestedInput
+    stageRuns?: StageRunUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    processingTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRuns?: StageRunUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunCreateManyInput = {
+    id?: string
+    workflowId: string
+    bookId: string
+    processingTaskId?: string | null
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type WorkflowRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type WorkflowRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    processingTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type StageRunCreateInput = {
+    id?: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    workflowRun: WorkflowRunCreateNestedOneWithoutStageRunsInput
+    agentRuns?: AgentRunCreateNestedManyWithoutStageRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunUncheckedCreateInput = {
+    id?: string
+    workflowRunId: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutStageRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutStageRunsNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutStageRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type StageRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutStageRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type StageRunCreateManyInput = {
+    id?: string
+    workflowRunId: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type StageRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type StageRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentRunCreateInput = {
+    id?: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRun: StageRunCreateNestedOneWithoutAgentRunsInput
+    toolCalls?: ToolCallCreateNestedManyWithoutAgentRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunUncheckedCreateInput = {
+    id?: string
+    stageRunId: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    toolCalls?: ToolCallUncheckedCreateNestedManyWithoutAgentRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRun?: StageRunUpdateOneRequiredWithoutAgentRunsNestedInput
+    toolCalls?: ToolCallUpdateManyWithoutAgentRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    toolCalls?: ToolCallUncheckedUpdateManyWithoutAgentRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type AgentRunCreateManyInput = {
+    id?: string
+    stageRunId: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type AgentRunUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type AgentRunUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ToolCallCreateInput = {
+    id?: string
+    toolName: string
+    status: string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    completedAt?: Date | string | null
+    agentRun: AgentRunCreateNestedOneWithoutToolCallsInput
+  }
+
+  export type ToolCallUncheckedCreateInput = {
+    id?: string
+    agentRunId: string
+    toolName: string
+    status: string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type ToolCallUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    toolName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    agentRun?: AgentRunUpdateOneRequiredWithoutToolCallsNestedInput
+  }
+
+  export type ToolCallUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentRunId?: StringFieldUpdateOperationsInput | string
+    toolName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ToolCallCreateManyInput = {
+    id?: string
+    agentRunId: string
+    toolName: string
+    status: string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type ToolCallUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    toolName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ToolCallUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentRunId?: StringFieldUpdateOperationsInput | string
+    toolName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TraceEventCreateInput = {
+    id?: string
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    workflowRun: WorkflowRunCreateNestedOneWithoutTraceEventsInput
+    stageRun?: StageRunCreateNestedOneWithoutTraceEventsInput
+    agentRun?: AgentRunCreateNestedOneWithoutTraceEventsInput
+  }
+
+  export type TraceEventUncheckedCreateInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type TraceEventUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutTraceEventsNestedInput
+    stageRun?: StageRunUpdateOneWithoutTraceEventsNestedInput
+    agentRun?: AgentRunUpdateOneWithoutTraceEventsNestedInput
+  }
+
+  export type TraceEventUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TraceEventCreateManyInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type TraceEventUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TraceEventUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactCreateInput = {
+    id?: string
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    workflowRun: WorkflowRunCreateNestedOneWithoutRuntimeArtifactsInput
+    stageRun?: StageRunCreateNestedOneWithoutRuntimeArtifactsInput
+    agentRun?: AgentRunCreateNestedOneWithoutRuntimeArtifactsInput
+  }
+
+  export type RuntimeArtifactUncheckedCreateInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutRuntimeArtifactsNestedInput
+    stageRun?: StageRunUpdateOneWithoutRuntimeArtifactsNestedInput
+    agentRun?: AgentRunUpdateOneWithoutRuntimeArtifactsNestedInput
+  }
+
+  export type RuntimeArtifactUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactCreateManyInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type SpeakerProfileCreateInput = {
@@ -38025,6 +46903,12 @@ export namespace Prisma {
     none?: ProcessingTaskWhereInput
   }
 
+  export type WorkflowRunListRelationFilter = {
+    every?: WorkflowRunWhereInput
+    some?: WorkflowRunWhereInput
+    none?: WorkflowRunWhereInput
+  }
+
   export type ScriptSentenceListRelationFilter = {
     every?: ScriptSentenceWhereInput
     some?: ScriptSentenceWhereInput
@@ -38097,6 +46981,10 @@ export namespace Prisma {
   }
 
   export type ProcessingTaskOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type WorkflowRunOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -38498,10 +47386,17 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type CharacterProfileBookIdSystemRoleTypeCompoundUniqueInput = {
+    bookId: string
+    systemRoleType: string
+  }
+
   export type CharacterProfileCountOrderByAggregateInput = {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrder
     characteristics?: SortOrder
     voicePreferences?: SortOrder
     emotionProfile?: SortOrder
@@ -38525,6 +47420,8 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrder
     genderHint?: SortOrder
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
@@ -38539,6 +47436,8 @@ export namespace Prisma {
     id?: SortOrder
     bookId?: SortOrder
     canonicalName?: SortOrder
+    isSystemRole?: SortOrder
+    systemRoleType?: SortOrder
     genderHint?: SortOrder
     ageHint?: SortOrder
     emotionBaseline?: SortOrder
@@ -39129,6 +48028,270 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedDateTimeNullableFilter<$PrismaModel>
     _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type ProcessingTaskNullableScalarRelationFilter = {
+    is?: ProcessingTaskWhereInput | null
+    isNot?: ProcessingTaskWhereInput | null
+  }
+
+  export type StageRunListRelationFilter = {
+    every?: StageRunWhereInput
+    some?: StageRunWhereInput
+    none?: StageRunWhereInput
+  }
+
+  export type TraceEventListRelationFilter = {
+    every?: TraceEventWhereInput
+    some?: TraceEventWhereInput
+    none?: TraceEventWhereInput
+  }
+
+  export type RuntimeArtifactListRelationFilter = {
+    every?: RuntimeArtifactWhereInput
+    some?: RuntimeArtifactWhereInput
+    none?: RuntimeArtifactWhereInput
+  }
+
+  export type StageRunOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type TraceEventOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RuntimeArtifactOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type WorkflowRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    workflowId?: SortOrder
+    bookId?: SortOrder
+    processingTaskId?: SortOrder
+    status?: SortOrder
+    entryPayload?: SortOrder
+    runtimeConfig?: SortOrder
+    summary?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type WorkflowRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    workflowId?: SortOrder
+    bookId?: SortOrder
+    processingTaskId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type WorkflowRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    workflowId?: SortOrder
+    bookId?: SortOrder
+    processingTaskId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type WorkflowRunScalarRelationFilter = {
+    is?: WorkflowRunWhereInput
+    isNot?: WorkflowRunWhereInput
+  }
+
+  export type AgentRunListRelationFilter = {
+    every?: AgentRunWhereInput
+    some?: AgentRunWhereInput
+    none?: AgentRunWhereInput
+  }
+
+  export type AgentRunOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type StageRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageId?: SortOrder
+    status?: SortOrder
+    summary?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type StageRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type StageRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type StageRunScalarRelationFilter = {
+    is?: StageRunWhereInput
+    isNot?: StageRunWhereInput
+  }
+
+  export type ToolCallListRelationFilter = {
+    every?: ToolCallWhereInput
+    some?: ToolCallWhereInput
+    none?: ToolCallWhereInput
+  }
+
+  export type ToolCallOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AgentRunCountOrderByAggregateInput = {
+    id?: SortOrder
+    stageRunId?: SortOrder
+    agentId?: SortOrder
+    skillId?: SortOrder
+    status?: SortOrder
+    inputSummary?: SortOrder
+    outputSummary?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type AgentRunMaxOrderByAggregateInput = {
+    id?: SortOrder
+    stageRunId?: SortOrder
+    agentId?: SortOrder
+    skillId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type AgentRunMinOrderByAggregateInput = {
+    id?: SortOrder
+    stageRunId?: SortOrder
+    agentId?: SortOrder
+    skillId?: SortOrder
+    status?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type AgentRunScalarRelationFilter = {
+    is?: AgentRunWhereInput
+    isNot?: AgentRunWhereInput
+  }
+
+  export type ToolCallCountOrderByAggregateInput = {
+    id?: SortOrder
+    agentRunId?: SortOrder
+    toolName?: SortOrder
+    status?: SortOrder
+    argumentsSummary?: SortOrder
+    resultSummary?: SortOrder
+    createdAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type ToolCallMaxOrderByAggregateInput = {
+    id?: SortOrder
+    agentRunId?: SortOrder
+    toolName?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type ToolCallMinOrderByAggregateInput = {
+    id?: SortOrder
+    agentRunId?: SortOrder
+    toolName?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    completedAt?: SortOrder
+  }
+
+  export type StageRunNullableScalarRelationFilter = {
+    is?: StageRunWhereInput | null
+    isNot?: StageRunWhereInput | null
+  }
+
+  export type AgentRunNullableScalarRelationFilter = {
+    is?: AgentRunWhereInput | null
+    isNot?: AgentRunWhereInput | null
+  }
+
+  export type TraceEventCountOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrder
+    agentRunId?: SortOrder
+    eventType?: SortOrder
+    payload?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type TraceEventMaxOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrder
+    agentRunId?: SortOrder
+    eventType?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type TraceEventMinOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrder
+    agentRunId?: SortOrder
+    eventType?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RuntimeArtifactCountOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrder
+    agentRunId?: SortOrder
+    segmentId?: SortOrder
+    artifactKind?: SortOrder
+    artifactVersion?: SortOrder
+    payload?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RuntimeArtifactMaxOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrder
+    agentRunId?: SortOrder
+    segmentId?: SortOrder
+    artifactKind?: SortOrder
+    artifactVersion?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RuntimeArtifactMinOrderByAggregateInput = {
+    id?: SortOrder
+    workflowRunId?: SortOrder
+    stageRunId?: SortOrder
+    agentRunId?: SortOrder
+    segmentId?: SortOrder
+    artifactKind?: SortOrder
+    artifactVersion?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type BytesNullableFilter<$PrismaModel = never> = {
@@ -39921,6 +49084,13 @@ export namespace Prisma {
     connect?: ProcessingTaskWhereUniqueInput | ProcessingTaskWhereUniqueInput[]
   }
 
+  export type WorkflowRunCreateNestedManyWithoutBookInput = {
+    create?: XOR<WorkflowRunCreateWithoutBookInput, WorkflowRunUncheckedCreateWithoutBookInput> | WorkflowRunCreateWithoutBookInput[] | WorkflowRunUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutBookInput | WorkflowRunCreateOrConnectWithoutBookInput[]
+    createMany?: WorkflowRunCreateManyBookInputEnvelope
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+  }
+
   export type ScriptSentenceCreateNestedManyWithoutBookInput = {
     create?: XOR<ScriptSentenceCreateWithoutBookInput, ScriptSentenceUncheckedCreateWithoutBookInput> | ScriptSentenceCreateWithoutBookInput[] | ScriptSentenceUncheckedCreateWithoutBookInput[]
     connectOrCreate?: ScriptSentenceCreateOrConnectWithoutBookInput | ScriptSentenceCreateOrConnectWithoutBookInput[]
@@ -40010,6 +49180,13 @@ export namespace Prisma {
     connectOrCreate?: ProcessingTaskCreateOrConnectWithoutBookInput | ProcessingTaskCreateOrConnectWithoutBookInput[]
     createMany?: ProcessingTaskCreateManyBookInputEnvelope
     connect?: ProcessingTaskWhereUniqueInput | ProcessingTaskWhereUniqueInput[]
+  }
+
+  export type WorkflowRunUncheckedCreateNestedManyWithoutBookInput = {
+    create?: XOR<WorkflowRunCreateWithoutBookInput, WorkflowRunUncheckedCreateWithoutBookInput> | WorkflowRunCreateWithoutBookInput[] | WorkflowRunUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutBookInput | WorkflowRunCreateOrConnectWithoutBookInput[]
+    createMany?: WorkflowRunCreateManyBookInputEnvelope
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
   }
 
   export type ScriptSentenceUncheckedCreateNestedManyWithoutBookInput = {
@@ -40165,6 +49342,20 @@ export namespace Prisma {
     update?: ProcessingTaskUpdateWithWhereUniqueWithoutBookInput | ProcessingTaskUpdateWithWhereUniqueWithoutBookInput[]
     updateMany?: ProcessingTaskUpdateManyWithWhereWithoutBookInput | ProcessingTaskUpdateManyWithWhereWithoutBookInput[]
     deleteMany?: ProcessingTaskScalarWhereInput | ProcessingTaskScalarWhereInput[]
+  }
+
+  export type WorkflowRunUpdateManyWithoutBookNestedInput = {
+    create?: XOR<WorkflowRunCreateWithoutBookInput, WorkflowRunUncheckedCreateWithoutBookInput> | WorkflowRunCreateWithoutBookInput[] | WorkflowRunUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutBookInput | WorkflowRunCreateOrConnectWithoutBookInput[]
+    upsert?: WorkflowRunUpsertWithWhereUniqueWithoutBookInput | WorkflowRunUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: WorkflowRunCreateManyBookInputEnvelope
+    set?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    disconnect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    delete?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    update?: WorkflowRunUpdateWithWhereUniqueWithoutBookInput | WorkflowRunUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: WorkflowRunUpdateManyWithWhereWithoutBookInput | WorkflowRunUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: WorkflowRunScalarWhereInput | WorkflowRunScalarWhereInput[]
   }
 
   export type ScriptSentenceUpdateManyWithoutBookNestedInput = {
@@ -40347,6 +49538,20 @@ export namespace Prisma {
     update?: ProcessingTaskUpdateWithWhereUniqueWithoutBookInput | ProcessingTaskUpdateWithWhereUniqueWithoutBookInput[]
     updateMany?: ProcessingTaskUpdateManyWithWhereWithoutBookInput | ProcessingTaskUpdateManyWithWhereWithoutBookInput[]
     deleteMany?: ProcessingTaskScalarWhereInput | ProcessingTaskScalarWhereInput[]
+  }
+
+  export type WorkflowRunUncheckedUpdateManyWithoutBookNestedInput = {
+    create?: XOR<WorkflowRunCreateWithoutBookInput, WorkflowRunUncheckedCreateWithoutBookInput> | WorkflowRunCreateWithoutBookInput[] | WorkflowRunUncheckedCreateWithoutBookInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutBookInput | WorkflowRunCreateOrConnectWithoutBookInput[]
+    upsert?: WorkflowRunUpsertWithWhereUniqueWithoutBookInput | WorkflowRunUpsertWithWhereUniqueWithoutBookInput[]
+    createMany?: WorkflowRunCreateManyBookInputEnvelope
+    set?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    disconnect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    delete?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    update?: WorkflowRunUpdateWithWhereUniqueWithoutBookInput | WorkflowRunUpdateWithWhereUniqueWithoutBookInput[]
+    updateMany?: WorkflowRunUpdateManyWithWhereWithoutBookInput | WorkflowRunUpdateManyWithWhereWithoutBookInput[]
+    deleteMany?: WorkflowRunScalarWhereInput | WorkflowRunScalarWhereInput[]
   }
 
   export type ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput = {
@@ -41915,6 +51120,20 @@ export namespace Prisma {
     connect?: BookWhereUniqueInput
   }
 
+  export type WorkflowRunCreateNestedManyWithoutProcessingTaskInput = {
+    create?: XOR<WorkflowRunCreateWithoutProcessingTaskInput, WorkflowRunUncheckedCreateWithoutProcessingTaskInput> | WorkflowRunCreateWithoutProcessingTaskInput[] | WorkflowRunUncheckedCreateWithoutProcessingTaskInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutProcessingTaskInput | WorkflowRunCreateOrConnectWithoutProcessingTaskInput[]
+    createMany?: WorkflowRunCreateManyProcessingTaskInputEnvelope
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+  }
+
+  export type WorkflowRunUncheckedCreateNestedManyWithoutProcessingTaskInput = {
+    create?: XOR<WorkflowRunCreateWithoutProcessingTaskInput, WorkflowRunUncheckedCreateWithoutProcessingTaskInput> | WorkflowRunCreateWithoutProcessingTaskInput[] | WorkflowRunUncheckedCreateWithoutProcessingTaskInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutProcessingTaskInput | WorkflowRunCreateOrConnectWithoutProcessingTaskInput[]
+    createMany?: WorkflowRunCreateManyProcessingTaskInputEnvelope
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+  }
+
   export type NullableDateTimeFieldUpdateOperationsInput = {
     set?: Date | string | null
   }
@@ -41925,6 +51144,576 @@ export namespace Prisma {
     upsert?: BookUpsertWithoutProcessingTasksInput
     connect?: BookWhereUniqueInput
     update?: XOR<XOR<BookUpdateToOneWithWhereWithoutProcessingTasksInput, BookUpdateWithoutProcessingTasksInput>, BookUncheckedUpdateWithoutProcessingTasksInput>
+  }
+
+  export type WorkflowRunUpdateManyWithoutProcessingTaskNestedInput = {
+    create?: XOR<WorkflowRunCreateWithoutProcessingTaskInput, WorkflowRunUncheckedCreateWithoutProcessingTaskInput> | WorkflowRunCreateWithoutProcessingTaskInput[] | WorkflowRunUncheckedCreateWithoutProcessingTaskInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutProcessingTaskInput | WorkflowRunCreateOrConnectWithoutProcessingTaskInput[]
+    upsert?: WorkflowRunUpsertWithWhereUniqueWithoutProcessingTaskInput | WorkflowRunUpsertWithWhereUniqueWithoutProcessingTaskInput[]
+    createMany?: WorkflowRunCreateManyProcessingTaskInputEnvelope
+    set?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    disconnect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    delete?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    update?: WorkflowRunUpdateWithWhereUniqueWithoutProcessingTaskInput | WorkflowRunUpdateWithWhereUniqueWithoutProcessingTaskInput[]
+    updateMany?: WorkflowRunUpdateManyWithWhereWithoutProcessingTaskInput | WorkflowRunUpdateManyWithWhereWithoutProcessingTaskInput[]
+    deleteMany?: WorkflowRunScalarWhereInput | WorkflowRunScalarWhereInput[]
+  }
+
+  export type WorkflowRunUncheckedUpdateManyWithoutProcessingTaskNestedInput = {
+    create?: XOR<WorkflowRunCreateWithoutProcessingTaskInput, WorkflowRunUncheckedCreateWithoutProcessingTaskInput> | WorkflowRunCreateWithoutProcessingTaskInput[] | WorkflowRunUncheckedCreateWithoutProcessingTaskInput[]
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutProcessingTaskInput | WorkflowRunCreateOrConnectWithoutProcessingTaskInput[]
+    upsert?: WorkflowRunUpsertWithWhereUniqueWithoutProcessingTaskInput | WorkflowRunUpsertWithWhereUniqueWithoutProcessingTaskInput[]
+    createMany?: WorkflowRunCreateManyProcessingTaskInputEnvelope
+    set?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    disconnect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    delete?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    connect?: WorkflowRunWhereUniqueInput | WorkflowRunWhereUniqueInput[]
+    update?: WorkflowRunUpdateWithWhereUniqueWithoutProcessingTaskInput | WorkflowRunUpdateWithWhereUniqueWithoutProcessingTaskInput[]
+    updateMany?: WorkflowRunUpdateManyWithWhereWithoutProcessingTaskInput | WorkflowRunUpdateManyWithWhereWithoutProcessingTaskInput[]
+    deleteMany?: WorkflowRunScalarWhereInput | WorkflowRunScalarWhereInput[]
+  }
+
+  export type BookCreateNestedOneWithoutWorkflowRunsInput = {
+    create?: XOR<BookCreateWithoutWorkflowRunsInput, BookUncheckedCreateWithoutWorkflowRunsInput>
+    connectOrCreate?: BookCreateOrConnectWithoutWorkflowRunsInput
+    connect?: BookWhereUniqueInput
+  }
+
+  export type ProcessingTaskCreateNestedOneWithoutWorkflowRunsInput = {
+    create?: XOR<ProcessingTaskCreateWithoutWorkflowRunsInput, ProcessingTaskUncheckedCreateWithoutWorkflowRunsInput>
+    connectOrCreate?: ProcessingTaskCreateOrConnectWithoutWorkflowRunsInput
+    connect?: ProcessingTaskWhereUniqueInput
+  }
+
+  export type StageRunCreateNestedManyWithoutWorkflowRunInput = {
+    create?: XOR<StageRunCreateWithoutWorkflowRunInput, StageRunUncheckedCreateWithoutWorkflowRunInput> | StageRunCreateWithoutWorkflowRunInput[] | StageRunUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: StageRunCreateOrConnectWithoutWorkflowRunInput | StageRunCreateOrConnectWithoutWorkflowRunInput[]
+    createMany?: StageRunCreateManyWorkflowRunInputEnvelope
+    connect?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+  }
+
+  export type TraceEventCreateNestedManyWithoutWorkflowRunInput = {
+    create?: XOR<TraceEventCreateWithoutWorkflowRunInput, TraceEventUncheckedCreateWithoutWorkflowRunInput> | TraceEventCreateWithoutWorkflowRunInput[] | TraceEventUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutWorkflowRunInput | TraceEventCreateOrConnectWithoutWorkflowRunInput[]
+    createMany?: TraceEventCreateManyWorkflowRunInputEnvelope
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+  }
+
+  export type RuntimeArtifactCreateNestedManyWithoutWorkflowRunInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutWorkflowRunInput, RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput> | RuntimeArtifactCreateWithoutWorkflowRunInput[] | RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput | RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput[]
+    createMany?: RuntimeArtifactCreateManyWorkflowRunInputEnvelope
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+  }
+
+  export type StageRunUncheckedCreateNestedManyWithoutWorkflowRunInput = {
+    create?: XOR<StageRunCreateWithoutWorkflowRunInput, StageRunUncheckedCreateWithoutWorkflowRunInput> | StageRunCreateWithoutWorkflowRunInput[] | StageRunUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: StageRunCreateOrConnectWithoutWorkflowRunInput | StageRunCreateOrConnectWithoutWorkflowRunInput[]
+    createMany?: StageRunCreateManyWorkflowRunInputEnvelope
+    connect?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+  }
+
+  export type TraceEventUncheckedCreateNestedManyWithoutWorkflowRunInput = {
+    create?: XOR<TraceEventCreateWithoutWorkflowRunInput, TraceEventUncheckedCreateWithoutWorkflowRunInput> | TraceEventCreateWithoutWorkflowRunInput[] | TraceEventUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutWorkflowRunInput | TraceEventCreateOrConnectWithoutWorkflowRunInput[]
+    createMany?: TraceEventCreateManyWorkflowRunInputEnvelope
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+  }
+
+  export type RuntimeArtifactUncheckedCreateNestedManyWithoutWorkflowRunInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutWorkflowRunInput, RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput> | RuntimeArtifactCreateWithoutWorkflowRunInput[] | RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput | RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput[]
+    createMany?: RuntimeArtifactCreateManyWorkflowRunInputEnvelope
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+  }
+
+  export type BookUpdateOneRequiredWithoutWorkflowRunsNestedInput = {
+    create?: XOR<BookCreateWithoutWorkflowRunsInput, BookUncheckedCreateWithoutWorkflowRunsInput>
+    connectOrCreate?: BookCreateOrConnectWithoutWorkflowRunsInput
+    upsert?: BookUpsertWithoutWorkflowRunsInput
+    connect?: BookWhereUniqueInput
+    update?: XOR<XOR<BookUpdateToOneWithWhereWithoutWorkflowRunsInput, BookUpdateWithoutWorkflowRunsInput>, BookUncheckedUpdateWithoutWorkflowRunsInput>
+  }
+
+  export type ProcessingTaskUpdateOneWithoutWorkflowRunsNestedInput = {
+    create?: XOR<ProcessingTaskCreateWithoutWorkflowRunsInput, ProcessingTaskUncheckedCreateWithoutWorkflowRunsInput>
+    connectOrCreate?: ProcessingTaskCreateOrConnectWithoutWorkflowRunsInput
+    upsert?: ProcessingTaskUpsertWithoutWorkflowRunsInput
+    disconnect?: ProcessingTaskWhereInput | boolean
+    delete?: ProcessingTaskWhereInput | boolean
+    connect?: ProcessingTaskWhereUniqueInput
+    update?: XOR<XOR<ProcessingTaskUpdateToOneWithWhereWithoutWorkflowRunsInput, ProcessingTaskUpdateWithoutWorkflowRunsInput>, ProcessingTaskUncheckedUpdateWithoutWorkflowRunsInput>
+  }
+
+  export type StageRunUpdateManyWithoutWorkflowRunNestedInput = {
+    create?: XOR<StageRunCreateWithoutWorkflowRunInput, StageRunUncheckedCreateWithoutWorkflowRunInput> | StageRunCreateWithoutWorkflowRunInput[] | StageRunUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: StageRunCreateOrConnectWithoutWorkflowRunInput | StageRunCreateOrConnectWithoutWorkflowRunInput[]
+    upsert?: StageRunUpsertWithWhereUniqueWithoutWorkflowRunInput | StageRunUpsertWithWhereUniqueWithoutWorkflowRunInput[]
+    createMany?: StageRunCreateManyWorkflowRunInputEnvelope
+    set?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    disconnect?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    delete?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    connect?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    update?: StageRunUpdateWithWhereUniqueWithoutWorkflowRunInput | StageRunUpdateWithWhereUniqueWithoutWorkflowRunInput[]
+    updateMany?: StageRunUpdateManyWithWhereWithoutWorkflowRunInput | StageRunUpdateManyWithWhereWithoutWorkflowRunInput[]
+    deleteMany?: StageRunScalarWhereInput | StageRunScalarWhereInput[]
+  }
+
+  export type TraceEventUpdateManyWithoutWorkflowRunNestedInput = {
+    create?: XOR<TraceEventCreateWithoutWorkflowRunInput, TraceEventUncheckedCreateWithoutWorkflowRunInput> | TraceEventCreateWithoutWorkflowRunInput[] | TraceEventUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutWorkflowRunInput | TraceEventCreateOrConnectWithoutWorkflowRunInput[]
+    upsert?: TraceEventUpsertWithWhereUniqueWithoutWorkflowRunInput | TraceEventUpsertWithWhereUniqueWithoutWorkflowRunInput[]
+    createMany?: TraceEventCreateManyWorkflowRunInputEnvelope
+    set?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    disconnect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    delete?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    update?: TraceEventUpdateWithWhereUniqueWithoutWorkflowRunInput | TraceEventUpdateWithWhereUniqueWithoutWorkflowRunInput[]
+    updateMany?: TraceEventUpdateManyWithWhereWithoutWorkflowRunInput | TraceEventUpdateManyWithWhereWithoutWorkflowRunInput[]
+    deleteMany?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+  }
+
+  export type RuntimeArtifactUpdateManyWithoutWorkflowRunNestedInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutWorkflowRunInput, RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput> | RuntimeArtifactCreateWithoutWorkflowRunInput[] | RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput | RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput[]
+    upsert?: RuntimeArtifactUpsertWithWhereUniqueWithoutWorkflowRunInput | RuntimeArtifactUpsertWithWhereUniqueWithoutWorkflowRunInput[]
+    createMany?: RuntimeArtifactCreateManyWorkflowRunInputEnvelope
+    set?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    disconnect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    delete?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    update?: RuntimeArtifactUpdateWithWhereUniqueWithoutWorkflowRunInput | RuntimeArtifactUpdateWithWhereUniqueWithoutWorkflowRunInput[]
+    updateMany?: RuntimeArtifactUpdateManyWithWhereWithoutWorkflowRunInput | RuntimeArtifactUpdateManyWithWhereWithoutWorkflowRunInput[]
+    deleteMany?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+  }
+
+  export type StageRunUncheckedUpdateManyWithoutWorkflowRunNestedInput = {
+    create?: XOR<StageRunCreateWithoutWorkflowRunInput, StageRunUncheckedCreateWithoutWorkflowRunInput> | StageRunCreateWithoutWorkflowRunInput[] | StageRunUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: StageRunCreateOrConnectWithoutWorkflowRunInput | StageRunCreateOrConnectWithoutWorkflowRunInput[]
+    upsert?: StageRunUpsertWithWhereUniqueWithoutWorkflowRunInput | StageRunUpsertWithWhereUniqueWithoutWorkflowRunInput[]
+    createMany?: StageRunCreateManyWorkflowRunInputEnvelope
+    set?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    disconnect?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    delete?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    connect?: StageRunWhereUniqueInput | StageRunWhereUniqueInput[]
+    update?: StageRunUpdateWithWhereUniqueWithoutWorkflowRunInput | StageRunUpdateWithWhereUniqueWithoutWorkflowRunInput[]
+    updateMany?: StageRunUpdateManyWithWhereWithoutWorkflowRunInput | StageRunUpdateManyWithWhereWithoutWorkflowRunInput[]
+    deleteMany?: StageRunScalarWhereInput | StageRunScalarWhereInput[]
+  }
+
+  export type TraceEventUncheckedUpdateManyWithoutWorkflowRunNestedInput = {
+    create?: XOR<TraceEventCreateWithoutWorkflowRunInput, TraceEventUncheckedCreateWithoutWorkflowRunInput> | TraceEventCreateWithoutWorkflowRunInput[] | TraceEventUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutWorkflowRunInput | TraceEventCreateOrConnectWithoutWorkflowRunInput[]
+    upsert?: TraceEventUpsertWithWhereUniqueWithoutWorkflowRunInput | TraceEventUpsertWithWhereUniqueWithoutWorkflowRunInput[]
+    createMany?: TraceEventCreateManyWorkflowRunInputEnvelope
+    set?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    disconnect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    delete?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    update?: TraceEventUpdateWithWhereUniqueWithoutWorkflowRunInput | TraceEventUpdateWithWhereUniqueWithoutWorkflowRunInput[]
+    updateMany?: TraceEventUpdateManyWithWhereWithoutWorkflowRunInput | TraceEventUpdateManyWithWhereWithoutWorkflowRunInput[]
+    deleteMany?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+  }
+
+  export type RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunNestedInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutWorkflowRunInput, RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput> | RuntimeArtifactCreateWithoutWorkflowRunInput[] | RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput | RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput[]
+    upsert?: RuntimeArtifactUpsertWithWhereUniqueWithoutWorkflowRunInput | RuntimeArtifactUpsertWithWhereUniqueWithoutWorkflowRunInput[]
+    createMany?: RuntimeArtifactCreateManyWorkflowRunInputEnvelope
+    set?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    disconnect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    delete?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    update?: RuntimeArtifactUpdateWithWhereUniqueWithoutWorkflowRunInput | RuntimeArtifactUpdateWithWhereUniqueWithoutWorkflowRunInput[]
+    updateMany?: RuntimeArtifactUpdateManyWithWhereWithoutWorkflowRunInput | RuntimeArtifactUpdateManyWithWhereWithoutWorkflowRunInput[]
+    deleteMany?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+  }
+
+  export type WorkflowRunCreateNestedOneWithoutStageRunsInput = {
+    create?: XOR<WorkflowRunCreateWithoutStageRunsInput, WorkflowRunUncheckedCreateWithoutStageRunsInput>
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutStageRunsInput
+    connect?: WorkflowRunWhereUniqueInput
+  }
+
+  export type AgentRunCreateNestedManyWithoutStageRunInput = {
+    create?: XOR<AgentRunCreateWithoutStageRunInput, AgentRunUncheckedCreateWithoutStageRunInput> | AgentRunCreateWithoutStageRunInput[] | AgentRunUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutStageRunInput | AgentRunCreateOrConnectWithoutStageRunInput[]
+    createMany?: AgentRunCreateManyStageRunInputEnvelope
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+  }
+
+  export type TraceEventCreateNestedManyWithoutStageRunInput = {
+    create?: XOR<TraceEventCreateWithoutStageRunInput, TraceEventUncheckedCreateWithoutStageRunInput> | TraceEventCreateWithoutStageRunInput[] | TraceEventUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutStageRunInput | TraceEventCreateOrConnectWithoutStageRunInput[]
+    createMany?: TraceEventCreateManyStageRunInputEnvelope
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+  }
+
+  export type RuntimeArtifactCreateNestedManyWithoutStageRunInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutStageRunInput, RuntimeArtifactUncheckedCreateWithoutStageRunInput> | RuntimeArtifactCreateWithoutStageRunInput[] | RuntimeArtifactUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutStageRunInput | RuntimeArtifactCreateOrConnectWithoutStageRunInput[]
+    createMany?: RuntimeArtifactCreateManyStageRunInputEnvelope
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+  }
+
+  export type AgentRunUncheckedCreateNestedManyWithoutStageRunInput = {
+    create?: XOR<AgentRunCreateWithoutStageRunInput, AgentRunUncheckedCreateWithoutStageRunInput> | AgentRunCreateWithoutStageRunInput[] | AgentRunUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutStageRunInput | AgentRunCreateOrConnectWithoutStageRunInput[]
+    createMany?: AgentRunCreateManyStageRunInputEnvelope
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+  }
+
+  export type TraceEventUncheckedCreateNestedManyWithoutStageRunInput = {
+    create?: XOR<TraceEventCreateWithoutStageRunInput, TraceEventUncheckedCreateWithoutStageRunInput> | TraceEventCreateWithoutStageRunInput[] | TraceEventUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutStageRunInput | TraceEventCreateOrConnectWithoutStageRunInput[]
+    createMany?: TraceEventCreateManyStageRunInputEnvelope
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+  }
+
+  export type RuntimeArtifactUncheckedCreateNestedManyWithoutStageRunInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutStageRunInput, RuntimeArtifactUncheckedCreateWithoutStageRunInput> | RuntimeArtifactCreateWithoutStageRunInput[] | RuntimeArtifactUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutStageRunInput | RuntimeArtifactCreateOrConnectWithoutStageRunInput[]
+    createMany?: RuntimeArtifactCreateManyStageRunInputEnvelope
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+  }
+
+  export type WorkflowRunUpdateOneRequiredWithoutStageRunsNestedInput = {
+    create?: XOR<WorkflowRunCreateWithoutStageRunsInput, WorkflowRunUncheckedCreateWithoutStageRunsInput>
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutStageRunsInput
+    upsert?: WorkflowRunUpsertWithoutStageRunsInput
+    connect?: WorkflowRunWhereUniqueInput
+    update?: XOR<XOR<WorkflowRunUpdateToOneWithWhereWithoutStageRunsInput, WorkflowRunUpdateWithoutStageRunsInput>, WorkflowRunUncheckedUpdateWithoutStageRunsInput>
+  }
+
+  export type AgentRunUpdateManyWithoutStageRunNestedInput = {
+    create?: XOR<AgentRunCreateWithoutStageRunInput, AgentRunUncheckedCreateWithoutStageRunInput> | AgentRunCreateWithoutStageRunInput[] | AgentRunUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutStageRunInput | AgentRunCreateOrConnectWithoutStageRunInput[]
+    upsert?: AgentRunUpsertWithWhereUniqueWithoutStageRunInput | AgentRunUpsertWithWhereUniqueWithoutStageRunInput[]
+    createMany?: AgentRunCreateManyStageRunInputEnvelope
+    set?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    disconnect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    delete?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    update?: AgentRunUpdateWithWhereUniqueWithoutStageRunInput | AgentRunUpdateWithWhereUniqueWithoutStageRunInput[]
+    updateMany?: AgentRunUpdateManyWithWhereWithoutStageRunInput | AgentRunUpdateManyWithWhereWithoutStageRunInput[]
+    deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+  }
+
+  export type TraceEventUpdateManyWithoutStageRunNestedInput = {
+    create?: XOR<TraceEventCreateWithoutStageRunInput, TraceEventUncheckedCreateWithoutStageRunInput> | TraceEventCreateWithoutStageRunInput[] | TraceEventUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutStageRunInput | TraceEventCreateOrConnectWithoutStageRunInput[]
+    upsert?: TraceEventUpsertWithWhereUniqueWithoutStageRunInput | TraceEventUpsertWithWhereUniqueWithoutStageRunInput[]
+    createMany?: TraceEventCreateManyStageRunInputEnvelope
+    set?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    disconnect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    delete?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    update?: TraceEventUpdateWithWhereUniqueWithoutStageRunInput | TraceEventUpdateWithWhereUniqueWithoutStageRunInput[]
+    updateMany?: TraceEventUpdateManyWithWhereWithoutStageRunInput | TraceEventUpdateManyWithWhereWithoutStageRunInput[]
+    deleteMany?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+  }
+
+  export type RuntimeArtifactUpdateManyWithoutStageRunNestedInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutStageRunInput, RuntimeArtifactUncheckedCreateWithoutStageRunInput> | RuntimeArtifactCreateWithoutStageRunInput[] | RuntimeArtifactUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutStageRunInput | RuntimeArtifactCreateOrConnectWithoutStageRunInput[]
+    upsert?: RuntimeArtifactUpsertWithWhereUniqueWithoutStageRunInput | RuntimeArtifactUpsertWithWhereUniqueWithoutStageRunInput[]
+    createMany?: RuntimeArtifactCreateManyStageRunInputEnvelope
+    set?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    disconnect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    delete?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    update?: RuntimeArtifactUpdateWithWhereUniqueWithoutStageRunInput | RuntimeArtifactUpdateWithWhereUniqueWithoutStageRunInput[]
+    updateMany?: RuntimeArtifactUpdateManyWithWhereWithoutStageRunInput | RuntimeArtifactUpdateManyWithWhereWithoutStageRunInput[]
+    deleteMany?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+  }
+
+  export type AgentRunUncheckedUpdateManyWithoutStageRunNestedInput = {
+    create?: XOR<AgentRunCreateWithoutStageRunInput, AgentRunUncheckedCreateWithoutStageRunInput> | AgentRunCreateWithoutStageRunInput[] | AgentRunUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: AgentRunCreateOrConnectWithoutStageRunInput | AgentRunCreateOrConnectWithoutStageRunInput[]
+    upsert?: AgentRunUpsertWithWhereUniqueWithoutStageRunInput | AgentRunUpsertWithWhereUniqueWithoutStageRunInput[]
+    createMany?: AgentRunCreateManyStageRunInputEnvelope
+    set?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    disconnect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    delete?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    connect?: AgentRunWhereUniqueInput | AgentRunWhereUniqueInput[]
+    update?: AgentRunUpdateWithWhereUniqueWithoutStageRunInput | AgentRunUpdateWithWhereUniqueWithoutStageRunInput[]
+    updateMany?: AgentRunUpdateManyWithWhereWithoutStageRunInput | AgentRunUpdateManyWithWhereWithoutStageRunInput[]
+    deleteMany?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+  }
+
+  export type TraceEventUncheckedUpdateManyWithoutStageRunNestedInput = {
+    create?: XOR<TraceEventCreateWithoutStageRunInput, TraceEventUncheckedCreateWithoutStageRunInput> | TraceEventCreateWithoutStageRunInput[] | TraceEventUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutStageRunInput | TraceEventCreateOrConnectWithoutStageRunInput[]
+    upsert?: TraceEventUpsertWithWhereUniqueWithoutStageRunInput | TraceEventUpsertWithWhereUniqueWithoutStageRunInput[]
+    createMany?: TraceEventCreateManyStageRunInputEnvelope
+    set?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    disconnect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    delete?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    update?: TraceEventUpdateWithWhereUniqueWithoutStageRunInput | TraceEventUpdateWithWhereUniqueWithoutStageRunInput[]
+    updateMany?: TraceEventUpdateManyWithWhereWithoutStageRunInput | TraceEventUpdateManyWithWhereWithoutStageRunInput[]
+    deleteMany?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+  }
+
+  export type RuntimeArtifactUncheckedUpdateManyWithoutStageRunNestedInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutStageRunInput, RuntimeArtifactUncheckedCreateWithoutStageRunInput> | RuntimeArtifactCreateWithoutStageRunInput[] | RuntimeArtifactUncheckedCreateWithoutStageRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutStageRunInput | RuntimeArtifactCreateOrConnectWithoutStageRunInput[]
+    upsert?: RuntimeArtifactUpsertWithWhereUniqueWithoutStageRunInput | RuntimeArtifactUpsertWithWhereUniqueWithoutStageRunInput[]
+    createMany?: RuntimeArtifactCreateManyStageRunInputEnvelope
+    set?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    disconnect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    delete?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    update?: RuntimeArtifactUpdateWithWhereUniqueWithoutStageRunInput | RuntimeArtifactUpdateWithWhereUniqueWithoutStageRunInput[]
+    updateMany?: RuntimeArtifactUpdateManyWithWhereWithoutStageRunInput | RuntimeArtifactUpdateManyWithWhereWithoutStageRunInput[]
+    deleteMany?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+  }
+
+  export type StageRunCreateNestedOneWithoutAgentRunsInput = {
+    create?: XOR<StageRunCreateWithoutAgentRunsInput, StageRunUncheckedCreateWithoutAgentRunsInput>
+    connectOrCreate?: StageRunCreateOrConnectWithoutAgentRunsInput
+    connect?: StageRunWhereUniqueInput
+  }
+
+  export type ToolCallCreateNestedManyWithoutAgentRunInput = {
+    create?: XOR<ToolCallCreateWithoutAgentRunInput, ToolCallUncheckedCreateWithoutAgentRunInput> | ToolCallCreateWithoutAgentRunInput[] | ToolCallUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: ToolCallCreateOrConnectWithoutAgentRunInput | ToolCallCreateOrConnectWithoutAgentRunInput[]
+    createMany?: ToolCallCreateManyAgentRunInputEnvelope
+    connect?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+  }
+
+  export type TraceEventCreateNestedManyWithoutAgentRunInput = {
+    create?: XOR<TraceEventCreateWithoutAgentRunInput, TraceEventUncheckedCreateWithoutAgentRunInput> | TraceEventCreateWithoutAgentRunInput[] | TraceEventUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutAgentRunInput | TraceEventCreateOrConnectWithoutAgentRunInput[]
+    createMany?: TraceEventCreateManyAgentRunInputEnvelope
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+  }
+
+  export type RuntimeArtifactCreateNestedManyWithoutAgentRunInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutAgentRunInput, RuntimeArtifactUncheckedCreateWithoutAgentRunInput> | RuntimeArtifactCreateWithoutAgentRunInput[] | RuntimeArtifactUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutAgentRunInput | RuntimeArtifactCreateOrConnectWithoutAgentRunInput[]
+    createMany?: RuntimeArtifactCreateManyAgentRunInputEnvelope
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+  }
+
+  export type ToolCallUncheckedCreateNestedManyWithoutAgentRunInput = {
+    create?: XOR<ToolCallCreateWithoutAgentRunInput, ToolCallUncheckedCreateWithoutAgentRunInput> | ToolCallCreateWithoutAgentRunInput[] | ToolCallUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: ToolCallCreateOrConnectWithoutAgentRunInput | ToolCallCreateOrConnectWithoutAgentRunInput[]
+    createMany?: ToolCallCreateManyAgentRunInputEnvelope
+    connect?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+  }
+
+  export type TraceEventUncheckedCreateNestedManyWithoutAgentRunInput = {
+    create?: XOR<TraceEventCreateWithoutAgentRunInput, TraceEventUncheckedCreateWithoutAgentRunInput> | TraceEventCreateWithoutAgentRunInput[] | TraceEventUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutAgentRunInput | TraceEventCreateOrConnectWithoutAgentRunInput[]
+    createMany?: TraceEventCreateManyAgentRunInputEnvelope
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+  }
+
+  export type RuntimeArtifactUncheckedCreateNestedManyWithoutAgentRunInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutAgentRunInput, RuntimeArtifactUncheckedCreateWithoutAgentRunInput> | RuntimeArtifactCreateWithoutAgentRunInput[] | RuntimeArtifactUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutAgentRunInput | RuntimeArtifactCreateOrConnectWithoutAgentRunInput[]
+    createMany?: RuntimeArtifactCreateManyAgentRunInputEnvelope
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+  }
+
+  export type StageRunUpdateOneRequiredWithoutAgentRunsNestedInput = {
+    create?: XOR<StageRunCreateWithoutAgentRunsInput, StageRunUncheckedCreateWithoutAgentRunsInput>
+    connectOrCreate?: StageRunCreateOrConnectWithoutAgentRunsInput
+    upsert?: StageRunUpsertWithoutAgentRunsInput
+    connect?: StageRunWhereUniqueInput
+    update?: XOR<XOR<StageRunUpdateToOneWithWhereWithoutAgentRunsInput, StageRunUpdateWithoutAgentRunsInput>, StageRunUncheckedUpdateWithoutAgentRunsInput>
+  }
+
+  export type ToolCallUpdateManyWithoutAgentRunNestedInput = {
+    create?: XOR<ToolCallCreateWithoutAgentRunInput, ToolCallUncheckedCreateWithoutAgentRunInput> | ToolCallCreateWithoutAgentRunInput[] | ToolCallUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: ToolCallCreateOrConnectWithoutAgentRunInput | ToolCallCreateOrConnectWithoutAgentRunInput[]
+    upsert?: ToolCallUpsertWithWhereUniqueWithoutAgentRunInput | ToolCallUpsertWithWhereUniqueWithoutAgentRunInput[]
+    createMany?: ToolCallCreateManyAgentRunInputEnvelope
+    set?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    disconnect?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    delete?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    connect?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    update?: ToolCallUpdateWithWhereUniqueWithoutAgentRunInput | ToolCallUpdateWithWhereUniqueWithoutAgentRunInput[]
+    updateMany?: ToolCallUpdateManyWithWhereWithoutAgentRunInput | ToolCallUpdateManyWithWhereWithoutAgentRunInput[]
+    deleteMany?: ToolCallScalarWhereInput | ToolCallScalarWhereInput[]
+  }
+
+  export type TraceEventUpdateManyWithoutAgentRunNestedInput = {
+    create?: XOR<TraceEventCreateWithoutAgentRunInput, TraceEventUncheckedCreateWithoutAgentRunInput> | TraceEventCreateWithoutAgentRunInput[] | TraceEventUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutAgentRunInput | TraceEventCreateOrConnectWithoutAgentRunInput[]
+    upsert?: TraceEventUpsertWithWhereUniqueWithoutAgentRunInput | TraceEventUpsertWithWhereUniqueWithoutAgentRunInput[]
+    createMany?: TraceEventCreateManyAgentRunInputEnvelope
+    set?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    disconnect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    delete?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    update?: TraceEventUpdateWithWhereUniqueWithoutAgentRunInput | TraceEventUpdateWithWhereUniqueWithoutAgentRunInput[]
+    updateMany?: TraceEventUpdateManyWithWhereWithoutAgentRunInput | TraceEventUpdateManyWithWhereWithoutAgentRunInput[]
+    deleteMany?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+  }
+
+  export type RuntimeArtifactUpdateManyWithoutAgentRunNestedInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutAgentRunInput, RuntimeArtifactUncheckedCreateWithoutAgentRunInput> | RuntimeArtifactCreateWithoutAgentRunInput[] | RuntimeArtifactUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutAgentRunInput | RuntimeArtifactCreateOrConnectWithoutAgentRunInput[]
+    upsert?: RuntimeArtifactUpsertWithWhereUniqueWithoutAgentRunInput | RuntimeArtifactUpsertWithWhereUniqueWithoutAgentRunInput[]
+    createMany?: RuntimeArtifactCreateManyAgentRunInputEnvelope
+    set?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    disconnect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    delete?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    update?: RuntimeArtifactUpdateWithWhereUniqueWithoutAgentRunInput | RuntimeArtifactUpdateWithWhereUniqueWithoutAgentRunInput[]
+    updateMany?: RuntimeArtifactUpdateManyWithWhereWithoutAgentRunInput | RuntimeArtifactUpdateManyWithWhereWithoutAgentRunInput[]
+    deleteMany?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+  }
+
+  export type ToolCallUncheckedUpdateManyWithoutAgentRunNestedInput = {
+    create?: XOR<ToolCallCreateWithoutAgentRunInput, ToolCallUncheckedCreateWithoutAgentRunInput> | ToolCallCreateWithoutAgentRunInput[] | ToolCallUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: ToolCallCreateOrConnectWithoutAgentRunInput | ToolCallCreateOrConnectWithoutAgentRunInput[]
+    upsert?: ToolCallUpsertWithWhereUniqueWithoutAgentRunInput | ToolCallUpsertWithWhereUniqueWithoutAgentRunInput[]
+    createMany?: ToolCallCreateManyAgentRunInputEnvelope
+    set?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    disconnect?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    delete?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    connect?: ToolCallWhereUniqueInput | ToolCallWhereUniqueInput[]
+    update?: ToolCallUpdateWithWhereUniqueWithoutAgentRunInput | ToolCallUpdateWithWhereUniqueWithoutAgentRunInput[]
+    updateMany?: ToolCallUpdateManyWithWhereWithoutAgentRunInput | ToolCallUpdateManyWithWhereWithoutAgentRunInput[]
+    deleteMany?: ToolCallScalarWhereInput | ToolCallScalarWhereInput[]
+  }
+
+  export type TraceEventUncheckedUpdateManyWithoutAgentRunNestedInput = {
+    create?: XOR<TraceEventCreateWithoutAgentRunInput, TraceEventUncheckedCreateWithoutAgentRunInput> | TraceEventCreateWithoutAgentRunInput[] | TraceEventUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: TraceEventCreateOrConnectWithoutAgentRunInput | TraceEventCreateOrConnectWithoutAgentRunInput[]
+    upsert?: TraceEventUpsertWithWhereUniqueWithoutAgentRunInput | TraceEventUpsertWithWhereUniqueWithoutAgentRunInput[]
+    createMany?: TraceEventCreateManyAgentRunInputEnvelope
+    set?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    disconnect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    delete?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    connect?: TraceEventWhereUniqueInput | TraceEventWhereUniqueInput[]
+    update?: TraceEventUpdateWithWhereUniqueWithoutAgentRunInput | TraceEventUpdateWithWhereUniqueWithoutAgentRunInput[]
+    updateMany?: TraceEventUpdateManyWithWhereWithoutAgentRunInput | TraceEventUpdateManyWithWhereWithoutAgentRunInput[]
+    deleteMany?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+  }
+
+  export type RuntimeArtifactUncheckedUpdateManyWithoutAgentRunNestedInput = {
+    create?: XOR<RuntimeArtifactCreateWithoutAgentRunInput, RuntimeArtifactUncheckedCreateWithoutAgentRunInput> | RuntimeArtifactCreateWithoutAgentRunInput[] | RuntimeArtifactUncheckedCreateWithoutAgentRunInput[]
+    connectOrCreate?: RuntimeArtifactCreateOrConnectWithoutAgentRunInput | RuntimeArtifactCreateOrConnectWithoutAgentRunInput[]
+    upsert?: RuntimeArtifactUpsertWithWhereUniqueWithoutAgentRunInput | RuntimeArtifactUpsertWithWhereUniqueWithoutAgentRunInput[]
+    createMany?: RuntimeArtifactCreateManyAgentRunInputEnvelope
+    set?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    disconnect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    delete?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    connect?: RuntimeArtifactWhereUniqueInput | RuntimeArtifactWhereUniqueInput[]
+    update?: RuntimeArtifactUpdateWithWhereUniqueWithoutAgentRunInput | RuntimeArtifactUpdateWithWhereUniqueWithoutAgentRunInput[]
+    updateMany?: RuntimeArtifactUpdateManyWithWhereWithoutAgentRunInput | RuntimeArtifactUpdateManyWithWhereWithoutAgentRunInput[]
+    deleteMany?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+  }
+
+  export type AgentRunCreateNestedOneWithoutToolCallsInput = {
+    create?: XOR<AgentRunCreateWithoutToolCallsInput, AgentRunUncheckedCreateWithoutToolCallsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutToolCallsInput
+    connect?: AgentRunWhereUniqueInput
+  }
+
+  export type AgentRunUpdateOneRequiredWithoutToolCallsNestedInput = {
+    create?: XOR<AgentRunCreateWithoutToolCallsInput, AgentRunUncheckedCreateWithoutToolCallsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutToolCallsInput
+    upsert?: AgentRunUpsertWithoutToolCallsInput
+    connect?: AgentRunWhereUniqueInput
+    update?: XOR<XOR<AgentRunUpdateToOneWithWhereWithoutToolCallsInput, AgentRunUpdateWithoutToolCallsInput>, AgentRunUncheckedUpdateWithoutToolCallsInput>
+  }
+
+  export type WorkflowRunCreateNestedOneWithoutTraceEventsInput = {
+    create?: XOR<WorkflowRunCreateWithoutTraceEventsInput, WorkflowRunUncheckedCreateWithoutTraceEventsInput>
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutTraceEventsInput
+    connect?: WorkflowRunWhereUniqueInput
+  }
+
+  export type StageRunCreateNestedOneWithoutTraceEventsInput = {
+    create?: XOR<StageRunCreateWithoutTraceEventsInput, StageRunUncheckedCreateWithoutTraceEventsInput>
+    connectOrCreate?: StageRunCreateOrConnectWithoutTraceEventsInput
+    connect?: StageRunWhereUniqueInput
+  }
+
+  export type AgentRunCreateNestedOneWithoutTraceEventsInput = {
+    create?: XOR<AgentRunCreateWithoutTraceEventsInput, AgentRunUncheckedCreateWithoutTraceEventsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutTraceEventsInput
+    connect?: AgentRunWhereUniqueInput
+  }
+
+  export type WorkflowRunUpdateOneRequiredWithoutTraceEventsNestedInput = {
+    create?: XOR<WorkflowRunCreateWithoutTraceEventsInput, WorkflowRunUncheckedCreateWithoutTraceEventsInput>
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutTraceEventsInput
+    upsert?: WorkflowRunUpsertWithoutTraceEventsInput
+    connect?: WorkflowRunWhereUniqueInput
+    update?: XOR<XOR<WorkflowRunUpdateToOneWithWhereWithoutTraceEventsInput, WorkflowRunUpdateWithoutTraceEventsInput>, WorkflowRunUncheckedUpdateWithoutTraceEventsInput>
+  }
+
+  export type StageRunUpdateOneWithoutTraceEventsNestedInput = {
+    create?: XOR<StageRunCreateWithoutTraceEventsInput, StageRunUncheckedCreateWithoutTraceEventsInput>
+    connectOrCreate?: StageRunCreateOrConnectWithoutTraceEventsInput
+    upsert?: StageRunUpsertWithoutTraceEventsInput
+    disconnect?: StageRunWhereInput | boolean
+    delete?: StageRunWhereInput | boolean
+    connect?: StageRunWhereUniqueInput
+    update?: XOR<XOR<StageRunUpdateToOneWithWhereWithoutTraceEventsInput, StageRunUpdateWithoutTraceEventsInput>, StageRunUncheckedUpdateWithoutTraceEventsInput>
+  }
+
+  export type AgentRunUpdateOneWithoutTraceEventsNestedInput = {
+    create?: XOR<AgentRunCreateWithoutTraceEventsInput, AgentRunUncheckedCreateWithoutTraceEventsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutTraceEventsInput
+    upsert?: AgentRunUpsertWithoutTraceEventsInput
+    disconnect?: AgentRunWhereInput | boolean
+    delete?: AgentRunWhereInput | boolean
+    connect?: AgentRunWhereUniqueInput
+    update?: XOR<XOR<AgentRunUpdateToOneWithWhereWithoutTraceEventsInput, AgentRunUpdateWithoutTraceEventsInput>, AgentRunUncheckedUpdateWithoutTraceEventsInput>
+  }
+
+  export type WorkflowRunCreateNestedOneWithoutRuntimeArtifactsInput = {
+    create?: XOR<WorkflowRunCreateWithoutRuntimeArtifactsInput, WorkflowRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutRuntimeArtifactsInput
+    connect?: WorkflowRunWhereUniqueInput
+  }
+
+  export type StageRunCreateNestedOneWithoutRuntimeArtifactsInput = {
+    create?: XOR<StageRunCreateWithoutRuntimeArtifactsInput, StageRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    connectOrCreate?: StageRunCreateOrConnectWithoutRuntimeArtifactsInput
+    connect?: StageRunWhereUniqueInput
+  }
+
+  export type AgentRunCreateNestedOneWithoutRuntimeArtifactsInput = {
+    create?: XOR<AgentRunCreateWithoutRuntimeArtifactsInput, AgentRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutRuntimeArtifactsInput
+    connect?: AgentRunWhereUniqueInput
+  }
+
+  export type WorkflowRunUpdateOneRequiredWithoutRuntimeArtifactsNestedInput = {
+    create?: XOR<WorkflowRunCreateWithoutRuntimeArtifactsInput, WorkflowRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    connectOrCreate?: WorkflowRunCreateOrConnectWithoutRuntimeArtifactsInput
+    upsert?: WorkflowRunUpsertWithoutRuntimeArtifactsInput
+    connect?: WorkflowRunWhereUniqueInput
+    update?: XOR<XOR<WorkflowRunUpdateToOneWithWhereWithoutRuntimeArtifactsInput, WorkflowRunUpdateWithoutRuntimeArtifactsInput>, WorkflowRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+  }
+
+  export type StageRunUpdateOneWithoutRuntimeArtifactsNestedInput = {
+    create?: XOR<StageRunCreateWithoutRuntimeArtifactsInput, StageRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    connectOrCreate?: StageRunCreateOrConnectWithoutRuntimeArtifactsInput
+    upsert?: StageRunUpsertWithoutRuntimeArtifactsInput
+    disconnect?: StageRunWhereInput | boolean
+    delete?: StageRunWhereInput | boolean
+    connect?: StageRunWhereUniqueInput
+    update?: XOR<XOR<StageRunUpdateToOneWithWhereWithoutRuntimeArtifactsInput, StageRunUpdateWithoutRuntimeArtifactsInput>, StageRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+  }
+
+  export type AgentRunUpdateOneWithoutRuntimeArtifactsNestedInput = {
+    create?: XOR<AgentRunCreateWithoutRuntimeArtifactsInput, AgentRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    connectOrCreate?: AgentRunCreateOrConnectWithoutRuntimeArtifactsInput
+    upsert?: AgentRunUpsertWithoutRuntimeArtifactsInput
+    disconnect?: AgentRunWhereInput | boolean
+    delete?: AgentRunWhereInput | boolean
+    connect?: AgentRunWhereUniqueInput
+    update?: XOR<XOR<AgentRunUpdateToOneWithWhereWithoutRuntimeArtifactsInput, AgentRunUpdateWithoutRuntimeArtifactsInput>, AgentRunUncheckedUpdateWithoutRuntimeArtifactsInput>
   }
 
   export type CharacterSpeakerBindingCreateNestedManyWithoutSpeakerProfileInput = {
@@ -43189,6 +52978,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutBookInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -43211,6 +53002,8 @@ export namespace Prisma {
   export type CharacterProfileUncheckedCreateWithoutBookInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -43254,6 +53047,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     externalTaskId?: string | null
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutProcessingTaskInput
   }
 
   export type ProcessingTaskUncheckedCreateWithoutBookInput = {
@@ -43270,6 +53064,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     externalTaskId?: string | null
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutProcessingTaskInput
   }
 
   export type ProcessingTaskCreateOrConnectWithoutBookInput = {
@@ -43279,6 +53074,46 @@ export namespace Prisma {
 
   export type ProcessingTaskCreateManyBookInputEnvelope = {
     data: ProcessingTaskCreateManyBookInput | ProcessingTaskCreateManyBookInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WorkflowRunCreateWithoutBookInput = {
+    id?: string
+    workflowId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    processingTask?: ProcessingTaskCreateNestedOneWithoutWorkflowRunsInput
+    stageRuns?: StageRunCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunUncheckedCreateWithoutBookInput = {
+    id?: string
+    workflowId: string
+    processingTaskId?: string | null
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRuns?: StageRunUncheckedCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunCreateOrConnectWithoutBookInput = {
+    where: WorkflowRunWhereUniqueInput
+    create: XOR<WorkflowRunCreateWithoutBookInput, WorkflowRunUncheckedCreateWithoutBookInput>
+  }
+
+  export type WorkflowRunCreateManyBookInputEnvelope = {
+    data: WorkflowRunCreateManyBookInput | WorkflowRunCreateManyBookInput[]
     skipDuplicates?: boolean
   }
 
@@ -43852,6 +53687,8 @@ export namespace Prisma {
     id?: StringFilter<"CharacterProfile"> | string
     bookId?: StringFilter<"CharacterProfile"> | string
     canonicalName?: StringFilter<"CharacterProfile"> | string
+    isSystemRole?: BoolFilter<"CharacterProfile"> | boolean
+    systemRoleType?: StringNullableFilter<"CharacterProfile"> | string | null
     characteristics?: JsonFilter<"CharacterProfile">
     voicePreferences?: JsonFilter<"CharacterProfile">
     emotionProfile?: JsonFilter<"CharacterProfile">
@@ -43899,6 +53736,38 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ProcessingTask"> | Date | string
     updatedAt?: DateTimeFilter<"ProcessingTask"> | Date | string
     externalTaskId?: StringNullableFilter<"ProcessingTask"> | string | null
+  }
+
+  export type WorkflowRunUpsertWithWhereUniqueWithoutBookInput = {
+    where: WorkflowRunWhereUniqueInput
+    update: XOR<WorkflowRunUpdateWithoutBookInput, WorkflowRunUncheckedUpdateWithoutBookInput>
+    create: XOR<WorkflowRunCreateWithoutBookInput, WorkflowRunUncheckedCreateWithoutBookInput>
+  }
+
+  export type WorkflowRunUpdateWithWhereUniqueWithoutBookInput = {
+    where: WorkflowRunWhereUniqueInput
+    data: XOR<WorkflowRunUpdateWithoutBookInput, WorkflowRunUncheckedUpdateWithoutBookInput>
+  }
+
+  export type WorkflowRunUpdateManyWithWhereWithoutBookInput = {
+    where: WorkflowRunScalarWhereInput
+    data: XOR<WorkflowRunUpdateManyMutationInput, WorkflowRunUncheckedUpdateManyWithoutBookInput>
+  }
+
+  export type WorkflowRunScalarWhereInput = {
+    AND?: WorkflowRunScalarWhereInput | WorkflowRunScalarWhereInput[]
+    OR?: WorkflowRunScalarWhereInput[]
+    NOT?: WorkflowRunScalarWhereInput | WorkflowRunScalarWhereInput[]
+    id?: StringFilter<"WorkflowRun"> | string
+    workflowId?: StringFilter<"WorkflowRun"> | string
+    bookId?: StringFilter<"WorkflowRun"> | string
+    processingTaskId?: StringNullableFilter<"WorkflowRun"> | string | null
+    status?: StringFilter<"WorkflowRun"> | string
+    entryPayload?: JsonNullableFilter<"WorkflowRun">
+    runtimeConfig?: JsonNullableFilter<"WorkflowRun">
+    summary?: JsonNullableFilter<"WorkflowRun">
+    startedAt?: DateTimeFilter<"WorkflowRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"WorkflowRun"> | Date | string | null
   }
 
   export type ScriptSentenceUpsertWithWhereUniqueWithoutBookInput = {
@@ -44276,6 +54145,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -44309,6 +54179,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -44744,6 +54615,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -44777,6 +54649,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -45003,6 +54876,7 @@ export namespace Prisma {
     audioFiles?: AudioFileCreateNestedManyWithoutBookInput
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -45036,6 +54910,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUncheckedCreateNestedManyWithoutBookInput
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -45263,6 +55138,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUpdateManyWithoutBookNestedInput
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -45296,6 +55172,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUncheckedUpdateManyWithoutBookNestedInput
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -45385,6 +55262,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutAliasesInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45408,6 +55287,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45445,6 +55326,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutAliasesInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45468,6 +55351,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45615,6 +55500,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutVoiceBindingsInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45638,6 +55525,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45716,6 +55605,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutVoiceBindingsInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -45739,6 +55630,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -46117,6 +56010,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     chapters?: ChapterCreateNestedManyWithoutBookInput
@@ -46150,6 +56044,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
@@ -46330,6 +56225,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     chapters?: ChapterUpdateManyWithoutBookNestedInput
@@ -46363,6 +56259,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
@@ -46683,6 +56580,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
     chapters?: ChapterCreateNestedManyWithoutBookInput
@@ -46716,6 +56614,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
     chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
@@ -46734,6 +56633,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutScriptSentencesInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -46757,6 +56658,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -46976,6 +56879,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
     chapters?: ChapterUpdateManyWithoutBookNestedInput
@@ -47009,6 +56913,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
     chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
@@ -47033,6 +56938,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutScriptSentencesInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -47056,6 +56963,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -47206,6 +57115,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -47239,6 +57149,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -47648,6 +57559,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -47681,6 +57593,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -47980,6 +57893,7 @@ export namespace Prisma {
     audioFiles?: AudioFileCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -48013,6 +57927,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -48032,6 +57947,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutMergeAuditsSourceInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48055,6 +57972,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48081,6 +58000,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutMergeAuditsTargetInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48104,6 +58025,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48160,6 +58083,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -48193,6 +58117,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -48218,6 +58143,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutMergeAuditsSourceInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48241,6 +58168,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48273,6 +58202,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutMergeAuditsTargetInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48296,6 +58227,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48336,6 +58269,7 @@ export namespace Prisma {
     audioFiles?: AudioFileCreateNestedManyWithoutBookInput
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -48369,6 +58303,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUncheckedCreateNestedManyWithoutBookInput
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -48383,6 +58318,46 @@ export namespace Prisma {
   export type BookCreateOrConnectWithoutProcessingTasksInput = {
     where: BookWhereUniqueInput
     create: XOR<BookCreateWithoutProcessingTasksInput, BookUncheckedCreateWithoutProcessingTasksInput>
+  }
+
+  export type WorkflowRunCreateWithoutProcessingTaskInput = {
+    id?: string
+    workflowId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    book: BookCreateNestedOneWithoutWorkflowRunsInput
+    stageRuns?: StageRunCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunUncheckedCreateWithoutProcessingTaskInput = {
+    id?: string
+    workflowId: string
+    bookId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRuns?: StageRunUncheckedCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunCreateOrConnectWithoutProcessingTaskInput = {
+    where: WorkflowRunWhereUniqueInput
+    create: XOR<WorkflowRunCreateWithoutProcessingTaskInput, WorkflowRunUncheckedCreateWithoutProcessingTaskInput>
+  }
+
+  export type WorkflowRunCreateManyProcessingTaskInputEnvelope = {
+    data: WorkflowRunCreateManyProcessingTaskInput | WorkflowRunCreateManyProcessingTaskInput[]
+    skipDuplicates?: boolean
   }
 
   export type BookUpsertWithoutProcessingTasksInput = {
@@ -48418,6 +58393,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUpdateManyWithoutBookNestedInput
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -48451,6 +58427,7 @@ export namespace Prisma {
     audioFiles?: AudioFileUncheckedUpdateManyWithoutBookNestedInput
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -48460,6 +58437,1390 @@ export namespace Prisma {
     chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
     qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
     dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
+  }
+
+  export type WorkflowRunUpsertWithWhereUniqueWithoutProcessingTaskInput = {
+    where: WorkflowRunWhereUniqueInput
+    update: XOR<WorkflowRunUpdateWithoutProcessingTaskInput, WorkflowRunUncheckedUpdateWithoutProcessingTaskInput>
+    create: XOR<WorkflowRunCreateWithoutProcessingTaskInput, WorkflowRunUncheckedCreateWithoutProcessingTaskInput>
+  }
+
+  export type WorkflowRunUpdateWithWhereUniqueWithoutProcessingTaskInput = {
+    where: WorkflowRunWhereUniqueInput
+    data: XOR<WorkflowRunUpdateWithoutProcessingTaskInput, WorkflowRunUncheckedUpdateWithoutProcessingTaskInput>
+  }
+
+  export type WorkflowRunUpdateManyWithWhereWithoutProcessingTaskInput = {
+    where: WorkflowRunScalarWhereInput
+    data: XOR<WorkflowRunUpdateManyMutationInput, WorkflowRunUncheckedUpdateManyWithoutProcessingTaskInput>
+  }
+
+  export type BookCreateWithoutWorkflowRunsInput = {
+    id?: string
+    title: string
+    author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
+    synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentCreateNestedManyWithoutBookInput
+    chapters?: ChapterCreateNestedManyWithoutBookInput
+    qualityCheckResults?: QualityCheckResultCreateNestedManyWithoutBookInput
+    manualReviewItems?: ManualReviewItemCreateNestedManyWithoutBookInput
+    chapterQualityAudits?: ChapterQualityAuditCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigCreateNestedManyWithoutBookInput
+  }
+
+  export type BookUncheckedCreateWithoutWorkflowRunsInput = {
+    id?: string
+    title: string
+    author?: string | null
+    tenantId?: string | null
+    projectId?: string | null
+    originalFilename?: string | null
+    uploadedFilePath?: string | null
+    fileSize?: bigint | number | null
+    totalWords?: number | null
+    totalCharacters?: number
+    totalSegments?: number
+    totalChapters?: number
+    encoding?: string | null
+    fileFormat?: string | null
+    status?: string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    audioFiles?: AudioFileUncheckedCreateNestedManyWithoutBookInput
+    mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
+    characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
+    processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
+    synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
+    textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
+    chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
+    qualityCheckResults?: QualityCheckResultUncheckedCreateNestedManyWithoutBookInput
+    manualReviewItems?: ManualReviewItemUncheckedCreateNestedManyWithoutBookInput
+    chapterQualityAudits?: ChapterQualityAuditUncheckedCreateNestedManyWithoutBookInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedCreateNestedManyWithoutBookInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedCreateNestedManyWithoutBookInput
+  }
+
+  export type BookCreateOrConnectWithoutWorkflowRunsInput = {
+    where: BookWhereUniqueInput
+    create: XOR<BookCreateWithoutWorkflowRunsInput, BookUncheckedCreateWithoutWorkflowRunsInput>
+  }
+
+  export type ProcessingTaskCreateWithoutWorkflowRunsInput = {
+    id?: string
+    taskType: string
+    status?: string
+    progress?: number
+    totalItems?: number
+    processedItems?: number
+    taskData?: JsonNullValueInput | InputJsonValue
+    errorMessage?: string | null
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    externalTaskId?: string | null
+    book: BookCreateNestedOneWithoutProcessingTasksInput
+  }
+
+  export type ProcessingTaskUncheckedCreateWithoutWorkflowRunsInput = {
+    id?: string
+    bookId: string
+    taskType: string
+    status?: string
+    progress?: number
+    totalItems?: number
+    processedItems?: number
+    taskData?: JsonNullValueInput | InputJsonValue
+    errorMessage?: string | null
+    startedAt?: Date | string | null
+    completedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    externalTaskId?: string | null
+  }
+
+  export type ProcessingTaskCreateOrConnectWithoutWorkflowRunsInput = {
+    where: ProcessingTaskWhereUniqueInput
+    create: XOR<ProcessingTaskCreateWithoutWorkflowRunsInput, ProcessingTaskUncheckedCreateWithoutWorkflowRunsInput>
+  }
+
+  export type StageRunCreateWithoutWorkflowRunInput = {
+    id?: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    agentRuns?: AgentRunCreateNestedManyWithoutStageRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunUncheckedCreateWithoutWorkflowRunInput = {
+    id?: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutStageRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunCreateOrConnectWithoutWorkflowRunInput = {
+    where: StageRunWhereUniqueInput
+    create: XOR<StageRunCreateWithoutWorkflowRunInput, StageRunUncheckedCreateWithoutWorkflowRunInput>
+  }
+
+  export type StageRunCreateManyWorkflowRunInputEnvelope = {
+    data: StageRunCreateManyWorkflowRunInput | StageRunCreateManyWorkflowRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TraceEventCreateWithoutWorkflowRunInput = {
+    id?: string
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    stageRun?: StageRunCreateNestedOneWithoutTraceEventsInput
+    agentRun?: AgentRunCreateNestedOneWithoutTraceEventsInput
+  }
+
+  export type TraceEventUncheckedCreateWithoutWorkflowRunInput = {
+    id?: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type TraceEventCreateOrConnectWithoutWorkflowRunInput = {
+    where: TraceEventWhereUniqueInput
+    create: XOR<TraceEventCreateWithoutWorkflowRunInput, TraceEventUncheckedCreateWithoutWorkflowRunInput>
+  }
+
+  export type TraceEventCreateManyWorkflowRunInputEnvelope = {
+    data: TraceEventCreateManyWorkflowRunInput | TraceEventCreateManyWorkflowRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RuntimeArtifactCreateWithoutWorkflowRunInput = {
+    id?: string
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    stageRun?: StageRunCreateNestedOneWithoutRuntimeArtifactsInput
+    agentRun?: AgentRunCreateNestedOneWithoutRuntimeArtifactsInput
+  }
+
+  export type RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput = {
+    id?: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactCreateOrConnectWithoutWorkflowRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    create: XOR<RuntimeArtifactCreateWithoutWorkflowRunInput, RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput>
+  }
+
+  export type RuntimeArtifactCreateManyWorkflowRunInputEnvelope = {
+    data: RuntimeArtifactCreateManyWorkflowRunInput | RuntimeArtifactCreateManyWorkflowRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type BookUpsertWithoutWorkflowRunsInput = {
+    update: XOR<BookUpdateWithoutWorkflowRunsInput, BookUncheckedUpdateWithoutWorkflowRunsInput>
+    create: XOR<BookCreateWithoutWorkflowRunsInput, BookUncheckedCreateWithoutWorkflowRunsInput>
+    where?: BookWhereInput
+  }
+
+  export type BookUpdateToOneWithWhereWithoutWorkflowRunsInput = {
+    where?: BookWhereInput
+    data: XOR<BookUpdateWithoutWorkflowRunsInput, BookUncheckedUpdateWithoutWorkflowRunsInput>
+  }
+
+  export type BookUpdateWithoutWorkflowRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
+    synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUpdateManyWithoutBookNestedInput
+    qualityCheckResults?: QualityCheckResultUpdateManyWithoutBookNestedInput
+    manualReviewItems?: ManualReviewItemUpdateManyWithoutBookNestedInput
+    chapterQualityAudits?: ChapterQualityAuditUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUpdateManyWithoutBookNestedInput
+  }
+
+  export type BookUncheckedUpdateWithoutWorkflowRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    author?: NullableStringFieldUpdateOperationsInput | string | null
+    tenantId?: NullableStringFieldUpdateOperationsInput | string | null
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    originalFilename?: NullableStringFieldUpdateOperationsInput | string | null
+    uploadedFilePath?: NullableStringFieldUpdateOperationsInput | string | null
+    fileSize?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    totalWords?: NullableIntFieldUpdateOperationsInput | number | null
+    totalCharacters?: IntFieldUpdateOperationsInput | number
+    totalSegments?: IntFieldUpdateOperationsInput | number
+    totalChapters?: IntFieldUpdateOperationsInput | number
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    fileFormat?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    metadata?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    audioFiles?: AudioFileUncheckedUpdateManyWithoutBookNestedInput
+    mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
+    characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
+    processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
+    synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
+    textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
+    chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
+    qualityCheckResults?: QualityCheckResultUncheckedUpdateManyWithoutBookNestedInput
+    manualReviewItems?: ManualReviewItemUncheckedUpdateManyWithoutBookNestedInput
+    chapterQualityAudits?: ChapterQualityAuditUncheckedUpdateManyWithoutBookNestedInput
+    qcDispatchAlerts?: QcDispatchAlertEventUncheckedUpdateManyWithoutBookNestedInput
+    dispatchPolicyConfigs?: QcDispatchPolicyConfigUncheckedUpdateManyWithoutBookNestedInput
+  }
+
+  export type ProcessingTaskUpsertWithoutWorkflowRunsInput = {
+    update: XOR<ProcessingTaskUpdateWithoutWorkflowRunsInput, ProcessingTaskUncheckedUpdateWithoutWorkflowRunsInput>
+    create: XOR<ProcessingTaskCreateWithoutWorkflowRunsInput, ProcessingTaskUncheckedCreateWithoutWorkflowRunsInput>
+    where?: ProcessingTaskWhereInput
+  }
+
+  export type ProcessingTaskUpdateToOneWithWhereWithoutWorkflowRunsInput = {
+    where?: ProcessingTaskWhereInput
+    data: XOR<ProcessingTaskUpdateWithoutWorkflowRunsInput, ProcessingTaskUncheckedUpdateWithoutWorkflowRunsInput>
+  }
+
+  export type ProcessingTaskUpdateWithoutWorkflowRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    taskType?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    progress?: IntFieldUpdateOperationsInput | number
+    totalItems?: IntFieldUpdateOperationsInput | number
+    processedItems?: IntFieldUpdateOperationsInput | number
+    taskData?: JsonNullValueInput | InputJsonValue
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    book?: BookUpdateOneRequiredWithoutProcessingTasksNestedInput
+  }
+
+  export type ProcessingTaskUncheckedUpdateWithoutWorkflowRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    taskType?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    progress?: IntFieldUpdateOperationsInput | number
+    totalItems?: IntFieldUpdateOperationsInput | number
+    processedItems?: IntFieldUpdateOperationsInput | number
+    taskData?: JsonNullValueInput | InputJsonValue
+    errorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type StageRunUpsertWithWhereUniqueWithoutWorkflowRunInput = {
+    where: StageRunWhereUniqueInput
+    update: XOR<StageRunUpdateWithoutWorkflowRunInput, StageRunUncheckedUpdateWithoutWorkflowRunInput>
+    create: XOR<StageRunCreateWithoutWorkflowRunInput, StageRunUncheckedCreateWithoutWorkflowRunInput>
+  }
+
+  export type StageRunUpdateWithWhereUniqueWithoutWorkflowRunInput = {
+    where: StageRunWhereUniqueInput
+    data: XOR<StageRunUpdateWithoutWorkflowRunInput, StageRunUncheckedUpdateWithoutWorkflowRunInput>
+  }
+
+  export type StageRunUpdateManyWithWhereWithoutWorkflowRunInput = {
+    where: StageRunScalarWhereInput
+    data: XOR<StageRunUpdateManyMutationInput, StageRunUncheckedUpdateManyWithoutWorkflowRunInput>
+  }
+
+  export type StageRunScalarWhereInput = {
+    AND?: StageRunScalarWhereInput | StageRunScalarWhereInput[]
+    OR?: StageRunScalarWhereInput[]
+    NOT?: StageRunScalarWhereInput | StageRunScalarWhereInput[]
+    id?: StringFilter<"StageRun"> | string
+    workflowRunId?: StringFilter<"StageRun"> | string
+    stageId?: StringFilter<"StageRun"> | string
+    status?: StringFilter<"StageRun"> | string
+    summary?: JsonNullableFilter<"StageRun">
+    startedAt?: DateTimeFilter<"StageRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"StageRun"> | Date | string | null
+  }
+
+  export type TraceEventUpsertWithWhereUniqueWithoutWorkflowRunInput = {
+    where: TraceEventWhereUniqueInput
+    update: XOR<TraceEventUpdateWithoutWorkflowRunInput, TraceEventUncheckedUpdateWithoutWorkflowRunInput>
+    create: XOR<TraceEventCreateWithoutWorkflowRunInput, TraceEventUncheckedCreateWithoutWorkflowRunInput>
+  }
+
+  export type TraceEventUpdateWithWhereUniqueWithoutWorkflowRunInput = {
+    where: TraceEventWhereUniqueInput
+    data: XOR<TraceEventUpdateWithoutWorkflowRunInput, TraceEventUncheckedUpdateWithoutWorkflowRunInput>
+  }
+
+  export type TraceEventUpdateManyWithWhereWithoutWorkflowRunInput = {
+    where: TraceEventScalarWhereInput
+    data: XOR<TraceEventUpdateManyMutationInput, TraceEventUncheckedUpdateManyWithoutWorkflowRunInput>
+  }
+
+  export type TraceEventScalarWhereInput = {
+    AND?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+    OR?: TraceEventScalarWhereInput[]
+    NOT?: TraceEventScalarWhereInput | TraceEventScalarWhereInput[]
+    id?: StringFilter<"TraceEvent"> | string
+    workflowRunId?: StringFilter<"TraceEvent"> | string
+    stageRunId?: StringNullableFilter<"TraceEvent"> | string | null
+    agentRunId?: StringNullableFilter<"TraceEvent"> | string | null
+    eventType?: StringFilter<"TraceEvent"> | string
+    payload?: JsonNullableFilter<"TraceEvent">
+    createdAt?: DateTimeFilter<"TraceEvent"> | Date | string
+  }
+
+  export type RuntimeArtifactUpsertWithWhereUniqueWithoutWorkflowRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    update: XOR<RuntimeArtifactUpdateWithoutWorkflowRunInput, RuntimeArtifactUncheckedUpdateWithoutWorkflowRunInput>
+    create: XOR<RuntimeArtifactCreateWithoutWorkflowRunInput, RuntimeArtifactUncheckedCreateWithoutWorkflowRunInput>
+  }
+
+  export type RuntimeArtifactUpdateWithWhereUniqueWithoutWorkflowRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    data: XOR<RuntimeArtifactUpdateWithoutWorkflowRunInput, RuntimeArtifactUncheckedUpdateWithoutWorkflowRunInput>
+  }
+
+  export type RuntimeArtifactUpdateManyWithWhereWithoutWorkflowRunInput = {
+    where: RuntimeArtifactScalarWhereInput
+    data: XOR<RuntimeArtifactUpdateManyMutationInput, RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunInput>
+  }
+
+  export type RuntimeArtifactScalarWhereInput = {
+    AND?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+    OR?: RuntimeArtifactScalarWhereInput[]
+    NOT?: RuntimeArtifactScalarWhereInput | RuntimeArtifactScalarWhereInput[]
+    id?: StringFilter<"RuntimeArtifact"> | string
+    workflowRunId?: StringFilter<"RuntimeArtifact"> | string
+    stageRunId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    agentRunId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    segmentId?: StringNullableFilter<"RuntimeArtifact"> | string | null
+    artifactKind?: StringFilter<"RuntimeArtifact"> | string
+    artifactVersion?: StringFilter<"RuntimeArtifact"> | string
+    payload?: JsonFilter<"RuntimeArtifact">
+    createdAt?: DateTimeFilter<"RuntimeArtifact"> | Date | string
+  }
+
+  export type WorkflowRunCreateWithoutStageRunsInput = {
+    id?: string
+    workflowId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    book: BookCreateNestedOneWithoutWorkflowRunsInput
+    processingTask?: ProcessingTaskCreateNestedOneWithoutWorkflowRunsInput
+    traceEvents?: TraceEventCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunUncheckedCreateWithoutStageRunsInput = {
+    id?: string
+    workflowId: string
+    bookId: string
+    processingTaskId?: string | null
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunCreateOrConnectWithoutStageRunsInput = {
+    where: WorkflowRunWhereUniqueInput
+    create: XOR<WorkflowRunCreateWithoutStageRunsInput, WorkflowRunUncheckedCreateWithoutStageRunsInput>
+  }
+
+  export type AgentRunCreateWithoutStageRunInput = {
+    id?: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    toolCalls?: ToolCallCreateNestedManyWithoutAgentRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutStageRunInput = {
+    id?: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    toolCalls?: ToolCallUncheckedCreateNestedManyWithoutAgentRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutStageRunInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutStageRunInput, AgentRunUncheckedCreateWithoutStageRunInput>
+  }
+
+  export type AgentRunCreateManyStageRunInputEnvelope = {
+    data: AgentRunCreateManyStageRunInput | AgentRunCreateManyStageRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TraceEventCreateWithoutStageRunInput = {
+    id?: string
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    workflowRun: WorkflowRunCreateNestedOneWithoutTraceEventsInput
+    agentRun?: AgentRunCreateNestedOneWithoutTraceEventsInput
+  }
+
+  export type TraceEventUncheckedCreateWithoutStageRunInput = {
+    id?: string
+    workflowRunId: string
+    agentRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type TraceEventCreateOrConnectWithoutStageRunInput = {
+    where: TraceEventWhereUniqueInput
+    create: XOR<TraceEventCreateWithoutStageRunInput, TraceEventUncheckedCreateWithoutStageRunInput>
+  }
+
+  export type TraceEventCreateManyStageRunInputEnvelope = {
+    data: TraceEventCreateManyStageRunInput | TraceEventCreateManyStageRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RuntimeArtifactCreateWithoutStageRunInput = {
+    id?: string
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    workflowRun: WorkflowRunCreateNestedOneWithoutRuntimeArtifactsInput
+    agentRun?: AgentRunCreateNestedOneWithoutRuntimeArtifactsInput
+  }
+
+  export type RuntimeArtifactUncheckedCreateWithoutStageRunInput = {
+    id?: string
+    workflowRunId: string
+    agentRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactCreateOrConnectWithoutStageRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    create: XOR<RuntimeArtifactCreateWithoutStageRunInput, RuntimeArtifactUncheckedCreateWithoutStageRunInput>
+  }
+
+  export type RuntimeArtifactCreateManyStageRunInputEnvelope = {
+    data: RuntimeArtifactCreateManyStageRunInput | RuntimeArtifactCreateManyStageRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type WorkflowRunUpsertWithoutStageRunsInput = {
+    update: XOR<WorkflowRunUpdateWithoutStageRunsInput, WorkflowRunUncheckedUpdateWithoutStageRunsInput>
+    create: XOR<WorkflowRunCreateWithoutStageRunsInput, WorkflowRunUncheckedCreateWithoutStageRunsInput>
+    where?: WorkflowRunWhereInput
+  }
+
+  export type WorkflowRunUpdateToOneWithWhereWithoutStageRunsInput = {
+    where?: WorkflowRunWhereInput
+    data: XOR<WorkflowRunUpdateWithoutStageRunsInput, WorkflowRunUncheckedUpdateWithoutStageRunsInput>
+  }
+
+  export type WorkflowRunUpdateWithoutStageRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    book?: BookUpdateOneRequiredWithoutWorkflowRunsNestedInput
+    processingTask?: ProcessingTaskUpdateOneWithoutWorkflowRunsNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateWithoutStageRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    processingTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type AgentRunUpsertWithWhereUniqueWithoutStageRunInput = {
+    where: AgentRunWhereUniqueInput
+    update: XOR<AgentRunUpdateWithoutStageRunInput, AgentRunUncheckedUpdateWithoutStageRunInput>
+    create: XOR<AgentRunCreateWithoutStageRunInput, AgentRunUncheckedCreateWithoutStageRunInput>
+  }
+
+  export type AgentRunUpdateWithWhereUniqueWithoutStageRunInput = {
+    where: AgentRunWhereUniqueInput
+    data: XOR<AgentRunUpdateWithoutStageRunInput, AgentRunUncheckedUpdateWithoutStageRunInput>
+  }
+
+  export type AgentRunUpdateManyWithWhereWithoutStageRunInput = {
+    where: AgentRunScalarWhereInput
+    data: XOR<AgentRunUpdateManyMutationInput, AgentRunUncheckedUpdateManyWithoutStageRunInput>
+  }
+
+  export type AgentRunScalarWhereInput = {
+    AND?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+    OR?: AgentRunScalarWhereInput[]
+    NOT?: AgentRunScalarWhereInput | AgentRunScalarWhereInput[]
+    id?: StringFilter<"AgentRun"> | string
+    stageRunId?: StringFilter<"AgentRun"> | string
+    agentId?: StringFilter<"AgentRun"> | string
+    skillId?: StringNullableFilter<"AgentRun"> | string | null
+    status?: StringFilter<"AgentRun"> | string
+    inputSummary?: JsonNullableFilter<"AgentRun">
+    outputSummary?: JsonNullableFilter<"AgentRun">
+    startedAt?: DateTimeFilter<"AgentRun"> | Date | string
+    completedAt?: DateTimeNullableFilter<"AgentRun"> | Date | string | null
+  }
+
+  export type TraceEventUpsertWithWhereUniqueWithoutStageRunInput = {
+    where: TraceEventWhereUniqueInput
+    update: XOR<TraceEventUpdateWithoutStageRunInput, TraceEventUncheckedUpdateWithoutStageRunInput>
+    create: XOR<TraceEventCreateWithoutStageRunInput, TraceEventUncheckedCreateWithoutStageRunInput>
+  }
+
+  export type TraceEventUpdateWithWhereUniqueWithoutStageRunInput = {
+    where: TraceEventWhereUniqueInput
+    data: XOR<TraceEventUpdateWithoutStageRunInput, TraceEventUncheckedUpdateWithoutStageRunInput>
+  }
+
+  export type TraceEventUpdateManyWithWhereWithoutStageRunInput = {
+    where: TraceEventScalarWhereInput
+    data: XOR<TraceEventUpdateManyMutationInput, TraceEventUncheckedUpdateManyWithoutStageRunInput>
+  }
+
+  export type RuntimeArtifactUpsertWithWhereUniqueWithoutStageRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    update: XOR<RuntimeArtifactUpdateWithoutStageRunInput, RuntimeArtifactUncheckedUpdateWithoutStageRunInput>
+    create: XOR<RuntimeArtifactCreateWithoutStageRunInput, RuntimeArtifactUncheckedCreateWithoutStageRunInput>
+  }
+
+  export type RuntimeArtifactUpdateWithWhereUniqueWithoutStageRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    data: XOR<RuntimeArtifactUpdateWithoutStageRunInput, RuntimeArtifactUncheckedUpdateWithoutStageRunInput>
+  }
+
+  export type RuntimeArtifactUpdateManyWithWhereWithoutStageRunInput = {
+    where: RuntimeArtifactScalarWhereInput
+    data: XOR<RuntimeArtifactUpdateManyMutationInput, RuntimeArtifactUncheckedUpdateManyWithoutStageRunInput>
+  }
+
+  export type StageRunCreateWithoutAgentRunsInput = {
+    id?: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    workflowRun: WorkflowRunCreateNestedOneWithoutStageRunsInput
+    traceEvents?: TraceEventCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunUncheckedCreateWithoutAgentRunsInput = {
+    id?: string
+    workflowRunId: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunCreateOrConnectWithoutAgentRunsInput = {
+    where: StageRunWhereUniqueInput
+    create: XOR<StageRunCreateWithoutAgentRunsInput, StageRunUncheckedCreateWithoutAgentRunsInput>
+  }
+
+  export type ToolCallCreateWithoutAgentRunInput = {
+    id?: string
+    toolName: string
+    status: string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type ToolCallUncheckedCreateWithoutAgentRunInput = {
+    id?: string
+    toolName: string
+    status: string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type ToolCallCreateOrConnectWithoutAgentRunInput = {
+    where: ToolCallWhereUniqueInput
+    create: XOR<ToolCallCreateWithoutAgentRunInput, ToolCallUncheckedCreateWithoutAgentRunInput>
+  }
+
+  export type ToolCallCreateManyAgentRunInputEnvelope = {
+    data: ToolCallCreateManyAgentRunInput | ToolCallCreateManyAgentRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type TraceEventCreateWithoutAgentRunInput = {
+    id?: string
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    workflowRun: WorkflowRunCreateNestedOneWithoutTraceEventsInput
+    stageRun?: StageRunCreateNestedOneWithoutTraceEventsInput
+  }
+
+  export type TraceEventUncheckedCreateWithoutAgentRunInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type TraceEventCreateOrConnectWithoutAgentRunInput = {
+    where: TraceEventWhereUniqueInput
+    create: XOR<TraceEventCreateWithoutAgentRunInput, TraceEventUncheckedCreateWithoutAgentRunInput>
+  }
+
+  export type TraceEventCreateManyAgentRunInputEnvelope = {
+    data: TraceEventCreateManyAgentRunInput | TraceEventCreateManyAgentRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type RuntimeArtifactCreateWithoutAgentRunInput = {
+    id?: string
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    workflowRun: WorkflowRunCreateNestedOneWithoutRuntimeArtifactsInput
+    stageRun?: StageRunCreateNestedOneWithoutRuntimeArtifactsInput
+  }
+
+  export type RuntimeArtifactUncheckedCreateWithoutAgentRunInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactCreateOrConnectWithoutAgentRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    create: XOR<RuntimeArtifactCreateWithoutAgentRunInput, RuntimeArtifactUncheckedCreateWithoutAgentRunInput>
+  }
+
+  export type RuntimeArtifactCreateManyAgentRunInputEnvelope = {
+    data: RuntimeArtifactCreateManyAgentRunInput | RuntimeArtifactCreateManyAgentRunInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type StageRunUpsertWithoutAgentRunsInput = {
+    update: XOR<StageRunUpdateWithoutAgentRunsInput, StageRunUncheckedUpdateWithoutAgentRunsInput>
+    create: XOR<StageRunCreateWithoutAgentRunsInput, StageRunUncheckedCreateWithoutAgentRunsInput>
+    where?: StageRunWhereInput
+  }
+
+  export type StageRunUpdateToOneWithWhereWithoutAgentRunsInput = {
+    where?: StageRunWhereInput
+    data: XOR<StageRunUpdateWithoutAgentRunsInput, StageRunUncheckedUpdateWithoutAgentRunsInput>
+  }
+
+  export type StageRunUpdateWithoutAgentRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutStageRunsNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type StageRunUncheckedUpdateWithoutAgentRunsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type ToolCallUpsertWithWhereUniqueWithoutAgentRunInput = {
+    where: ToolCallWhereUniqueInput
+    update: XOR<ToolCallUpdateWithoutAgentRunInput, ToolCallUncheckedUpdateWithoutAgentRunInput>
+    create: XOR<ToolCallCreateWithoutAgentRunInput, ToolCallUncheckedCreateWithoutAgentRunInput>
+  }
+
+  export type ToolCallUpdateWithWhereUniqueWithoutAgentRunInput = {
+    where: ToolCallWhereUniqueInput
+    data: XOR<ToolCallUpdateWithoutAgentRunInput, ToolCallUncheckedUpdateWithoutAgentRunInput>
+  }
+
+  export type ToolCallUpdateManyWithWhereWithoutAgentRunInput = {
+    where: ToolCallScalarWhereInput
+    data: XOR<ToolCallUpdateManyMutationInput, ToolCallUncheckedUpdateManyWithoutAgentRunInput>
+  }
+
+  export type ToolCallScalarWhereInput = {
+    AND?: ToolCallScalarWhereInput | ToolCallScalarWhereInput[]
+    OR?: ToolCallScalarWhereInput[]
+    NOT?: ToolCallScalarWhereInput | ToolCallScalarWhereInput[]
+    id?: StringFilter<"ToolCall"> | string
+    agentRunId?: StringFilter<"ToolCall"> | string
+    toolName?: StringFilter<"ToolCall"> | string
+    status?: StringFilter<"ToolCall"> | string
+    argumentsSummary?: JsonNullableFilter<"ToolCall">
+    resultSummary?: JsonNullableFilter<"ToolCall">
+    createdAt?: DateTimeFilter<"ToolCall"> | Date | string
+    completedAt?: DateTimeNullableFilter<"ToolCall"> | Date | string | null
+  }
+
+  export type TraceEventUpsertWithWhereUniqueWithoutAgentRunInput = {
+    where: TraceEventWhereUniqueInput
+    update: XOR<TraceEventUpdateWithoutAgentRunInput, TraceEventUncheckedUpdateWithoutAgentRunInput>
+    create: XOR<TraceEventCreateWithoutAgentRunInput, TraceEventUncheckedCreateWithoutAgentRunInput>
+  }
+
+  export type TraceEventUpdateWithWhereUniqueWithoutAgentRunInput = {
+    where: TraceEventWhereUniqueInput
+    data: XOR<TraceEventUpdateWithoutAgentRunInput, TraceEventUncheckedUpdateWithoutAgentRunInput>
+  }
+
+  export type TraceEventUpdateManyWithWhereWithoutAgentRunInput = {
+    where: TraceEventScalarWhereInput
+    data: XOR<TraceEventUpdateManyMutationInput, TraceEventUncheckedUpdateManyWithoutAgentRunInput>
+  }
+
+  export type RuntimeArtifactUpsertWithWhereUniqueWithoutAgentRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    update: XOR<RuntimeArtifactUpdateWithoutAgentRunInput, RuntimeArtifactUncheckedUpdateWithoutAgentRunInput>
+    create: XOR<RuntimeArtifactCreateWithoutAgentRunInput, RuntimeArtifactUncheckedCreateWithoutAgentRunInput>
+  }
+
+  export type RuntimeArtifactUpdateWithWhereUniqueWithoutAgentRunInput = {
+    where: RuntimeArtifactWhereUniqueInput
+    data: XOR<RuntimeArtifactUpdateWithoutAgentRunInput, RuntimeArtifactUncheckedUpdateWithoutAgentRunInput>
+  }
+
+  export type RuntimeArtifactUpdateManyWithWhereWithoutAgentRunInput = {
+    where: RuntimeArtifactScalarWhereInput
+    data: XOR<RuntimeArtifactUpdateManyMutationInput, RuntimeArtifactUncheckedUpdateManyWithoutAgentRunInput>
+  }
+
+  export type AgentRunCreateWithoutToolCallsInput = {
+    id?: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRun: StageRunCreateNestedOneWithoutAgentRunsInput
+    traceEvents?: TraceEventCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutToolCallsInput = {
+    id?: string
+    stageRunId: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutToolCallsInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutToolCallsInput, AgentRunUncheckedCreateWithoutToolCallsInput>
+  }
+
+  export type AgentRunUpsertWithoutToolCallsInput = {
+    update: XOR<AgentRunUpdateWithoutToolCallsInput, AgentRunUncheckedUpdateWithoutToolCallsInput>
+    create: XOR<AgentRunCreateWithoutToolCallsInput, AgentRunUncheckedCreateWithoutToolCallsInput>
+    where?: AgentRunWhereInput
+  }
+
+  export type AgentRunUpdateToOneWithWhereWithoutToolCallsInput = {
+    where?: AgentRunWhereInput
+    data: XOR<AgentRunUpdateWithoutToolCallsInput, AgentRunUncheckedUpdateWithoutToolCallsInput>
+  }
+
+  export type AgentRunUpdateWithoutToolCallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRun?: StageRunUpdateOneRequiredWithoutAgentRunsNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutToolCallsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type WorkflowRunCreateWithoutTraceEventsInput = {
+    id?: string
+    workflowId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    book: BookCreateNestedOneWithoutWorkflowRunsInput
+    processingTask?: ProcessingTaskCreateNestedOneWithoutWorkflowRunsInput
+    stageRuns?: StageRunCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunUncheckedCreateWithoutTraceEventsInput = {
+    id?: string
+    workflowId: string
+    bookId: string
+    processingTaskId?: string | null
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRuns?: StageRunUncheckedCreateNestedManyWithoutWorkflowRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunCreateOrConnectWithoutTraceEventsInput = {
+    where: WorkflowRunWhereUniqueInput
+    create: XOR<WorkflowRunCreateWithoutTraceEventsInput, WorkflowRunUncheckedCreateWithoutTraceEventsInput>
+  }
+
+  export type StageRunCreateWithoutTraceEventsInput = {
+    id?: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    workflowRun: WorkflowRunCreateNestedOneWithoutStageRunsInput
+    agentRuns?: AgentRunCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunUncheckedCreateWithoutTraceEventsInput = {
+    id?: string
+    workflowRunId: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutStageRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunCreateOrConnectWithoutTraceEventsInput = {
+    where: StageRunWhereUniqueInput
+    create: XOR<StageRunCreateWithoutTraceEventsInput, StageRunUncheckedCreateWithoutTraceEventsInput>
+  }
+
+  export type AgentRunCreateWithoutTraceEventsInput = {
+    id?: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRun: StageRunCreateNestedOneWithoutAgentRunsInput
+    toolCalls?: ToolCallCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutTraceEventsInput = {
+    id?: string
+    stageRunId: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    toolCalls?: ToolCallUncheckedCreateNestedManyWithoutAgentRunInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutTraceEventsInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutTraceEventsInput, AgentRunUncheckedCreateWithoutTraceEventsInput>
+  }
+
+  export type WorkflowRunUpsertWithoutTraceEventsInput = {
+    update: XOR<WorkflowRunUpdateWithoutTraceEventsInput, WorkflowRunUncheckedUpdateWithoutTraceEventsInput>
+    create: XOR<WorkflowRunCreateWithoutTraceEventsInput, WorkflowRunUncheckedCreateWithoutTraceEventsInput>
+    where?: WorkflowRunWhereInput
+  }
+
+  export type WorkflowRunUpdateToOneWithWhereWithoutTraceEventsInput = {
+    where?: WorkflowRunWhereInput
+    data: XOR<WorkflowRunUpdateWithoutTraceEventsInput, WorkflowRunUncheckedUpdateWithoutTraceEventsInput>
+  }
+
+  export type WorkflowRunUpdateWithoutTraceEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    book?: BookUpdateOneRequiredWithoutWorkflowRunsNestedInput
+    processingTask?: ProcessingTaskUpdateOneWithoutWorkflowRunsNestedInput
+    stageRuns?: StageRunUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateWithoutTraceEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    processingTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRuns?: StageRunUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type StageRunUpsertWithoutTraceEventsInput = {
+    update: XOR<StageRunUpdateWithoutTraceEventsInput, StageRunUncheckedUpdateWithoutTraceEventsInput>
+    create: XOR<StageRunCreateWithoutTraceEventsInput, StageRunUncheckedCreateWithoutTraceEventsInput>
+    where?: StageRunWhereInput
+  }
+
+  export type StageRunUpdateToOneWithWhereWithoutTraceEventsInput = {
+    where?: StageRunWhereInput
+    data: XOR<StageRunUpdateWithoutTraceEventsInput, StageRunUncheckedUpdateWithoutTraceEventsInput>
+  }
+
+  export type StageRunUpdateWithoutTraceEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutStageRunsNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type StageRunUncheckedUpdateWithoutTraceEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type AgentRunUpsertWithoutTraceEventsInput = {
+    update: XOR<AgentRunUpdateWithoutTraceEventsInput, AgentRunUncheckedUpdateWithoutTraceEventsInput>
+    create: XOR<AgentRunCreateWithoutTraceEventsInput, AgentRunUncheckedCreateWithoutTraceEventsInput>
+    where?: AgentRunWhereInput
+  }
+
+  export type AgentRunUpdateToOneWithWhereWithoutTraceEventsInput = {
+    where?: AgentRunWhereInput
+    data: XOR<AgentRunUpdateWithoutTraceEventsInput, AgentRunUncheckedUpdateWithoutTraceEventsInput>
+  }
+
+  export type AgentRunUpdateWithoutTraceEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRun?: StageRunUpdateOneRequiredWithoutAgentRunsNestedInput
+    toolCalls?: ToolCallUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutTraceEventsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    toolCalls?: ToolCallUncheckedUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type WorkflowRunCreateWithoutRuntimeArtifactsInput = {
+    id?: string
+    workflowId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    book: BookCreateNestedOneWithoutWorkflowRunsInput
+    processingTask?: ProcessingTaskCreateNestedOneWithoutWorkflowRunsInput
+    stageRuns?: StageRunCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunUncheckedCreateWithoutRuntimeArtifactsInput = {
+    id?: string
+    workflowId: string
+    bookId: string
+    processingTaskId?: string | null
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRuns?: StageRunUncheckedCreateNestedManyWithoutWorkflowRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutWorkflowRunInput
+  }
+
+  export type WorkflowRunCreateOrConnectWithoutRuntimeArtifactsInput = {
+    where: WorkflowRunWhereUniqueInput
+    create: XOR<WorkflowRunCreateWithoutRuntimeArtifactsInput, WorkflowRunUncheckedCreateWithoutRuntimeArtifactsInput>
+  }
+
+  export type StageRunCreateWithoutRuntimeArtifactsInput = {
+    id?: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    workflowRun: WorkflowRunCreateNestedOneWithoutStageRunsInput
+    agentRuns?: AgentRunCreateNestedManyWithoutStageRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunUncheckedCreateWithoutRuntimeArtifactsInput = {
+    id?: string
+    workflowRunId: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutStageRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutStageRunInput
+  }
+
+  export type StageRunCreateOrConnectWithoutRuntimeArtifactsInput = {
+    where: StageRunWhereUniqueInput
+    create: XOR<StageRunCreateWithoutRuntimeArtifactsInput, StageRunUncheckedCreateWithoutRuntimeArtifactsInput>
+  }
+
+  export type AgentRunCreateWithoutRuntimeArtifactsInput = {
+    id?: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    stageRun: StageRunCreateNestedOneWithoutAgentRunsInput
+    toolCalls?: ToolCallCreateNestedManyWithoutAgentRunInput
+    traceEvents?: TraceEventCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunUncheckedCreateWithoutRuntimeArtifactsInput = {
+    id?: string
+    stageRunId: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    toolCalls?: ToolCallUncheckedCreateNestedManyWithoutAgentRunInput
+    traceEvents?: TraceEventUncheckedCreateNestedManyWithoutAgentRunInput
+  }
+
+  export type AgentRunCreateOrConnectWithoutRuntimeArtifactsInput = {
+    where: AgentRunWhereUniqueInput
+    create: XOR<AgentRunCreateWithoutRuntimeArtifactsInput, AgentRunUncheckedCreateWithoutRuntimeArtifactsInput>
+  }
+
+  export type WorkflowRunUpsertWithoutRuntimeArtifactsInput = {
+    update: XOR<WorkflowRunUpdateWithoutRuntimeArtifactsInput, WorkflowRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+    create: XOR<WorkflowRunCreateWithoutRuntimeArtifactsInput, WorkflowRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    where?: WorkflowRunWhereInput
+  }
+
+  export type WorkflowRunUpdateToOneWithWhereWithoutRuntimeArtifactsInput = {
+    where?: WorkflowRunWhereInput
+    data: XOR<WorkflowRunUpdateWithoutRuntimeArtifactsInput, WorkflowRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+  }
+
+  export type WorkflowRunUpdateWithoutRuntimeArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    book?: BookUpdateOneRequiredWithoutWorkflowRunsNestedInput
+    processingTask?: ProcessingTaskUpdateOneWithoutWorkflowRunsNestedInput
+    stageRuns?: StageRunUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateWithoutRuntimeArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    processingTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRuns?: StageRunUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type StageRunUpsertWithoutRuntimeArtifactsInput = {
+    update: XOR<StageRunUpdateWithoutRuntimeArtifactsInput, StageRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+    create: XOR<StageRunCreateWithoutRuntimeArtifactsInput, StageRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    where?: StageRunWhereInput
+  }
+
+  export type StageRunUpdateToOneWithWhereWithoutRuntimeArtifactsInput = {
+    where?: StageRunWhereInput
+    data: XOR<StageRunUpdateWithoutRuntimeArtifactsInput, StageRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+  }
+
+  export type StageRunUpdateWithoutRuntimeArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutStageRunsNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutStageRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type StageRunUncheckedUpdateWithoutRuntimeArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutStageRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type AgentRunUpsertWithoutRuntimeArtifactsInput = {
+    update: XOR<AgentRunUpdateWithoutRuntimeArtifactsInput, AgentRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+    create: XOR<AgentRunCreateWithoutRuntimeArtifactsInput, AgentRunUncheckedCreateWithoutRuntimeArtifactsInput>
+    where?: AgentRunWhereInput
+  }
+
+  export type AgentRunUpdateToOneWithWhereWithoutRuntimeArtifactsInput = {
+    where?: AgentRunWhereInput
+    data: XOR<AgentRunUpdateWithoutRuntimeArtifactsInput, AgentRunUncheckedUpdateWithoutRuntimeArtifactsInput>
+  }
+
+  export type AgentRunUpdateWithoutRuntimeArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRun?: StageRunUpdateOneRequiredWithoutAgentRunsNestedInput
+    toolCalls?: ToolCallUpdateManyWithoutAgentRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutRuntimeArtifactsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    toolCalls?: ToolCallUncheckedUpdateManyWithoutAgentRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutAgentRunNestedInput
   }
 
   export type CharacterSpeakerBindingCreateWithoutSpeakerProfileInput = {
@@ -48662,6 +60023,8 @@ export namespace Prisma {
   export type CharacterProfileCreateWithoutSpeakerBindingsInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48685,6 +60048,8 @@ export namespace Prisma {
     id?: string
     bookId: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48768,6 +60133,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutSpeakerBindingsInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -48791,6 +60158,8 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     bookId?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -49204,6 +60573,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
     chapters?: ChapterCreateNestedManyWithoutBookInput
@@ -49237,6 +60607,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
     chapters?: ChapterUncheckedCreateNestedManyWithoutBookInput
@@ -49681,6 +61052,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
     chapters?: ChapterUpdateManyWithoutBookNestedInput
@@ -49714,6 +61086,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
     chapters?: ChapterUncheckedUpdateManyWithoutBookNestedInput
@@ -50108,6 +61481,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -50141,6 +61515,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -50511,6 +61886,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -50544,6 +61920,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -50894,6 +62271,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -50927,6 +62305,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -51294,6 +62673,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -51327,6 +62707,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -51714,6 +63095,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -51747,6 +63129,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -51796,6 +63179,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -51829,6 +63213,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -51862,6 +63247,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -51895,6 +63281,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -51974,6 +63361,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -52007,6 +63395,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -52146,6 +63535,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentCreateNestedManyWithoutBookInput
@@ -52179,6 +63569,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedCreateNestedManyWithoutBookInput
     characterProfiles?: CharacterProfileUncheckedCreateNestedManyWithoutBookInput
     processingTasks?: ProcessingTaskUncheckedCreateNestedManyWithoutBookInput
+    workflowRuns?: WorkflowRunUncheckedCreateNestedManyWithoutBookInput
     scriptSentences?: ScriptSentenceUncheckedCreateNestedManyWithoutBookInput
     synthesisAttempts?: SynthesisAttemptUncheckedCreateNestedManyWithoutBookInput
     textSegments?: TextSegmentUncheckedCreateNestedManyWithoutBookInput
@@ -52279,6 +63670,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUpdateManyWithoutBookNestedInput
@@ -52312,6 +63704,7 @@ export namespace Prisma {
     mergeAudits?: CharacterMergeAuditUncheckedUpdateManyWithoutBookNestedInput
     characterProfiles?: CharacterProfileUncheckedUpdateManyWithoutBookNestedInput
     processingTasks?: ProcessingTaskUncheckedUpdateManyWithoutBookNestedInput
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutBookNestedInput
     scriptSentences?: ScriptSentenceUncheckedUpdateManyWithoutBookNestedInput
     synthesisAttempts?: SynthesisAttemptUncheckedUpdateManyWithoutBookNestedInput
     textSegments?: TextSegmentUncheckedUpdateManyWithoutBookNestedInput
@@ -52415,6 +63808,8 @@ export namespace Prisma {
   export type CharacterProfileCreateManyBookInput = {
     id?: string
     canonicalName: string
+    isSystemRole?: boolean
+    systemRoleType?: string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52442,6 +63837,18 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     externalTaskId?: string | null
+  }
+
+  export type WorkflowRunCreateManyBookInput = {
+    id?: string
+    workflowId: string
+    processingTaskId?: string | null
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
   }
 
   export type ScriptSentenceCreateManyBookInput = {
@@ -52724,6 +64131,8 @@ export namespace Prisma {
   export type CharacterProfileUpdateWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52746,6 +64155,8 @@ export namespace Prisma {
   export type CharacterProfileUncheckedUpdateWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52768,6 +64179,8 @@ export namespace Prisma {
   export type CharacterProfileUncheckedUpdateManyWithoutBookInput = {
     id?: StringFieldUpdateOperationsInput | string
     canonicalName?: StringFieldUpdateOperationsInput | string
+    isSystemRole?: BoolFieldUpdateOperationsInput | boolean
+    systemRoleType?: NullableStringFieldUpdateOperationsInput | string | null
     characteristics?: JsonNullValueInput | InputJsonValue
     voicePreferences?: JsonNullValueInput | InputJsonValue
     emotionProfile?: JsonNullValueInput | InputJsonValue
@@ -52795,6 +64208,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    workflowRuns?: WorkflowRunUpdateManyWithoutProcessingTaskNestedInput
   }
 
   export type ProcessingTaskUncheckedUpdateWithoutBookInput = {
@@ -52811,6 +64225,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    workflowRuns?: WorkflowRunUncheckedUpdateManyWithoutProcessingTaskNestedInput
   }
 
   export type ProcessingTaskUncheckedUpdateManyWithoutBookInput = {
@@ -52827,6 +64242,48 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     externalTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type WorkflowRunUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    processingTask?: ProcessingTaskUpdateOneWithoutWorkflowRunsNestedInput
+    stageRuns?: StageRunUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    processingTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRuns?: StageRunUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateManyWithoutBookInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    processingTaskId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScriptSentenceUpdateWithoutBookInput = {
@@ -55493,6 +66950,432 @@ export namespace Prisma {
     resolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type WorkflowRunCreateManyProcessingTaskInput = {
+    id?: string
+    workflowId: string
+    bookId: string
+    status: string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type WorkflowRunUpdateWithoutProcessingTaskInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    book?: BookUpdateOneRequiredWithoutWorkflowRunsNestedInput
+    stageRuns?: StageRunUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateWithoutProcessingTaskInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    stageRuns?: StageRunUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutWorkflowRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunNestedInput
+  }
+
+  export type WorkflowRunUncheckedUpdateManyWithoutProcessingTaskInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowId?: StringFieldUpdateOperationsInput | string
+    bookId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    entryPayload?: NullableJsonNullValueInput | InputJsonValue
+    runtimeConfig?: NullableJsonNullValueInput | InputJsonValue
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type StageRunCreateManyWorkflowRunInput = {
+    id?: string
+    stageId: string
+    status: string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type TraceEventCreateManyWorkflowRunInput = {
+    id?: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactCreateManyWorkflowRunInput = {
+    id?: string
+    stageRunId?: string | null
+    agentRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type StageRunUpdateWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    agentRuns?: AgentRunUpdateManyWithoutStageRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type StageRunUncheckedUpdateWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutStageRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutStageRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutStageRunNestedInput
+  }
+
+  export type StageRunUncheckedUpdateManyWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageId?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    summary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TraceEventUpdateWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stageRun?: StageRunUpdateOneWithoutTraceEventsNestedInput
+    agentRun?: AgentRunUpdateOneWithoutTraceEventsNestedInput
+  }
+
+  export type TraceEventUncheckedUpdateWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TraceEventUncheckedUpdateManyWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactUpdateWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stageRun?: StageRunUpdateOneWithoutRuntimeArtifactsNestedInput
+    agentRun?: AgentRunUpdateOneWithoutRuntimeArtifactsNestedInput
+  }
+
+  export type RuntimeArtifactUncheckedUpdateWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactUncheckedUpdateManyWithoutWorkflowRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AgentRunCreateManyStageRunInput = {
+    id?: string
+    agentId: string
+    skillId?: string | null
+    status: string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type TraceEventCreateManyStageRunInput = {
+    id?: string
+    workflowRunId: string
+    agentRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactCreateManyStageRunInput = {
+    id?: string
+    workflowRunId: string
+    agentRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type AgentRunUpdateWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    toolCalls?: ToolCallUpdateManyWithoutAgentRunNestedInput
+    traceEvents?: TraceEventUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    toolCalls?: ToolCallUncheckedUpdateManyWithoutAgentRunNestedInput
+    traceEvents?: TraceEventUncheckedUpdateManyWithoutAgentRunNestedInput
+    runtimeArtifacts?: RuntimeArtifactUncheckedUpdateManyWithoutAgentRunNestedInput
+  }
+
+  export type AgentRunUncheckedUpdateManyWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    agentId?: StringFieldUpdateOperationsInput | string
+    skillId?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    inputSummary?: NullableJsonNullValueInput | InputJsonValue
+    outputSummary?: NullableJsonNullValueInput | InputJsonValue
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TraceEventUpdateWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutTraceEventsNestedInput
+    agentRun?: AgentRunUpdateOneWithoutTraceEventsNestedInput
+  }
+
+  export type TraceEventUncheckedUpdateWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TraceEventUncheckedUpdateManyWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactUpdateWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutRuntimeArtifactsNestedInput
+    agentRun?: AgentRunUpdateOneWithoutRuntimeArtifactsNestedInput
+  }
+
+  export type RuntimeArtifactUncheckedUpdateWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactUncheckedUpdateManyWithoutStageRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    agentRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ToolCallCreateManyAgentRunInput = {
+    id?: string
+    toolName: string
+    status: string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+    completedAt?: Date | string | null
+  }
+
+  export type TraceEventCreateManyAgentRunInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    eventType: string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type RuntimeArtifactCreateManyAgentRunInput = {
+    id?: string
+    workflowRunId: string
+    stageRunId?: string | null
+    segmentId?: string | null
+    artifactKind: string
+    artifactVersion: string
+    payload: JsonNullValueInput | InputJsonValue
+    createdAt?: Date | string
+  }
+
+  export type ToolCallUpdateWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    toolName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ToolCallUncheckedUpdateWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    toolName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ToolCallUncheckedUpdateManyWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    toolName?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    argumentsSummary?: NullableJsonNullValueInput | InputJsonValue
+    resultSummary?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type TraceEventUpdateWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutTraceEventsNestedInput
+    stageRun?: StageRunUpdateOneWithoutTraceEventsNestedInput
+  }
+
+  export type TraceEventUncheckedUpdateWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type TraceEventUncheckedUpdateManyWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    eventType?: StringFieldUpdateOperationsInput | string
+    payload?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactUpdateWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    workflowRun?: WorkflowRunUpdateOneRequiredWithoutRuntimeArtifactsNestedInput
+    stageRun?: StageRunUpdateOneWithoutRuntimeArtifactsNestedInput
+  }
+
+  export type RuntimeArtifactUncheckedUpdateWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeArtifactUncheckedUpdateManyWithoutAgentRunInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    workflowRunId?: StringFieldUpdateOperationsInput | string
+    stageRunId?: NullableStringFieldUpdateOperationsInput | string | null
+    segmentId?: NullableStringFieldUpdateOperationsInput | string | null
+    artifactKind?: StringFieldUpdateOperationsInput | string
+    artifactVersion?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type CharacterSpeakerBindingCreateManySpeakerProfileInput = {

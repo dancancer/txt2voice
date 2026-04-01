@@ -37,6 +37,7 @@ export function useScriptSentenceActions({
         tone?: string;
         characterId?: string | null;
         rawSpeaker?: string | null;
+        roleType?: string;
       }
     ) => {
       try {
@@ -46,6 +47,7 @@ export function useScriptSentenceActions({
           tone: updates.tone,
           characterId: updates.characterId ?? null,
           rawSpeaker: updates.rawSpeaker,
+          roleType: updates.roleType,
         };
 
         await updateScriptSentences(bookId, [payload]);
@@ -69,6 +71,7 @@ export function useScriptSentenceActions({
                   tone: payload.tone ?? undefined,
                   characterId: payload.characterId ?? null,
                   rawSpeaker: payload.rawSpeaker ?? undefined,
+                  roleType: payload.roleType ?? sentence.roleType,
                   character: nextCharacter,
                 }
               : sentence

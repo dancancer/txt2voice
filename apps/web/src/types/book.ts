@@ -50,8 +50,8 @@ export interface SpeakerBindingSummary {
   isDefault?: boolean
   isPreferred?: boolean
   speakerProfile?: {
-    id: string
-    name?: string
+    id: number
+    name?: string | null
     gender?: string
     ageGroup?: string
     toneStyle?: string
@@ -67,8 +67,11 @@ export interface CharacterProfileSummary {
   mentions?: number
   quotes?: number
   scriptSentencesCount?: number
+  characteristics?: unknown
   voiceBindings?: CharacterVoiceBindingSummary[]
   speakerBindings?: SpeakerBindingSummary[]
+  isSystemRole?: boolean
+  systemRoleType?: 'narration' | null
 }
 
 export interface Book {

@@ -8,7 +8,11 @@ import {
   savePartialScriptToDatabase,
   saveScriptToDatabase,
 } from "./script-generator/storage/persistence";
-import { processSegmentAndSave } from "./script-generator/pipeline/segment-processor";
+import {
+  inferSegment,
+  persistSegmentResult,
+  processSegmentAndSave,
+} from "./script-generator/pipeline/segment-processor";
 import {
   generatePartialScriptByBook,
   generateScriptByBook,
@@ -19,6 +23,7 @@ import type {
   SegmentProcessingResult,
   ScriptGenerationOptions,
 } from "./script-generator/types";
+import type { LLMExecutionObserver } from "./llm-service";
 
 export type {
   CharacterCandidate,
@@ -50,6 +55,41 @@ export class ScriptGenerator {
     });
   }
 
+  private async inferSegment(
+    segment: any,
+    characterMap: Map<string, string>,
+    characterProfiles: any[],
+    options: ScriptGenerationOptions
+  ): Promise<SegmentProcessingResult> {
+    return inferSegment({
+      llmService: this.llmService,
+      segment,
+      characterMap,
+      characterProfiles,
+      options,
+    });
+  }
+
+  private async persistSegmentResult(
+    segment: any,
+    result: SegmentProcessingResult,
+    characterMap: Map<string, string>,
+    characterProfiles: any[],
+    bookId: string
+  ): Promise<void> {
+    return persistSegmentResult({
+      bookId,
+      segmentId: segment.id,
+      result,
+      characterMap,
+      characterProfiles,
+    });
+  }
+
+  setExecutionObserver(observer: LLMExecutionObserver | null): void {
+    this.llmService.setExecutionObserver(observer);
+  }
+
   /**
    * 生成完整台本
    */
@@ -64,12 +104,19 @@ export class ScriptGenerator {
       bookId,
       options: finalOptions,
       onProgress,
-      processSegmentAndSave: (input) =>
-        this.processSegmentAndSave(
+      processSegment: (input) =>
+        this.inferSegment(
           input.segment,
           input.characterMap,
           input.characterProfiles,
-          input.options,
+          input.options
+        ),
+      persistSegmentResult: (input) =>
+        this.persistSegmentResult(
+          input.segment,
+          input.result,
+          input.characterMap,
+          input.characterProfiles,
           input.bookId
         ),
     });
@@ -95,12 +142,19 @@ export class ScriptGenerator {
       options: finalOptions,
       generationParams: params,
       onProgress,
-      processSegmentAndSave: (input) =>
-        this.processSegmentAndSave(
+      processSegment: (input) =>
+        this.inferSegment(
           input.segment,
           input.characterMap,
           input.characterProfiles,
-          input.options,
+          input.options
+        ),
+      persistSegmentResult: (input) =>
+        this.persistSegmentResult(
+          input.segment,
+          input.result,
+          input.characterMap,
+          input.characterProfiles,
           input.bookId
         ),
     });
@@ -122,12 +176,19 @@ export class ScriptGenerator {
       segmentIds,
       options: finalOptions,
       onProgress,
-      processSegmentAndSave: (input) =>
-        this.processSegmentAndSave(
+      processSegment: (input) =>
+        this.inferSegment(
           input.segment,
           input.characterMap,
           input.characterProfiles,
-          input.options,
+          input.options
+        ),
+      persistSegmentResult: (input) =>
+        this.persistSegmentResult(
+          input.segment,
+          input.result,
+          input.characterMap,
+          input.characterProfiles,
           input.bookId
         ),
     });

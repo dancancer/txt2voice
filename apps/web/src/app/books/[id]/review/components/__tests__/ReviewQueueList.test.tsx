@@ -25,6 +25,12 @@ const buildItem = (): ManualReviewItem => ({
     issueMessages: ["原文覆盖率过低", "尾部存在未覆盖内容"],
     issuePreviews: ["第二段原文"],
     segmentPreview: "第二段原文，有校验问题",
+    segmentContent: "第二段原文，有校验问题。完整段落内容在这里。",
+    rawResponse: '{"dialogues":[],"characters":[]}',
+    structuredResult: {
+      dialogues: [],
+      characters: [],
+    },
     coverageRatio: 0.82,
   },
   assignedTo: null,
@@ -46,8 +52,10 @@ describe("ReviewQueueList", () => {
         loading={false}
         actionLoadingItemId={null}
         batchActionLoading={false}
+        scriptSaveLoadingItemId={null}
         onResolve={() => undefined}
         onBatchResolve={async () => true}
+        onSaveScriptEdit={async () => true}
       />
     );
 
@@ -56,10 +64,51 @@ describe("ReviewQueueList", () => {
     expect(html).toContain("尾部存在未覆盖内容");
     expect(html).toContain("问题代码");
     expect(html).toContain("问题原文预览");
+    expect(html).toContain("当前生成结果预览");
+    expect(html).toContain("段落原文");
     expect(html).toContain("段落原文预览");
     expect(html).toContain("建议动作");
     expect(html).toContain("推荐动作：重生");
     expect(html).toContain("重生（推荐）");
+    expect(html).toContain("打开修订工作台");
     expect(html).toContain("优先重生台本，确认这一段是否需要更小粒度切段。");
+  });
+
+  it("should render generated preview when structured result uses runtime draft lines", () => {
+    const item = buildItem();
+    item.issueDetail = {
+      ...(item.issueDetail as Record<string, unknown>),
+      rawResponse: null,
+      structuredResult: {
+        segmentId: "segment-7",
+        createdAt: "2026-03-12T00:00:00.000Z",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "第二段原文",
+            text: "这是运行时回填出来的生成台词",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ReviewQueueList
+        items={[item]}
+        loading={false}
+        actionLoadingItemId={null}
+        batchActionLoading={false}
+        scriptSaveLoadingItemId={null}
+        onResolve={() => undefined}
+        onBatchResolve={async () => true}
+        onSaveScriptEdit={async () => true}
+      />
+    );
+
+    expect(html).toContain("当前生成结果预览");
+    expect(html).toContain("这是运行时回填出来的生成台词");
+    expect(html).not.toContain("暂无原始生成结果");
   });
 });

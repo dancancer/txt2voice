@@ -24,6 +24,12 @@ import {
   resolveScriptValidationSubtype,
   SCRIPT_VALIDATION_ISSUE_TYPE,
 } from "@/lib/script-validation-review";
+import { resolveScriptGenerationOptions } from "@/lib/script-generator/options";
+import {
+  buildSegmentProcessingResultFromStructuredResult,
+  persistSegmentResult,
+} from "@/lib/script-generator/pipeline/segment-processor";
+import { hydrateManualReviewRuntimeDetails } from "@/lib/manual-review-runtime-recovery";
 
 export type ManualReviewStatus = "pending" | "reprocessing" | "resolved" | "rejected";
 export type ManualReviewResolveAction = "approve" | "reject" | "regenerate";
@@ -83,6 +89,18 @@ interface ResolveManualReviewInput {
 interface ResolveManualReviewBatchInput {
   bookId: string;
   payload: ManualReviewBatchResolvePayload;
+}
+
+interface RegenerateAllPendingManualReviewInput {
+  bookId: string;
+}
+
+interface SaveManualReviewScriptEditInput {
+  bookId: string;
+  itemId: string;
+  payload: {
+    structuredResult: Record<string, unknown>;
+  };
 }
 
 interface FormattedManualReviewItem {
@@ -148,6 +166,13 @@ interface ManualReviewBatchResolveResult {
   processedCount: number;
   items: FormattedManualReviewItem[];
   retryTask: ManualReviewRetryTask | null;
+}
+
+interface RegenerateAllPendingManualReviewResult {
+  reviewItemCount: number;
+  processedCount: number;
+  scriptTask: ManualReviewRetryTask | null;
+  audioTask: ManualReviewRetryTask | null;
 }
 
 const MAX_BATCH_RESOLVE_ITEMS = 200;
@@ -312,6 +337,12 @@ const formatManualReviewItem = (item: any): FormattedManualReviewItem => {
         }
       : null,
   };
+};
+
+const isStructuredScriptResult = (
+  value: unknown
+): value is Record<string, unknown> => {
+  return !!value && typeof value === "object" && !Array.isArray(value);
 };
 
 const buildListWhere = (
@@ -534,6 +565,29 @@ const buildBatchRegenerateNote = (
   return `${note}\n${marker}`;
 };
 
+const buildAllPendingRegenerateNote = (taskId: string): string => {
+  return `manual_review_bulk_pending_task:${taskId}`;
+};
+
+const toUniqueValues = (values: Array<string | null | undefined>): string[] => {
+  return Array.from(
+    new Set(values.filter((value): value is string => Boolean(value)))
+  );
+};
+
+const appendResolutionNote = (
+  current: string | null | undefined,
+  next: string
+): string => {
+  if (!current) {
+    return next;
+  }
+  if (current.includes(next)) {
+    return current;
+  }
+  return `${current}\n${next}`;
+};
+
 const resolveUpdatedStatus = (
   action: ManualReviewResolveAction
 ): "resolved" | "rejected" => {
@@ -666,10 +720,11 @@ export const listManualReviewItems = async (
         where: { ...summaryWhere, status: "rejected" },
       }),
     ]);
+  const hydratedRows = await hydrateManualReviewRuntimeDetails(rows);
 
   return {
     ...createPaginationResult(
-      rows.map((item) => formatManualReviewItem(item)),
+      hydratedRows.map((item) => formatManualReviewItem(item)),
       total,
       query.page,
       query.limit
@@ -694,8 +749,9 @@ export const exportManualReviewItems = async (
     orderBy: [{ createdAt: "desc" }],
     take: MAX_EXPORT_ITEMS,
   });
+  const hydratedRows = await hydrateManualReviewRuntimeDetails(rows);
 
-  return rows.map((item) => formatManualReviewItem(item));
+  return hydratedRows.map((item) => formatManualReviewItem(item));
 };
 
 export const toManualReviewCsv = (items: FormattedManualReviewItem[]): string => {
@@ -852,8 +908,20 @@ export const resolveManualReviewItem = async ({
       data: { status: "generating_script" },
     });
 
+    const updated = await prisma.manualReviewItem.update({
+      where: { id: itemId },
+      data: {
+        status: "reprocessing",
+        resolutionType: "regenerate",
+        resolutionNote: buildRegenerateNote(payload.note, task.id),
+        assignedTo: payload.assignedTo ?? item.assignedTo,
+        resolvedAt: null,
+      },
+      include: MANUAL_REVIEW_INCLUDE,
+    });
+
     return {
-      item: formatManualReviewItem(item),
+      item: formatManualReviewItem(updated),
       retryTask: {
         taskId: task.id,
         taskType: "SCRIPT_GENERATION",
@@ -1067,10 +1135,26 @@ export const resolveManualReviewItemsInBatch = async ({
       data: { status: "generating_script" },
     });
 
+    const updatedItems: FormattedManualReviewItem[] = [];
+    for (const item of orderedItems) {
+      const updated = await prisma.manualReviewItem.update({
+        where: { id: item.id },
+        data: {
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+          resolutionNote: buildBatchRegenerateNote(payload.note, task.id),
+          assignedTo: payload.assignedTo ?? item.assignedTo,
+          resolvedAt: null,
+        },
+        include: MANUAL_REVIEW_INCLUDE,
+      });
+      updatedItems.push(formatManualReviewItem(updated));
+    }
+
     return {
       action: payload.action,
-      processedCount: orderedItems.length,
-      items: orderedItems.map((item) => formatManualReviewItem(item)),
+      processedCount: updatedItems.length,
+      items: updatedItems,
       retryTask: {
         taskId: task.id,
         taskType: "SCRIPT_GENERATION",
@@ -1171,5 +1255,315 @@ export const resolveManualReviewItemsInBatch = async ({
       taskType: "AUDIO_GENERATION",
       status: task.status,
     },
+  };
+};
+
+export const regenerateAllPendingManualReviewItems = async ({
+  bookId,
+}: RegenerateAllPendingManualReviewInput): Promise<RegenerateAllPendingManualReviewResult> => {
+  const rows = await prisma.manualReviewItem.findMany({
+    where: {
+      bookId,
+      status: "pending",
+    },
+    include: MANUAL_REVIEW_INCLUDE,
+  });
+
+  if (rows.length === 0) {
+    throw new ValidationError("当前没有待复核项可重生");
+  }
+
+  const scriptItems = rows.filter(
+    (item) => item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE
+  );
+  const audioItems = rows.filter(
+    (item) => item.issueType !== SCRIPT_VALIDATION_ISSUE_TYPE
+  );
+
+  const missingScriptSegmentIds = scriptItems
+    .filter((item) => !item.segmentId)
+    .map((item) => item.id);
+  if (missingScriptSegmentIds.length > 0) {
+    throw new ValidationError(
+      `全量重生失败：以下脚本复核项缺少 segmentId：${missingScriptSegmentIds.join(", ")}`
+    );
+  }
+
+  const missingAudioSentenceIds = audioItems
+    .filter((item) => !item.sentenceId)
+    .map((item) => item.id);
+  if (missingAudioSentenceIds.length > 0) {
+    throw new ValidationError(
+      `全量重生失败：以下音频复核项缺少 sentenceId：${missingAudioSentenceIds.join(", ")}`
+    );
+  }
+
+  const scriptSegmentIds = toUniqueValues(
+    scriptItems.map((item) => item.segmentId)
+  );
+  const scriptReviewItemIds = scriptItems.map((item) => item.id);
+  const audioSentenceIds = toUniqueValues(
+    audioItems.map((item) => item.sentenceId)
+  );
+  const audioReviewItemIds = audioItems.map((item) => item.id);
+
+  if (scriptSegmentIds.length > 0) {
+    await ensureNoActiveScriptTask(bookId);
+  }
+  if (audioSentenceIds.length > 0) {
+    await ensureNoActiveAudioTask(bookId);
+  }
+
+  let scriptTask: ManualReviewRetryTask | null = null;
+  let audioTask: ManualReviewRetryTask | null = null;
+  let processedCount = 0;
+
+  if (scriptSegmentIds.length > 0) {
+    const task = await prisma.processingTask.create({
+      data: {
+        bookId,
+        taskType: "SCRIPT_GENERATION",
+        status: "processing",
+        progress: 0,
+        totalItems: scriptSegmentIds.length,
+        taskData: {
+          message: "人工复核触发全部待复核台本重跑",
+          metadata: {
+            source: "manual_review_bulk_pending",
+            type: "all_pending",
+            segmentIds: scriptSegmentIds,
+            selectedReviewItemIds: scriptReviewItemIds,
+            regenerateSegments: true,
+          },
+        },
+      },
+    });
+
+    try {
+      await enqueueScriptGenerationJob({
+        taskId: task.id,
+        bookId,
+        options: {},
+        extraParams: {
+          regenerateSegments: true,
+          segmentIds: scriptSegmentIds,
+        },
+      });
+    } catch (queueError) {
+      await handleScriptTaskEnqueueFailure({
+        taskId: task.id,
+        queueError,
+        message: "人工复核全量台本重跑任务入队失败",
+      });
+      throw queueError;
+    }
+
+    await prisma.book.update({
+      where: { id: bookId },
+      data: { status: "generating_script" },
+    });
+
+    for (const item of scriptItems) {
+      await prisma.manualReviewItem.update({
+        where: { id: item.id },
+        data: {
+          status: "reprocessing",
+          resolutionType: "bulk_regenerate_pending",
+          resolutionNote: buildAllPendingRegenerateNote(task.id),
+          resolvedAt: null,
+        },
+        include: MANUAL_REVIEW_INCLUDE,
+      });
+    }
+
+    processedCount += scriptItems.length;
+    scriptTask = {
+      taskId: task.id,
+      taskType: "SCRIPT_GENERATION",
+      status: task.status,
+    };
+  }
+
+  if (audioSentenceIds.length > 0) {
+    const isBatchAudio = audioSentenceIds.length > 1;
+    const task = await prisma.processingTask.create({
+      data: {
+        bookId,
+        taskType: "AUDIO_GENERATION",
+        status: "processing",
+        progress: 0,
+        totalItems: audioSentenceIds.length,
+        taskData: {
+          message: "人工复核触发全部待复核音频重生",
+          metadata: {
+            source: "manual_review_bulk_pending",
+            type: "all_pending",
+            scriptSentenceIds: audioSentenceIds,
+            selectedReviewItemIds: audioReviewItemIds,
+            autoMerge: false,
+            skipExisting: false,
+            overwriteExisting: true,
+          },
+        },
+      },
+    });
+
+    try {
+      await enqueueAudioGenerationJob({
+        taskId: task.id,
+        bookId,
+        type: isBatchAudio ? "batch" : "single",
+        scriptSentenceIds: audioSentenceIds,
+        voiceProfileId: undefined,
+        autoMerge: false,
+        options: {
+          provider: undefined,
+          skipExisting: false,
+          overwriteExisting: true,
+        },
+      });
+    } catch (queueError) {
+      await handleAudioTaskEnqueueFailure({
+        taskId: task.id,
+        queueError,
+        message: "人工复核全量音频重生任务入队失败",
+      });
+      throw queueError;
+    }
+
+    for (const item of audioItems) {
+      await prisma.manualReviewItem.update({
+        where: { id: item.id },
+        data: {
+          status: "reprocessing",
+          resolutionType: "bulk_regenerate_pending",
+          resolutionNote: buildAllPendingRegenerateNote(task.id),
+          resolvedAt: null,
+        },
+        include: MANUAL_REVIEW_INCLUDE,
+      });
+    }
+
+    processedCount += audioItems.length;
+    audioTask = {
+      taskId: task.id,
+      taskType: "AUDIO_GENERATION",
+      status: task.status,
+    };
+  }
+
+  return {
+    reviewItemCount: rows.length,
+    processedCount,
+    scriptTask,
+    audioTask,
+  };
+};
+
+export const saveManualReviewScriptEdit = async ({
+  bookId,
+  itemId,
+  payload,
+}: SaveManualReviewScriptEditInput): Promise<ManualReviewResolveResult> => {
+  if (!isStructuredScriptResult(payload?.structuredResult)) {
+    throw new ValidationError("structuredResult 必填，且必须是对象");
+  }
+
+  const item = await prisma.manualReviewItem.findUnique({
+    where: { id: itemId },
+    include: MANUAL_REVIEW_INCLUDE,
+  });
+
+  if (!item || item.bookId !== bookId) {
+    throw new ValidationError("复核项不存在");
+  }
+
+  if (item.issueType !== SCRIPT_VALIDATION_ISSUE_TYPE) {
+    throw new ValidationError("仅 SCRIPT_VALIDATION 复核项支持人工修订保存");
+  }
+
+  if (item.status !== "pending") {
+    throw new ValidationError("仅 pending 状态的复核项支持人工修订保存");
+  }
+
+  if (!item.segmentId) {
+    throw new ValidationError("当前脚本复核项缺少 segmentId，无法保存人工修订结果");
+  }
+
+  const detail = asRecord(item.issueDetail);
+  const segmentContent = asString(detail?.segmentContent);
+  if (!segmentContent) {
+    throw new ValidationError("当前复核项缺少完整段落原文，无法保存人工修订结果");
+  }
+
+  const book = await prisma.book.findUnique({
+    where: { id: bookId },
+    include: {
+      characterProfiles: {
+        where: { isActive: true },
+        include: {
+          aliases: true,
+        },
+      },
+    },
+  });
+
+  if (!book) {
+    throw new ValidationError("书籍不存在");
+  }
+
+  const characterMap = new Map<string, string>();
+  for (const character of book.characterProfiles) {
+    characterMap.set(character.canonicalName, character.canonicalName);
+    for (const alias of character.aliases || []) {
+      if (alias.alias) {
+        characterMap.set(alias.alias, character.canonicalName);
+      }
+    }
+  }
+
+  const segmentResult = buildSegmentProcessingResultFromStructuredResult({
+    segment: {
+      id: item.segmentId,
+      chapterId: item.chapterId,
+      orderIndex:
+        typeof detail?.orderIndex === "number" ? Number(detail.orderIndex) : -1,
+      content: segmentContent,
+    },
+    structuredResult: payload.structuredResult,
+    characterMap,
+    options: resolveScriptGenerationOptions(),
+  });
+
+  await persistSegmentResult({
+    bookId,
+    segmentId: item.segmentId,
+    result: segmentResult,
+    characterMap,
+    characterProfiles: book.characterProfiles,
+  });
+
+  const updated = await prisma.manualReviewItem.update({
+    where: { id: itemId },
+    data: {
+      status: "resolved",
+      resolutionType: "manual_edit_saved",
+      resolutionNote: appendResolutionNote(
+        item.resolutionNote,
+        `manual_edit_saved:${new Date().toISOString()}`
+      ),
+      resolvedAt: new Date(),
+      issueDetail: {
+        ...(detail || {}),
+        manualEditedStructuredResult: payload.structuredResult,
+        manualEditedAt: new Date().toISOString(),
+      } as Prisma.InputJsonValue,
+    },
+    include: MANUAL_REVIEW_INCLUDE,
+  });
+
+  return {
+    item: formatManualReviewItem(updated),
+    retryTask: null,
   };
 };

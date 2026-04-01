@@ -139,6 +139,7 @@ export interface ScriptSentence {
   text: string;
   orderInSegment: number; // 数据库字段名
   tone?: string; // 数据库字段名
+  roleType?: string;
   strength?: number; // 数据库字段名
   pauseAfter?: number; // Decimal转换
   ttsParameters?: {

@@ -45,7 +45,7 @@ export function useBookCharacters(bookId: string, initialLimit = 20) {
 
         const params = new URLSearchParams({
           page: String(page),
-          limit: String(pagination.limit || initialLimit)
+          limit: String(pagination.limit || initialLimit),
         })
         if (search) params.set('search', search)
 

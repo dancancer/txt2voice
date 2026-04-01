@@ -16,7 +16,11 @@ jest.mock("@/lib/prisma", () => ({
       create: jest.fn(),
       update: jest.fn(),
     },
+    workflowRun: {
+      findMany: jest.fn(),
+    },
     book: {
+      findUnique: jest.fn(),
       update: jest.fn(),
     },
   },
@@ -31,6 +35,11 @@ jest.mock("@/lib/processing-task-utils", () => ({
   mergeTaskData: jest.fn(),
 }));
 
+jest.mock("@/lib/script-generator/pipeline/segment-processor", () => ({
+  buildSegmentProcessingResultFromStructuredResult: jest.fn(),
+  persistSegmentResult: jest.fn(),
+}));
+
 import prisma from "@/lib/prisma";
 import { ValidationError } from "@/lib/error-handler";
 import {
@@ -39,10 +48,16 @@ import {
 } from "@/lib/task-queue";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import {
+  buildSegmentProcessingResultFromStructuredResult,
+  persistSegmentResult,
+} from "@/lib/script-generator/pipeline/segment-processor";
+import {
   parseManualReviewBatchResolvePayload,
   listManualReviewItems,
   parseManualReviewQuery,
   parseManualReviewResolvePayload,
+  regenerateAllPendingManualReviewItems,
+  saveManualReviewScriptEdit,
   resolveManualReviewItemsInBatch,
   resolveManualReviewItem,
   toManualReviewCsv,
@@ -56,7 +71,9 @@ const mockUpdate = (prisma as any).manualReviewItem.update as jest.Mock;
 const mockFindFirstTask = (prisma as any).processingTask.findFirst as jest.Mock;
 const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
+const mockFindWorkflowRuns = (prisma as any).workflowRun.findMany as jest.Mock;
 const mockUpdateBook = (prisma as any).book.update as jest.Mock;
+const mockFindBook = (prisma as any).book.findUnique as jest.Mock;
 const mockEnqueueAudio = enqueueAudioGenerationJob as jest.MockedFunction<
   typeof enqueueAudioGenerationJob
 >;
@@ -64,6 +81,13 @@ const mockEnqueueScript = enqueueScriptGenerationJob as jest.MockedFunction<
   typeof enqueueScriptGenerationJob
 >;
 const mockMergeTaskData = mergeTaskData as jest.MockedFunction<typeof mergeTaskData>;
+const mockBuildSegmentProcessingResult =
+  buildSegmentProcessingResultFromStructuredResult as jest.MockedFunction<
+    typeof buildSegmentProcessingResultFromStructuredResult
+  >;
+const mockPersistSegmentResult = persistSegmentResult as jest.MockedFunction<
+  typeof persistSegmentResult
+>;
 
 const baseItem = (overrides: Record<string, unknown> = {}) => ({
   id: "review-1",
@@ -120,6 +144,10 @@ describe("manual-review-service", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUpdateBook.mockResolvedValue({});
+    mockFindBook.mockResolvedValue({
+      id: "book-1",
+      characterProfiles: [],
+    });
   });
 
   it("should parse query with default pending status", () => {
@@ -194,6 +222,126 @@ describe("manual-review-service", () => {
       where: {
         bookId: "book-1",
         status: "pending",
+      },
+    });
+  });
+
+  it("should recover missing script preview data from runtime draft output", async () => {
+    mockCount
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({
+        issueType: SCRIPT_VALIDATION_ISSUE_TYPE,
+        sentenceId: null,
+        audioFileId: null,
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+        issueDetail: {
+          taskId: "task-script-1",
+          stage: "script_validation",
+          errorCode: "SCRIPT_VALIDATION_FAILED",
+          segmentContent: "这一段完整原文。",
+          segmentPreview: "这一段完整原文。",
+          rawResponse: null,
+          structuredResult: null,
+          issueMessages: ["原文覆盖率过低"],
+        },
+      }),
+    ]);
+    mockFindWorkflowRuns.mockResolvedValueOnce([
+      {
+        id: "workflow-1",
+        processingTaskId: "task-script-1",
+        stageRuns: [
+          {
+            id: "stage-script-1",
+            stageId: "segment_scripting",
+            agentRuns: [
+              {
+                id: "agent-script-1",
+                inputSummary: {
+                  segmentId: "segment-1",
+                },
+                outputSummary: {
+                  provider: "deepseek",
+                  model: "deepseek-chat",
+                  segmentScriptDraft: {
+                    segmentId: "segment-1",
+                    createdAt: "2026-03-29T13:20:00.000Z",
+                    lines: [
+                      {
+                        id: "line-1",
+                        sourceText: "这一段完整原文。",
+                        text: "当前生成台词",
+                        speaker: "旁白",
+                        orderInSegment: 0,
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const result = await listManualReviewItems("book-1", {
+      page: 1,
+      limit: 20,
+      offset: 0,
+      status: "pending",
+    });
+
+    expect(result.data[0]?.issueDetail).toMatchObject({
+      taskId: "task-script-1",
+      structuredResult: {
+        segmentId: "segment-1",
+        createdAt: "2026-03-29T13:20:00.000Z",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "这一段完整原文。",
+            text: "当前生成台词",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      },
+      rawResponseUnavailableReason: "当前任务运行时未持久化原始响应，已从运行时草稿回填原始生成结果。",
+    });
+    expect(mockFindWorkflowRuns).toHaveBeenCalledWith({
+      where: {
+        processingTaskId: {
+          in: ["task-script-1"],
+        },
+      },
+      orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+      include: {
+        stageRuns: {
+          where: {
+            stageId: "segment_scripting",
+          },
+          orderBy: [{ startedAt: "desc" }, { id: "desc" }],
+          include: {
+            agentRuns: {
+              where: {
+                agentId: "script-generation-agent",
+                status: "completed",
+              },
+              orderBy: [
+                { completedAt: "desc" },
+                { startedAt: "desc" },
+                { id: "desc" },
+              ],
+            },
+          },
+        },
       },
     });
   });
@@ -312,6 +460,23 @@ describe("manual-review-service", () => {
       reused: false,
       state: "waiting",
     });
+    mockUpdate.mockResolvedValueOnce(
+      baseItem({
+        id: "review-script-1",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-1",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+        status: "reprocessing",
+        resolutionType: "regenerate",
+        resolutionNote: "retry_task:task-script-retry-1",
+      })
+    );
 
     const result = await resolveManualReviewItem({
       bookId: "book-1",
@@ -356,7 +521,176 @@ describe("manual-review-service", () => {
       status: "processing",
     });
     expect(result.item.id).toBe("review-script-1");
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(result.item.status).toBe("reprocessing");
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "review-script-1" },
+      data: {
+        status: "reprocessing",
+        resolutionType: "regenerate",
+        resolutionNote: "retry_task:task-script-retry-1",
+        assignedTo: "qa-1",
+        resolvedAt: null,
+      },
+      include: expect.anything(),
+    });
+  });
+
+  it("should save manual edited structured script result and resolve review item", async () => {
+    mockFindUnique.mockResolvedValueOnce(
+      baseItem({
+        id: "review-script-edit-1",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-edit-1",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+        issueDetail: {
+          stage: "script_validation",
+          errorCode: "SCRIPT_VALIDATION_FAILED",
+          segmentContent: "这一段完整原文。",
+          structuredResult: {
+            dialogues: [
+              {
+                id: "line-1",
+                sourceText: "这一段完整原文。",
+                text: "这一段完整原文。",
+                speaker: "旁白",
+                tone: "中性",
+              },
+            ],
+            characters: [],
+          },
+        },
+      })
+    );
+    mockBuildSegmentProcessingResult.mockReturnValue({
+      dialogueLines: [
+        {
+          id: "line-1",
+          segmentId: "segment-script-edit-1",
+          chapterId: "chapter-1",
+          orderInSegment: 0,
+          text: "这一段完整原文。",
+          rawSpeaker: "旁白",
+          characterName: "旁白",
+          tone: "中性",
+          isNarration: true,
+        },
+      ],
+      characterCandidates: [],
+    });
+    mockPersistSegmentResult.mockResolvedValueOnce(undefined);
+    mockUpdate.mockResolvedValueOnce(
+      baseItem({
+        id: "review-script-edit-1",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-edit-1",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+        status: "resolved",
+        resolutionType: "manual_edit_saved",
+        issueDetail: {
+          stage: "script_validation",
+          errorCode: "SCRIPT_VALIDATION_FAILED",
+          segmentContent: "这一段完整原文。",
+          structuredResult: {
+            dialogues: [
+              {
+                id: "line-1",
+                sourceText: "这一段完整原文。",
+                text: "这一段完整原文。",
+                speaker: "旁白",
+                tone: "中性",
+              },
+            ],
+            characters: [],
+          },
+          manualEditedStructuredResult: {
+            dialogues: [
+              {
+                id: "line-1",
+                sourceText: "这一段完整原文。",
+                text: "这一段完整原文。",
+                speaker: "旁白",
+                tone: "中性",
+              },
+            ],
+            characters: [],
+          },
+        },
+      })
+    );
+
+    const result = await saveManualReviewScriptEdit({
+      bookId: "book-1",
+      itemId: "review-script-edit-1",
+      payload: {
+        structuredResult: {
+          dialogues: [
+            {
+              id: "line-1",
+              sourceText: "这一段完整原文。",
+              text: "这一段完整原文。",
+              speaker: "旁白",
+              tone: "中性",
+            },
+          ],
+          characters: [],
+        },
+      },
+    });
+
+    expect(mockBuildSegmentProcessingResult).toHaveBeenCalledWith({
+      segment: {
+        id: "segment-script-edit-1",
+        chapterId: "chapter-1",
+        orderIndex: -1,
+        content: "这一段完整原文。",
+      },
+      structuredResult: {
+        dialogues: [
+          expect.objectContaining({
+            text: "这一段完整原文。",
+          }),
+        ],
+        characters: [],
+      },
+      characterMap: expect.any(Map),
+      options: expect.any(Object),
+    });
+    expect(mockPersistSegmentResult).toHaveBeenCalledWith({
+      bookId: "book-1",
+      segmentId: "segment-script-edit-1",
+      result: expect.objectContaining({
+        dialogueLines: expect.any(Array),
+      }),
+      characterMap: expect.any(Map),
+      characterProfiles: [],
+    });
+    expect(mockUpdate).toHaveBeenCalledWith({
+      where: { id: "review-script-edit-1" },
+      data: expect.objectContaining({
+        status: "resolved",
+        resolutionType: "manual_edit_saved",
+        resolvedAt: expect.any(Date),
+        issueDetail: expect.objectContaining({
+          manualEditedStructuredResult: expect.objectContaining({
+            dialogues: expect.any(Array),
+          }),
+        }),
+      }),
+      include: expect.anything(),
+    });
+    expect(result.item.status).toBe("resolved");
   });
 
   it("should batch approve manual review items", async () => {
@@ -506,6 +840,41 @@ describe("manual-review-service", () => {
       reused: false,
       state: "waiting",
     });
+    mockUpdate
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-script-21",
+          issueType: "SCRIPT_VALIDATION",
+          sentenceId: null,
+          audioFileId: null,
+          qcResultId: null,
+          attemptId: null,
+          segmentId: "segment-script-21",
+          scriptSentence: null,
+          audioFile: null,
+          qualityCheckResult: null,
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+          resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        })
+      )
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-script-22",
+          issueType: "SCRIPT_VALIDATION",
+          sentenceId: null,
+          audioFileId: null,
+          qcResultId: null,
+          attemptId: null,
+          segmentId: "segment-script-22",
+          scriptSentence: null,
+          audioFile: null,
+          qualityCheckResult: null,
+          status: "reprocessing",
+          resolutionType: "batch_regenerate",
+          resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        })
+      );
 
     const result = await resolveManualReviewItemsInBatch({
       bookId: "book-1",
@@ -548,7 +917,32 @@ describe("manual-review-service", () => {
       status: "processing",
     });
     expect(result.processedCount).toBe(2);
-    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(result.items.map((item) => item.status)).toEqual([
+      "reprocessing",
+      "reprocessing",
+    ]);
+    expect(mockUpdate).toHaveBeenNthCalledWith(1, {
+      where: { id: "review-script-21" },
+      data: {
+        status: "reprocessing",
+        resolutionType: "batch_regenerate",
+        resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        assignedTo: null,
+        resolvedAt: null,
+      },
+      include: expect.anything(),
+    });
+    expect(mockUpdate).toHaveBeenNthCalledWith(2, {
+      where: { id: "review-script-22" },
+      data: {
+        status: "reprocessing",
+        resolutionType: "batch_regenerate",
+        resolutionNote: "manual_review_batch_task:task-script-batch-1",
+        assignedTo: null,
+        resolvedAt: null,
+      },
+      include: expect.anything(),
+    });
   });
 
   it("should reject batch regenerate when any item is missing sentenceId", async () => {
@@ -569,6 +963,148 @@ describe("manual-review-service", () => {
     ).rejects.toThrow("review-32");
 
     expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueAudio).not.toHaveBeenCalled();
+  });
+
+  it("should regenerate all pending review items for both script and audio queues", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({
+        id: "review-script-all-1",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-all-1",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+      }),
+      baseItem({
+        id: "review-audio-all-1",
+        issueType: "CER",
+        sentenceId: "sentence-audio-all-1",
+        segmentId: null,
+      }),
+    ]);
+    mockFindFirstTask.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    mockCreateTask
+      .mockResolvedValueOnce({
+        id: "task-all-script-1",
+        status: "processing",
+      })
+      .mockResolvedValueOnce({
+        id: "task-all-audio-1",
+        status: "processing",
+      });
+    mockEnqueueScript.mockResolvedValueOnce({
+      jobId: "task-all-script-1",
+      dedupeKey: "script:segment-script-all-1",
+      reused: false,
+      state: "waiting",
+    });
+    mockEnqueueAudio.mockResolvedValueOnce({
+      jobId: "task-all-audio-1",
+      dedupeKey: "audio:single:sentence-audio-all-1",
+      reused: false,
+      state: "waiting",
+    });
+    mockUpdate
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-script-all-1",
+          issueType: "SCRIPT_VALIDATION",
+          sentenceId: null,
+          audioFileId: null,
+          qcResultId: null,
+          attemptId: null,
+          segmentId: "segment-script-all-1",
+          scriptSentence: null,
+          audioFile: null,
+          qualityCheckResult: null,
+          status: "reprocessing",
+          resolutionType: "bulk_regenerate_pending",
+        })
+      )
+      .mockResolvedValueOnce(
+        baseItem({
+          id: "review-audio-all-1",
+          issueType: "CER",
+          sentenceId: "sentence-audio-all-1",
+          segmentId: null,
+          status: "reprocessing",
+          resolutionType: "bulk_regenerate_pending",
+        })
+      );
+
+    const result = await regenerateAllPendingManualReviewItems({
+      bookId: "book-1",
+    });
+
+    expect(result).toMatchObject({
+      reviewItemCount: 2,
+      processedCount: 2,
+      scriptTask: {
+        taskId: "task-all-script-1",
+        taskType: "SCRIPT_GENERATION",
+        status: "processing",
+      },
+      audioTask: {
+        taskId: "task-all-audio-1",
+        taskType: "AUDIO_GENERATION",
+        status: "processing",
+      },
+    });
+    expect(mockEnqueueScript).toHaveBeenCalledWith({
+      taskId: "task-all-script-1",
+      bookId: "book-1",
+      options: {},
+      extraParams: {
+        regenerateSegments: true,
+        segmentIds: ["segment-script-all-1"],
+      },
+    });
+    expect(mockEnqueueAudio).toHaveBeenCalledWith({
+      taskId: "task-all-audio-1",
+      bookId: "book-1",
+      type: "single",
+      scriptSentenceIds: ["sentence-audio-all-1"],
+      voiceProfileId: undefined,
+      autoMerge: false,
+      options: {
+        provider: undefined,
+        skipExisting: false,
+        overwriteExisting: true,
+      },
+    });
+  });
+
+  it("should fail when pending script review items are missing segmentId", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({
+        id: "review-script-missing-target",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: null,
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+      }),
+    ]);
+
+    await expect(
+      regenerateAllPendingManualReviewItems({
+        bookId: "book-1",
+      })
+    ).rejects.toThrow(
+      "全量重生失败：以下脚本复核项缺少 segmentId：review-script-missing-target"
+    );
+
+    expect(mockCreateTask).not.toHaveBeenCalled();
+    expect(mockEnqueueScript).not.toHaveBeenCalled();
     expect(mockEnqueueAudio).not.toHaveBeenCalled();
   });
 

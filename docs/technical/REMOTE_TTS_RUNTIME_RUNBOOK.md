@@ -11,7 +11,8 @@
 
 ## 当前稳定基线
 
-- 远端应用目录：`/root/code/txt2voice`
+- 远端开发目录：`/root/code/txt2voice`
+- 远端 deploy 目录：`/root/deploy/txt2voice-web`
 - 远端 TTS 目录：
   - `IndexTTS`: `/root/work/index-tts`
   - `CosyVoice + VoxCPM`: `/root/code/tts-openstack`
@@ -22,6 +23,8 @@
   - `http://192.168.88.9:8012` -> VoxCPM
 - 队列命名空间：`txt2voice:3001`
 - Worker 运行方式：由 `txt2voice-web` 进程内联启动，不再保留独立 `txt2voice-worker`
+- 异步能力约束：LLM / TTS / 质检 / 后续新增异步链路，统一走 Bull job 模型，禁止再新增“函数内直接长耗时出网 + 手写重试”的旁路实现
+- 子队列约束：音频父任务仍走 `audio-generation`，句子级 TTS 执行改走 `audio-synthesis`
 - 宿主机端口避让：
   - PostgreSQL: `15432`
   - Redis: `16379`
@@ -34,6 +37,8 @@
 TASK_QUEUE_NAMESPACE=txt2voice:3001
 LLM_API_KEY=<有效值>
 LLM_MODEL=deepseek-chat
+LLM_MAX_CONCURRENCY=8
+AUDIO_SYNTHESIS_MAX_CONCURRENCY=6
 INDEXTTS_TIMEOUT=300000
 COSYVOICE_TIMEOUT=300000
 VOXCPM_TIMEOUT=300000
@@ -42,7 +47,77 @@ COSYVOICE_API_URL=http://192.168.88.9:8011
 VOXCPM_API_URL=http://192.168.88.9:8012
 ```
 
+发布专用目录 `/root/deploy/txt2voice-web` 默认通过符号链接复用这份 `.env`：
+
+```bash
+/root/deploy/txt2voice-web/.env -> /root/code/txt2voice/.env
+```
+
+## 发布原则
+
+### 1. 开发目录和发布目录必须分离
+
+- `/root/code/txt2voice`：允许做排障、查看历史遗留改动、保留运行时配置来源
+- `/root/deploy/txt2voice-web`：只用于发布，必须保持 `git status` 干净
+- 本地当前工作分支必须和远端 deploy clone 当前分支一致；默认只允许发布当前本地分支
+
+默认发布路径：
+
+```bash
+cd /Users/xupeng/mycode/txt2voice
+bash scripts/deploy-remote-web.sh --branch <branch>
+```
+
+更推荐直接省略 `--branch`，让脚本自动使用当前本地分支：
+
+```bash
+cd /Users/xupeng/mycode/txt2voice
+bash scripts/deploy-remote-web.sh
+```
+
+这条脚本负责：
+
+- 远端 bootstrap deploy clone
+- `git fetch + git pull --ff-only`
+- `.env` 链接校验
+- `docker compose -p txt2voice up -d --no-deps web`
+- 健康检查
+
+这条脚本还会额外做两层护栏：
+
+- 如果你显式传入的 `--branch` 和当前本地分支不一致，直接拒绝执行
+- 如果远端 deploy clone 已存在，但当前分支和本地分支不一致，也直接拒绝执行
+
+### 2. 手工 rsync 不再是日常发布路径
+
+只有在以下情况，才允许把 `rsync` 当作应急方案：
+
+- GitHub / 远端 SSH 拉取链路临时不可用
+- 需要验证一个尚未 push 的热修复
+- 已明确接受“不可复现、不可回滚、可追溯性差”的代价
+
+除此之外，默认都走 deploy clone。
+
 ## 最重要的运行约束
+
+### 0. 所有重耗时异步能力统一走 job 模型
+
+从这一版开始，以下能力都必须遵守同一套约束：
+
+- 进入共享 Bull 队列
+- 并发由 worker concurrency 控制
+- 失败重试由 job options 控制
+- 超限任务进入 waiting 队列，而不是业务层直接报错
+
+当前已经在这条路上的能力包括：
+
+- 台本生成
+- 音频生成
+- 句子级 TTS 子 job
+- 质检/信号同步
+- LLM 调用
+
+后续如果新增远端推理、批量转换、模型评测之类的异步链路，也必须复用这套 job 模型，避免出现第二套不可观测、不可重试、不可限流的执行路径。
 
 ### 1. qwen35 不能和 TTS 长期共机抢 GPU
 
@@ -77,6 +152,7 @@ ssh 192.168.88.9 'ps -ef | grep qwen35 | grep -v grep || true'
 - 不同代码版本同时消费队列
 - 旧环境变量和新 Web 配置不一致
 - 任务落到错误 worker 上，看起来像“接口成功、结果异常”
+- `audio-generation` 父任务和 `audio-synthesis` 子 job 由不同版本代码混合消费
 
 清理命令：
 
@@ -103,7 +179,7 @@ ssh 192.168.88.9 'cd /root/code/tts-openstack && docker compose up -d cosyvoice-
 ### Step 3: 拉起 txt2voice Web
 
 ```bash
-ssh 192.168.88.9 'cd /root/code/txt2voice && docker compose up -d postgres redis web'
+ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose up -d postgres redis web'
 ```
 
 注意：当前 compose 已避开宿主机默认数据库端口，不要再改回 `5432/6379`。
@@ -175,6 +251,235 @@ PY
    - 小批量验证：`type=batch`
    - 全量验收：`type=book`，`provider=voxcpm`
 7. 轮询 `GET /api/books/[id]/audio/generate?includeProgress=true`
+
+## Phase 2 脚本化验收
+
+从 `2026-03-18` 起，Phase 2 推荐优先使用脚本化验收，而不是手工拷接口。
+
+脚本位置：
+
+```bash
+node scripts/phase2-audio-validation.js
+```
+
+### 推荐命令
+
+章节级验证：
+
+```bash
+node scripts/phase2-audio-validation.js \
+  --base-url http://192.168.88.9:3001 \
+  --provider voxcpm \
+  --type chapter \
+  --book-id <book-id> \
+  --chapter-id <chapter-id> \
+  --batch-size 1 \
+  --repeat-count 1 \
+  --review-path docs/review/2026-03-18-phase-2-runtime-validation.md
+```
+
+整书级验证：
+
+```bash
+node scripts/phase2-audio-validation.js \
+  --base-url http://192.168.88.9:3001 \
+  --provider voxcpm \
+  --type book \
+  --book-id <book-id> \
+  --batch-size 1 \
+  --repeat-count 1 \
+  --review-path docs/review/2026-03-18-phase-2-runtime-validation.md
+```
+
+### 脚本执行顺序
+
+脚本内部固定执行以下步骤：
+
+1. 先请求 `/api/tts/providers/status?probe=true`
+2. 若 provider `healthy != true` 或 `probeHealthy != true`，直接中止
+3. probe 通过后，再触发 `/api/books/[id]/audio/generate`
+4. 轮询 `/api/books/[id]/audio/generate?includeProgress=true`
+5. 从 `taskDetails.metadata.audioReliability` 抽取验收数据
+6. 把本轮结果写入 review markdown
+
+### 结果解释
+
+- `completed`
+  - probe 通过，音频任务完成，`failedCount=0`
+- `partial_failure`
+  - probe 通过，任务完成，但 `failedCount>0`
+- `failed`
+  - probe 通过，但任务状态为 `failed` 或轮询超时
+- `probe_failed`
+  - provider probe 未通过，或者目标接口没有返回 `probeHealthy`
+
+### 关键提醒
+
+- 如果 `probe=true` 请求返回里没有 `probeHealthy` 字段，优先判定为“远端还没部署 Phase 2 Round 1 代码”，而不是误判成 TTS 本身故障。
+- 如果 `/api/books` 返回空列表，说明当前远端没有可直接验证的样本书，先准备验证样本，再跑章节/整书验证。
+
+## 部署前检查清单
+
+在把任意分支部署到远端之前，先按下面顺序检查。
+
+### 1. 本地确认待部署提交
+
+```bash
+cd /Users/xupeng/mycode/txt2voice
+git branch --show-current
+git rev-parse --short HEAD
+git status --short
+```
+
+期望：
+
+- 当前分支是 `codex/phase-2-audio-reliability`
+- 工作区没有意外脏改动
+
+### 2. 远端确认 deploy clone 状态
+
+```bash
+ssh 192.168.88.9 '
+  cd /root/deploy/txt2voice-web &&
+  echo "branch=$(git branch --show-current)" &&
+  echo "commit=$(git rev-parse --short HEAD)" &&
+  git status --short
+'
+```
+
+期望：
+
+- 能看清远端当前分支、提交和脏改动
+- deploy clone 必须保持干净；一旦有脏改动，优先判定为有人绕过流程手改了发布目录
+- deploy clone 当前分支必须和本地当前分支一致；不一致时先手动对齐分支，再发布
+
+### 3. 远端运行约束复核
+
+```bash
+ssh 192.168.88.9 'systemctl is-active qwen35-api.service || true'
+ssh 192.168.88.9 'docker ps --format "{{.Names}}" | grep txt2voice-worker || true'
+ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose ps'
+```
+
+期望：
+
+- `qwen35-api.service` 不是 `active`
+- 不存在历史 `txt2voice-worker`
+- `postgres / redis / web` 进程状态明确
+
+### 4. 使用标准发布命令
+
+```bash
+cd /Users/xupeng/mycode/txt2voice
+bash scripts/deploy-remote-web.sh --branch <branch>
+```
+
+期望：
+
+- 远端 deploy clone 能完成 `git pull --ff-only`
+- `.env` 链接仍指向 `/root/code/txt2voice/.env`
+- `txt2voice-web` 重建或重启后恢复健康
+
+### 5. 部署后最小门禁
+
+部署完成后，第一时间执行：
+
+```bash
+curl -sS 'http://192.168.88.9:3001/api/tts/providers/status?probe=true' | jq .
+```
+
+期望：
+
+- 目标 provider 返回 `probeHealthy`
+- 不再是只有 `healthy/message` 的旧结构
+
+如果这里仍然没有 `probeHealthy`，优先判定为“部署未生效或远端仍在跑旧代码”。
+
+## 最小验证样本准备命令
+
+如果远端 `/api/books` 为空，按下面步骤创建一个最小 Phase 2 验证样本。
+
+### 1. 创建书籍
+
+```bash
+BASE_URL='http://192.168.88.9:3001'
+
+BOOK_ID=$(
+  curl -sS -X POST "$BASE_URL/api/books" \
+    -H 'Content-Type: application/json' \
+    -d '{"title":"Phase2 Validation Sample","author":"Codex"}' \
+  | jq -r '.data.id'
+)
+
+echo "$BOOK_ID"
+```
+
+### 2. 上传样本文本
+
+```bash
+curl -sS -X POST "$BASE_URL/api/books/$BOOK_ID/upload" \
+  -F "file=@/Users/xupeng/mycode/txt2voice/uploads/sample.txt" \
+  -F "autoPipelineEnabled=false" \
+  | jq .
+```
+
+### 3. 执行文本处理
+
+```bash
+curl -sS -X POST "$BASE_URL/api/books/$BOOK_ID/process" \
+  -H 'Content-Type: application/json' \
+  -d '{"options":{"useSmartSplitter":false,"maxSegmentLength":1800,"minSegmentLength":600}}' \
+  | jq .
+```
+
+### 4. 生成台本
+
+```bash
+curl -sS -X POST "$BASE_URL/api/books/$BOOK_ID/script/generate" \
+  -H 'Content-Type: application/json' \
+  -d '{"limitToSegments":10}' \
+  | jq .
+```
+
+### 5. 取第一章作为最小验证目标
+
+```bash
+CHAPTER_ID=$(
+  curl -sS "$BASE_URL/api/books/$BOOK_ID/chapters" \
+  | jq -r '.data[0].id'
+)
+
+echo "$CHAPTER_ID"
+```
+
+### 6. 执行章节级 Phase 2 验收
+
+```bash
+node scripts/phase2-audio-validation.js \
+  --base-url "$BASE_URL" \
+  --provider voxcpm \
+  --type chapter \
+  --book-id "$BOOK_ID" \
+  --chapter-id "$CHAPTER_ID" \
+  --batch-size 1 \
+  --repeat-count 1 \
+  --review-path docs/review/2026-03-18-phase-2-runtime-validation.md
+```
+
+### 7. 整书级验证（可选）
+
+章节级稳定后，再跑整书：
+
+```bash
+node scripts/phase2-audio-validation.js \
+  --base-url "$BASE_URL" \
+  --provider voxcpm \
+  --type book \
+  --book-id "$BOOK_ID" \
+  --batch-size 1 \
+  --repeat-count 1 \
+  --review-path docs/review/2026-03-18-phase-2-runtime-validation.md
+```
 
 ## 这次已经固定下来的代码修复
 

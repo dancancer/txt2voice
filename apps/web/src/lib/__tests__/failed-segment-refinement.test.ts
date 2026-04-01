@@ -27,8 +27,7 @@ describe("failed-segment-refinement", () => {
     expect(refined.map((item) => item.content)).toEqual([
       "张三说：",
       '“你好。”',
-      "闵弘芳皱起眉头：",
-      '“属下近日听得风响。”',
+      '闵弘芳皱起眉头：“属下近日听得风响。”',
     ]);
     expect(refined[0]).toMatchObject({
       parentSegmentId: "seg-1",
@@ -77,8 +76,7 @@ describe("failed-segment-refinement", () => {
 
     expect(refined.map((item) => item.content)).toEqual([
       '“宁大哥，宁大爷！行行好，您嗦的那皮儿能扔碗里不？”',
-      "宁尘眼也不睁，脸上挂起笑：",
-      "“瞧您说的！您耿老大都发话了，我能下这面子吗。”",
+      "宁尘眼也不睁，脸上挂起笑：“瞧您说的！您耿老大都发话了，我能下这面子吗。”",
     ]);
   });
 
@@ -98,8 +96,52 @@ describe("failed-segment-refinement", () => {
     });
 
     expect(refined.map((item) => item.content)).toEqual([
-      "她往殿中黄金大榻一靠，抬手轻挥：",
-      "“人多心乱，都撤了吧。”",
+      "她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”",
+      "闵弘芳又一拍手，侍女们便快步消失在了侧门之外。女子手指一勾，两道真气如臂使指，卷来指肚大小小一尾细烹银鱼。",
+    ]);
+  });
+
+  it("should split long scenic lead-in away from the trailing attributed quote", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-long-scene-with-tail-quote",
+        chapterId: "chapter-1",
+        orderIndex: 1,
+        content:
+          "红衣女子十八九岁容颜，柔纱丝袍堪堪散在肩膀上，露出晶莹剔透的脖颈。朱砂小口，双眼如凉泉，色绝天下的一张脸，饶是殿中侍女多看几眼也忍不住面红心跳，唯独眉梢眼角有些不易察觉的锋锐。女子赤着脚，鬓乱钗斜，一副刚刚睡醒模样，慵懒如一汪醇酒。不过此地没人敢置喙于她，女子亦不会在乎什么指摘。她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”闵弘芳又一拍手，侍女们便快步消失在了侧门之外。女子手指一勾，两道真气如臂使指，卷来指肚大小小一尾细烹银鱼。",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH"],
+        coverageRatio: 1,
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "红衣女子十八九岁容颜，柔纱丝袍堪堪散在肩膀上，露出晶莹剔透的脖颈。朱砂小口，双眼如凉泉，色绝天下的一张脸，饶是殿中侍女多看几眼也忍不住面红心跳，唯独眉梢眼角有些不易察觉的锋锐。女子赤着脚，鬓乱钗斜，一副刚刚睡醒模样，慵懒如一汪醇酒。不过此地没人敢置喙于她，女子亦不会在乎什么指摘。",
+      "她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”",
+      "闵弘芳又一拍手，侍女们便快步消失在了侧门之外。女子手指一勾，两道真气如臂使指，卷来指肚大小小一尾细烹银鱼。",
+    ]);
+  });
+
+  it("should still refine quote-heavy mismatch when coverage is already full", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-scene-full-coverage",
+        chapterId: "chapter-1",
+        orderIndex: 1,
+        content:
+          "她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”闵弘芳又一拍手，侍女们便快步消失在了侧门之外。女子手指一勾，两道真气如臂使指，卷来指肚大小小一尾细烹银鱼。",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH"],
+        coverageRatio: 1,
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "她往殿中黄金大榻一靠，抬手轻挥：“人多心乱，都撤了吧。”",
       "闵弘芳又一拍手，侍女们便快步消失在了侧门之外。女子手指一勾，两道真气如臂使指，卷来指肚大小小一尾细烹银鱼。",
     ]);
   });
@@ -165,6 +207,107 @@ describe("failed-segment-refinement", () => {
       "“是。”",
       "闵弘芳从储物戒中取出宗门呈报，一字一句念起来。“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”“丹药堂新产丹药四百枚……”",
       "这边厢游响停云。",
+    ]);
+  });
+
+  it("should keep inter-quote narration separate from the following long quoted reply", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-inter-quote-action",
+        chapterId: "chapter-1",
+        orderIndex: 7,
+        content:
+          "“胆儿挺大的啊。”龙雅歌举起杯子，向斜后方黑衣女子偏了偏头，女子上前一步绰起酒壶，将她手中玉杯填满。“巡查堂昨日已遣派真传弟子过外门掌问，两三日便有结果。但不知道拿到了祸首该如何处置，还望宗主示下。”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH"],
+        coverageRatio: 1,
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "“胆儿挺大的啊。”",
+      "龙雅歌举起杯子，向斜后方黑衣女子偏了偏头，女子上前一步绰起酒壶，将她手中玉杯填满。",
+      "“巡查堂昨日已遣派真传弟子过外门掌问，两三日便有结果。",
+      "但不知道拿到了祸首该如何处置，还望宗主示下。”",
+    ]);
+  });
+
+  it("should keep inter-quote narration split when the following quote is short", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-inter-quote-short",
+        chapterId: "chapter-1",
+        orderIndex: 8,
+        content:
+          "“天天就这么一套说辞，烦不烦，烦不烦。”龙宗主捂着脑袋嗔起来，“把这个月呈报念完，你也赶紧用饭去吧。”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH"],
+        coverageRatio: 1,
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "“天天就这么一套说辞，烦不烦，烦不烦。”",
+      "龙宗主捂着脑袋嗔起来，",
+      "“把这个月呈报念完，你也赶紧用饭去吧。”",
+    ]);
+  });
+
+  it("should keep ongoing report quotes merged inside the real failure segment", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-report-continuation",
+        chapterId: "chapter-1",
+        orderIndex: 6,
+        content:
+          "“宗主何事忧烦？”\n　　“昨晚喝多了……”\n　　闵弘芳忍了半天才没让嘴撇起来：“凭宗主浩然气机，几樽仙酿下去怕也是醉不倒的。”\n　　龙雅歌纤手扶额，视线落在空阔的大殿尽头：“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”\n　　“宗主切莫自扰，我宗所据陵允二州，地广人稀，难免有个疏漏。前代宗主传下的诏言总不会有错，时机一到便会拨云见日……”\n　　“天天就这么一套说辞，烦不烦，烦不烦。”龙宗主捂着脑袋嗔起来，“把这个月呈报念完，你也赶紧用饭去吧。”\n　　“是。”闵弘芳从储物戒中取出宗门呈报，一字一句念起来。\n　　“陵州纳灵石二十万枚，允州纳灵石十三万枚，宗门灵矿……”\n　　“丹药堂新产丹药四百枚……”\n　　这边厢游响停云，那边厢心不在焉，闵弘芳念了小半个时辰，龙雅歌一桌子菜都扫净了。\n　　“外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……”\n　　“另有药圃走水两次，经查是外门弟子中有人故意所为。巡查堂报，尚未擒获疑凶，还需时日……”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP", "LOW_COVERAGE"],
+      },
+    });
+
+    const contents = refined.map((item) => item.content);
+    const mergedReportSlice = contents.find(
+      (item) =>
+        item.includes("一字一句念起来") &&
+        item.includes("外门弟子斗殴两起") &&
+        item.includes("另有药圃走水两次")
+    );
+
+    expect(mergedReportSlice).toBeDefined();
+    expect(contents).not.toContain("“丹药堂新产丹药四百枚……”");
+    expect(contents).not.toContain(
+      "“外门弟子斗殴两起，内门弟子偷盗一起，均由巡查堂长老按宗门律施以惩戒……”"
+    );
+  });
+
+  it("should refine report-style quoted continuation even when mismatch is the only issue", () => {
+    const refined = refineFailedSegment({
+      segment: {
+        id: "seg-report-continuation-full-coverage",
+        chapterId: "chapter-1",
+        orderIndex: 6,
+        content:
+          "“宗主何事忧烦？”\n　　“昨晚喝多了……”\n　　闵弘芳忍了半天才没让嘴撇起来：“凭宗主浩然气机，几樽仙酿下去怕也是醉不倒的。”\n　　龙雅歌纤手扶额，视线落在空阔的大殿尽头：“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”",
+      },
+      failure: {
+        errorCode: "SCRIPT_VALIDATION_FAILED",
+        issueCodes: ["TEXT_SOURCE_MISMATCH"],
+        coverageRatio: 1,
+      },
+    });
+
+    expect(refined.map((item) => item.content)).toEqual([
+      "“宗主何事忧烦？”",
+      "“昨晚喝多了……”",
+      "闵弘芳忍了半天才没让嘴撇起来：“凭宗主浩然气机，几樽仙酿下去怕也是醉不倒的。”",
+      "龙雅歌纤手扶额，视线落在空阔的大殿尽头：“本宫昨夜闲来无事赏观星象，见那枚异星已入枢机双盘，不免想起师祖遗诏。本宫继位已逾百年，自觉愧对师祖师尊，便多喝了两杯。”",
     ]);
   });
 

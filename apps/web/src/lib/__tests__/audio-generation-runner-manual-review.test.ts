@@ -6,6 +6,14 @@ jest.mock("@/lib/audio-generator", () => ({
   getAudioGenerator: jest.fn(),
 }));
 
+jest.mock("@/lib/tts-service", () => ({
+  ttsServiceManager: {
+    ready: jest.fn().mockResolvedValue(undefined),
+    getVoice: jest.fn(),
+    synthesize: jest.fn(),
+  },
+}));
+
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
   default: {
@@ -77,6 +85,18 @@ describe("runAudioGenerationTask manual review followup", () => {
     mockManualReviewFindFirst.mockResolvedValue(null);
     mockManualReviewFindMany.mockResolvedValue([]);
     mockManualReviewUpdate.mockResolvedValue({});
+  });
+
+  it("should keep getAudioGenerator facade compatible", async () => {
+    const { getAudioGenerator: getRealAudioGenerator } = jest.requireActual(
+      "@/lib/audio-generator"
+    ) as typeof import("@/lib/audio-generator");
+    const generator = getRealAudioGenerator();
+
+    expect(typeof generator.generateSingleAudio).toBe("function");
+    expect(typeof generator.generateBatchAudio).toBe("function");
+    expect(typeof (generator as any).generateBatchAudioWithReliability).toBe("function");
+    expect(typeof generator.executeAudioSynthesis).toBe("function");
   });
 
   it("should enqueue followup quality check when regenerate succeeds", async () => {

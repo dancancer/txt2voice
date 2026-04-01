@@ -37,7 +37,12 @@ interface LLMClient {
 type SegmentFailurePatch = Partial<
   Omit<
     SegmentFailureDetail,
-    "segmentId" | "chapterId" | "orderIndex" | "message" | "segmentPreview"
+    | "segmentId"
+    | "chapterId"
+    | "orderIndex"
+    | "message"
+    | "segmentPreview"
+    | "segmentContent"
   >
 >;
 
@@ -393,6 +398,15 @@ const buildSegmentFailureDetail = (params: {
     issueMessages,
     issuePreviews,
     segmentPreview: buildSegmentPreview(segment.content),
+    segmentContent: segment.content,
+    rawResponse:
+      typeof patch?.rawResponse === "string" ? patch.rawResponse : null,
+    structuredResult:
+      patch?.structuredResult &&
+      typeof patch.structuredResult === "object" &&
+      !Array.isArray(patch.structuredResult)
+        ? (JSON.parse(JSON.stringify(patch.structuredResult)) as Record<string, unknown>)
+        : null,
   };
 };
 
@@ -795,7 +809,7 @@ export async function processSegment(params: {
   characterMap: Map<string, string>;
   characterProfiles: any[];
   options: ScriptGenerationOptions;
-}): Promise<SegmentProcessingResult> {
+  }): Promise<SegmentProcessingResult> {
   const { llmService, segment, characterMap, characterProfiles, options } =
     params;
 
@@ -806,40 +820,10 @@ export async function processSegment(params: {
   const response = await llmService.callLLM(prompt, systemPrompt);
   console.log("LLM台本响应长度", { segmentId: segment.id, length: response.length });
 
+  let result: Record<string, unknown>;
   try {
-    const result = await parseLLMJsonResult(llmService, response);
-    const scriptSentences = resolveScriptSentences(result);
-    const rawCharacters = resolveRawCharacters(result);
-
-    const characterCandidates = normalizeCharacterCandidates(rawCharacters);
-    const { stagedCharacterMap, stagedProfiles } = buildStagedCharacterMap({
-      characterCandidates,
-      characterMap,
-    });
-
-    const dialogueLines = mapDialogueLines({
-      segment,
-      scriptSentences,
-      characterMap: stagedCharacterMap,
-    }).filter((line) => line.text.trim().length > 0);
-
-    ensureDialogueLengthCap({
-      segment,
-      dialogueLines,
-      maxDialogueLength: options.maxDialogueLength,
-    });
-
-    commitStagedCharacterMap({
-      characterMap,
-      stagedProfiles,
-    });
-
-    return { dialogueLines, characterCandidates };
+    result = await parseLLMJsonResult(llmService, response);
   } catch (error) {
-    if (error instanceof TTSError) {
-      throw error;
-    }
-
     console.error("台本解析失败:", error);
     const parseError = new TTSError(
       "台本生成失败，LLM返回格式错误",
@@ -854,10 +838,74 @@ export async function processSegment(params: {
         stage: "llm_parse",
         errorCode: "LLM_JSON_PARSE_FAILED",
         retryable: true,
+        rawResponse: response,
+        structuredResult: null,
       },
     });
     throw parseError;
   }
+
+  try {
+    return buildSegmentProcessingResultFromStructuredResult({
+      segment,
+      structuredResult: result,
+      characterMap,
+      options,
+    });
+  } catch (error) {
+    if (error instanceof TTSError) {
+      const currentDetail =
+        error.details && typeof error.details === "object" && !Array.isArray(error.details)
+          ? (error.details as Record<string, unknown>)
+          : {};
+      error.details = buildSegmentFailureDetail({
+        segment,
+        message: error.message,
+        patch: {
+          ...(currentDetail as SegmentFailurePatch),
+          rawResponse: response,
+          structuredResult: result,
+        },
+      });
+    }
+    throw error;
+  }
+}
+
+export function buildSegmentProcessingResultFromStructuredResult(params: {
+  segment: any;
+  structuredResult: Record<string, unknown>;
+  characterMap: Map<string, string>;
+  options: ScriptGenerationOptions;
+}): SegmentProcessingResult {
+  const { segment, structuredResult, characterMap, options } = params;
+  const scriptSentences = resolveScriptSentences(structuredResult);
+  const rawCharacters = resolveRawCharacters(structuredResult);
+
+  const characterCandidates = normalizeCharacterCandidates(rawCharacters);
+  const { stagedCharacterMap, stagedProfiles } = buildStagedCharacterMap({
+    characterCandidates,
+    characterMap,
+  });
+
+  const dialogueLines = mapDialogueLines({
+    segment,
+    scriptSentences,
+    characterMap: stagedCharacterMap,
+  }).filter((line) => line.text.trim().length > 0);
+
+  ensureDialogueLengthCap({
+    segment,
+    dialogueLines,
+    maxDialogueLength: options.maxDialogueLength,
+  });
+
+  commitStagedCharacterMap({
+    characterMap,
+    stagedProfiles,
+  });
+
+  return { dialogueLines, characterCandidates };
 }
 
 const processSegmentWithRefinement = async (params: {
@@ -962,20 +1010,50 @@ export async function processSegmentAndSave(params: {
   options: ScriptGenerationOptions;
   bookId: string;
 }): Promise<SegmentProcessingResult> {
-  const { llmService, segment, characterMap, characterProfiles, options, bookId } =
-    params;
+  const { bookId, segment, characterMap, characterProfiles } = params;
+  const result = await inferSegment(params);
 
-  const result = await processSegmentWithRefinement({
+  await persistSegmentResult({
+    bookId,
+    segmentId: segment.id,
+    result,
+    characterMap,
+    characterProfiles,
+  });
+
+  return result;
+}
+
+export async function inferSegment(params: {
+  llmService: LLMClient;
+  segment: any;
+  characterMap: Map<string, string>;
+  characterProfiles: any[];
+  options: ScriptGenerationOptions;
+}): Promise<SegmentProcessingResult> {
+  const { llmService, segment, characterMap, characterProfiles, options } = params;
+
+  return processSegmentWithRefinement({
     llmService,
     segment,
     characterMap,
     characterProfiles,
     options,
   });
+}
+
+export async function persistSegmentResult(params: {
+  bookId: string;
+  segmentId: string;
+  result: SegmentProcessingResult;
+  characterMap: Map<string, string>;
+  characterProfiles: any[];
+}): Promise<void> {
+  const { bookId, segmentId, result, characterMap, characterProfiles } = params;
 
   if (result.dialogueLines.length === 0) {
     throw new TTSError(
-      `段落 ${segment.id} 未生成有效台词`,
+      `段落 ${segmentId} 未生成有效台词`,
       "TTS_SERVICE_DOWN",
       "script-generator"
     );
@@ -992,11 +1070,9 @@ export async function processSegmentAndSave(params: {
 
   await saveSegmentScriptToDatabase({
     bookId,
-    segmentId: segment.id,
+    segmentId,
     dialogueLines: result.dialogueLines,
     characterProfiles,
     characterMap,
   });
-
-  return result;
 }

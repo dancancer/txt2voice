@@ -25,6 +25,7 @@
     "docker:web:health": "curl -fsS http://localhost:3001/api/health",
     "docker:web:restart": "docker compose restart web",
     "docker:web:recreate": "docker compose up -d --force-recreate web",
+    "deploy:remote:web": "bash scripts/deploy-remote-web.sh",
     "docker:web:prisma:generate": "docker compose exec web sh -lc \"cd /app/apps/web && pnpm prisma generate\"",
     "docker:web:fix:prisma": "pnpm docker:web:prisma:generate && pnpm docker:web:restart",
     "docker:doctor": "docker compose ps && echo \"\\n--- web logs (tail 120) ---\" && docker compose logs --tail=120 web",
