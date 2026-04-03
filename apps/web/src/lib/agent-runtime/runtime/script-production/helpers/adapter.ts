@@ -131,10 +131,16 @@ export const createObservedAdapter = (params: {
 export const createObservedDefaultAdapter = (params: {
   onExecutionEvent?: (event: LLMExecutionEvent) => void;
   trace?: AdapterTraceContext;
+  provider?: {
+    name: string;
+    apiKey: string;
+    baseURL?: string;
+    model: string;
+  };
 }): LLMAdapter => {
   let runtimePromise: Promise<{
     adapter: LLMAdapter;
-    provider: {
+    getProvider: () => {
       name: string;
       apiKey: string;
       baseURL?: string;
@@ -148,10 +154,9 @@ export const createObservedDefaultAdapter = (params: {
         import("../../../adapters/llm-adapter"),
         import("@/lib/llm-service"),
       ]).then(([adapterModule, llmServiceModule]) => {
-        const provider = llmServiceModule.getConfiguredLLMProvider();
         return {
           adapter: adapterModule.createDefaultLLMAdapter(),
-          provider,
+          getProvider: llmServiceModule.getConfiguredLLMProvider,
         };
       });
     }
@@ -162,7 +167,8 @@ export const createObservedDefaultAdapter = (params: {
   return {
     async call(input) {
       const runtime = await loadRuntime();
-      const provider = input.provider ?? runtime.provider;
+      const provider =
+        input.provider ?? params.provider ?? runtime.getProvider();
 
       return createObservedAdapter({
         adapter: runtime.adapter,

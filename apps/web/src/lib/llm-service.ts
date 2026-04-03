@@ -4,6 +4,10 @@
 // pos: 共享业务库
 import { TTSError } from "./error-handler";
 import { runLLMRequest } from "./llm-runtime";
+import {
+  getDefaultLLMModel,
+  getLLMModelById,
+} from "./llm-model-registry";
 import type {
   LLMExecutionJobResult,
   LLMExecutionRequestOptions,
@@ -17,21 +21,29 @@ export interface LLMProvider {
   model: string;
 }
 
+const toProviderSnapshot = (model: ReturnType<typeof getDefaultLLMModel>): LLMProvider => ({
+  name: model.provider,
+  apiKey: model.apiKey,
+  ...(model.baseURL ? { baseURL: model.baseURL } : {}),
+  model: model.model,
+});
+
 export function getLLMProviderSnapshot(
+  modelId?: string,
   env: NodeJS.ProcessEnv = process.env
 ): LLMProvider {
-  return {
-    name: env.LLM_PROVIDER || "openai",
-    apiKey: env.LLM_API_KEY || env.OPENAI_API_KEY || "",
-    baseURL: env.LLM_BASE_URL || env.OPENAI_BASE_URL,
-    model: env.LLM_MODEL || "gpt-3.5-turbo",
-  };
+  const model = modelId
+    ? getLLMModelById(modelId, env)
+    : getDefaultLLMModel(env);
+
+  return toProviderSnapshot(model);
 }
 
 export function getConfiguredLLMProvider(
+  modelId?: string,
   env: NodeJS.ProcessEnv = process.env
 ): LLMProvider {
-  const provider = getLLMProviderSnapshot(env);
+  const provider = getLLMProviderSnapshot(modelId, env);
 
   if (!provider.apiKey) {
     throw new TTSError(

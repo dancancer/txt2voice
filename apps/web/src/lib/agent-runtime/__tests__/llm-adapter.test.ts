@@ -123,4 +123,41 @@ describe("agent runtime llm adapter", () => {
       usage: null,
     });
   });
+
+  it("observed default adapter can use an explicit provider override", async () => {
+    const explicitProvider = {
+      name: "custom",
+      apiKey: "explicit-key",
+      model: "Qwen3.5-9B-GGUF-Q4_K_M",
+      baseURL: "http://192.168.88.9:8028/v1",
+    };
+
+    runLLMRequest.mockResolvedValueOnce({
+      content: "explicit",
+      provider: "custom",
+      model: "Qwen3.5-9B-GGUF-Q4_K_M",
+      latencyMs: 11,
+      attempt: 1,
+      usage: null,
+    });
+
+    const { createObservedDefaultAdapter } = await import(
+      "../runtime/script-production/helpers/adapter"
+    );
+    const adapter = createObservedDefaultAdapter({
+      provider: explicitProvider,
+    } as any);
+
+    await adapter.call({
+      prompt: "test",
+      metadata: { source: "agent_runtime" },
+    });
+
+    expect(getConfiguredLLMProvider).not.toHaveBeenCalled();
+    expect(runLLMRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: explicitProvider,
+      })
+    );
+  });
 });
