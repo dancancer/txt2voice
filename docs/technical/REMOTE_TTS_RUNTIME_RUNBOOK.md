@@ -80,8 +80,17 @@ bash scripts/deploy-remote-web.sh
 - 远端 bootstrap deploy clone
 - `git fetch + git pull --ff-only`
 - `.env` 链接校验
+- `docker compose -p txt2voice up -d postgres redis`
+- 仅在依赖层文件变化时执行 `docker compose -p txt2voice build web`
 - `docker compose -p txt2voice up -d --no-deps web`
 - 健康检查
+
+当前远端 `web` 默认使用开发态容器：
+
+- 源码整仓挂载到 `/app`
+- 容器内运行 `next dev --webpack`
+- 普通代码改动不需要重建镜像
+- 只有 `package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `apps/web/package.json` / `apps/web/Dockerfile.dev` 变化时才需要 build
 
 这条脚本还会额外做两层护栏：
 
@@ -179,7 +188,8 @@ ssh 192.168.88.9 'cd /root/code/tts-openstack && docker compose up -d cosyvoice-
 ### Step 3: 拉起 txt2voice Web
 
 ```bash
-ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose up -d postgres redis web'
+ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose up -d postgres redis'
+ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose up -d --no-deps web'
 ```
 
 注意：当前 compose 已避开宿主机默认数据库端口，不要再改回 `5432/6379`。
@@ -378,7 +388,8 @@ bash scripts/deploy-remote-web.sh --branch <branch>
 
 - 远端 deploy clone 能完成 `git pull --ff-only`
 - `.env` 链接仍指向 `/root/code/txt2voice/.env`
-- `txt2voice-web` 重建或重启后恢复健康
+- 普通代码变更只需重启 `txt2voice-web` 即可恢复健康
+- 依赖层文件变更时，脚本会先 build 再拉起 `txt2voice-web`
 
 ### 5. 部署后最小门禁
 

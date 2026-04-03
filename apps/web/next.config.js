@@ -1,11 +1,11 @@
 const path = require('node:path')
 
 const repoRoot = path.join(__dirname, '../..')
+const isDevelopment = process.env.NODE_ENV === 'development'
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
   images: {
     domains: [],
   },
@@ -13,6 +13,7 @@ const nextConfig = {
     root: repoRoot,
   },
   outputFileTracingRoot: repoRoot,
+  ...(isDevelopment ? {} : { output: 'standalone' }),
 }
 
 module.exports = nextConfig

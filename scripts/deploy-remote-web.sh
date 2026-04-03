@@ -103,10 +103,12 @@ branch=${BRANCH}
 source_env=${SOURCE_ENV}
 health_url=${HEALTH_URL}
 compose_project=txt2voice
+needs_build=0
 
 mkdir -p ${DIRNAME_REMOTE}
 if [ ! -d ${REMOTE_DIR}/.git ]; then
   git clone ${REPO_URL} ${REMOTE_DIR}
+  needs_build=1
 fi
 
 cd ${REMOTE_DIR}
@@ -125,6 +127,7 @@ if [ -n "\$current_remote_branch" ] && [ "\$current_remote_branch" != "${BRANCH}
 fi
 
 git remote set-url origin ${REPO_URL}
+previous_rev="\$(git rev-parse HEAD 2>/dev/null || true)"
 git fetch origin
 
 if git show-ref --verify --quiet refs/heads/${BRANCH}; then
@@ -134,7 +137,24 @@ else
 fi
 
 git pull --ff-only origin ${BRANCH}
+current_rev="\$(git rev-parse HEAD)"
+
+if [ "\$needs_build" -eq 0 ] && [ -n "\$previous_rev" ] && [ "\$previous_rev" != "\$current_rev" ]; then
+  if git diff --name-only "\$previous_rev" "\$current_rev" -- \
+    package.json \
+    pnpm-lock.yaml \
+    pnpm-workspace.yaml \
+    apps/web/package.json \
+    apps/web/Dockerfile.dev | grep -q .; then
+    needs_build=1
+  fi
+fi
+
 ln -sfn ${SOURCE_ENV} ${REMOTE_DIR}/.env
+docker compose -p txt2voice up -d postgres redis
+if [ "\$needs_build" -eq 1 ]; then
+  docker compose -p txt2voice build web
+fi
 docker compose -p txt2voice up -d --no-deps web
 docker compose -p txt2voice ps web
 for attempt in \$(seq 1 30); do

@@ -30,7 +30,11 @@ test("dry run should print deploy clone bootstrap and pull commands", () => {
   assert.match(result.stdout, /git clone .*txt2voice\.git .*\/root\/deploy\/txt2voice-web/);
   assert.match(result.stdout, /git fetch origin/);
   assert.match(result.stdout, new RegExp(`git pull --ff-only origin ${localBranch}`));
+  assert.match(result.stdout, /needs_build=0/);
+  assert.match(result.stdout, /previous_rev="\$\(git rev-parse HEAD 2>\/dev\/null \|\| true\)"/);
   assert.match(result.stdout, /ln -sfn \/root\/code\/txt2voice\/\.env .*\/root\/deploy\/txt2voice-web\/\.env/);
+  assert.match(result.stdout, /docker compose -p txt2voice up -d postgres redis/);
+  assert.match(result.stdout, /docker compose -p txt2voice build web/);
   assert.match(result.stdout, /docker compose -p txt2voice up -d --no-deps web/);
   assert.match(result.stdout, /for attempt in \$\(seq 1 30\)/);
   assert.match(result.stdout, /sleep 2/);
