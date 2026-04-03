@@ -29,20 +29,26 @@ jest.mock("next/server", () => {
   };
 });
 
+const listSelectableLLMModels = jest.fn();
+
+jest.mock("@/lib/llm-model-config-service", () => ({
+  listSelectableLLMModels: (...args: unknown[]) =>
+    listSelectableLLMModels(...args),
+}));
+
 import { GET } from "@/app/api/llm/models/route";
 
 describe("GET /api/llm/models", () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
-    process.env = {
-      ...originalEnv,
-      LLM_MODELS_JSON: JSON.stringify([
+    jest.clearAllMocks();
+    listSelectableLLMModels.mockResolvedValue({
+      defaultModelId: "qwen-local",
+      source: "database",
+      models: [
         {
           id: "deepseek-cloud",
           label: "DeepSeek Cloud",
           provider: "custom",
-          apiKey: "cloud-key",
           baseURL: "https://api.deepseek.com/v1",
           model: "deepseek-chat",
         },
@@ -50,17 +56,11 @@ describe("GET /api/llm/models", () => {
           id: "qwen-local",
           label: "Qwen Local",
           provider: "custom",
-          apiKey: "local-key",
           baseURL: "http://192.168.88.9:8028/v1",
           model: "Qwen3.5-9B-GGUF-Q4_K_M",
         },
-      ]),
-      LLM_DEFAULT_MODEL_ID: "qwen-local",
-    };
-  });
-
-  afterAll(() => {
-    process.env = originalEnv;
+      ],
+    });
   });
 
   it("should return the registry list without exposing api keys", async () => {

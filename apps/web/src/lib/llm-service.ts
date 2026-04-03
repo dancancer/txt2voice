@@ -4,6 +4,7 @@
 // pos: 共享业务库
 import { TTSError } from "./error-handler";
 import { runLLMRequest } from "./llm-runtime";
+import { resolveConfiguredLLMProvider as resolveConfiguredLLMProviderFromStore } from "./llm-model-config-service";
 import {
   getDefaultLLMModel,
   getLLMModelById,
@@ -21,12 +22,52 @@ export interface LLMProvider {
   model: string;
 }
 
+const LOCAL_API_KEY_PLACEHOLDER = "local-placeholder-key";
+
 const toProviderSnapshot = (model: ReturnType<typeof getDefaultLLMModel>): LLMProvider => ({
   name: model.provider,
   apiKey: model.apiKey,
   ...(model.baseURL ? { baseURL: model.baseURL } : {}),
   model: model.model,
 });
+
+const isLocalBaseURL = (baseURL?: string): boolean => {
+  if (!baseURL) {
+    return false;
+  }
+
+  try {
+    const hostname = new URL(baseURL).hostname;
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("10.") ||
+      hostname === "::1"
+    );
+  } catch {
+    return false;
+  }
+};
+
+const normalizeConfiguredProvider = (provider: LLMProvider): LLMProvider => {
+  if (provider.apiKey) {
+    return provider;
+  }
+
+  if (isLocalBaseURL(provider.baseURL)) {
+    return {
+      ...provider,
+      apiKey: LOCAL_API_KEY_PLACEHOLDER,
+    };
+  }
+
+  throw new TTSError(
+    "LLM服务未配置，请设置API密钥",
+    "TTS_SERVICE_DOWN",
+    provider.name
+  );
+};
 
 export function getLLMProviderSnapshot(
   modelId?: string,
@@ -43,17 +84,14 @@ export function getConfiguredLLMProvider(
   modelId?: string,
   env: NodeJS.ProcessEnv = process.env
 ): LLMProvider {
-  const provider = getLLMProviderSnapshot(modelId, env);
+  return normalizeConfiguredProvider(getLLMProviderSnapshot(modelId, env));
+}
 
-  if (!provider.apiKey) {
-    throw new TTSError(
-      "LLM服务未配置，请设置API密钥",
-      "TTS_SERVICE_DOWN",
-      provider.name
-    );
-  }
-
-  return provider;
+export async function resolveConfiguredLLMProvider(
+  modelId?: string
+): Promise<LLMProvider> {
+  const provider = await resolveConfiguredLLMProviderFromStore(modelId);
+  return normalizeConfiguredProvider(provider);
 }
 
 export interface ExecuteProviderLLMCallInput {
@@ -256,33 +294,47 @@ export interface ScriptAnalysisResult {
  * LLM服务类
  */
 export class LLMService {
-  private provider: LLMProvider;
-  private providerName: string;
+  private providerOrResolver: LLMProvider | (() => Promise<LLMProvider>);
   private executionObserver: LLMExecutionObserver | null = null;
 
-  constructor(provider: LLMProvider) {
-    this.provider = provider;
-    this.providerName = provider.name;
+  constructor(providerOrResolver: LLMProvider | (() => Promise<LLMProvider>)) {
+    this.providerOrResolver = providerOrResolver;
+  }
+
+  private async resolveProvider(): Promise<LLMProvider> {
+    if (typeof this.providerOrResolver === "function") {
+      return this.providerOrResolver();
+    }
+
+    return this.providerOrResolver;
+  }
+
+  private getErrorProviderName(): string {
+    return typeof this.providerOrResolver === "function"
+      ? "llm"
+      : this.providerOrResolver.name;
   }
 
   /**
    * 公共的LLM调用方法
    */
   async callLLM(prompt: string, systemPrompt?: string): Promise<string> {
+    const provider = await this.resolveProvider();
+
     this.executionObserver?.({
       status: "submitted",
-      provider: this.providerName,
-      model: this.provider.model,
+      provider: provider.name,
+      model: provider.model,
     });
 
     try {
       const result = await runLLMRequest({
-        provider: this.provider,
+        provider,
         prompt,
         systemPrompt,
         metadata: {
           source: "llm_service",
-          provider: this.providerName,
+          provider: provider.name,
         },
         requestOptions: DEFAULT_REQUEST_OPTIONS,
       });
@@ -310,7 +362,7 @@ export class LLMService {
 
       this.executionObserver?.({
         status: "failed",
-        provider: this.providerName,
+        provider: provider.name,
         retryable: error instanceof TTSError ? error.retryable : true,
         attempt,
         retriesUsed,
@@ -458,7 +510,7 @@ ${continuationPrompt}
       throw new TTSError(
         "文本分析失败，LLM返回格式错误",
         "TTS_SERVICE_DOWN",
-        this.providerName
+        this.getErrorProviderName()
       );
     }
   }
@@ -618,5 +670,5 @@ ${continuationPrompt}
  * 获取LLM服务实例
  */
 export function getLLMService(modelId?: string): LLMService {
-  return new LLMService(getConfiguredLLMProvider(modelId));
+  return new LLMService(() => resolveConfiguredLLMProvider(modelId));
 }

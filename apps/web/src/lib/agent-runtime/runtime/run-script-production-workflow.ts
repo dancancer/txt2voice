@@ -1,5 +1,5 @@
 import { TTSError } from "@/lib/error-handler";
-import { getConfiguredLLMProvider } from "@/lib/llm-service";
+import { resolveConfiguredLLMProvider } from "@/lib/llm-service";
 import { calculateScriptSummary } from "@/lib/script-generator/pipeline/summary";
 import {
   loadBookForGeneration,
@@ -291,7 +291,7 @@ export const runScriptProductionWorkflow = async (
             },
           })
         : createObservedDefaultAdapter({
-            provider: getConfiguredLLMProvider(llmModelId),
+            provider: await resolveConfiguredLLMProvider(llmModelId),
             onExecutionEvent: input.onExecutionEvent,
             trace: {
               workflowRunId,
