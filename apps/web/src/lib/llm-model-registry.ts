@@ -67,7 +67,15 @@ const toRegistryItem = (item: RawRegistryItem): LLMModelRegistryItem => {
 };
 
 const parseRegistryJson = (rawJson: string): LLMModelRegistryItem[] => {
-  const parsed = JSON.parse(rawJson);
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "未知JSON解析错误";
+    throw new Error(`LLM_MODELS_JSON 配置无效: ${message}`);
+  }
+
   if (!Array.isArray(parsed)) {
     throw new Error("LLM_MODELS_JSON 必须是数组");
   }
@@ -123,6 +131,18 @@ const buildLegacySnapshot = (
   };
 };
 
+const getModelFromRegistry = (
+  registry: LLMModelRegistrySnapshot,
+  modelId: string
+): LLMModelRegistryItem => {
+  const model = registry.models.find((entry) => entry.id === modelId);
+  if (!model) {
+    throw new Error(`找不到LLM模型: ${modelId}`);
+  }
+
+  return model;
+};
+
 export function getLLMModelRegistrySnapshot(
   env: LLMModelRegistryEnv = process.env
 ): LLMModelRegistrySnapshot {
@@ -149,18 +169,12 @@ export function getLLMModelById(
   modelId: string,
   env: LLMModelRegistryEnv = process.env
 ): LLMModelRegistryItem {
-  const registry = getLLMModelRegistrySnapshot(env);
-  const model = registry.models.find((entry) => entry.id === modelId);
-  if (!model) {
-    throw new Error(`找不到LLM模型: ${modelId}`);
-  }
-
-  return model;
+  return getModelFromRegistry(getLLMModelRegistrySnapshot(env), modelId);
 }
 
 export function getDefaultLLMModel(
   env: LLMModelRegistryEnv = process.env
 ): LLMModelRegistryItem {
   const registry = getLLMModelRegistrySnapshot(env);
-  return getLLMModelById(registry.defaultModelId, env);
+  return getModelFromRegistry(registry, registry.defaultModelId);
 }

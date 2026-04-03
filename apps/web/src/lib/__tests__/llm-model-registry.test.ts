@@ -160,4 +160,13 @@ describe("llm-model-registry", () => {
       } as NodeJS.ProcessEnv)
     ).toThrow(/default|默认|missing/i);
   });
+
+  it("throws a normalized config error when registry json is malformed", () => {
+    expect(() =>
+      getLLMModelRegistrySnapshot({
+        LLM_MODELS_JSON: "{not-json",
+        LLM_DEFAULT_MODEL_ID: "qwen-local",
+      } as NodeJS.ProcessEnv)
+    ).toThrow(/LLM_MODELS_JSON|配置无效|JSON配置错误/i);
+  });
 });
