@@ -1,4 +1,5 @@
 import { TTSError } from "@/lib/error-handler";
+import { getConfiguredLLMProvider } from "@/lib/llm-service";
 import { calculateScriptSummary } from "@/lib/script-generator/pipeline/summary";
 import {
   loadBookForGeneration,
@@ -277,6 +278,7 @@ export const runScriptProductionWorkflow = async (
       });
       coordinatorStageResults.push(prepareStage);
 
+      const llmModelId = (input.options as { llmModelId?: string }).llmModelId;
       const observedAdapter = deps.adapter
         ? createObservedAdapter({
             adapter: deps.adapter,
@@ -289,6 +291,7 @@ export const runScriptProductionWorkflow = async (
             },
           })
         : createObservedDefaultAdapter({
+            provider: getConfiguredLLMProvider(llmModelId),
             onExecutionEvent: input.onExecutionEvent,
             trace: {
               workflowRunId,

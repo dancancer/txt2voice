@@ -117,6 +117,68 @@ describe("llm-service", () => {
     });
   });
 
+  it("should resolve a specific registry model by id", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+
+    process.env.LLM_MODELS_JSON = JSON.stringify([
+      {
+        id: "deepseek-cloud",
+        label: "DeepSeek Cloud",
+        provider: "custom",
+        apiKey: "cloud-key",
+        baseURL: "https://api.deepseek.com/v1",
+        model: "deepseek-chat",
+      },
+      {
+        id: "qwen-local",
+        label: "Qwen Local",
+        provider: "custom",
+        apiKey: "local-key",
+        baseURL: "http://192.168.88.9:8028/v1",
+        model: "Qwen3.5-9B-GGUF-Q4_K_M",
+      },
+    ]);
+    process.env.LLM_DEFAULT_MODEL_ID = "deepseek-cloud";
+
+    expect(getConfiguredLLMProvider("qwen-local")).toEqual({
+      name: "custom",
+      apiKey: "local-key",
+      baseURL: "http://192.168.88.9:8028/v1",
+      model: "Qwen3.5-9B-GGUF-Q4_K_M",
+    });
+  });
+
+  it("should resolve the default registry model when no model id is given", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+
+    process.env.LLM_MODELS_JSON = JSON.stringify([
+      {
+        id: "deepseek-cloud",
+        label: "DeepSeek Cloud",
+        provider: "custom",
+        apiKey: "cloud-key",
+        baseURL: "https://api.deepseek.com/v1",
+        model: "deepseek-chat",
+      },
+      {
+        id: "qwen-local",
+        label: "Qwen Local",
+        provider: "custom",
+        apiKey: "local-key",
+        baseURL: "http://192.168.88.9:8028/v1",
+        model: "Qwen3.5-9B-GGUF-Q4_K_M",
+      },
+    ]);
+    process.env.LLM_DEFAULT_MODEL_ID = "qwen-local";
+
+    expect(getConfiguredLLMProvider()).toEqual({
+      name: "custom",
+      apiKey: "local-key",
+      baseURL: "http://192.168.88.9:8028/v1",
+      model: "Qwen3.5-9B-GGUF-Q4_K_M",
+    });
+  });
+
   it("should throw TTSError when api key is missing", async () => {
     const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
     const { TTSError } = await import("@/lib/error-handler");
