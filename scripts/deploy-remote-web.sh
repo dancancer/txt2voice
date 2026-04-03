@@ -104,6 +104,8 @@ source_env=${SOURCE_ENV}
 health_url=${HEALTH_URL}
 compose_project=txt2voice
 needs_build=0
+postgres_host_port="\${TXT2VOICE_POSTGRES_HOST_PORT:-15432}"
+redis_host_port="\${TXT2VOICE_REDIS_HOST_PORT:-16379}"
 
 mkdir -p ${DIRNAME_REMOTE}
 if [ ! -d ${REMOTE_DIR}/.git ]; then
@@ -151,6 +153,8 @@ if [ "\$needs_build" -eq 0 ] && [ -n "\$previous_rev" ] && [ "\$previous_rev" !=
 fi
 
 ln -sfn ${SOURCE_ENV} ${REMOTE_DIR}/.env
+export TXT2VOICE_POSTGRES_HOST_PORT="\$postgres_host_port"
+export TXT2VOICE_REDIS_HOST_PORT="\$redis_host_port"
 docker compose -p txt2voice up -d postgres redis
 if [ "\$needs_build" -eq 1 ]; then
   docker compose -p txt2voice build web

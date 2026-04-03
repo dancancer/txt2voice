@@ -31,8 +31,12 @@ test("dry run should print deploy clone bootstrap and pull commands", () => {
   assert.match(result.stdout, /git fetch origin/);
   assert.match(result.stdout, new RegExp(`git pull --ff-only origin ${localBranch}`));
   assert.match(result.stdout, /needs_build=0/);
+  assert.match(result.stdout, /postgres_host_port="\$\{TXT2VOICE_POSTGRES_HOST_PORT:-15432\}"/);
+  assert.match(result.stdout, /redis_host_port="\$\{TXT2VOICE_REDIS_HOST_PORT:-16379\}"/);
   assert.match(result.stdout, /previous_rev="\$\(git rev-parse HEAD 2>\/dev\/null \|\| true\)"/);
   assert.match(result.stdout, /ln -sfn \/root\/code\/txt2voice\/\.env .*\/root\/deploy\/txt2voice-web\/\.env/);
+  assert.match(result.stdout, /export TXT2VOICE_POSTGRES_HOST_PORT="\$postgres_host_port"/);
+  assert.match(result.stdout, /export TXT2VOICE_REDIS_HOST_PORT="\$redis_host_port"/);
   assert.match(result.stdout, /docker compose -p txt2voice up -d postgres redis/);
   assert.match(result.stdout, /docker compose -p txt2voice build web/);
   assert.match(result.stdout, /docker compose -p txt2voice up -d --no-deps web/);

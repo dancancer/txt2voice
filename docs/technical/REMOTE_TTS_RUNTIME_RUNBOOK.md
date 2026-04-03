@@ -91,6 +91,7 @@ bash scripts/deploy-remote-web.sh
 - 容器内运行 `next dev --webpack`
 - 普通代码改动不需要重建镜像
 - 只有 `package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `apps/web/package.json` / `apps/web/Dockerfile.dev` 变化时才需要 build
+- 脚本默认把远端宿主机端口映射改成 PostgreSQL `15432`、Redis `16379`，避免和宿主机已有服务冲突
 
 这条脚本还会额外做两层护栏：
 
