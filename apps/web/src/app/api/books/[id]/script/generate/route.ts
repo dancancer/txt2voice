@@ -344,7 +344,13 @@ export const PATCH = withErrorHandler(
   ) => {
     const { id: bookId } = await params;
     const body = await request.json();
-    const { segmentIds = [] }: { segmentIds: string[] } = body;
+    const {
+      segmentIds = [],
+      options = {},
+    }: {
+      segmentIds: string[];
+      options?: Partial<ScriptGenerationOptions>;
+    } = body;
 
     if (!Array.isArray(segmentIds) || segmentIds.length === 0) {
       throw new ValidationError("请提供要重新生成的段落ID列表");
@@ -414,7 +420,7 @@ export const PATCH = withErrorHandler(
       await enqueueScriptGenerationJob({
         taskId: task.id,
         bookId,
-        options: {},
+        options,
         extraParams: {
           segmentIds,
           regenerateSegments: true,
