@@ -110,6 +110,8 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
 
 const buildScriptReplayPayloadFromTask = (task: ProcessingTask): ScriptReplayInput => {
   const rawTaskData = jsonObject(task.taskData);
+  const metadata = asRecord(rawTaskData.metadata);
+  const rawOptions = asRecord(metadata?.options) || {};
 
   const normalizedExtra: ScriptGenerationExtraParams = {
     startFromSegmentId:
@@ -133,7 +135,7 @@ const buildScriptReplayPayloadFromTask = (task: ProcessingTask): ScriptReplayInp
   return {
     taskId: task.id,
     bookId: task.bookId,
-    options: {},
+    options: rawOptions as Partial<ScriptGenerationOptions>,
     extraParams: normalizedExtra,
   };
 };

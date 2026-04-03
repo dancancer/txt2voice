@@ -617,6 +617,6 @@ ${continuationPrompt}
 /**
  * 获取LLM服务实例
  */
-export function getLLMService(): LLMService {
-  return new LLMService(getConfiguredLLMProvider());
+export function getLLMService(modelId?: string): LLMService {
+  return new LLMService(getConfiguredLLMProvider(modelId));
 }

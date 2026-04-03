@@ -37,6 +37,18 @@ export type {
  */
 export class ScriptGenerator {
   private llmService = getLLMService();
+  private executionObserver: LLMExecutionObserver | null = null;
+
+  private syncExecutionObserver(): void {
+    if (typeof this.llmService.setExecutionObserver === "function") {
+      this.llmService.setExecutionObserver(this.executionObserver);
+    }
+  }
+
+  private resolveLLMService(options: ScriptGenerationOptions): void {
+    this.llmService = getLLMService(options.llmModelId);
+    this.syncExecutionObserver();
+  }
 
   private async processSegmentAndSave(
     segment: any,
@@ -87,7 +99,8 @@ export class ScriptGenerator {
   }
 
   setExecutionObserver(observer: LLMExecutionObserver | null): void {
-    this.llmService.setExecutionObserver(observer);
+    this.executionObserver = observer;
+    this.syncExecutionObserver();
   }
 
   /**
@@ -99,6 +112,7 @@ export class ScriptGenerator {
     onProgress?: (done: number, total: number) => Promise<void> | void
   ): Promise<GeneratedScript> {
     const finalOptions = resolveScriptGenerationOptions(options);
+    this.resolveLLMService(finalOptions);
 
     return generateScriptByBook({
       bookId,
@@ -136,6 +150,7 @@ export class ScriptGenerator {
     onProgress?: (done: number, total: number) => Promise<void> | void
   ): Promise<GeneratedScript> {
     const finalOptions = resolveScriptGenerationOptions(options);
+    this.resolveLLMService(finalOptions);
 
     return generatePartialScriptByBook({
       bookId,
@@ -170,6 +185,7 @@ export class ScriptGenerator {
     onProgress?: (done: number, total: number) => Promise<void> | void
   ): Promise<GeneratedScript> {
     const finalOptions = resolveScriptGenerationOptions(options);
+    this.resolveLLMService(finalOptions);
 
     return regenerateSegmentsByBook({
       bookId,

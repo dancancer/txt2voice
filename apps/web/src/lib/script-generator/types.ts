@@ -43,6 +43,7 @@ export interface ScriptGenerationOptions {
   minDialogueLength: number;
   maxDialogueLength: number;
   preserveOriginalBreaks: boolean;
+  llmModelId?: string;
 }
 
 export interface SegmentFailureDetail {
