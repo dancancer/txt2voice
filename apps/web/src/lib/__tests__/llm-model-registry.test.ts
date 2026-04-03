@@ -36,7 +36,7 @@ describe("llm-model-registry", () => {
         },
       ]),
       LLM_DEFAULT_MODEL_ID: "qwen-local",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
 
     expect(registry.source).toBe("registry");
     expect(registry.defaultModelId).toBe("qwen-local");
@@ -64,7 +64,7 @@ describe("llm-model-registry", () => {
         },
       ]),
       LLM_DEFAULT_MODEL_ID: "qwen-local",
-    } as NodeJS.ProcessEnv)).toMatchObject({
+    } as unknown as NodeJS.ProcessEnv)).toMatchObject({
       id: "qwen-local",
       label: "Qwen Local",
       model: "Qwen3.5-9B-GGUF-Q4_K_M",
@@ -89,7 +89,7 @@ describe("llm-model-registry", () => {
         },
       ]),
       LLM_DEFAULT_MODEL_ID: "qwen-local",
-    } as NodeJS.ProcessEnv)).toMatchObject({
+    } as unknown as NodeJS.ProcessEnv)).toMatchObject({
       id: "deepseek-cloud",
       label: "DeepSeek Cloud",
     });
@@ -101,7 +101,7 @@ describe("llm-model-registry", () => {
       LLM_API_KEY: "legacy-key",
       LLM_BASE_URL: "https://api.deepseek.com/v1",
       LLM_MODEL: "deepseek-chat",
-    } as NodeJS.ProcessEnv);
+    } as unknown as NodeJS.ProcessEnv);
 
     expect(registry.source).toBe("legacy");
     expect(registry.defaultModelId).toBe("legacy-default");
@@ -139,7 +139,7 @@ describe("llm-model-registry", () => {
           },
         ]),
         LLM_DEFAULT_MODEL_ID: "duplicate",
-      } as NodeJS.ProcessEnv)
+      } as unknown as NodeJS.ProcessEnv)
     ).toThrow(/重复|duplicate/i);
   });
 
@@ -157,7 +157,7 @@ describe("llm-model-registry", () => {
           },
         ]),
         LLM_DEFAULT_MODEL_ID: "missing-model",
-      } as NodeJS.ProcessEnv)
+      } as unknown as NodeJS.ProcessEnv)
     ).toThrow(/default|默认|missing/i);
   });
 
@@ -166,7 +166,7 @@ describe("llm-model-registry", () => {
       getLLMModelRegistrySnapshot({
         LLM_MODELS_JSON: "{not-json",
         LLM_DEFAULT_MODEL_ID: "qwen-local",
-      } as NodeJS.ProcessEnv)
+      } as unknown as NodeJS.ProcessEnv)
     ).toThrow(/LLM_MODELS_JSON|配置无效|JSON配置错误/i);
   });
 });

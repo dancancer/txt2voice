@@ -8,7 +8,8 @@ pnpm install
 
 # 2) 配置环境变量（仓库根目录）
 cp .env.local.example .env.local
-# 填入 LLM_API_KEY 等必要配置
+# 优先填写 LLM_MODELS_JSON / LLM_DEFAULT_MODEL_ID
+# 若本地 Qwen 服务不鉴权，也请给它填一个非空占位 apiKey
 
 # 3) 启动依赖服务（PostgreSQL + Redis）
 pnpm docker:services
@@ -45,6 +46,13 @@ pnpm docker:up
 ```
 
 访问： [http://localhost:3001](http://localhost:3001)
+
+LLM 配置建议：
+
+- 本地开发优先使用多模型注册表配置：`LLM_DEFAULT_MODEL_ID` + `LLM_MODELS_JSON`
+- 旧的 `LLM_PROVIDER` 单模型变量仍兼容，适合临时回退
+- 当前 `192.168.88.9:8028` 返回的实际模型名是 `Qwen3.5-9B-GGUF-Q4_K_M`
+- 如果后续切到 4B，只改配置中的 `model` 字段即可
 
 常用操作：
 
