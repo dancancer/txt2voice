@@ -72,9 +72,11 @@ services:
       PORT: 3001
       
       # LLM Provider Configuration (从 .env 读取)
+      LLM_DEFAULT_MODEL_ID: ${LLM_DEFAULT_MODEL_ID:-qwen-local}
+      LLM_MODELS_JSON: ${LLM_MODELS_JSON:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-custom}
       LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com/v1}
       LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
       
     volumes:
