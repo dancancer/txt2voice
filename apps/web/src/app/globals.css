@@ -5,35 +5,35 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 47.4% 11.2%);
+  --color-background: oklch(0.985 0.004 255);
+  --color-foreground: oklch(0.24 0.025 258);
 
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 47.4% 11.2%);
+  --color-card: oklch(0.995 0.003 255);
+  --color-card-foreground: oklch(0.24 0.025 258);
 
-  --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 47.4% 11.2%);
+  --color-popover: oklch(0.995 0.003 255);
+  --color-popover-foreground: oklch(0.24 0.025 258);
 
-  --color-primary: hsl(222.2 47.4% 11.2%);
-  --color-primary-foreground: hsl(210 40% 98%);
+  --color-primary: oklch(0.27 0.03 258);
+  --color-primary-foreground: oklch(0.985 0.004 255);
 
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --color-secondary: oklch(0.97 0.008 252);
+  --color-secondary-foreground: oklch(0.27 0.03 258);
 
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
+  --color-muted: oklch(0.968 0.007 252);
+  --color-muted-foreground: oklch(0.54 0.018 257);
 
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
+  --color-accent: oklch(0.958 0.013 251);
+  --color-accent-foreground: oklch(0.27 0.03 258);
 
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(0 0% 98%);
+  --color-destructive: oklch(0.61 0.215 27);
+  --color-destructive-foreground: oklch(0.98 0.004 255);
 
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(222.2 47.4% 11.2%);
+  --color-border: oklch(0.9 0.01 255);
+  --color-input: oklch(0.9 0.01 255);
+  --color-ring: oklch(0.58 0.08 257);
 
-  --radius: 0.5rem;
+  --radius: 0.875rem;
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -53,44 +53,56 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at top, color-mix(in oklch, var(--color-accent) 45%, transparent), transparent 46%),
+      linear-gradient(180deg, color-mix(in oklch, var(--color-card) 82%, transparent), transparent 18rem);
+    background-attachment: fixed;
+    font-feature-settings: "ss01" 1, "cv05" 1;
+    text-rendering: optimizeLegibility;
   }
 
   .container {
     margin-left: auto;
     margin-right: auto;
-    padding-left: 2rem;
-    padding-right: 2rem;
+    padding-left: clamp(1rem, 2vw, 2rem);
+    padding-right: clamp(1rem, 2vw, 2rem);
+  }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--color-primary) 18%, white);
+    color: var(--color-foreground);
   }
 
   .dark {
     color-scheme: dark;
-    --color-background: hsl(222.2 84% 4.9%);
-    --color-foreground: hsl(210 40% 98%);
+    --color-background: oklch(0.2 0.015 258);
+    --color-foreground: oklch(0.95 0.01 255);
 
-    --color-card: hsl(222.2 84% 4.9%);
-    --color-card-foreground: hsl(210 40% 98%);
+    --color-card: oklch(0.24 0.015 258);
+    --color-card-foreground: oklch(0.95 0.01 255);
 
-    --color-popover: hsl(222.2 84% 4.9%);
-    --color-popover-foreground: hsl(210 40% 98%);
+    --color-popover: oklch(0.24 0.015 258);
+    --color-popover-foreground: oklch(0.95 0.01 255);
 
-    --color-primary: hsl(210 40% 98%);
-    --color-primary-foreground: hsl(222.2 47.4% 11.2%);
+    --color-primary: oklch(0.92 0.01 255);
+    --color-primary-foreground: oklch(0.25 0.02 258);
 
-    --color-secondary: hsl(217.2 32.6% 17.5%);
-    --color-secondary-foreground: hsl(210 40% 98%);
+    --color-secondary: oklch(0.31 0.018 258);
+    --color-secondary-foreground: oklch(0.95 0.01 255);
 
-    --color-muted: hsl(217.2 32.6% 17.5%);
-    --color-muted-foreground: hsl(215 20.2% 65.1%);
+    --color-muted: oklch(0.3 0.015 258);
+    --color-muted-foreground: oklch(0.74 0.02 255);
 
-    --color-accent: hsl(217.2 32.6% 17.5%);
-    --color-accent-foreground: hsl(210 40% 98%);
+    --color-accent: oklch(0.34 0.02 257);
+    --color-accent-foreground: oklch(0.95 0.01 255);
 
-    --color-destructive: hsl(0 62.8% 30.6%);
-    --color-destructive-foreground: hsl(0 85.7% 97.3%);
+    --color-destructive: oklch(0.52 0.18 27);
+    --color-destructive-foreground: oklch(0.98 0.004 255);
 
-    --color-border: hsl(217.2 32.6% 17.5%);
-    --color-input: hsl(217.2 32.6% 17.5%);
-    --color-ring: hsl(212.7 26.8% 83.9%);
+    --color-border: oklch(0.36 0.018 257);
+    --color-input: oklch(0.36 0.018 257);
+    --color-ring: oklch(0.74 0.03 255);
   }
 }
 

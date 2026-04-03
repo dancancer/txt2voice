@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   getTaskChildJobSummaries,
   getTaskStatusMeta,
@@ -54,7 +55,7 @@ const renderChildJobSummary = (summary: TaskChildJobSummary) => {
   return (
     <div
       key={summary.key}
-      className="rounded-md border border-slate-200 bg-slate-50 px-3 py-3"
+      className="rounded-md border border-border bg-muted/50 px-3 py-3"
     >
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="outline">{summary.label}</Badge>
@@ -64,12 +65,12 @@ const renderChildJobSummary = (summary: TaskChildJobSummary) => {
         <Badge variant="outline">重试 {summary.retried}</Badge>
         <Badge variant="outline">处理中 {summary.inFlight}</Badge>
       </div>
-      <div className="mt-2 text-sm text-slate-600 leading-6">
+      <div className="mt-2 text-sm leading-6 text-muted-foreground">
         平均等待 {formatDurationMs(summary.averageWaitMs)} · 平均耗时{" "}
         {formatDurationMs(summary.averageLatencyMs)}
       </div>
       {summary.providers.length > 0 ? (
-        <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+        <div className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
           {summary.providers.map((provider) => (
             <span key={`${summary.key}-${provider.provider}`}>
               {provider.provider} · 完成 {provider.completed} · 失败 {provider.failed} ·
@@ -85,6 +86,7 @@ const renderChildJobSummary = (summary: TaskChildJobSummary) => {
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState("");
@@ -95,12 +97,13 @@ export default function TasksPage() {
     setRetryToken(token);
   }, []);
 
-  const fetchTasks = useCallback(async (isManual = false) => {
+  const fetchTasks = useCallback(async (mode: "initial" | "manual" | "background" = "background") => {
     try {
-      if (isManual) {
-        setRefreshing(true);
-      } else {
+      const shouldShowInitialLoading = mode === "initial" || !hasLoadedOnce;
+      if (shouldShowInitialLoading) {
         setLoading(true);
+      } else if (mode === "manual") {
+        setRefreshing(true);
       }
       const response = await fetch("/api/tasks?limit=50");
       if (!response.ok) {
@@ -115,15 +118,19 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setHasLoadedOnce(true);
     }
-  }, []);
+  }, [hasLoadedOnce]);
 
   useEffect(() => {
-    fetchTasks();
-    const timer = setInterval(() => {
-      fetchTasks();
+    fetchTasks("initial");
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
+      void fetchTasks("background");
     }, 5000);
-    return () => clearInterval(timer);
+    return () => window.clearInterval(timer);
   }, [fetchTasks]);
 
   const handleSaveRetryToken = () => {
@@ -157,7 +164,7 @@ export default function TasksPage() {
       }
 
       toast.success("任务已重新提交");
-      await fetchTasks(true);
+      await fetchTasks("manual");
     } catch (error) {
       console.error("Failed to retry task:", error);
       toast.error(error instanceof Error ? error.message : "重试任务失败");
@@ -173,32 +180,33 @@ export default function TasksPage() {
 
   if (loading) {
     return (
-      <div className="h-full bg-slate-50 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
-          <p className="text-slate-600">加载任务中...</p>
+          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">加载任务中...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full overflow-auto bg-slate-50">
+    <div className="h-full overflow-auto bg-background">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="shadow-sm">
           <CardContent className="p-6 !pt-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900">任务中心</h1>
-              <p className="text-slate-600 leading-7 mt-1">
+              <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">任务中心</h1>
+              <p className="mt-1 leading-7 text-muted-foreground">
                 实时观察文本处理、台本生成和音频生成任务，支持失败任务重试。
               </p>
-              <div className="flex gap-2 mt-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Badge variant="outline">总任务 {tasks.length}</Badge>
                 <Badge variant="outline">运行中 {inProgressCount}</Badge>
+                <Badge variant="outline">自动刷新 5s</Badge>
               </div>
             </div>
             <Button
-              onClick={() => fetchTasks(true)}
+              onClick={() => fetchTasks("manual")}
               disabled={refreshing}
               className="min-h-11 min-w-11"
             >
@@ -208,21 +216,18 @@ export default function TasksPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg">任务重试凭证</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <p className="text-sm text-slate-600 leading-6">
+            <p className="text-sm leading-6 text-muted-foreground">
               失败任务重试需要服务端配置的 <code>TASK_REPLAY_API_TOKEN</code>。
             </p>
-            <label
-              htmlFor="task-retry-token"
-              className="block text-sm font-medium text-slate-700"
-            >
+            <Label htmlFor="task-retry-token" className="block">
               任务重试 token
-            </label>
-            <div className="flex flex-col sm:flex-row gap-3">
+            </Label>
+            <div className="flex flex-col gap-3 sm:flex-row">
               <Input
                 id="task-retry-token"
                 value={retryToken}
@@ -238,9 +243,9 @@ export default function TasksPage() {
         </Card>
 
         {tasks.length === 0 ? (
-          <Card className="border-slate-200 shadow-sm">
-            <CardContent className="py-12 !pt-12 text-center text-slate-600">
-              <Clock className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+          <Card className="shadow-sm">
+            <CardContent className="py-12 !pt-12 text-center text-muted-foreground">
+              <Clock className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
               当前暂无任务记录。
             </CardContent>
           </Card>
@@ -252,19 +257,19 @@ export default function TasksPage() {
               const statusMeta = getTaskStatusMeta(task.status);
               const childJobSummaries = getTaskChildJobSummaries(task.metadata);
               return (
-                <Card key={task.id} className="border-slate-200 shadow-sm">
-                  <CardContent className="p-4 !pt-4 sm:p-5 sm:!pt-5 space-y-4">
+                <Card key={task.id} className="shadow-sm">
+                  <CardContent className="space-y-4 p-4 !pt-4 sm:p-5 sm:!pt-5">
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-base font-medium text-slate-900">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-base font-medium text-foreground">
                             {getTaskTypeLabel(task.taskType)}
                           </p>
                           <Badge className={statusMeta.className}>
                             {statusMeta.label}
                           </Badge>
                         </div>
-                        <p className="text-sm text-slate-600">
+                        <p className="text-sm text-muted-foreground">
                           书籍：{task.bookTitle || "未知书籍"} · 任务ID：{task.id.slice(0, 8)}
                         </p>
                       </div>
@@ -292,7 +297,7 @@ export default function TasksPage() {
 
                     {isProcessing ? (
                       <div className="space-y-2">
-                        <div className="flex items-center justify-between text-sm text-slate-600">
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
                           <span>进度</span>
                           <span>{task.progress || 0}%</span>
                         </div>
@@ -301,20 +306,20 @@ export default function TasksPage() {
                     ) : null}
 
                     {task.message ? (
-                      <div className="flex items-start gap-2 text-sm text-slate-700">
+                      <div className="flex items-start gap-2 text-sm text-foreground">
                         {task.status === "completed" ? (
-                          <CheckCircle2 className="w-4 h-4 mt-0.5 text-emerald-600" />
+                          <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
                         ) : task.status === "failed" ? (
-                          <XCircle className="w-4 h-4 mt-0.5 text-red-600" />
+                          <XCircle className="mt-0.5 h-4 w-4 text-destructive" />
                         ) : (
-                          <AlertCircle className="w-4 h-4 mt-0.5 text-blue-600" />
+                          <AlertCircle className="mt-0.5 h-4 w-4 text-primary" />
                         )}
                         <p className="leading-6">{task.message}</p>
                       </div>
                     ) : null}
 
                     {task.errorMessage ? (
-                      <div className="bg-red-50 border border-red-200 rounded-md px-3 py-2 text-sm text-red-700 leading-6">
+                      <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm leading-6 text-destructive">
                         {task.errorMessage}
                       </div>
                     ) : null}
@@ -325,7 +330,7 @@ export default function TasksPage() {
                       </div>
                     ) : null}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs text-slate-500">
+                    <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-3">
                       <p>创建：{new Date(task.createdAt).toLocaleString()}</p>
                       <p>更新：{new Date(task.updatedAt).toLocaleString()}</p>
                       <p>完成：{task.completedAt ? new Date(task.completedAt).toLocaleString() : "-"}</p>
