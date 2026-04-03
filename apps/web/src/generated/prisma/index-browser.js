@@ -204,6 +204,20 @@ exports.Prisma.TTSVoiceProfileScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.LlmModelConfigScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  provider: 'provider',
+  baseURL: 'baseURL',
+  model: 'model',
+  apiKey: 'apiKey',
+  isDefault: 'isDefault',
+  isActive: 'isActive',
+  sortOrder: 'sortOrder',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.CharacterVoiceBindingScalarFieldEnum = {
   id: 'id',
   characterId: 'characterId',
@@ -603,6 +617,7 @@ exports.Prisma.ModelName = {
   CharacterProfile: 'CharacterProfile',
   CharacterAlias: 'CharacterAlias',
   TTSVoiceProfile: 'TTSVoiceProfile',
+  LlmModelConfig: 'LlmModelConfig',
   CharacterVoiceBinding: 'CharacterVoiceBinding',
   TextSegment: 'TextSegment',
   ScriptSentence: 'ScriptSentence',

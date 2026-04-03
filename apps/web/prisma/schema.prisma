@@ -147,6 +147,24 @@ model TTSVoiceProfile {
   @@map("tts_voice_profiles")
 }
 
+model LlmModelConfig {
+  id        String   @id @default(uuid())
+  name      String
+  provider  String   @default("custom")
+  baseURL   String
+  model     String
+  apiKey    String?
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isDefault])
+  @@index([isActive, sortOrder, createdAt])
+  @@map("llm_model_configs")
+}
+
 model CharacterVoiceBinding {
   id               String           @id @default(uuid())
   characterId      String

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/error-handler";
-import { getLLMModelRegistrySnapshot } from "@/lib/llm-model-registry";
+import { listSelectableLLMModels } from "@/lib/llm-model-config-service";
 
 export const GET = withErrorHandler(async (_request: NextRequest) => {
-  const registry = getLLMModelRegistrySnapshot();
+  const registry = await listSelectableLLMModels();
 
   return NextResponse.json({
     success: true,

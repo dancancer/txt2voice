@@ -1,5 +1,5 @@
 import {
-  getConfiguredLLMProvider,
+  resolveConfiguredLLMProvider,
   type LLMProvider,
 } from "@/lib/llm-service";
 import { runLLMRequest, type LLMRuntimeRequest } from "@/lib/llm-runtime";
@@ -9,6 +9,7 @@ export interface LLMAdapterRequest {
   prompt: string;
   systemPrompt?: string;
   provider?: LLMProvider;
+  modelId?: string;
   metadata?: Record<string, unknown>;
   requestOptions?: LLMExecutionRequestOptions;
   requestId?: string;
@@ -34,7 +35,7 @@ interface LLMAdapterDeps {
   runRequest: (
     request: LLMRuntimeRequest
   ) => Promise<Awaited<ReturnType<typeof runLLMRequest>>>;
-  getProvider: () => LLMProvider;
+  getProvider: (modelId?: string) => Promise<LLMProvider> | LLMProvider;
 }
 
 const toAdapterResponse = (
@@ -59,13 +60,13 @@ export function createDefaultLLMAdapter(
   deps: Partial<LLMAdapterDeps> = {}
 ): LLMAdapter {
   const runRequest = deps.runRequest ?? runLLMRequest;
-  const getProvider = deps.getProvider ?? getConfiguredLLMProvider;
+  const getProvider = deps.getProvider ?? resolveConfiguredLLMProvider;
 
   return {
     async call(input: LLMAdapterRequest): Promise<LLMAdapterResponse> {
       const result = await runRequest({
         requestId: input.requestId,
-        provider: input.provider ?? getProvider(),
+        provider: input.provider ?? await getProvider(input.modelId),
         prompt: input.prompt,
         systemPrompt: input.systemPrompt,
         metadata: input.metadata,

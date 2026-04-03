@@ -89,8 +89,8 @@ pnpm docker:up
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL 连接串 |
 | `REDIS_URL` | Redis 连接串，Bull 队列依赖它启动 |
-| `LLM_DEFAULT_MODEL_ID` / `LLM_MODELS_JSON` | 多模型注册表配置，前端切换与后端默认模型都依赖它 |
-| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | 旧版单模型兼容配置；未配置注册表时仍可回退 |
+| `LLM_DEFAULT_MODEL_ID` / `LLM_MODELS_JSON` | 可选的环境变量兜底配置；数据库里没有持久化模型时才会回退使用 |
+| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | 旧版单模型兼容兜底；仅用于迁移或应急 |
 | `TASK_QUEUE_NAMESPACE` | 队列命名空间，用于多实例隔离 |
 | `INDEXTTS_API_URL` | IndexTTS 服务地址 |
 | `COSYVOICE_API_URL` / `COSYVOICE_DEFAULT_MODE` | CosyVoice 服务地址与默认模式 |
@@ -102,10 +102,12 @@ pnpm docker:up
 - 本地：`txt2voice:3000`
 - Docker：`txt2voice:3001`
 
-多模型配置说明：
+LLM 配置说明：
 
-- 新部署优先使用 `LLM_DEFAULT_MODEL_ID` + `LLM_MODELS_JSON`
-- 旧的 `LLM_PROVIDER` 单模型配置仍兼容，但不支持前端模型切换
+- 主入口是产品内设置页 `/settings/llm`，配置会落库持久化
+- 高级台本工作台会优先读取数据库里已配置的模型列表
+- `LLM_DEFAULT_MODEL_ID` + `LLM_MODELS_JSON` 只作为“数据库为空时”的兜底
+- 旧的 `LLM_PROVIDER` 单模型配置仍兼容，但仅建议用于迁移或应急
 - 当前远端 `http://192.168.88.9:8028/v1/models` 实际返回的模型名是 `Qwen3.5-9B-GGUF-Q4_K_M`
 - 如果后续把远端服务切成 4B，只需要改配置里的 `model`，不需要改代码
 
@@ -142,6 +144,7 @@ pnpm deploy:remote:web
 - `/books/[id]/studio/audio`：高级音频工作台
 - `/books/[id]/review`：人工复核与 SLO 看板
 - `/tasks`：任务中心与失败任务重试
+- `/settings/llm`：LLM 模型配置中心
 
 ## 文档入口
 

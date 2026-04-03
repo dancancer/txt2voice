@@ -1,15 +1,15 @@
 export {};
 
 const runLLMRequest = jest.fn();
-const getConfiguredLLMProvider = jest.fn();
+const resolveConfiguredLLMProvider = jest.fn();
 
 jest.mock("@/lib/llm-runtime", () => ({
   runLLMRequest: (...args: unknown[]) => runLLMRequest(...args),
 }));
 
 jest.mock("@/lib/llm-service", () => ({
-  getConfiguredLLMProvider: (...args: unknown[]) =>
-    getConfiguredLLMProvider(...args),
+  resolveConfiguredLLMProvider: (...args: unknown[]) =>
+    resolveConfiguredLLMProvider(...args),
 }));
 
 describe("agent runtime llm adapter", () => {
@@ -18,7 +18,7 @@ describe("agent runtime llm adapter", () => {
   });
 
   it("uses configured provider by default and returns normalized response", async () => {
-    getConfiguredLLMProvider.mockReturnValueOnce({
+    resolveConfiguredLLMProvider.mockResolvedValueOnce({
       name: "openai",
       apiKey: "key",
       model: "gpt-4.1-mini",
@@ -48,7 +48,7 @@ describe("agent runtime llm adapter", () => {
       metadata: { source: "agent_runtime" },
     });
 
-    expect(getConfiguredLLMProvider).toHaveBeenCalledTimes(1);
+    expect(resolveConfiguredLLMProvider).toHaveBeenCalledTimes(1);
     expect(runLLMRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: expect.objectContaining({
@@ -104,7 +104,7 @@ describe("agent runtime llm adapter", () => {
       requestOptions: { temperature: 0.2, maxTokens: 256 },
     });
 
-    expect(getConfiguredLLMProvider).not.toHaveBeenCalled();
+    expect(resolveConfiguredLLMProvider).not.toHaveBeenCalled();
     expect(runLLMRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         provider,
@@ -153,7 +153,7 @@ describe("agent runtime llm adapter", () => {
       metadata: { source: "agent_runtime" },
     });
 
-    expect(getConfiguredLLMProvider).not.toHaveBeenCalled();
+    expect(resolveConfiguredLLMProvider).not.toHaveBeenCalled();
     expect(runLLMRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: explicitProvider,
