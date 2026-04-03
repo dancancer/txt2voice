@@ -70,6 +70,12 @@ export function ScriptStudioPageContainer() {
     generationStatus,
     showIncrementalOptions,
     setShowIncrementalOptions,
+    llmModels,
+    selectedLLMModelId,
+    setSelectedLLMModelId,
+    llmModelsLoading,
+    llmModelsError,
+    canGenerateScript,
     selectedStartSegment,
     setSelectedStartSegment,
     segmentStatus,
@@ -163,7 +169,7 @@ export function ScriptStudioPageContainer() {
     <div className="flex items-center gap-2">
       <Button
         onClick={() => handleScopeScriptGeneration("chapter", selectedChapterNode.id)}
-        disabled={isGenerating}
+        disabled={isGenerating || !canGenerateScript}
       >
         章节台本生成
       </Button>
@@ -250,7 +256,7 @@ export function ScriptStudioPageContainer() {
                         onClick={() =>
                           handleScopeScriptGeneration("segment", selectedSegment.id)
                         }
-                        disabled={isGenerating}
+                        disabled={isGenerating || !canGenerateScript}
                       >
                         重生成台本
                       </Button>
@@ -288,11 +294,40 @@ export function ScriptStudioPageContainer() {
                     <p className="mb-6 text-sm text-muted-foreground">
                       请在左侧选择一个章节查看段落列表，或选择段落查看台词详情。
                     </p>
+                    <div className="mb-4 text-left">
+                      <label
+                        className="mb-2 block text-sm font-medium text-gray-700"
+                        htmlFor="script-llm-model"
+                      >
+                        台本模型
+                      </label>
+                      <select
+                        id="script-llm-model"
+                        aria-label="台本模型"
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                        value={selectedLLMModelId}
+                        onChange={(event) => setSelectedLLMModelId(event.target.value)}
+                        disabled={llmModelsLoading || llmModels.length === 0}
+                      >
+                        {llmModels.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.label} ({model.model})
+                          </option>
+                        ))}
+                      </select>
+                      {llmModelsError ? (
+                        <p className="mt-2 text-sm text-red-600">{llmModelsError}</p>
+                      ) : (
+                        <p className="mt-2 text-sm text-gray-500">
+                          当前选择会用于全书、章节、段落与增量重生成。
+                        </p>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       <Button
                         className="w-full"
                         onClick={() => handleScopeScriptGeneration("book")}
-                        disabled={isGenerating || !hasTextSegments}
+                        disabled={isGenerating || !hasTextSegments || !canGenerateScript}
                       >
                         全书台本生成
                       </Button>

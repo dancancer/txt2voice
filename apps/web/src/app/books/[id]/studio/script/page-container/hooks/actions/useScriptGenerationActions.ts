@@ -9,6 +9,14 @@ import { toast } from "sonner";
 import type { SegmentStatus } from "../../../components";
 import type { ConfirmDialogConfig } from "../useConfirmDialog";
 
+interface LLMModelOption {
+  id: string;
+  label: string;
+  provider: string;
+  model: string;
+  baseURL?: string;
+}
+
 type UseScriptGenerationActionsParams = {
   bookId: string;
   segments: Array<{ id: string }>;
@@ -35,6 +43,10 @@ export function useScriptGenerationActions({
   const [showRegenerateOptions, setShowRegenerateOptions] = useState(false);
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [segmentStatusLoading, setSegmentStatusLoading] = useState(false);
+  const [llmModels, setLLMModels] = useState<LLMModelOption[]>([]);
+  const [selectedLLMModelId, setSelectedLLMModelId] = useState("");
+  const [llmModelsLoading, setLLMModelsLoading] = useState(false);
+  const [llmModelsError, setLLMModelsError] = useState("");
 
   const progressStreamRef = useRef<EventSource | null>(null);
 
@@ -50,6 +62,64 @@ export function useScriptGenerationActions({
       closeProgressStream();
     };
   }, [closeProgressStream]);
+
+  const loadLLMModels = useCallback(async () => {
+    try {
+      setLLMModelsLoading(true);
+      setLLMModelsError("");
+
+      const response = await fetch("/api/llm/models");
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error?.message || "加载模型列表失败");
+      }
+
+      const models = Array.isArray(result.data?.models)
+        ? (result.data.models as LLMModelOption[])
+        : [];
+      const defaultModelId =
+        typeof result.data?.defaultModelId === "string"
+          ? result.data.defaultModelId
+          : "";
+
+      setLLMModels(models);
+      setSelectedLLMModelId((current) =>
+        current && models.some((model) => model.id === current)
+          ? current
+          : defaultModelId
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "加载模型列表失败";
+      setLLMModels([]);
+      setSelectedLLMModelId("");
+      setLLMModelsError(message);
+      toast.error(message);
+    } finally {
+      setLLMModelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLLMModels();
+  }, [loadLLMModels]);
+
+  const buildScriptGenerationOptions = useCallback(() => {
+    if (!selectedLLMModelId) {
+      throw new Error("LLM 模型尚未就绪，请先选择可用模型");
+    }
+
+    return {
+      includeNarration: true,
+      emotionDetection: true,
+      contextAnalysis: true,
+      minDialogueLength: 5,
+      maxDialogueLength: 200,
+      preserveOriginalBreaks: true,
+      llmModelId: selectedLLMModelId,
+    };
+  }, [selectedLLMModelId]);
 
   const watchScriptGeneration = useCallback(
     (
@@ -162,14 +232,7 @@ export function useScriptGenerationActions({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          options: {
-            includeNarration: true,
-            emotionDetection: true,
-            contextAnalysis: true,
-            minDialogueLength: 5,
-            maxDialogueLength: 200,
-            preserveOriginalBreaks: true,
-          },
+          options: buildScriptGenerationOptions(),
         }),
       });
 
@@ -197,7 +260,13 @@ export function useScriptGenerationActions({
       );
       setIsGenerating(false);
     }
-  }, [bookId, hasTextSegments, segments.length, watchScriptGeneration]);
+  }, [
+    bookId,
+    buildScriptGenerationOptions,
+    hasTextSegments,
+    segments.length,
+    watchScriptGeneration,
+  ]);
 
   const loadSegmentStatus = useCallback(async () => {
     try {
@@ -233,14 +302,7 @@ export function useScriptGenerationActions({
           },
           body: JSON.stringify({
             startFromSegmentId: startSegmentId,
-            options: {
-              includeNarration: true,
-              emotionDetection: true,
-              contextAnalysis: true,
-              minDialogueLength: 5,
-              maxDialogueLength: 200,
-              preserveOriginalBreaks: true,
-            },
+            options: buildScriptGenerationOptions(),
           }),
         });
 
@@ -273,7 +335,7 @@ export function useScriptGenerationActions({
         setIsGenerating(false);
       }
     },
-    [bookId, watchScriptGeneration]
+    [bookId, buildScriptGenerationOptions, watchScriptGeneration]
   );
 
   const handleSegmentRegeneration = useCallback(
@@ -292,6 +354,9 @@ export function useScriptGenerationActions({
           },
           body: JSON.stringify({
             segmentIds,
+            options: {
+              llmModelId: selectedLLMModelId,
+            },
           }),
         });
 
@@ -330,7 +395,7 @@ export function useScriptGenerationActions({
         setIsGenerating(false);
       }
     },
-    [bookId, watchScriptGeneration]
+    [bookId, selectedLLMModelId, watchScriptGeneration]
   );
 
   const regenerateScript = useCallback(async () => {
@@ -353,6 +418,12 @@ export function useScriptGenerationActions({
     generationStatus,
     showIncrementalOptions,
     setShowIncrementalOptions,
+    llmModels,
+    selectedLLMModelId,
+    setSelectedLLMModelId,
+    llmModelsLoading,
+    llmModelsError,
+    canGenerateScript: Boolean(selectedLLMModelId),
     selectedStartSegment,
     setSelectedStartSegment,
     segmentStatus,
