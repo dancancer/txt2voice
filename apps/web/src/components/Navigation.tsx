@@ -7,7 +7,15 @@
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, Menu, Mic, ListTodo, Sparkles, Plus } from "lucide-react";
+import {
+  BookOpen,
+  Menu,
+  Mic,
+  ListTodo,
+  Settings2,
+  Sparkles,
+  Plus,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +38,11 @@ const navItems = [
     name: "语音库",
     href: "/tts/speakers",
     icon: Mic,
+  },
+  {
+    name: "LLM 设置",
+    href: "/settings/llm",
+    icon: Settings2,
   },
 ];
 
