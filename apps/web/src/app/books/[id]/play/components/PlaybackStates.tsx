@@ -10,10 +10,10 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function PlaybackLoadingState() {
   return (
-    <div className="flex h-full items-center justify-center bg-gray-50">
+    <div className="flex h-full items-center justify-center bg-background">
       <div className="text-center">
-        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-gray-600">加载中...</p>
+        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">加载中...</p>
       </div>
     </div>
   );
@@ -26,10 +26,10 @@ interface PlaybackErrorStateProps {
 
 export function PlaybackErrorState({ message, onBack }: PlaybackErrorStateProps) {
   return (
-    <div className="flex h-full items-center justify-center bg-gray-50">
+    <div className="flex h-full items-center justify-center bg-background">
       <div className="text-center">
-        <AlertCircle className="mx-auto mb-4 h-8 w-8 text-red-500" />
-        <p className="mb-4 text-red-600">{message}</p>
+        <AlertCircle className="mx-auto mb-4 h-8 w-8 text-destructive" />
+        <p className="mb-4 text-destructive">{message}</p>
         <Button onClick={onBack}>返回</Button>
       </div>
     </div>
@@ -45,9 +45,9 @@ export function PlaybackEmptyState({ onGenerate, onBackBook }: PlaybackEmptyStat
   return (
     <Card>
       <CardContent className="p-12 !pt-12 text-center">
-        <Volume2 className="mx-auto mb-6 h-16 w-16 text-gray-400" />
-        <h2 className="mb-4 text-2xl font-semibold text-gray-900">暂无音频文件</h2>
-        <p className="mx-auto mb-8 max-w-md text-gray-600">
+        <Volume2 className="mx-auto mb-6 h-16 w-16 text-muted-foreground" />
+        <h2 className="mb-4 text-2xl font-semibold text-foreground">暂无音频文件</h2>
+        <p className="mx-auto mb-8 max-w-md text-muted-foreground">
           这本书还没有生成音频文件。请先前往音频生成页面创建音频。
         </p>
         <div className="flex flex-col justify-center gap-4 sm:flex-row">

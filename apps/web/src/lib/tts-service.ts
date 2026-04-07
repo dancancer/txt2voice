@@ -376,14 +376,7 @@ export class OpenAITTSService {
 export class TTSServiceManager {
   private providers: Map<string, TTSProvider> = new Map();
   private services: Map<string, any> = new Map();
-  private initializationPromise: Promise<void>;
-
-  constructor() {
-    this.initializationPromise = this.initializeProviders().catch((error) => {
-      console.error("Failed to initialize TTS providers", error);
-      throw error;
-    });
-  }
+  private initializationPromise: Promise<void> | null = null;
 
   private async initializeProviders() {
     // Azure TTS
@@ -719,6 +712,14 @@ export class TTSServiceManager {
   }
 
   async ready(): Promise<void> {
+    if (!this.initializationPromise) {
+      this.initializationPromise = this.initializeProviders().catch((error) => {
+        this.initializationPromise = null;
+        console.error("Failed to initialize TTS providers", error);
+        throw error;
+      });
+    }
+
     await this.initializationPromise;
   }
 

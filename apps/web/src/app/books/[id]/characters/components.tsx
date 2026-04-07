@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export function CharactersHeader({
   title,
@@ -36,7 +37,7 @@ export function CharactersHeader({
   disableAdd?: boolean;
 }) {
   return (
-    <div className="bg-white shadow-sm border-b">
+    <div className="border-b border-border bg-background shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex w-full min-w-0 items-center">
@@ -50,8 +51,8 @@ export function CharactersHeader({
               返回
             </Button>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">角色配置</h1>
-              <p className="text-sm text-gray-500 truncate">{title}</p>
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground">角色配置</h1>
+              <p className="truncate text-sm text-muted-foreground">{title}</p>
             </div>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
@@ -86,10 +87,12 @@ export function SearchInfoBar({
     <Card className="mb-6">
       <CardContent className="pt-6">
         <div className="flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
+          <div className="flex-1 space-y-2">
+            <Label htmlFor="character-search">搜索角色</Label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
               <Input
+                id="character-search"
                 type="text"
                 placeholder="搜索角色名称或描述..."
                 className="pl-10 pr-4"
@@ -99,7 +102,7 @@ export function SearchInfoBar({
             </div>
           </div>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               <div className="flex items-center">
                 <Users className="w-4 h-4 mr-2" />
                 <span>
@@ -113,7 +116,7 @@ export function SearchInfoBar({
                 </div>
               )}
             </div>
-            <div className="text-xs sm:text-sm text-gray-500">
+            <div className="text-xs sm:text-sm text-muted-foreground">
               按提及次数、引用次数、对话次数降序排列
             </div>
           </div>
@@ -148,23 +151,23 @@ export function AcquisitionCards({
     <Card className="mb-6">
       <CardHeader className="pb-4">
         <CardTitle>角色获取方式</CardTitle>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-muted-foreground">
           可手动维护角色，也可以从台本抽取或在生成台本时自动识别。
         </p>
       </CardHeader>
       <CardContent>
         <div className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-lg border p-4 bg-white flex flex-col">
+          <div className="flex flex-col rounded-lg border border-border bg-card p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="font-medium text-gray-900">手动添加角色</p>
-                <p className="text-xs text-gray-500">自定义角色档案及别名</p>
+                <p className="font-medium text-foreground">手动添加角色</p>
+                <p className="text-xs text-muted-foreground">自定义角色档案及别名</p>
               </div>
-              <div className="p-2 rounded-full bg-blue-50 text-blue-600">
+              <div className="rounded-full bg-accent p-2 text-accent-foreground">
                 <User className="w-4 h-4" />
               </div>
             </div>
-            <div className="flex-1 text-sm text-gray-500 mb-3">
+            <div className="mb-3 flex-1 text-sm text-muted-foreground">
               {hasTextSegments ? `已解析 ${segmentsCount} 个文本段落` : "请先完成文本处理"}
             </div>
             <Button
@@ -177,20 +180,20 @@ export function AcquisitionCards({
               新建角色
             </Button>
           </div>
-          <div className="rounded-lg border p-4 bg-white flex flex-col">
+          <div className="flex flex-col rounded-lg border border-border bg-card p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="font-medium text-gray-900">台本抽取</p>
-                <p className="text-xs text-gray-500">读取台本说话人并生成角色</p>
+                <p className="font-medium text-foreground">台本抽取</p>
+                <p className="text-xs text-muted-foreground">读取台本说话人并生成角色</p>
               </div>
-              <div className="p-2 rounded-full bg-amber-50 text-amber-600">
+              <div className="rounded-full bg-accent p-2 text-accent-foreground">
                 <FileText className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-sm text-gray-500 flex-1 mb-3">
+            <div className="mb-3 flex-1 text-sm text-muted-foreground">
               {hasScripts ? `已有 ${scriptsCount} 句台词` : "尚未生成台本"}
               {lastExtractionSummary && (
-                <p className="text-xs text-amber-600 mt-2">{lastExtractionSummary}</p>
+                <p className="mt-2 text-xs text-primary">{lastExtractionSummary}</p>
               )}
             </div>
             <Button
@@ -212,17 +215,17 @@ export function AcquisitionCards({
               )}
             </Button>
           </div>
-          <div className="rounded-lg border p-4 bg-white flex flex-col">
+          <div className="flex flex-col rounded-lg border border-border bg-card p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="font-medium text-gray-900">台本生成自动识别</p>
-                <p className="text-xs text-gray-500">生成台本时同步补充角色信息</p>
+                <p className="font-medium text-foreground">台本生成自动识别</p>
+                <p className="text-xs text-muted-foreground">生成台本时同步补充角色信息</p>
               </div>
-              <div className="p-2 rounded-full bg-purple-50 text-purple-600">
+              <div className="rounded-full bg-accent p-2 text-accent-foreground">
                 <Sparkles className="w-4 h-4" />
               </div>
             </div>
-            <div className="text-sm text-gray-500 flex-1 mb-3">
+            <div className="mb-3 flex-1 text-sm text-muted-foreground">
               {hasScripts
                 ? `已有 ${scriptsCount} 句台词，角色会随台本持续补充`
                 : hasTextSegments
@@ -267,7 +270,7 @@ export function PaginationBar({
     <Card>
       <CardContent className="pt-4 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             显示第 {(page - 1) * limit + 1} - {Math.min(page * limit, total)} 个角色，共 {total} 个
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap">
@@ -316,17 +319,17 @@ export function TipsCard() {
         <CardTitle>提示</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3 text-sm text-gray-600">
+        <div className="space-y-3 text-sm text-muted-foreground">
           <div className="flex items-start space-x-2">
-            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <CheckCircle className="mt-0.5 w-4 h-4 flex-shrink-0 text-primary" />
             <p>为每个角色配置不同的语音，让有声读物更加生动</p>
           </div>
           <div className="flex items-start space-x-2">
-            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <CheckCircle className="mt-0.5 w-4 h-4 flex-shrink-0 text-primary" />
             <p>支持批量生成，长文本可适当提高批次大小</p>
           </div>
           <div className="flex items-start space-x-2">
-            <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+            <CheckCircle className="mt-0.5 w-4 h-4 flex-shrink-0 text-primary" />
             <p>生成完成后可选择自动合并章节或整书音频</p>
           </div>
         </div>

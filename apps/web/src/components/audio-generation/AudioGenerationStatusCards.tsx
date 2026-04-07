@@ -31,13 +31,13 @@ export function GenerationStatusCard({
   onGoPlay,
 }: GenerationStatusProps) {
   const icon = isGenerating ? (
-    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+    <Loader2 className="h-6 w-6 animate-spin text-primary" />
   ) : state.status === "failed" ? (
-    <AlertCircle className="h-6 w-6 text-red-600" />
+    <AlertCircle className="h-6 w-6 text-destructive" />
   ) : state.status === "completed" ? (
-    <CheckCircle className="h-6 w-6 text-green-600" />
+    <CheckCircle className="h-6 w-6 text-primary" />
   ) : (
-    <Volume2 className="h-6 w-6 text-blue-600" />
+    <Volume2 className="h-6 w-6 text-primary" />
   );
 
   return (
@@ -46,7 +46,7 @@ export function GenerationStatusCard({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="shrink-0">{icon}</div>
           <div className="flex-1 w-full">
-            <p className="font-medium text-gray-900">{state.message || "音频生成状态"}</p>
+            <p className="font-medium text-foreground">{state.message || "音频生成状态"}</p>
             {(isGenerating ||
               state.status === "processing" ||
               state.status === "in_progress") && (
@@ -84,15 +84,15 @@ export function SidebarStatusCard({
       <CardContent>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">文本段落</span>
+            <span className="text-sm text-muted-foreground">文本段落</span>
             <Badge variant="outline">{textSegments}</Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">角色配置</span>
+            <span className="text-sm text-muted-foreground">角色配置</span>
             <Badge variant="outline">{activeCharacters}</Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">已生成音频</span>
+            <span className="text-sm text-muted-foreground">已生成音频</span>
             <Badge variant="outline">{audioFiles}</Badge>
           </div>
         </div>
@@ -168,7 +168,7 @@ export function TipsCard() {
         <CardTitle>提示</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 text-sm text-gray-600">
+        <div className="space-y-2 text-sm text-muted-foreground">
           <p>• 建议先完成角色语音配置再批量生成音频。</p>
           <p>• 批次过大可能导致请求压力增高，建议逐步调整。</p>
           <p>• 可先用“跳过已有音频”避免重复生成。</p>

@@ -64,7 +64,7 @@ export function CharactersTable({
                     <TableCell>
                       <div className="max-w-[200px]">
                         <div className="flex items-center gap-2">
-                          <div className="font-medium text-gray-900 truncate">
+                          <div className="truncate font-medium text-foreground">
                             {character.canonicalName}
                           </div>
                           {isSystemRole ? (
@@ -74,7 +74,7 @@ export function CharactersTable({
                           ) : null}
                         </div>
                         {(character as any).characteristics?.description && (
-                          <div className="text-sm text-gray-500 mt-1 line-clamp-2">
+                          <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                             {(character as any).characteristics?.description}
                           </div>
                         )}
@@ -92,22 +92,22 @@ export function CharactersTable({
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium text-blue-600 inline-block">
+                      <span className="inline-block font-medium text-primary">
                         {character.scriptSentencesCount ?? 0}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium text-green-600 inline-block">
+                      <span className="inline-block font-medium text-foreground">
                         {(character as any).mentions ?? 0}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium text-orange-600 inline-block">
+                      <span className="inline-block font-medium text-foreground">
                         {(character as any).quotes ?? 0}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-gray-600 inline-block">
+                      <span className="inline-block text-sm text-muted-foreground">
                         {(character as any).aliases?.length || 0}
                       </span>
                     </TableCell>
@@ -116,7 +116,7 @@ export function CharactersTable({
                         {character.speakerBindings?.length ? (
                           <>
                             <div className="flex items-center gap-2">
-                              <span className="font-medium text-indigo-600">
+                              <span className="font-medium text-foreground">
                                 {defaultSpeaker?.speakerProfile?.name ||
                                   `说话人 #${defaultSpeaker?.speakerProfile?.id}`}
                               </span>
@@ -127,20 +127,20 @@ export function CharactersTable({
                               ) : null}
                             </div>
                             {character.speakerBindings.length > 1 && (
-                              <span className="text-xs text-gray-500">
+                              <span className="text-xs text-muted-foreground">
                                 共 {character.speakerBindings.length} 个
                               </span>
                             )}
                           </>
                         ) : (
-                          <Badge variant="outline" className="text-gray-500">
+                          <Badge variant="outline" className="text-muted-foreground">
                             未关联
                           </Badge>
                         )}
                         <Button
                           variant="link"
                           size="sm"
-                          className="px-0 text-indigo-600 hover:text-indigo-500"
+                          className="px-0 text-primary hover:text-primary/80"
                           onClick={() => onConfigSpeaker(character)}
                         >
                           <Mic className="w-3 h-3 mr-1" />
@@ -151,12 +151,12 @@ export function CharactersTable({
                     <TableCell>
                       <div className="inline-block">
                         {(character as any).voiceBindings?.length ? (
-                          <Badge variant="outline" className="text-green-600">
+                          <Badge variant="outline" className="text-primary">
                             <Volume2 className="w-3 h-3 mr-1" />
                             已配置
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-orange-600">
+                          <Badge variant="outline" className="text-muted-foreground">
                             <Settings className="w-3 h-3 mr-1" />
                             未配置
                           </Badge>
@@ -201,7 +201,7 @@ export function CharactersTable({
                           variant="ghost"
                           size="sm"
                           onClick={() => onDelete(character.id)}
-                          className="min-h-11 min-w-11 p-0 text-red-600 hover:text-red-800 hover:bg-red-50 flex-shrink-0"
+                          className="min-h-11 min-w-11 flex-shrink-0 p-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
                           disabled={isSystemRole || deletingId === character.id}
                         >
                           {deletingId === character.id ? (

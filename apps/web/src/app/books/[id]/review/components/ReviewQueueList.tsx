@@ -22,19 +22,19 @@ const REVIEW_STATUS_META: Record<
 > = {
   pending: {
     label: "待复核",
-    className: "bg-amber-50 text-amber-700 border-amber-200",
+    className: "border-border bg-accent/60 text-foreground",
   },
   reprocessing: {
     label: "重生中",
-    className: "bg-blue-50 text-blue-700 border-blue-200",
+    className: "border-border bg-accent text-accent-foreground",
   },
   resolved: {
     label: "已通过",
-    className: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    className: "border-border bg-accent/70 text-foreground",
   },
   rejected: {
     label: "已驳回",
-    className: "bg-rose-50 text-rose-700 border-rose-200",
+    className: "border-destructive/20 bg-destructive/10 text-destructive",
   },
 };
 
@@ -106,7 +106,7 @@ const toRecommendedActionClassName = (
     return "";
   }
 
-  return "ring-2 ring-amber-300 ring-offset-2";
+  return "ring-2 ring-ring ring-offset-2";
 };
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -210,9 +210,9 @@ export function ReviewQueueList({
 
   if (loading) {
     return (
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="py-12 !pt-12 text-center text-slate-600">
-          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-indigo-600" />
+      <Card className="shadow-sm">
+        <CardContent className="py-12 !pt-12 text-center text-muted-foreground">
+          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
           正在加载复核队列...
         </CardContent>
       </Card>
@@ -221,9 +221,9 @@ export function ReviewQueueList({
 
   if (items.length === 0) {
     return (
-      <Card className="border-slate-200 shadow-sm">
-        <CardContent className="py-12 !pt-12 text-center text-slate-600">
-          <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-emerald-500" />
+      <Card className="shadow-sm">
+        <CardContent className="py-12 !pt-12 text-center text-muted-foreground">
+          <CheckCircle2 className="mx-auto mb-3 h-8 w-8 text-primary" />
           当前筛选条件下没有待处理复核项。
         </CardContent>
       </Card>
@@ -232,10 +232,10 @@ export function ReviewQueueList({
 
   return (
     <div className="space-y-3">
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="shadow-sm">
         <CardContent className="space-y-3 p-4 !pt-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-foreground">
               <input
                 type="checkbox"
                 checked={allPendingSelected}
@@ -244,7 +244,7 @@ export function ReviewQueueList({
               />
               全选当前页待复核（{pendingItemIds.length}）
             </label>
-            <span className="text-xs text-slate-500">已选择 {selectedCount} 条</span>
+            <span className="text-xs text-muted-foreground">已选择 {selectedCount} 条</span>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -299,11 +299,11 @@ export function ReviewQueueList({
         );
 
         return (
-          <Card key={item.id} className="border-slate-200 shadow-sm">
+          <Card key={item.id} className="shadow-sm">
             <CardContent className="space-y-3 p-4 !pt-4">
               <div className="flex flex-wrap items-center gap-2">
                 {canResolve ? (
-                  <label className="inline-flex items-center gap-2 text-xs text-slate-600">
+                  <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
                     <input
                       type="checkbox"
                       checked={checked}
@@ -324,37 +324,37 @@ export function ReviewQueueList({
                 {score !== null && score !== undefined ? (
                   <Badge variant="outline">score: {score.toFixed(2)}</Badge>
                 ) : null}
-                <span className="text-xs text-slate-500">创建于 {formatDateTime(item.createdAt)}</span>
+                <span className="text-xs text-muted-foreground">创建于 {formatDateTime(item.createdAt)}</span>
               </div>
-              <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
+              <p className="whitespace-pre-wrap text-sm leading-6 text-foreground">
                 {primaryText}
               </p>
               {item.issueType === SCRIPT_VALIDATION_ISSUE_TYPE ? (
                 <div className="grid gap-3 lg:grid-cols-2">
-                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-                    <p className="mb-2 text-xs font-medium tracking-wide text-slate-500">
+                  <div className="rounded-md border border-border bg-muted/50 p-3">
+                    <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground">
                       段落原文
                     </p>
-                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-6 text-foreground">
                       {scriptDetail?.segmentContent || scriptDetail?.segmentPreview || "暂无完整原文"}
                     </p>
                   </div>
-                  <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-                    <p className="mb-2 text-xs font-medium tracking-wide text-slate-500">
+                  <div className="rounded-md border border-border bg-muted/50 p-3">
+                    <p className="mb-2 text-xs font-medium tracking-wide text-muted-foreground">
                       当前生成结果预览
                     </p>
-                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                    <p className="line-clamp-5 whitespace-pre-wrap text-sm leading-6 text-foreground">
                       {generatedPreview || rawResponseFallback(scriptDetail?.rawResponse)}
                     </p>
                   </div>
                 </div>
               ) : null}
               {scriptDetail?.summary ? (
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="rounded-md border border-border bg-accent/60 p-3 text-sm text-foreground">
                   {scriptDetail.summary}
                 </div>
               ) : null}
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span>chapter: {item.chapterId || "-"}</span>
                 <span>segment: {item.segmentId || "-"}</span>
                 <span>sentence: {item.sentenceId || "-"}</span>
@@ -362,26 +362,26 @@ export function ReviewQueueList({
                 <span>更新时间: {formatDateTime(item.updatedAt)}</span>
               </div>
               {scriptDetail?.hasDetails ? (
-                <details className="rounded-md border border-slate-200 bg-slate-50 p-3">
-                  <summary className="cursor-pointer text-sm font-medium text-slate-800">
+                <details className="rounded-md border border-border bg-muted/50 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground">
                     查看脚本失败详情
                   </summary>
-                  <div className="mt-3 space-y-3 text-sm text-slate-700">
-                    <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                  <div className="mt-3 space-y-3 text-sm text-foreground">
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                       {scriptDetail.stage ? <span>stage: {scriptDetail.stage}</span> : null}
                       {scriptDetail.errorCode ? <span>errorCode: {scriptDetail.errorCode}</span> : null}
                       {scriptDetail.coverageLabel ? <span>coverage: {scriptDetail.coverageLabel}</span> : null}
                     </div>
                     {scriptDetail.issueMessages.length > 0 ? (
                       <div className="space-y-1">
-                        <p className="text-xs font-medium tracking-wide text-slate-500">
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground">
                           完整问题列表
                         </p>
                         <div className="space-y-2">
                           {scriptDetail.issueMessages.map((message) => (
                             <p
                               key={message}
-                              className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700"
+                              className="rounded border border-border bg-card px-3 py-2 text-xs leading-5 text-foreground"
                             >
                               {message}
                             </p>
@@ -391,7 +391,7 @@ export function ReviewQueueList({
                     ) : null}
                     {scriptDetail.issueCodes.length > 0 ? (
                       <div className="space-y-1">
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           问题代码
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -405,14 +405,14 @@ export function ReviewQueueList({
                     ) : null}
                     {scriptDetail.issuePreviews.length > 0 ? (
                       <div className="space-y-1">
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           问题原文预览
                         </p>
                         <div className="space-y-2">
                           {scriptDetail.issuePreviews.map((preview) => (
                             <p
                               key={preview}
-                              className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700"
+                              className="rounded border border-border bg-card px-3 py-2 text-xs leading-5 text-foreground"
                             >
                               {preview}
                             </p>
@@ -422,14 +422,14 @@ export function ReviewQueueList({
                     ) : null}
                     {scriptDetail.actionHints.length > 0 ? (
                       <div className="space-y-1">
-                        <p className="text-xs font-medium tracking-wide text-slate-500">
+                        <p className="text-xs font-medium tracking-wide text-muted-foreground">
                           建议动作
                         </p>
                         <ol className="space-y-2">
                           {scriptDetail.actionHints.map((hint) => (
                             <li
                               key={hint}
-                              className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700"
+                              className="rounded border border-border bg-card px-3 py-2 text-xs leading-5 text-foreground"
                             >
                               {hint}
                             </li>
@@ -439,10 +439,10 @@ export function ReviewQueueList({
                     ) : null}
                     {scriptDetail.segmentPreview ? (
                       <div className="space-y-1">
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           段落原文预览
                         </p>
-                        <p className="rounded border border-slate-200 bg-white px-3 py-2 text-xs leading-5 text-slate-700">
+                        <p className="rounded border border-border bg-card px-3 py-2 text-xs leading-5 text-foreground">
                           {scriptDetail.segmentPreview}
                         </p>
                       </div>
@@ -451,8 +451,8 @@ export function ReviewQueueList({
                 </details>
               ) : null}
               {item.audio?.id ? (
-                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
-                  <p className="mb-2 text-xs text-slate-500">试听最近音频（audioId: {item.audio.id}）</p>
+                <div className="rounded-md border border-border bg-muted/50 p-3">
+                  <p className="mb-2 text-xs text-muted-foreground">试听最近音频（audioId: {item.audio.id}）</p>
                   <audio controls preload="none" className="w-full">
                     <source src={`/api/audio/${item.audio.id}`} type="audio/mpeg" />
                     当前浏览器不支持音频播放。
@@ -460,7 +460,7 @@ export function ReviewQueueList({
                 </div>
               ) : null}
               {scriptDetail?.recommendedActionLabel ? (
-                <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                <div className="rounded-md border border-border bg-accent/60 px-3 py-2 text-xs text-foreground">
                   推荐动作：{scriptDetail.recommendedActionLabel}
                 </div>
               ) : null}

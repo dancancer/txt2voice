@@ -3,9 +3,11 @@
 // output: 局部 UI
 // pos: 页面组件
 import { useMemo, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ScriptSentence } from "./types";
 import type { CharacterProfileSummary } from "@/types/book";
 
@@ -97,62 +99,53 @@ export function EditSentenceModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle>编辑台词</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                台词内容
-              </label>
-              <textarea
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                角色
-              </label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={characterId}
-                onChange={(event) => setCharacterId(event.target.value)}
-              >
-                <option value={narrationValue}>旁白</option>
-                {availableCharacters.map((character) => (
-                  <option key={character.id} value={character.id}>
-                    {character.canonicalName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                语气
-              </label>
-              <Input
-                value={tone}
-                onChange={(event) => setTone(event.target.value)}
-                placeholder="例如：平静、激动、严肃"
-              />
-            </div>
-            <div className="flex space-x-3">
-              <Button variant="outline" onClick={onClose} className="flex-1">
-                取消
-              </Button>
-              <Button onClick={handleSave} className="flex-1" disabled={!text.trim()}>
-                保存
-              </Button>
-            </div>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>编辑台词</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label className="mb-2 block text-card-foreground">台词内容</Label>
+            <Textarea
+              rows={4}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          <div>
+            <Label className="mb-2 block text-card-foreground">角色</Label>
+            <select
+              className="h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              value={characterId}
+              onChange={(event) => setCharacterId(event.target.value)}
+            >
+              <option value={narrationValue}>旁白</option>
+              {availableCharacters.map((character) => (
+                <option key={character.id} value={character.id}>
+                  {character.canonicalName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label className="mb-2 block text-card-foreground">语气</Label>
+            <Input
+              value={tone}
+              onChange={(event) => setTone(event.target.value)}
+              placeholder="例如：平静、激动、严肃"
+            />
+          </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              取消
+            </Button>
+            <Button onClick={handleSave} className="flex-1" disabled={!text.trim()}>
+              保存
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

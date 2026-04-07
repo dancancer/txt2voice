@@ -16,7 +16,15 @@ import {
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Plus, RotateCcw, Save, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  Plus,
+  RotateCcw,
+  Save,
+  Trash2,
+} from "lucide-react";
 import type { ManualReviewItem } from "../models/types";
 
 interface ReviewScriptEditWorkspaceProps {
@@ -226,6 +234,22 @@ export function ReviewScriptEditWorkspace({
   const focusedSourceText =
     draft.dialogues[selectedDialogueIndex]?.sourceText || issuePreviews[0] || "";
   const changeSummary = buildChangeSummary(originalStructuredResult, structuredResult);
+  const speakerOptions = useMemo(() => {
+    const roles = new Set<string>(["旁白"]);
+    draft.characters.forEach((character) => {
+      const normalizedName = character.name.trim();
+      if (normalizedName) {
+        roles.add(normalizedName);
+      }
+    });
+    draft.dialogues.forEach((dialogue) => {
+      const normalizedSpeaker = dialogue.speaker.trim();
+      if (normalizedSpeaker) {
+        roles.add(normalizedSpeaker);
+      }
+    });
+    return Array.from(roles);
+  }, [draft.characters, draft.dialogues]);
 
   if (!item) {
     return null;
@@ -283,6 +307,35 @@ export function ReviewScriptEditWorkspace({
     setSelectedDialogueIndex((prev) => Math.max(prev - 1, 0));
   };
 
+  const moveDialogue = (index: number, direction: "up" | "down") => {
+    setDraft((prev) => {
+      const targetIndex = direction === "up" ? index - 1 : index + 1;
+      if (targetIndex < 0 || targetIndex >= prev.dialogues.length) {
+        return prev;
+      }
+
+      const dialogues = [...prev.dialogues];
+      const [currentDialogue] = dialogues.splice(index, 1);
+      dialogues.splice(targetIndex, 0, currentDialogue);
+      return {
+        ...prev,
+        dialogues,
+      };
+    });
+    setSelectedDialogueIndex((prev) => {
+      if (prev === index) {
+        return direction === "up" ? index - 1 : index + 1;
+      }
+      if (direction === "up" && prev === index - 1) {
+        return index;
+      }
+      if (direction === "down" && prev === index + 1) {
+        return index;
+      }
+      return prev;
+    });
+  };
+
   const addCharacter = () => {
     setDraft((prev) => ({
       ...prev,
@@ -321,12 +374,12 @@ export function ReviewScriptEditWorkspace({
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => (!nextOpen ? onClose() : undefined)}>
       <DialogContent className="h-[92vh] max-w-[96vw] overflow-hidden p-0">
-        <div className="flex h-full min-h-0 flex-col bg-slate-50">
-          <DialogHeader className="border-b border-slate-200 bg-white px-6 py-4">
+        <div className="flex h-full min-h-0 flex-col bg-background">
+          <DialogHeader className="border-b border-border bg-card px-6 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-2">
                 <DialogTitle>台本修订工作台</DialogTitle>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <Badge variant="outline">segment {item.segmentId || "-"}</Badge>
                   <Badge variant="outline">chapter {item.chapterId || "-"}</Badge>
                   <Badge variant="outline">priority {item.priority}</Badge>
@@ -350,47 +403,47 @@ export function ReviewScriptEditWorkspace({
           </DialogHeader>
 
           <div className="grid min-h-0 flex-1 grid-cols-1 gap-0 overflow-hidden lg:grid-cols-[1.05fr_1.2fr_0.95fr]">
-            <section className="min-h-0 overflow-y-auto border-r border-slate-200 bg-white p-4">
+            <section className="min-h-0 overflow-y-auto border-r border-border bg-card p-4">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-900">段落原文</h3>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <p className="whitespace-pre-wrap text-[15px] leading-7 text-slate-800">
+                  <h3 className="text-sm font-semibold text-foreground">段落原文</h3>
+                  <div className="rounded-lg border border-border bg-muted/50 p-4">
+                    <p className="whitespace-pre-wrap text-[15px] leading-7 text-foreground">
                       {segmentContent || "当前缺少完整段落原文"}
                     </p>
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-900">问题定位片段</h3>
+                  <h3 className="text-sm font-semibold text-foreground">问题定位片段</h3>
                   <div className="space-y-2">
                     {issuePreviews.length > 0 ? (
                       issuePreviews.map((preview) => (
                         <div
                           key={preview}
-                          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-6 text-amber-900"
+                          className="rounded-md border border-border bg-accent/60 px-3 py-2 text-sm leading-6 text-foreground"
                         >
                           {preview}
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-slate-500">当前没有问题片段定位。</p>
+                      <p className="text-sm text-muted-foreground">当前没有问题片段定位。</p>
                     )}
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-slate-900">当前聚焦原文切片</h3>
-                  <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm leading-6 text-blue-900">
+                  <h3 className="text-sm font-semibold text-foreground">当前聚焦原文切片</h3>
+                  <div className="rounded-md border border-border bg-accent px-3 py-2 text-sm leading-6 text-accent-foreground">
                     {focusedSourceText || "点击中间的台词条目后，这里会显示对应 sourceText。"}
                   </div>
                 </div>
                 {issueMessages.length > 0 ? (
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-slate-900">失败原因</h3>
+                    <h3 className="text-sm font-semibold text-foreground">失败原因</h3>
                     <div className="space-y-2">
                       {issueMessages.map((message) => (
                         <div
                           key={message}
-                          className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm leading-6 text-rose-900"
+                          className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm leading-6 text-destructive"
                         >
                           {message}
                         </div>
@@ -401,9 +454,9 @@ export function ReviewScriptEditWorkspace({
               </div>
             </section>
 
-            <section className="flex min-h-0 flex-col overflow-hidden border-r border-slate-200 bg-slate-50 p-4">
+            <section className="flex min-h-0 flex-col overflow-hidden border-r border-border bg-muted/40 p-4">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-900">结构化台本编辑</h3>
+                <h3 className="text-sm font-semibold text-foreground">结构化台本编辑</h3>
                 <div className="flex gap-2">
                   <Button type="button" size="sm" variant="outline" onClick={addDialogue}>
                     <Plus className="mr-1 h-4 w-4" />
@@ -431,34 +484,70 @@ export function ReviewScriptEditWorkspace({
                         key={`${dialogue.id}-${index}`}
                         className={`rounded-lg border p-3 ${
                           selectedDialogueIndex === index
-                            ? "border-blue-300 bg-blue-50"
-                            : "border-slate-200 bg-white"
+                            ? "border-border bg-accent/70"
+                            : "border-border bg-card"
                         }`}
                       >
                         <div className="mb-3 flex items-center justify-between">
                           <button
                             type="button"
-                            className="cursor-pointer text-left text-sm font-medium text-slate-900"
+                            className="cursor-pointer text-left text-sm font-medium text-foreground"
                             onClick={() => setSelectedDialogueIndex(index)}
                           >
                             第 {index + 1} 条
                           </button>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => removeDialogue(index)}
-                            aria-label={`删除第 ${index + 1} 条台词`}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => moveDialogue(index, "up")}
+                              disabled={index === 0}
+                              aria-label={`上移第 ${index + 1} 条台词`}
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => moveDialogue(index, "down")}
+                              disabled={index === draft.dialogues.length - 1}
+                              aria-label={`下移第 ${index + 1} 条台词`}
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => removeDialogue(index)}
+                              aria-label={`删除第 ${index + 1} 条台词`}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="grid gap-3">
-                          <Input
-                            value={dialogue.speaker}
-                            onChange={(event) => updateDialogue(index, "speaker", event.target.value)}
-                            placeholder="speaker"
-                          />
+                          <label className="grid gap-1 text-xs text-muted-foreground">
+                            <span>speaker（从已识别角色选择）</span>
+                            <select
+                              value={dialogue.speaker}
+                              onChange={(event) =>
+                                updateDialogue(index, "speaker", event.target.value)
+                              }
+                              className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            >
+                              {!dialogue.speaker ? (
+                                <option value="">请选择 speaker</option>
+                              ) : null}
+                              {speakerOptions.map((speaker) => (
+                                <option key={speaker} value={speaker}>
+                                  {speaker}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
                           <Input
                             value={dialogue.tone}
                             onChange={(event) => updateDialogue(index, "tone", event.target.value)}
@@ -492,17 +581,17 @@ export function ReviewScriptEditWorkspace({
                 >
                   <div className="space-y-3">
                     {draft.characters.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-slate-300 bg-white p-4 text-sm text-slate-500">
+                      <div className="rounded-lg border border-dashed border-border bg-card p-4 text-sm text-muted-foreground">
                         当前没有角色候选，必要时可手动补充。
                       </div>
                     ) : null}
                     {draft.characters.map((character, index) => (
                       <div
                         key={`${character.name || "character"}-${index}`}
-                        className="rounded-lg border border-slate-200 bg-white p-3"
+                        className="rounded-lg border border-border bg-card p-3"
                       >
                         <div className="mb-3 flex items-center justify-between">
-                          <p className="text-sm font-medium text-slate-900">角色 {index + 1}</p>
+                          <p className="text-sm font-medium text-foreground">角色 {index + 1}</p>
                           <Button
                             type="button"
                             size="sm"
@@ -561,7 +650,7 @@ export function ReviewScriptEditWorkspace({
             <section className="min-h-0 overflow-y-auto bg-white p-4">
               <div className="space-y-4">
                 {saveError ? (
-                  <div className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert">
+                  <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
                     <AlertCircle className="mr-2 inline h-4 w-4" />
                     {saveError}
                   </div>
@@ -577,13 +666,13 @@ export function ReviewScriptEditWorkspace({
                       changeSummary.map((summary) => (
                         <div
                           key={summary}
-                          className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700"
+                          className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm leading-6 text-foreground"
                         >
                           {summary}
                         </div>
                       ))
                     ) : (
-                      <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                      <div className="rounded-md border border-border bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
                         当前还没有相对于原始结构的变更。
                       </div>
                     )}

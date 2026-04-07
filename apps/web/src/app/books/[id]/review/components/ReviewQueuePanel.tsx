@@ -132,11 +132,11 @@ export function ReviewFilterBar({
   const priorityLabel = PRIORITY_LABELS[priority] || priority;
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="shadow-sm">
       <CardContent className="p-4 !pt-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-8">
           <Select value={status} onValueChange={(value) => onStatusChange(value as ManualReviewStatusFilter)}>
-            <SelectTrigger className="min-h-11 bg-white">
+            <SelectTrigger className="min-h-11">
               <span className="block truncate">{statusLabel}</span>
             </SelectTrigger>
             <SelectContent>
@@ -149,7 +149,7 @@ export function ReviewFilterBar({
           </Select>
 
           <Select value={issueType} onValueChange={onIssueTypeChange}>
-            <SelectTrigger className="min-h-11 bg-white">
+            <SelectTrigger className="min-h-11">
               <span className="block truncate">{issueTypeLabel}</span>
             </SelectTrigger>
             <SelectContent>
@@ -164,7 +164,7 @@ export function ReviewFilterBar({
 
           {showScriptSubtypeFilter ? (
             <Select value={scriptSubtype} onValueChange={onScriptSubtypeChange}>
-              <SelectTrigger className="min-h-11 bg-white">
+              <SelectTrigger className="min-h-11">
                 <span className="block truncate">{scriptSubtypeLabel}</span>
               </SelectTrigger>
               <SelectContent>
@@ -187,7 +187,7 @@ export function ReviewFilterBar({
                 onRecommendedActionChange(value as ReviewRecommendedActionFilter)
               }
             >
-              <SelectTrigger className="min-h-11 bg-white">
+              <SelectTrigger className="min-h-11">
                 <span className="block truncate">{recommendedActionLabel}</span>
               </SelectTrigger>
               <SelectContent>
@@ -204,7 +204,7 @@ export function ReviewFilterBar({
           )}
 
           <Select value={priority} onValueChange={onPriorityChange}>
-            <SelectTrigger className="min-h-11 bg-white">
+            <SelectTrigger className="min-h-11">
               <span className="block truncate">{priorityLabel}</span>
             </SelectTrigger>
             <SelectContent>
@@ -280,7 +280,7 @@ export function ReviewPaginationBar({
   onPageChange,
 }: ReviewPaginationBarProps) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
       <span>
         第 {pagination.page}/{Math.max(1, pagination.totalPages)} 页，共 {pagination.total} 条
       </span>

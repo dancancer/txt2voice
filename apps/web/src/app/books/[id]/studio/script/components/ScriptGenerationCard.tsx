@@ -65,20 +65,20 @@ export function ScriptGenerationCard({
       <CardContent>
         {!hasTextSegments ? (
           <div className="text-center py-8">
-            <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <h3 className="mb-2 text-lg font-medium text-foreground">
               需要先完成文本处理
             </h3>
-            <p className="text-gray-600 mb-4">请先在书籍概览处理文件内容，完成分段</p>
+            <p className="mb-4 text-muted-foreground">请先在书籍概览处理文件内容，完成分段</p>
             <Button onClick={() => router.push(`/books/${bookId}`)} variant="outline">
               返回书籍概览
             </Button>
           </div>
         ) : !hasScriptSentences ? (
           <div className="text-center py-8">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">生成台本</h3>
-            <p className="text-gray-600 mb-6">
+            <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <h3 className="mb-2 text-lg font-medium text-foreground">生成台本</h3>
+            <p className="mb-6 text-muted-foreground">
               从前两个段落中提取对话内容，生成用于音频录制的台本
             </p>
             <Button onClick={onGenerate} disabled={isGenerating} size="lg">
@@ -97,12 +97,12 @@ export function ScriptGenerationCard({
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-between rounded-lg border border-border bg-accent/60 p-4">
               <div className="flex items-center space-x-3">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="font-medium text-green-900">台本已生成</p>
-                  <p className="text-sm text-green-700">
+                  <p className="font-medium text-foreground">台本已生成</p>
+                  <p className="text-sm text-muted-foreground">
                     从 {segmentsCount} 个段落中提取了 {scriptSentencesCount}{" "}
                     句台词
                   </p>
@@ -151,8 +151,8 @@ export function ScriptGenerationCard({
             </div>
 
             {/* Incremental Processing Actions */}
-            <div className="flex flex-wrap gap-3 pt-3 border-t border-gray-200">
-              <div className="text-sm text-gray-600 w-full mb-2">
+            <div className="flex flex-wrap gap-3 border-t border-border pt-3">
+              <div className="mb-2 w-full text-sm text-muted-foreground">
                 高级选项 (从特定段落开始处理或重新生成指定段落):
               </div>
 

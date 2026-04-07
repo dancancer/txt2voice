@@ -178,7 +178,7 @@ export function ScriptStudioPageContainer() {
   );
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden bg-background">
       {isGenerating && (
         <div className="flex-shrink-0">
           <GenerationProgress
@@ -203,7 +203,7 @@ export function ScriptStudioPageContainer() {
           </div>
 
           <div className="h-full overflow-auto">
-            <div className="space-y-4 h-full ">
+            <div className="h-full space-y-4">
               {safeSelectedNode.type === "chapter" && selectedChapterNode && (
                 <ChapterSegmentsTable
                   chapterTitle={selectedChapterNode.title}
@@ -234,14 +234,14 @@ export function ScriptStudioPageContainer() {
 
               {safeSelectedNode.type === "segment" && selectedSegment && (
                 <>
-                  <div className="flex items-center justify-between bg-white px-6 py-4 rounded-lg border sticky top-0 z-10">
+                  <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border border-border bg-card px-6 py-4">
                     <div>
                       <h2 className="text-xl font-semibold">
                         {selectedSegmentMeta
                           ? `${selectedSegmentMeta.chapterTitle} · ${selectedSegmentMeta.label}`
                           : `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`}
                       </h2>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         字数 {selectedSegment.wordCount ?? selectedSegment.content?.length ?? 0}
                       </p>
                     </div>
@@ -279,13 +279,13 @@ export function ScriptStudioPageContainer() {
               )}
 
               {safeSelectedNode.type === "book" && (
-                <div className="border border-dashed rounded-lg p-12 text-center bg-white">
-                  <div className="max-w-md mx-auto">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
+                  <div className="mx-auto max-w-md">
+                    <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-semibold text-foreground">
                       章节管理 & 台本生成
                     </h3>
-                    <p className="text-sm text-gray-500 mb-6">
+                    <p className="mb-6 text-sm text-muted-foreground">
                       请在左侧选择一个章节查看段落列表，或选择段落查看台词详情。
                     </p>
                     <div className="space-y-2">
@@ -378,7 +378,7 @@ export function ScriptStudioPageContainer() {
           <DialogHeader>
             <DialogTitle>{confirmDialog.title}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600">{confirmDialog.description}</p>
+          <p className="text-sm text-muted-foreground">{confirmDialog.description}</p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => resolveConfirmation(false)}>
               {confirmDialog.cancelText}

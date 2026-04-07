@@ -60,10 +60,10 @@ export function ChapterSegmentsTable({
   };
 
   return (
-    <div className="border rounded-lg bg-white h-full flex flex-col">
-      <div className="px-6 py-4 border-b flex ">
-        <h2 className="text-lg font-semibold">{chapterTitle}</h2>
-        <p className="ml-2 text-sm text-gray-500 mt-1">
+    <div className="flex h-full flex-col rounded-lg border border-border bg-card">
+      <div className="flex border-b border-border px-6 py-4">
+        <h2 className="text-lg font-semibold text-foreground">{chapterTitle}</h2>
+        <p className="ml-2 mt-1 text-sm text-muted-foreground">
           共 {segments.length} 个段落
         </p>
         <div className="flex-1"></div>
@@ -85,7 +85,7 @@ export function ChapterSegmentsTable({
               <TableRow>
                 <TableCell
                   colSpan={4}
-                  className="text-center py-8 text-gray-500"
+                  className="py-8 text-center text-muted-foreground"
                 >
                   该章节暂无段落
                 </TableCell>
@@ -94,7 +94,7 @@ export function ChapterSegmentsTable({
               segments.map((segment, index) => {
                 const isExpanded = expandedSegments.has(segment.id);
                 return (
-                  <TableRow key={segment.id} className="hover:bg-gray-50">
+                  <TableRow key={segment.id} className="hover:bg-muted/60">
                     <TableCell className="font-medium align-top">
                       {segment.chapterOrderIndex !== undefined
                         ? segment.chapterOrderIndex + 1
@@ -110,14 +110,14 @@ export function ChapterSegmentsTable({
                             {segment.content || "无内容"}
                           </p>
                         ) : (
-                          <p className="text-sm line-clamp-2 text-gray-700">
+                          <p className="line-clamp-2 text-sm text-muted-foreground">
                             {segment.content || "无内容"}
                           </p>
                         )}
                       </div>
                     </TableCell>
                     <TableCell className="align-top">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         {segment.wordCount || segment.content?.length || 0}
                       </span>
                     </TableCell>

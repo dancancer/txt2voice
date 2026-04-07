@@ -156,10 +156,10 @@ export default function ChapterDetailPage() {
 
   if (loading) {
     return (
-      <div className="h-full bg-slate-50 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600 mx-auto mb-3" />
-          <p className="text-slate-600">加载章节中...</p>
+          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">加载章节中...</p>
         </div>
       </div>
     );
@@ -167,10 +167,10 @@ export default function ChapterDetailPage() {
 
   if (error || !chapter) {
     return (
-      <div className="h-full bg-slate-50 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
-          <p className="text-red-600 mb-4">{error || "章节不存在"}</p>
+          <AlertCircle className="mx-auto mb-3 h-8 w-8 text-destructive" />
+          <p className="mb-4 text-destructive">{error || "章节不存在"}</p>
           <Button onClick={() => router.push(`/books/${bookId}`)}>返回书籍详情</Button>
         </div>
       </div>
@@ -178,19 +178,19 @@ export default function ChapterDetailPage() {
   }
 
   return (
-    <div className="min-h-full bg-slate-50">
+    <div className="min-h-full bg-background">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <Button
               variant="ghost"
               onClick={() => router.push(`/books/${bookId}`)}
-              className="min-h-11 min-w-11 px-2 text-slate-600"
+              className="min-h-11 min-w-11 px-2 text-muted-foreground"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               返回书籍详情
             </Button>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-foreground leading-tight">
               第 {chapter.chapterIndex + 1} 章 · {chapter.title}
             </h1>
             <div className="flex flex-wrap gap-2">
@@ -229,19 +229,19 @@ export default function ChapterDetailPage() {
         </div>
 
         <Tabs defaultValue="content" className="w-full">
-          <TabsList>
+          <TabsList className="w-full sm:w-auto">
             <TabsTrigger value="content" className="min-h-11">原文内容</TabsTrigger>
             <TabsTrigger value="scripts" className="min-h-11">台本 ({scripts.length})</TabsTrigger>
             <TabsTrigger value="audios" className="min-h-11">音频 ({audios.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="content" className="mt-4">
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">章节原文</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-slate-700 leading-7 text-base">
+                <p className="whitespace-pre-wrap text-base leading-7 text-muted-foreground">
                   {chapterContent || "暂无内容"}
                 </p>
               </CardContent>
@@ -251,17 +251,17 @@ export default function ChapterDetailPage() {
           <TabsContent value="scripts" className="mt-4">
             {scripts.length === 0 ? (
               <Card>
-                <CardContent className="py-10 !pt-10 text-center text-slate-600">
-                  <FileText className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+                <CardContent className="py-10 !pt-10 text-center text-muted-foreground">
+                  <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
                   暂无台本，请先执行台本生成。
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-3">
                 {scripts.map((script) => (
-                  <Card key={script.id} className="border-slate-200 shadow-sm">
+                  <Card key={script.id} className="shadow-sm">
                     <CardContent className="p-4 !pt-4 space-y-2">
-                      <div className="flex items-center gap-2 flex-wrap text-xs text-slate-600">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <Badge variant="outline">
                           段落 {((script.segment?.chapterOrderIndex ?? 0) + 1).toString()}
                         </Badge>
@@ -271,7 +271,7 @@ export default function ChapterDetailPage() {
                         ) : null}
                         {script.tone ? <Badge variant="outline">{script.tone}</Badge> : null}
                       </div>
-                      <p className="text-slate-800 leading-7">{script.text}</p>
+                      <p className="leading-7 text-foreground">{script.text}</p>
                     </CardContent>
                   </Card>
                 ))}
@@ -282,22 +282,22 @@ export default function ChapterDetailPage() {
           <TabsContent value="audios" className="mt-4">
             {audios.length === 0 ? (
               <Card>
-                <CardContent className="py-10 !pt-10 text-center text-slate-600">
-                  <Music className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+                <CardContent className="py-10 !pt-10 text-center text-muted-foreground">
+                  <Music className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
                   暂无音频，请先生成章节音频。
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-3">
                 {audios.map((audio) => (
-                  <Card key={audio.id} className="border-slate-200 shadow-sm">
+                  <Card key={audio.id} className="shadow-sm">
                     <CardContent className="p-4 !pt-4 space-y-3">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-medium text-slate-900">
+                          <p className="text-sm font-medium text-foreground">
                             {audio.type === "line" ? "单句音频" : "章节音频"}
                           </p>
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="mt-1 text-xs text-muted-foreground">
                             {audio.scriptSentence?.character?.canonicalName
                               ? `${audio.scriptSentence.character.canonicalName}：`
                               : ""}

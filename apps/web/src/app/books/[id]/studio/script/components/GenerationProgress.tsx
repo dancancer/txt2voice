@@ -32,15 +32,15 @@ export function GenerationProgress({
 
   const getIcon = () => {
     if (isGenerating) {
-      return <Loader2 className="w-6 h-6 animate-spin text-blue-600" />;
+      return <Loader2 className="h-6 w-6 animate-spin text-primary" />;
     }
     if (generationStatus.includes("完成")) {
-      return <CheckCircle className="w-6 h-6 text-green-600" />;
+      return <CheckCircle className="h-6 w-6 text-primary" />;
     }
     if (generationStatus.includes("失败")) {
-      return <AlertCircle className="w-6 h-6 text-red-600" />;
+      return <AlertCircle className="h-6 w-6 text-destructive" />;
     }
-    return <FileText className="w-6 h-6 text-blue-600" />;
+    return <FileText className="h-6 w-6 text-primary" />;
   };
 
   return (
@@ -49,7 +49,7 @@ export function GenerationProgress({
         <div className="flex items-center space-x-4">
           {getIcon()}
           <div className="flex-1">
-            <p className="font-medium text-gray-900">{generationStatus}</p>
+            <p className="font-medium text-foreground">{generationStatus}</p>
             {isGenerating && (
               <Progress value={generationProgress} className="mt-2" />
             )}

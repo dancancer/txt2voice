@@ -16,16 +16,16 @@ export default function AudioLegacyEntryPage() {
   const bookId = params.id as string;
 
   return (
-    <div className="min-h-full bg-slate-50">
+    <div className="min-h-full bg-background">
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Music className="w-5 h-5 text-indigo-600" />
+              <Music className="h-5 w-5 text-primary" />
               <CardTitle>音频入口已升级</CardTitle>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 text-slate-700 leading-7">
+          <CardContent className="space-y-4 leading-7 text-muted-foreground">
             <p>
               默认流程支持在章节详情直接生成并试听章节音频；如需批量参数调优，请进入高级音频工作台。
             </p>

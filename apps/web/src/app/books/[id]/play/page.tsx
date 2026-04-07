@@ -73,7 +73,7 @@ export default function AudioPlaybackPage() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-background">
       <PlaybackHeader
         bookTitle={book.title}
         audioCount={audioFiles.length}

@@ -71,7 +71,7 @@ export function AudioList({ audios, onDelete, onPlay }: AudioListProps) {
               )}
             </div>
             {audio.description && (
-              <p className="text-sm text-gray-600">{audio.description}</p>
+              <p className="text-sm text-muted-foreground">{audio.description}</p>
             )}
             <div className="mt-2">
               <audio

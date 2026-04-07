@@ -90,7 +90,7 @@ export function SpeakerListTab({
                   )}
                 </div>
                 {speaker.description && (
-                  <p className="text-sm text-gray-600">{speaker.description}</p>
+                  <p className="text-sm text-muted-foreground">{speaker.description}</p>
                 )}
                 {speaker.referenceAudio && audioUrl && (
                   <div className="mt-2">

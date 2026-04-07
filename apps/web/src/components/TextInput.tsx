@@ -6,6 +6,7 @@
 
 import { useAppStore } from '@/store/useAppStore'
 import { Button } from './ui/button'
+import { Textarea } from './ui/textarea'
 import { Play, Pause, Volume2 } from 'lucide-react'
 
 export function TextInput() {
@@ -18,21 +19,21 @@ export function TextInput() {
   return (
     <div className="w-full max-w-2xl mx-auto space-y-4">
       <div className="relative">
-        <textarea
+        <Textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Enter your text here..."
-          className="w-full min-h-[200px] p-4 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+          className="min-h-[200px] resize-none p-4"
         />
-        <div className="absolute bottom-4 right-4 text-sm text-gray-400">
+        <div className="absolute bottom-4 right-4 text-sm text-muted-foreground">
           {text.length} characters
         </div>
       </div>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Volume2 className="w-5 h-5 text-gray-600" />
-          <span className="text-sm text-gray-600">
+          <Volume2 className="w-5 h-5 text-muted-foreground" />
+          <span className="text-sm text-muted-foreground">
             {isPlaying ? 'Playing...' : 'Ready to speak'}
           </span>
         </div>

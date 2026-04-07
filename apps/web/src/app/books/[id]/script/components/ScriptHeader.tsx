@@ -23,7 +23,7 @@ export function ScriptHeader({
   const router = useRouter();
 
   return (
-    <div className="bg-white shadow-sm border-b">
+    <div className="border-b border-border bg-background shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
@@ -38,10 +38,10 @@ export function ScriptHeader({
             </Button>
             <div>
               <div className="flex items-center gap-2">
-                <Layers className="w-5 h-5 text-blue-600" />
-                <h1 className="text-xl font-semibold text-gray-900">章节管理 & 台本生成</h1>
+                <Layers className="h-5 w-5 text-primary" />
+                <h1 className="text-xl font-semibold text-foreground">章节管理 & 台本生成</h1>
               </div>
-              <p className="text-sm text-gray-500">{bookTitle}</p>
+              <p className="text-sm text-muted-foreground">{bookTitle}</p>
             </div>
           </div>
           <div className="flex items-center space-x-4">

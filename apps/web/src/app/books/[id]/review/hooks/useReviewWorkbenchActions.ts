@@ -20,6 +20,35 @@ interface ReviewWorkbenchActionInput {
   refreshSloOnly: () => Promise<void>;
 }
 
+const resolveApiErrorMessage = async (
+  response: Response,
+  fallbackMessage: string
+): Promise<string> => {
+  const jsonPayload = (await response.clone().json().catch(() => null)) as
+    | {
+        error?: { message?: string };
+        message?: string;
+      }
+    | null;
+
+  const jsonMessage =
+    (typeof jsonPayload?.error?.message === "string"
+      ? jsonPayload.error.message
+      : typeof jsonPayload?.message === "string"
+        ? jsonPayload.message
+        : "") || "";
+  if (jsonMessage.trim().length > 0) {
+    return jsonMessage.trim();
+  }
+
+  const rawText = await response.clone().text().catch(() => "");
+  if (rawText.trim().length > 0) {
+    return `${fallbackMessage}（HTTP ${response.status}）`;
+  }
+
+  return fallbackMessage;
+};
+
 const resolveActionLabel = (action: ManualReviewResolveAction): string => {
   if (action === "approve") {
     return "通过";
@@ -277,10 +306,16 @@ export function useReviewWorkbenchActions({
             }),
           }
         );
-        const payload = (await response.json().catch(() => ({}))) as ReviewScriptSaveResponse;
+        const payload = (await response
+          .json()
+          .catch(() => null)) as ReviewScriptSaveResponse | null;
+        const hasExplicitBusinessFailure = payload?.success === false;
 
-        if (!response.ok || !payload.success) {
-          throw new Error(payload.error?.message || "保存人工修订台本失败");
+        if (!response.ok || hasExplicitBusinessFailure) {
+          const errorMessage =
+            payload?.error?.message ||
+            (await resolveApiErrorMessage(response, "保存人工修订台本失败"));
+          throw new Error(errorMessage);
         }
 
         toast.success("人工修订台本已保存");

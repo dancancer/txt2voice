@@ -46,7 +46,7 @@ export function ReferenceAudioTab({
   }
 
   if (referenceAudios.length === 0) {
-    return <div className="py-8 text-center text-sm text-gray-500">暂无参考音频</div>;
+    return <div className="py-8 text-center text-sm text-muted-foreground">暂无参考音频</div>;
   }
 
   const selectedSet = new Set(selectedAudioFilenames);
@@ -58,8 +58,8 @@ export function ReferenceAudioTab({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <p className="text-sm text-slate-700">已选择 {selectedAudioFilenames.length} 条音频</p>
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/50 p-3">
+        <p className="text-sm text-card-foreground">已选择 {selectedAudioFilenames.length} 条音频</p>
         <div className="flex flex-wrap gap-2">
           <Button
             size="sm"
@@ -150,7 +150,7 @@ export function ReferenceAudioTab({
                   )}
                 </div>
                 {audio.description && (
-                  <p className="text-sm text-gray-600">{audio.description}</p>
+                  <p className="text-sm text-muted-foreground">{audio.description}</p>
                 )}
                 <div className="mt-2">
                   <audio

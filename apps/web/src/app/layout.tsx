@@ -26,11 +26,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="zh-CN">
-      <body className="font-sans">
+      <body className="bg-background font-sans text-foreground antialiased">
         <ErrorBoundary>
-          <div className="min-h-screen flex flex-col">
+          <div className="flex min-h-screen flex-col">
             <Header />
-            <main className=" h-[calc(100vh-85px)]">{children}</main>
+            <main className="flex-1 min-h-0">{children}</main>
           </div>
         </ErrorBoundary>
         <Toaster position="top-right" richColors closeButton />

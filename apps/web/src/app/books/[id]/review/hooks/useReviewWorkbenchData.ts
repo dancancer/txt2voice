@@ -358,6 +358,9 @@ export function useReviewWorkbenchData(bookId: string) {
     }
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
       void Promise.all([loadReviewData(false), loadRegenerateTasks(false)]);
     }, 5000);
 

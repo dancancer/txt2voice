@@ -439,6 +439,29 @@ describe("segment script validator", () => {
     );
   });
 
+  it("should allow dropping obvious ad-noise tail gaps from manual edits", () => {
+    const result = validateSegmentScript({
+      segmentContent:
+        "“哦，那辛苦你了。”\n\n“我的甜哥哥，和我客气啥哟？！”\n\n----------老司机必备的约炮平台，全网最大的约炮平台，最快两小时见面 下载（ k183.cc ）集－影视－直播－小说－漫画－同城交友－为一体纯原生ＡＰＰ===【k183点cc】",
+      scriptSentences: [
+        {
+          sourceText: "“哦，那辛苦你了。”",
+          text: "哦，那辛苦你了。",
+          speaker: "小雄",
+        },
+        {
+          sourceText: "“我的甜哥哥，和我客气啥哟？！”",
+          text: "我的甜哥哥，和我客气啥哟？！",
+          speaker: "关玮",
+        },
+      ],
+    });
+
+    expect(result.valid).toBe(true);
+    expect(result.coverageRatio).toBe(1);
+    expect(result.issues).toHaveLength(0);
+  });
+
   it("should reject duplicated quote extraction", () => {
     const result = validateSegmentScript({
       segmentContent: '“你好。”',
