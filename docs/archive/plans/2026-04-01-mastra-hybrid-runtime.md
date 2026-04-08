@@ -1,5 +1,11 @@
 # Mastra Hybrid Runtime Implementation Plan
 
+> Historical document. 当前架构已转向 Mastra-only，不再执行本方案。
+>
+> 现行方案请看：
+> - [`2026-04-08-mastra-only-runtime-and-studio.md`](/Users/xupeng/mycode/txt2voice/docs/plans/2026-04-08-mastra-only-runtime-and-studio.md)
+> - [`MASTRA_STUDIO_RUNBOOK.md`](/Users/xupeng/mycode/txt2voice/docs/technical/MASTRA_STUDIO_RUNBOOK.md)
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 在不破坏现有生产 runtime、持久化和回放能力的前提下，引入 Mastra 统一 LLM agent 层，并拆解 `text-processor.ts` 与 `audio-generator.ts` 两个过大文件。

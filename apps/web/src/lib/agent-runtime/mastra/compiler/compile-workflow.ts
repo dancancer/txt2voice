@@ -1,3 +1,5 @@
+import { createRequire } from "module";
+
 import { loadWorkflowDefinition } from "../../registry";
 import type { WorkflowDefinition } from "../../protocol";
 import { ensureMastraWebGlobals } from "../shared/ensure-mastra-web-globals";
@@ -9,6 +11,7 @@ import {
 type MastraWorkflowInstance = ReturnType<
   typeof import("@mastra/core/workflows").createWorkflow
 >;
+const requireModule = createRequire(import.meta.url);
 
 export interface CompiledMastraWorkflow {
   definition: WorkflowDefinition;
@@ -25,7 +28,7 @@ export const compileWorkflow = (
   const loadedWorkflow = loadWorkflowDefinition(rootDir, workflowId);
   ensureMastraWebGlobals();
   const { createWorkflow } =
-    require("@mastra/core/workflows") as typeof import("@mastra/core/workflows");
+    requireModule("@mastra/core/workflows") as typeof import("@mastra/core/workflows");
 
   return {
     definition: loadedWorkflow.definition,

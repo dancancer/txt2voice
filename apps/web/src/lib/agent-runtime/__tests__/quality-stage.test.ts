@@ -464,7 +464,7 @@ describe("quality stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
-  it("uses mastra executor path when quality executor is mastra", async () => {
+  it("uses the configured Mastra quality implementation", async () => {
     const adapter = createMockAdapter("{}");
     const runMastraQualityStage = jest.fn().mockResolvedValue({
       stageRunId: "mastra-quality-stage-1",
@@ -485,7 +485,6 @@ describe("quality stage", () => {
       segmentScriptDraft: createDraft("segment-quality-mastra"),
       validationReport: createValidationReport("segment-quality-mastra"),
       adapter,
-      executor: "mastra",
       runMastraQualityStage,
     });
 
@@ -495,54 +494,4 @@ describe("quality stage", () => {
     expect(asCompletedResult(result).decision).toBe("auto_pass");
   });
 
-  it("keeps native result as primary output when quality shadow mode is enabled", async () => {
-    const adapter = createMockAdapter(
-      JSON.stringify({
-        score: 0.93,
-        confidence: 0.94,
-        reasons: ["角色语气一致", "未发现语义冲突"],
-        summary: "语义质量稳定，可自动通过",
-      })
-    );
-    const runMastraQualityStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-quality-shadow-stage-1",
-      agentRunId: "mastra-quality-shadow-agent-1",
-      status: "completed",
-      decision: "manual_review_required",
-      verdict: {
-        segmentId: "segment-quality-shadow",
-        verdict: "manual_review",
-        score: 0.42,
-        reasons: ["shadow path"],
-      },
-      handoff: {
-        segmentId: "segment-quality-shadow",
-        summary: "shadow path",
-        reasons: ["shadow path"],
-        evidence: {
-          score: 0.42,
-          confidence: 0.42,
-          validation: {
-            coverageRatio: 1,
-            issues: [],
-          },
-        },
-      },
-    } satisfies RunQualityStageResult);
-
-    const result = await runQualityStage({
-      workflowRunId: "wf-quality-shadow",
-      segmentId: "segment-quality-shadow",
-      segmentScriptDraft: createDraft("segment-quality-shadow"),
-      validationReport: createValidationReport("segment-quality-shadow"),
-      adapter,
-      shadowMode: true,
-      runMastraQualityStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraQualityStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(1);
-    expect(asCompletedResult(result).decision).toBe("auto_pass");
-  });
 });

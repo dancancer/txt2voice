@@ -1,4 +1,4 @@
-import type { LLMExecutionEvent } from "@/lib/llm-service";
+import type { LLMExecutionEvent } from "@/lib/llm/events";
 import type { SegmentScriptDraft } from "../../context";
 import type {
   ScriptGenerationOptions,

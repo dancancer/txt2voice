@@ -499,7 +499,7 @@ node scripts/phase2-audio-validation.js \
 
 包含三处和稳定性直接相关的修复：
 
-1. `apps/web/src/lib/llm-service.ts`
+1. `apps/web/src/lib/llm/*`（当前运行时真相源；已替代旧 `llm-service.ts`）
    - `max_tokens` 从 `4000` 提高到 `8000`
 2. `apps/web/src/lib/agent-runtime/runtime/script-production/options.ts`
    - `maxDialogueLength` 从 `200` 提高到 `800`

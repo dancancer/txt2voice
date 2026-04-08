@@ -697,7 +697,7 @@ describe("segment scripting stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
-  it("uses mastra executor path when stage executor is mastra", async () => {
+  it("uses the configured Mastra stage implementation", async () => {
     const adapter = createMockAdapter("{}");
     const runMastraSegmentScriptingStage = jest.fn().mockResolvedValue({
       stageRunId: "mastra-stage-1",
@@ -728,7 +728,6 @@ describe("segment scripting stage", () => {
       segmentText: "宁采臣抬头。",
       skillDir,
       adapter,
-      executor: "mastra",
       runMastraSegmentScriptingStage,
     });
 
@@ -740,50 +739,4 @@ describe("segment scripting stage", () => {
     );
   });
 
-  it("keeps native result as primary output when scripting shadow mode is enabled", async () => {
-    const adapter = createMockAdapter(
-      JSON.stringify({
-        lines: [
-          {
-            id: "line-1",
-            sourceText: "宁采臣抬头。",
-            text: "宁采臣抬头。",
-            speaker: "旁白",
-            orderInSegment: 0,
-          },
-        ],
-      })
-    );
-    const runMastraSegmentScriptingStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-shadow-stage-1",
-      agentRunId: "mastra-shadow-agent-1",
-      status: "completed",
-      artifact: {
-        kind: "segment-script-draft",
-        skillId: "script-generation",
-        segmentScriptDraft: {
-          segmentId: "segment-shadow-alt",
-          createdAt: "2026-04-01T00:00:00.000Z",
-          lines: [],
-        },
-      },
-    } satisfies RunSegmentScriptingStageResult);
-
-    const result = await runSegmentScriptingStage({
-      workflowRunId: "wf-scripting-shadow",
-      segmentId: "segment-shadow-primary",
-      segmentText: "宁采臣抬头。",
-      skillDir,
-      adapter,
-      shadowMode: true,
-      runMastraSegmentScriptingStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraSegmentScriptingStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(1);
-    expect(asCompletedResult(result).artifact.segmentScriptDraft.segmentId).toBe(
-      "segment-shadow-primary"
-    );
-  });
 });

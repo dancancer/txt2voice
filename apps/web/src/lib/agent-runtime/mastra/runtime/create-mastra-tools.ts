@@ -1,3 +1,5 @@
+import { createTool } from "@mastra/core/tools";
+
 import type { ToolCallRecord } from "../../runtime/run-agent";
 import type { RuntimeToolContract } from "../../tools/contracts";
 import { filterToolsByAllowlist } from "../../tools/contracts";
@@ -101,8 +103,6 @@ export const createMastraTools = (
   }
 
   ensureMastraWebGlobals();
-  const { createTool } =
-    require("@mastra/core/tools") as typeof import("@mastra/core/tools");
 
   return Object.fromEntries(
     allowedContracts.map((contract) => {

@@ -5,6 +5,7 @@
   "description": "Text to Voice monorepo",
   "scripts": {
     "dev": "pnpm --filter web dev",
+    "dev:mastra": "pnpm --filter web run dev:mastra",
     "build": "pnpm -r --if-present build",
     "start": "pnpm --filter web start",
     "check:card-content-padding": "node scripts/check-card-content-padding.js",

@@ -1,7 +1,7 @@
 import {
   resolveConfiguredLLMProvider,
   type LLMProvider,
-} from "@/lib/llm-service";
+} from "@/lib/llm/provider";
 import { runLLMRequest, type LLMRuntimeRequest } from "@/lib/llm-runtime";
 import type { LLMExecutionRequestOptions } from "@/lib/task-queue";
 import { resolveLLMExecutionPolicy } from "../runtime/model-policy";

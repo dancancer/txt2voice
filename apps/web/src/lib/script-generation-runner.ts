@@ -3,7 +3,7 @@
 // output: 台本任务执行结果
 // pos: 任务执行器
 import prisma from "@/lib/prisma";
-import type { LLMExecutionEvent } from "@/lib/llm-service";
+import type { LLMExecutionEvent } from "@/lib/llm/events";
 import { runScriptProductionWorkflow } from "@/lib/agent-runtime/runtime/run-script-production-workflow";
 import type {
   ScriptGenerationOptions,

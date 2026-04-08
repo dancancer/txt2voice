@@ -12,6 +12,7 @@ build/
 dist/
 .next/
 out/
+apps/web/.mastra/
 
 # Misc
 .DS_Store

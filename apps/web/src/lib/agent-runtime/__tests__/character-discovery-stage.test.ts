@@ -771,7 +771,7 @@ describe("character discovery stage", () => {
     expect("artifact" in result).toBe(false);
   });
 
-  it("uses mastra executor path when stage executor is mastra", async () => {
+  it("uses the configured Mastra stage implementation", async () => {
     const adapter = createMockAdapter("{}");
     const runMastraCharacterDiscoveryStage = jest.fn().mockResolvedValue({
       stageRunId: "mastra-stage-1",
@@ -793,7 +793,6 @@ describe("character discovery stage", () => {
       segmentText: "宁采臣缓缓抬头。",
       skillDir,
       adapter,
-      executor: "mastra",
       runMastraCharacterDiscoveryStage,
     });
 
@@ -808,47 +807,4 @@ describe("character discovery stage", () => {
     });
   });
 
-  it("keeps native result as primary output when shadow mode is enabled", async () => {
-    const adapter = createMockAdapter(
-      JSON.stringify({
-        canonicalIdentities: [{ id: "char-native", name: "宁采臣" }],
-        aliasEvidence: [],
-        assertedFacts: {},
-        inferredHints: {},
-      })
-    );
-    const runMastraCharacterDiscoveryStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-shadow-1",
-      status: "completed",
-      artifact: {
-        kind: "character-memory-draft",
-        skillId: "character-extraction",
-        characterMemoryDraft: {
-          canonicalIdentities: [{ id: "char-shadow", name: "燕赤霞" }],
-          aliasEvidence: [],
-          assertedFacts: {},
-          inferredHints: {},
-        },
-      },
-    } satisfies RunCharacterDiscoveryStageResult);
-
-    const result = await runCharacterDiscoveryStage({
-      workflowRunId: "wf-shadow-executor",
-      segmentText: "宁采臣缓缓抬头。",
-      skillDir,
-      adapter,
-      shadowMode: true,
-      runMastraCharacterDiscoveryStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraCharacterDiscoveryStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(1);
-    expect(asCompletedResult(result).artifact.characterMemoryDraft).toEqual({
-      canonicalIdentities: [{ id: "char-native", name: "宁采臣" }],
-      aliasEvidence: [],
-      assertedFacts: {},
-      inferredHints: {},
-    });
-  });
 });

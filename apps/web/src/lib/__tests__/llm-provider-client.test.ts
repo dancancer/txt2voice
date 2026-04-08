@@ -1,15 +1,10 @@
 export {};
 
-const runLLMRequest = jest.fn();
 const createMock = jest.fn();
 
 class MockAPIError extends Error {}
 class MockRateLimitError extends MockAPIError {}
 class MockAuthenticationError extends MockAPIError {}
-
-jest.mock("@/lib/llm-runtime", () => ({
-  runLLMRequest: (...args: unknown[]) => runLLMRequest(...args),
-}));
 
 jest.mock("openai", () => {
   return {
@@ -32,7 +27,7 @@ jest.mock("openai", () => {
   };
 });
 
-describe("llm-service", () => {
+describe("llm provider and client", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
@@ -44,42 +39,8 @@ describe("llm-service", () => {
     process.env = originalEnv;
   });
 
-  it("should route callLLM through runtime instead of direct sdk calls", async () => {
-    const { LLMService } = await import("@/lib/llm-service");
-
-    runLLMRequest.mockResolvedValueOnce({
-      content: "runtime-result",
-      model: "gpt-test",
-      provider: "openai",
-      latencyMs: 20,
-      attempt: 1,
-      usage: null,
-    });
-
-    const service = new LLMService({
-      name: "openai",
-      apiKey: "key",
-      model: "gpt-test",
-    });
-
-    const result = await service.callLLM("hello", "system");
-
-    expect(result).toBe("runtime-result");
-    expect(runLLMRequest).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: "hello",
-        systemPrompt: "system",
-        provider: expect.objectContaining({
-          name: "openai",
-          model: "gpt-test",
-        }),
-      })
-    );
-    expect(createMock).not.toHaveBeenCalled();
-  });
-
-  it("should map rate limit errors to retryable service errors", async () => {
-    const { executeProviderLLMCall } = await import("@/lib/llm-service");
+  it("maps rate limit errors to retryable service errors", async () => {
+    const { executeProviderLLMCall } = await import("@/lib/llm/client");
 
     createMock.mockRejectedValueOnce(new MockRateLimitError("too many requests"));
 
@@ -99,8 +60,8 @@ describe("llm-service", () => {
     });
   });
 
-  it("should resolve configured provider with expected env priority", async () => {
-    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+  it("resolves configured provider with expected env priority", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm/provider");
 
     process.env.OPENAI_API_KEY = "openai-fallback-key";
     process.env.OPENAI_BASE_URL = "https://fallback.base.url/v1";
@@ -117,8 +78,8 @@ describe("llm-service", () => {
     });
   });
 
-  it("should resolve a specific registry model by id", async () => {
-    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+  it("resolves a specific registry model by id", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm/provider");
 
     process.env.LLM_MODELS_JSON = JSON.stringify([
       {
@@ -148,8 +109,8 @@ describe("llm-service", () => {
     });
   });
 
-  it("should resolve the default registry model when no model id is given", async () => {
-    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+  it("resolves the default registry model when no model id is given", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm/provider");
 
     process.env.LLM_MODELS_JSON = JSON.stringify([
       {
@@ -179,8 +140,8 @@ describe("llm-service", () => {
     });
   });
 
-  it("should throw TTSError when api key is missing", async () => {
-    const { getConfiguredLLMProvider } = await import("@/lib/llm-service");
+  it("throws TTSError when api key is missing", async () => {
+    const { getConfiguredLLMProvider } = await import("@/lib/llm/provider");
     const { TTSError } = await import("@/lib/error-handler");
 
     delete process.env.LLM_API_KEY;

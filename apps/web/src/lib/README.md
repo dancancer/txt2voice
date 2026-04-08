@@ -17,7 +17,7 @@
 - constants.ts | 地位: 功能模块 | 功能: 提供 constants 相关能力
 - error-handler.ts | 地位: 功能模块 | 功能: 提供 error handler 相关能力
 - indextts-service.ts | 地位: 功能模块 | 功能: 提供 indextts service 相关能力
-- llm-service.ts | 地位: 功能模块 | 功能: 提供 llm service 相关能力
+- llm | 地位: 领域目录 | 功能: 提供 LLM provider 解析、客户端调用与执行事件定义
 - logger.ts | 地位: 功能模块 | 功能: 提供 logger 相关能力
 - manual-review-service.ts | 地位: 功能模块 | 功能: 提供人工复核查询、保存修订与重跑编排
 - pagination.ts | 地位: 功能模块 | 功能: 提供 pagination 相关能力

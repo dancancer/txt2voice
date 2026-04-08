@@ -15,6 +15,7 @@ import {
   Settings2,
   Sparkles,
   Plus,
+  Blocks,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,9 @@ const navItems = [
   },
 ];
 
+const studioHref =
+  process.env.NEXT_PUBLIC_MASTRA_STUDIO_URL || "http://localhost:4111";
+
 export function Navigation({ className }: NavigationProps) {
   const pathname = usePathname();
 
@@ -73,6 +77,15 @@ export function Navigation({ className }: NavigationProps) {
           </Link>
         );
       })}
+      <a
+        href={studioHref}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex min-h-11 min-w-11 items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-muted-foreground transition-[background-color,color,box-shadow] duration-200 hover:bg-accent/80 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      >
+        <Blocks className="w-4 h-4" />
+        <span>Mastra Studio</span>
+      </a>
     </nav>
   );
 }
@@ -137,6 +150,17 @@ export function Header() {
                       </DropdownMenu.Item>
                     );
                   })}
+                  <DropdownMenu.Item asChild>
+                    <a
+                      href={studioHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex min-h-11 items-center gap-2 rounded-xl px-3 py-2.5 text-sm text-muted-foreground outline-none transition-colors hover:bg-accent/80 hover:text-foreground"
+                    >
+                      <Blocks className="h-4 w-4" />
+                      <span>Mastra Studio</span>
+                    </a>
+                  </DropdownMenu.Item>
                 </DropdownMenu.Content>
               </DropdownMenu.Portal>
             </DropdownMenu.Root>

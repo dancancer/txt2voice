@@ -45,20 +45,12 @@ const resolvePolicyModelId = (
   env: NodeJS.ProcessEnv
 ): string | undefined => {
   const envKey = POLICY_MODEL_ENV_KEYS[policy];
-  if (!envKey) {
-    return env.LLM_DEFAULT_MODEL_ID || undefined;
-  }
-
-  const configured = env[envKey]?.trim();
+  const configured = envKey ? env[envKey]?.trim() : undefined;
   if (configured) {
     return configured;
   }
 
-  if (policy === "balanced") {
-    return env.LLM_DEFAULT_MODEL_ID || undefined;
-  }
-
-  throw new Error(`Missing configured model id for modelPolicy ${policy}`);
+  return env.LLM_DEFAULT_MODEL_ID || undefined;
 };
 
 export const resolveLLMExecutionPolicy = (

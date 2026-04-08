@@ -4,34 +4,39 @@ jest.mock("@mastra/core", () => ({
   })),
 }));
 
-jest.mock("@ai-sdk/openai", () => ({
-  createOpenAI: jest.fn().mockImplementation((config) => ({
-    kind: "openai-provider",
-    config,
-  })),
-}));
-
-import { createOpenAI } from "@ai-sdk/openai";
 import {
   createMastraRuntime,
   MastraRuntimeBootstrapError,
 } from "../mastra/runtime";
 
 describe("mastra runtime bootstrap", () => {
-  it("builds a Mastra runtime when provider config is present", () => {
+  it("builds a Mastra runtime from the configured LLM registry", () => {
     const runtime = createMastraRuntime({
       env: {
-        OPENAI_API_KEY: "test-key",
+        LLM_DEFAULT_MODEL_ID: "qwen-local",
+        LLM_MODELS_JSON: JSON.stringify([
+          {
+            id: "qwen-local",
+            label: "Qwen Local",
+            provider: "custom",
+            apiKey: "",
+            baseURL: "http://127.0.0.1:11434/v1",
+            model: "qwen3",
+          },
+        ]),
       },
     });
 
-    expect(runtime.provider).toBe("openai");
+    expect(runtime.provider).toBe("custom");
     expect((runtime.mastra as unknown as { config: unknown }).config).toEqual({
       agents: {},
       workflows: {},
     });
-    expect(createOpenAI).toHaveBeenCalledWith({
-      apiKey: "test-key",
+    expect(runtime.modelProvider).toEqual({
+      name: "custom",
+      apiKey: "local-placeholder-key",
+      baseURL: "http://127.0.0.1:11434/v1",
+      model: "qwen3",
     });
   });
 
@@ -49,7 +54,7 @@ describe("mastra runtime bootstrap", () => {
     } catch (error) {
       expect(error).toBeInstanceOf(MastraRuntimeBootstrapError);
       expect((error as MastraRuntimeBootstrapError).code).toBe(
-        "MISSING_OPENAI_API_KEY"
+        "INVALID_LLM_PROVIDER_CONFIG"
       );
     }
   });
@@ -57,7 +62,17 @@ describe("mastra runtime bootstrap", () => {
   it("does not configure Mastra storage by default", () => {
     const runtime = createMastraRuntime({
       env: {
-        OPENAI_API_KEY: "test-key",
+        LLM_DEFAULT_MODEL_ID: "qwen-local",
+        LLM_MODELS_JSON: JSON.stringify([
+          {
+            id: "qwen-local",
+            label: "Qwen Local",
+            provider: "custom",
+            apiKey: "",
+            baseURL: "http://127.0.0.1:11434/v1",
+            model: "qwen3",
+          },
+        ]),
       },
     });
 

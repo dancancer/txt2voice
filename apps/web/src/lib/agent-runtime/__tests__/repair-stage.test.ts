@@ -493,7 +493,7 @@ describe("segment repair stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
-  it("uses mastra executor path when repair executor is mastra", async () => {
+  it("uses the configured Mastra repair implementation", async () => {
     const adapter = createMockAdapter("{}");
     const runMastraSegmentRepairStage = jest.fn().mockResolvedValue({
       stageRunId: "mastra-repair-stage-1",
@@ -533,7 +533,6 @@ describe("segment repair stage", () => {
       repairDepth: 0,
       skillDir,
       adapter,
-      executor: "mastra",
       runMastraSegmentRepairStage,
     });
 
@@ -543,48 +542,4 @@ describe("segment repair stage", () => {
     expect(asCompletedResult(result).decision.action).toBe("retry");
   });
 
-  it("keeps native result as primary output when repair shadow mode is enabled", async () => {
-    const adapter = createMockAdapter(
-      JSON.stringify({
-        lines: [
-          {
-            id: "line-1",
-            sourceText: "宁采臣抬头。",
-            text: "宁采臣抬头。",
-            speaker: "旁白",
-            orderInSegment: 0,
-          },
-        ],
-      })
-    );
-    const runMastraSegmentRepairStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-repair-shadow-stage-1",
-      agentRunId: "mastra-repair-shadow-agent-1",
-      status: "completed",
-      decision: {
-        segmentId: "segment-shadow-repair",
-        action: "manual_review",
-        reason: "shadow_only",
-        retryable: false,
-      },
-    } satisfies RunSegmentRepairStageResult);
-
-    const result = await runSegmentRepairStage({
-      workflowRunId: "wf-repair-shadow",
-      segmentId: "segment-shadow-repair",
-      segmentText: "宁采臣抬头。",
-      failureKind: "format_repair",
-      failedArtifact: "not-json",
-      repairDepth: 0,
-      skillDir,
-      adapter,
-      shadowMode: true,
-      runMastraSegmentRepairStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraSegmentRepairStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(1);
-    expect(asCompletedResult(result).decision.action).toBe("retry");
-  });
 });

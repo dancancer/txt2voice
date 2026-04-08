@@ -1,5 +1,5 @@
 import { TTSError } from "@/lib/error-handler";
-import type { LLMExecutionEvent } from "@/lib/llm-service";
+import type { LLMExecutionEvent } from "@/lib/llm/events";
 import type { LLMAdapter } from "../../../adapters/llm-adapter";
 import type { ExecutionEvent } from "../../../protocol/events";
 import { asErrorMessage } from "./metadata";
@@ -152,11 +152,11 @@ export const createObservedDefaultAdapter = (params: {
     if (!runtimePromise) {
       runtimePromise = Promise.all([
         import("../../../adapters/llm-adapter"),
-        import("@/lib/llm-service"),
-      ]).then(([adapterModule, llmServiceModule]) => {
+        import("@/lib/llm/provider"),
+      ]).then(([adapterModule, llmProviderModule]) => {
         return {
           adapter: adapterModule.createDefaultLLMAdapter(),
-          getProvider: llmServiceModule.resolveConfiguredLLMProvider,
+          getProvider: llmProviderModule.resolveConfiguredLLMProvider,
         };
       });
     }

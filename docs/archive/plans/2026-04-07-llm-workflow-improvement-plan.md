@@ -1,5 +1,10 @@
 # LLM Workflow Improvement Plan
 
+> Historical implementation record. 该计划对应的是进入 Mastra-only 收口前的一轮整改。
+>
+> 当前继续执行的方案请看：
+> - [`2026-04-08-mastra-only-runtime-and-studio.md`](/Users/xupeng/mycode/txt2voice/docs/plans/2026-04-08-mastra-only-runtime-and-studio.md)
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** 修复当前项目中 LLM 工作流“定义层、运行时、预算治理、模型策略、观测链路”脱节的问题，让 `workflow / agent / skill / prompt` 真正成为可执行契约。

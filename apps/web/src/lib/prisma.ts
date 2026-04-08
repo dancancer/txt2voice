@@ -2,15 +2,17 @@
 // input: function args/external deps
 // output: utility/service exports
 // pos: shared library
-import { PrismaClient } from '@/generated/prisma'
+import * as PrismaGenerated from '@/generated/prisma'
+
+type PrismaClientInstance = InstanceType<typeof PrismaGenerated.PrismaClient>
 
 declare global {
-  var __prisma: PrismaClient | undefined
+  var __prisma: PrismaClientInstance | undefined
 }
 
 const prisma =
   globalThis.__prisma ||
-  new PrismaClient({
+  new PrismaGenerated.PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
     errorFormat: 'pretty',
   })

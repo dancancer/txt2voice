@@ -1,5 +1,11 @@
 # Mastra Hybrid Runtime Design
 
+> Historical design document. 当前项目已不再采用 hybrid runtime 方向。
+>
+> 当前真相源请看：
+> - [`2026-04-08-mastra-only-runtime-and-studio.md`](/Users/xupeng/mycode/txt2voice/docs/plans/2026-04-08-mastra-only-runtime-and-studio.md)
+> - [`mastra-single-runtime-cutover-inventory.md`](/Users/xupeng/mycode/txt2voice/docs/technical/mastra-single-runtime-cutover-inventory.md)
+
 ## 背景
 
 当前项目的 `agent / subagent / skills` 架构已经不是空白状态，而是处于“自研 runtime 已成型，但 authoring 和边界还没有完全收口”的阶段：

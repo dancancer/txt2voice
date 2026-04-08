@@ -29,7 +29,11 @@ export const loadBookForGeneration = async (params: {
   });
 
   if (!book) {
-    throw new TTSError("书籍不存在", "TTS_SERVICE_DOWN", "script-generator");
+    throw new TTSError(
+      "书籍不存在",
+      "TTS_SERVICE_DOWN",
+      "mastra-script-production"
+    );
   }
 
   return book;
@@ -61,7 +65,7 @@ export const resolvePartialSegments = (params: {
     throw new TTSError(
       "未找到指定的起始段落",
       "TTS_SERVICE_DOWN",
-      "script-generator"
+      "mastra-script-production"
     );
   }
 
@@ -74,7 +78,7 @@ export const resolvePartialSegments = (params: {
     throw new TTSError(
       "没有可处理的文本段落",
       "TTS_SERVICE_DOWN",
-      "script-generator"
+      "mastra-script-production"
     );
   }
 

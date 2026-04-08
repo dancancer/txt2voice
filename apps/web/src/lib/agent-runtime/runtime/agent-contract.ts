@@ -7,6 +7,7 @@ import {
 
 export interface AgentContractValidationResult {
   allowedToolNames: string[];
+  agentInstructions: string;
 }
 
 export const validateAgentContract = (params: {
@@ -16,10 +17,11 @@ export const validateAgentContract = (params: {
   skill: SkillDefinition;
   registeredTools?: RuntimeToolContract[];
 }): AgentContractValidationResult => {
-  const agent = loadAgentDefinition(
+  const loadedAgent = loadAgentDefinition(
     params.workspaceRoot,
     params.agentSourceId
-  ).definition;
+  );
+  const agent = loadedAgent.definition;
 
   if (!agent.compatibleWorkflowStages.includes(params.stageId)) {
     throw new Error(
@@ -48,5 +50,6 @@ export const validateAgentContract = (params: {
 
   return {
     allowedToolNames,
+    agentInstructions: loadedAgent.instructions,
   };
 };

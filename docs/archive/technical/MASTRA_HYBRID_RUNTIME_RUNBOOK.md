@@ -1,5 +1,13 @@
 # Mastra Hybrid Runtime Runbook
 
+> Historical document. 不再代表当前目标架构。
+>
+> 当前整改目标：
+> - 只保留 Mastra 单路径
+> - 移除 native / shadow / hybrid 轨道
+> - Studio 说明请看 [`MASTRA_STUDIO_RUNBOOK.md`](/Users/xupeng/mycode/txt2voice/docs/technical/MASTRA_STUDIO_RUNBOOK.md)
+> - 删除范围清单请看 [`mastra-single-runtime-cutover-inventory.md`](/Users/xupeng/mycode/txt2voice/docs/technical/mastra-single-runtime-cutover-inventory.md)
+
 > 更新日期：2026-04-01
 
 ## 1. 目标

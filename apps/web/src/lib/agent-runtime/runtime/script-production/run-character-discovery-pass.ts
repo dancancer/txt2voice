@@ -1,15 +1,10 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import { buildCharacterMemoryFromProfiles } from "../../context";
 import type { ExecutionEvent } from "../../protocol/events";
-import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import type { ScriptProductionRuntimeStore } from "../script-production-runtime-store";
 import type { RunStageResult, StageRunRecord } from "../run-stage";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
-import type { StageExecutor } from "../executor-policy";
-import {
-  runCharacterDiscoveryStage,
-  type RunCharacterDiscoveryStageResult,
-} from "../stages/run-character-discovery-stage";
+import { runCharacterDiscoveryStage } from "../stages/run-character-discovery-stage";
 import { runPersistStage } from "../stages/run-persist-stage";
 import type {
   CharacterProfileSnapshot,
@@ -65,8 +60,6 @@ interface RunCharacterDiscoveryPassParams {
   onStageResult?: (result: RunStageResult) => void;
   runCharacterDiscoveryStage?: typeof runCharacterDiscoveryStage;
   runPersistStage?: typeof runPersistStage;
-  executor?: StageExecutor;
-  shadowMode?: boolean;
 }
 
 export const runCharacterDiscoveryPass = async (
@@ -80,7 +73,6 @@ export const runCharacterDiscoveryPass = async (
   const characterMemory = buildCharacterMemoryFromProfiles(
     params.characterProfiles
   );
-  let shadowStageResult: RunCharacterDiscoveryStageResult | null = null;
 
   if (sampleText.length === 0) {
     return { persistedCharacterCount: 0 };
@@ -107,13 +99,6 @@ export const runCharacterDiscoveryPass = async (
     segmentText: sampleText,
     characterMemory,
     adapter: params.adapter,
-    executor: params.executor,
-    shadowMode: params.shadowMode,
-    onShadowResult: params.shadowMode
-      ? async (result) => {
-          shadowStageResult = result;
-        }
-      : undefined,
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,
@@ -164,20 +149,6 @@ export const runCharacterDiscoveryPass = async (
           : discoveryStage.error,
     },
   });
-
-  if (shadowStageResult) {
-    await params.runtimeStore.createShadowDiffArtifact({
-      id: params.createId(),
-      workflowRunId: params.workflowRunId,
-      stageRunId: discoveryStage.stageRunId,
-      payload: createShadowDiffPayload({
-        stageId: "character_discovery",
-        nativeResult: discoveryStage,
-        shadowResult: shadowStageResult,
-      }),
-      createdAt: now(),
-    });
-  }
 
   if (discoveryStage.status === "completed") {
     await params.runtimeStore.createRuntimeArtifact({

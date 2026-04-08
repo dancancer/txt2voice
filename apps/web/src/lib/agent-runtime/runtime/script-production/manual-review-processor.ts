@@ -5,12 +5,10 @@ import {
   resolveCandidateCanonicalName,
   upsertCharacterCandidates,
 } from "./storage/character-utils";
-import {
-  saveSegmentScriptToDatabase,
-  type DialogueLine,
-} from "./storage/persistence";
+import { saveSegmentScriptToDatabase } from "./storage/persistence";
 import type {
   CharacterCandidate,
+  DialogueLine,
   ScriptGenerationOptions,
   SegmentFailureDetail,
   SegmentProcessingResult,
@@ -326,7 +324,7 @@ export const persistSegmentProcessingResult = async (params: {
     throw new TTSError(
       `段落 ${segmentId} 未生成有效台词`,
       "TTS_SERVICE_DOWN",
-      "script-generator"
+      "mastra-script-production"
     );
   }
 

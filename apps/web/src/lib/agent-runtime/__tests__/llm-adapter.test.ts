@@ -7,7 +7,7 @@ jest.mock("@/lib/llm-runtime", () => ({
   runLLMRequest: (...args: unknown[]) => runLLMRequest(...args),
 }));
 
-jest.mock("@/lib/llm-service", () => ({
+jest.mock("@/lib/llm/provider", () => ({
   resolveConfiguredLLMProvider: (...args: unknown[]) =>
     resolveConfiguredLLMProvider(...args),
 }));
@@ -241,5 +241,26 @@ describe("agent runtime llm adapter", () => {
     expect(() => resolveLLMExecutionPolicy("unknown-policy")).toThrow(
       "Unsupported modelPolicy"
     );
+  });
+
+  it("falls back to the default model when policy-specific model ids are absent", async () => {
+    process.env.LLM_DEFAULT_MODEL_ID = "shared-default-model";
+    delete process.env.LLM_CHEAP_REPAIR_MODEL_ID;
+    delete process.env.LLM_QUALITY_MODEL_ID;
+
+    const { resolveLLMExecutionPolicy } = await import(
+      "../runtime/model-policy"
+    );
+
+    expect(resolveLLMExecutionPolicy("cheap-repair")).toEqual({
+      policy: "cheap-repair",
+      modelId: "shared-default-model",
+      requestOptions: { temperature: 0, maxTokens: 2000 },
+    });
+    expect(resolveLLMExecutionPolicy("quality")).toEqual({
+      policy: "quality",
+      modelId: "shared-default-model",
+      requestOptions: { temperature: 0.1, maxTokens: 3000 },
+    });
   });
 });

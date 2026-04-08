@@ -14,6 +14,19 @@ export interface SkillRuntimeBundle {
   userPrompt: string;
 }
 
+export const composeRuntimeSystemPrompt = (params: {
+  agentInstructions?: string;
+  skillInstructions?: string;
+  systemPrompt: string;
+}) =>
+  [
+    params.agentInstructions?.trim() || "",
+    params.skillInstructions?.trim() || "",
+    params.systemPrompt.trim(),
+  ]
+    .filter((entry) => entry.length > 0)
+    .join("\n\n");
+
 const requirePromptBundleEntries = (
   definition: SkillDefinition
 ): [string, string] => {

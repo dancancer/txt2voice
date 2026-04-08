@@ -22,10 +22,6 @@ import {
   type ScriptProductionRuntimeMetadata,
 } from "./script-production-runtime-helpers";
 import {
-  isMastraShadowModeEnabled,
-  resolveStageExecutor,
-} from "./executor-policy";
-import {
   loadScriptProductionWorkflowDefinition,
 } from "./script-production-workflow-definition";
 import {
@@ -91,23 +87,6 @@ export const runScriptProductionWorkflow = async (
   const now = deps.now ?? (() => new Date());
   const runtimeStore = deps.runtimeStore || createScriptProductionRuntimeStore();
   const workflowDefinition = loadScriptProductionWorkflowDefinition();
-  const executorPolicy = {
-    shadowModeEnabled: isMastraShadowModeEnabled(),
-    stageExecutors: {
-      character_discovery: resolveStageExecutor({
-        stageId: "character_discovery",
-      }),
-      segment_scripting: resolveStageExecutor({
-        stageId: "segment_scripting",
-      }),
-      segment_repair: resolveStageExecutor({
-        stageId: "segment_repair",
-      }),
-      quality_judgement: resolveStageExecutor({
-        stageId: "quality_judgement",
-      }),
-    },
-  };
 
   const book = (await loadBook({
     bookId: input.bookId,
@@ -128,7 +107,7 @@ export const runScriptProductionWorkflow = async (
     throw new TTSError(
       input.mode === "regenerate" ? "没有找到指定的段落" : "没有可处理的文本段落",
       "TTS_SERVICE_DOWN",
-      "script-generator"
+      "mastra-script-production"
     );
   }
 
@@ -213,7 +192,7 @@ export const runScriptProductionWorkflow = async (
           processingTaskId: input.taskId ?? null,
           runtimeConfig: {
             mode: input.mode,
-            executorPolicy,
+            runtimeBackend: "mastra",
           },
           startedAt,
         });
@@ -352,8 +331,6 @@ export const runScriptProductionWorkflow = async (
               skillMetadata as Record<string, unknown>;
           }
         },
-        executor: executorPolicy.stageExecutors.character_discovery,
-        shadowMode: executorPolicy.shadowModeEnabled,
         runCharacterDiscoveryStage: runDiscoveryStage,
         runPersistStage: runPersistCommitStage,
       });
@@ -389,12 +366,6 @@ export const runScriptProductionWorkflow = async (
             });
           },
           appendTrace: appendTrackedTrace,
-          executorPolicy: {
-            segmentScripting: executorPolicy.stageExecutors.segment_scripting,
-            segmentRepair: executorPolicy.stageExecutors.segment_repair,
-            qualityJudgement: executorPolicy.stageExecutors.quality_judgement,
-            shadowModeEnabled: executorPolicy.shadowModeEnabled,
-          },
           onStageResult: (stageResult) => {
             coordinatorStageResults.push(stageResult);
             const skillMetadata = stageResult.agent.output?.skillMetadata;
