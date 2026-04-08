@@ -40,6 +40,10 @@ const createRepairSkillFixture = (params?: {
   allowedSkills?: string[];
   allowedTools?: string[];
   modelPolicy?: string;
+  agentInstructions?: string;
+  skillInstructions?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
 }) => {
   const skillId = params?.skillId ?? "json-repair";
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "segment-repair-"));
@@ -68,7 +72,11 @@ const createRepairSkillFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
+  fs.writeFileSync(
+    path.join(agentDir, "AGENT.md"),
+    params?.agentInstructions ?? "# Fixture Agent\n",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "skill.toml"),
     [
@@ -94,15 +102,20 @@ const createRepairSkillFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "SKILL.md"),
+    params?.skillInstructions ?? "# Fixture\n",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/system.md"),
-    "return json",
+    params?.systemPrompt ?? "return json",
     "utf8"
   );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/user.md"),
-    "{{segment_text}} {{failed_artifact_json}} {{failure_category}}",
+    params?.userPrompt ??
+      "{{segment_text}} {{failed_artifact_json}} {{failure_category}}",
     "utf8"
   );
 
@@ -186,6 +199,42 @@ describe("segment repair stage", () => {
     expect(call.prompt).toContain('"broken": true');
     expect(call.prompt).not.toContain("{{failure_category}}");
     expect(call.prompt).not.toContain("failure_category");
+  });
+
+  it("does not mutate literal placeholder text inside segment content during repair prompt rendering", async () => {
+    const fixtureSkillDir = createRepairSkillFixture({
+      userPrompt: "原文：\n{{segment_text}}\n\n失败产物：\n{{failed_artifact_json}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "原文里出现 {{failed_artifact_json}} 这个字样。",
+            text: "原文里出现 {{failed_artifact_json}} 这个字样。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    await runSegmentRepairStage({
+      workflowRunId: "wf-repair-literal-placeholder",
+      segmentId: "segment-repair-literal-placeholder",
+      segmentText: "原文里出现 {{failed_artifact_json}} 这个字样。",
+      failureKind: "format_repair",
+      failedArtifact: { broken: true },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("原文里出现 {{failed_artifact_json}} 这个字样。");
   });
 
   it("routes semantic validation failures to semantic_retry without calling adapter", async () => {
@@ -490,6 +539,50 @@ describe("segment repair stage", () => {
       retryable: true,
     });
     expect(completed.artifact).toBeUndefined();
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("degrades full-prompt over-budget repair requests to input_refinement", async () => {
+    const fixtureSkillDir = createRepairSkillFixture({
+      agentInstructions: "A".repeat(4500),
+      skillInstructions: "B".repeat(4500),
+      systemPrompt: "C".repeat(4500),
+      userPrompt: "{{segment_text}} {{failed_artifact_json}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-full-prompt-over-budget",
+      segmentId: "segment-repair-full-prompt-over-budget",
+      segmentText: "宁采臣抬头。",
+      failureKind: "format_repair",
+      failedArtifact: { broken: true },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toEqual({
+      segmentId: "segment-repair-full-prompt-over-budget",
+      action: "refine",
+      reason: "input_refinement",
+      retryable: true,
+    });
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 

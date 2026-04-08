@@ -2,6 +2,7 @@ import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type { SegmentScriptDraft, SegmentScriptDraftLine } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
 import { normalizeSegmentScriptDraft } from "../script-production/helpers/script-draft-normalizer";
+import { renderPromptTemplate } from "../prompt-template";
 
 export interface ScriptGenerationPrompts {
   systemPrompt: string;
@@ -14,6 +15,7 @@ export interface ScriptGenerationAgentInput {
   characterMemorySummary?: string;
   modelPolicy: string;
   prompts: ScriptGenerationPrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface ScriptGenerationAgentResult {
@@ -180,15 +182,14 @@ const toSegmentScriptDraft = (params: {
   return normalizedDraft;
 };
 
-const renderUserPrompt = (
+export const renderScriptGenerationUserPrompt = (
   template: string,
   params: { segmentText: string; characterMemorySummary?: string }
 ) =>
-  template
-    .split("{{segment_text}}")
-    .join(params.segmentText)
-    .split("{{character_memory_summary}}")
-    .join(params.characterMemorySummary || "无");
+  renderPromptTemplate(template, {
+    segment_text: params.segmentText,
+    character_memory_summary: params.characterMemorySummary || "无",
+  });
 
 const asErrorMessage = (value: unknown): string => {
   if (value instanceof Error) {
@@ -226,10 +227,12 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
   ): Promise<ScriptGenerationAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
-        segmentText: input.segmentText,
-        characterMemorySummary: input.characterMemorySummary,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderScriptGenerationUserPrompt(input.prompts.userPrompt, {
+          segmentText: input.segmentText,
+          characterMemorySummary: input.characterMemorySummary,
+        }),
       modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.segment_scripting",

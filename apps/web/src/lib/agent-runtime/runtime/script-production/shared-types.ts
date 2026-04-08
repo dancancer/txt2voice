@@ -40,6 +40,16 @@ export interface CharacterProfileSnapshot {
   id?: string;
   canonicalName?: string;
   aliases?: Array<{ alias: string }>;
+  characteristics?: {
+    description?: string;
+    personality?: string[];
+    importance?: string;
+  };
+  voicePreferences?: {
+    dialogueStyle?: string;
+  };
+  genderHint?: string | null;
+  ageHint?: number | null;
 }
 
 export interface ScriptProductionBook {

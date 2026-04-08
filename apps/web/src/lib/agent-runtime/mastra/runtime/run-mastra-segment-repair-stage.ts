@@ -8,11 +8,15 @@ import {
   type SegmentScriptDraft,
 } from "../../context";
 import { validateAgentContract } from "../../runtime/agent-contract";
-import { createRepairAgent } from "../../runtime/agents/repair-agent";
+import {
+  createRepairAgent,
+  renderRepairUserPromptFromVariables,
+} from "../../runtime/agents/repair-agent";
 import {
   composeRuntimeSystemPrompt,
   loadSkillRuntimeBundle,
 } from "../../runtime/load-skill-runtime-bundle";
+import { fitPromptToBudget, resolvePromptBudgetLimit } from "../../runtime/prompt-budget";
 import type { AgentRunRecord, ToolCallRecord } from "../../runtime/run-agent";
 import { runStage, type StageRunRecord } from "../../runtime/run-stage";
 import {
@@ -144,6 +148,10 @@ export const runMastraSegmentRepairStage = async (
 ): Promise<RunSegmentRepairStageResult> => {
   const runtimeAgentId = "repair-agent";
   const maxRepairDepth = input.maxRepairDepth ?? defaultMaxRepairDepth;
+  const promptBudget = {
+    maxContextChars: 5000,
+    reservedOutputChars: 1200,
+  } as const;
 
   const stageResult = await runStage({
     workflowRunId: input.workflowRunId,
@@ -212,13 +220,45 @@ export const runMastraSegmentRepairStage = async (
             agentId: runtimeAgentId,
             segmentText: input.segmentText,
             failedArtifact: input.failedArtifact,
-            budget: {
-              maxContextChars: 5000,
-              reservedOutputChars: 1200,
-            },
+            budget: promptBudget,
           });
 
           if (context.executionContext.inputOverBudget) {
+            return {
+              status: "completed",
+              output: {
+                decision: createInputRefinementDecision(input.segmentId),
+              },
+            };
+          }
+
+          const runtimeSystemPrompt = composeRuntimeSystemPrompt({
+            agentInstructions: agentContract.agentInstructions,
+            skillInstructions: skill.instructions,
+            systemPrompt: skill.systemPrompt,
+          });
+          const promptBudgetResult = fitPromptToBudget({
+            systemPrompt: runtimeSystemPrompt,
+            maxPromptChars: resolvePromptBudgetLimit(promptBudget),
+            variables: {
+              segment_text:
+                typeof context.inputContext.segmentText === "string"
+                  ? context.inputContext.segmentText
+                  : "",
+              failed_artifact_json: JSON.stringify(
+                context.inputContext.failedArtifact ?? null,
+                null,
+                2
+              ),
+            },
+            trimOrder: ["failed_artifact_json", "segment_text"],
+            renderPrompt: (variables) =>
+              renderRepairUserPromptFromVariables(skill.userPrompt, {
+                segment_text: variables.segment_text,
+                failed_artifact_json: variables.failed_artifact_json,
+              }),
+          });
+          if (promptBudgetResult.overBudget) {
             return {
               status: "completed",
               output: {
@@ -234,22 +274,20 @@ export const runMastraSegmentRepairStage = async (
           });
           const result = await agent.execute({
             segmentId: input.segmentId,
-            segmentText:
-              typeof context.inputContext.segmentText === "string"
-                ? context.inputContext.segmentText
-                : "",
-            failedArtifact: context.inputContext.failedArtifact,
+            segmentText: promptBudgetResult.variables.segment_text,
+            failedArtifact: promptBudgetResult.variables.failed_artifact_json,
             modelPolicy: skill.definition.modelPolicy!,
+            renderedUserPrompt: promptBudgetResult.prompt,
             prompts: {
-              systemPrompt: composeRuntimeSystemPrompt({
-                agentInstructions: agentContract.agentInstructions,
-                skillInstructions: skill.instructions,
-                systemPrompt: skill.systemPrompt,
-              }),
+              systemPrompt: runtimeSystemPrompt,
               userPrompt: skill.userPrompt,
             },
           });
-          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition, {
+            runtimeSystemPrompt,
+            systemPrompt: skill.systemPrompt,
+            userPrompt: skill.userPrompt,
+          });
 
           return {
             status: "completed",

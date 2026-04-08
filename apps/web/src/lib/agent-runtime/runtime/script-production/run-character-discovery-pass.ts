@@ -13,11 +13,40 @@ import type {
 
 export const CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT = 3;
 
+const selectCharacterDiscoverySampleIndexes = (
+  segmentCount: number
+): number[] => {
+  if (segmentCount <= CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT) {
+    return Array.from({ length: segmentCount }, (_, index) => index);
+  }
+
+  const lastIndex = segmentCount - 1;
+  const indexes = new Set<number>();
+
+  for (
+    let sampleIndex = 0;
+    sampleIndex < CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT;
+    sampleIndex += 1
+  ) {
+    indexes.add(
+      Math.round(
+        (sampleIndex * lastIndex) / (CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT - 1)
+      )
+    );
+  }
+
+  return [...indexes].sort((left, right) => left - right);
+};
+
 export const buildCharacterDiscoverySampleText = (
   segments: ScriptProductionBookSegment[]
 ): string =>
-  segments
-    .slice(0, CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT)
+  selectCharacterDiscoverySampleIndexes(segments.length)
+    .map((index) => segments[index])
+    .filter(
+      (segment): segment is ScriptProductionBookSegment =>
+        typeof segment?.content === "string"
+    )
     .map((segment) => segment.content.trim())
     .filter((segmentText) => segmentText.length > 0)
     .join("\n\n");

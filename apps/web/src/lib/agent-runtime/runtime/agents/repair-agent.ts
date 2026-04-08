@@ -5,6 +5,7 @@ import type {
   SegmentScriptDraftLine,
 } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
+import { renderPromptTemplate } from "../prompt-template";
 
 export interface RepairAgentPrompts {
   systemPrompt: string;
@@ -17,6 +18,7 @@ export interface RepairAgentInput {
   failedArtifact: unknown;
   modelPolicy: string;
   prompts: RepairAgentPrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface RepairAgentResult {
@@ -185,18 +187,29 @@ const stringifyArtifact = (value: unknown): string => {
   }
 };
 
-const renderUserPrompt = (
+export const renderRepairUserPrompt = (
   template: string,
   params: {
     segmentText: string;
     failedArtifact: unknown;
   }
 ) =>
-  template
-    .split("{{segment_text}}")
-    .join(params.segmentText)
-    .split("{{failed_artifact_json}}")
-    .join(stringifyArtifact(params.failedArtifact));
+  renderRepairUserPromptFromVariables(template, {
+    segment_text: params.segmentText,
+    failed_artifact_json: stringifyArtifact(params.failedArtifact),
+  });
+
+export const renderRepairUserPromptFromVariables = (
+  template: string,
+  variables: {
+    segment_text: string;
+    failed_artifact_json: string;
+  }
+) =>
+  renderPromptTemplate(template, {
+    segment_text: variables.segment_text,
+    failed_artifact_json: variables.failed_artifact_json,
+  });
 
 const asErrorMessage = (value: unknown): string => {
   if (value instanceof Error) {
@@ -243,10 +256,12 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
   async execute(input: RepairAgentInput): Promise<RepairAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
-        segmentText: input.segmentText,
-        failedArtifact: input.failedArtifact,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderRepairUserPrompt(input.prompts.userPrompt, {
+          segmentText: input.segmentText,
+          failedArtifact: input.failedArtifact,
+        }),
       modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.segment_repair",

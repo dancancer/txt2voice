@@ -123,12 +123,30 @@ describe("context builder", () => {
         id: "char-1",
         canonicalName: "宁采臣",
         aliases: [{ alias: "宁公子" }],
-      },
+        characteristics: {
+          description: "书生",
+          personality: ["善良", "文弱"],
+          importance: "main",
+        },
+        voicePreferences: {
+          dialogueStyle: "文雅",
+        },
+        genderHint: "male",
+        ageHint: 20,
+      } as any,
       {
         id: "char-2",
         canonicalName: "燕赤霞",
         aliases: [{ alias: "燕大侠" }],
-      },
+        characteristics: {
+          personality: ["冷峻"],
+          importance: "secondary",
+        },
+        voicePreferences: {
+          dialogueStyle: "豪迈",
+        },
+        genderHint: "male",
+      } as any,
     ]);
 
     expect(memory.canonicalIdentities).toEqual([
@@ -139,5 +157,60 @@ describe("context builder", () => {
       { alias: "宁公子", canonicalId: "char-1", source: "profile:char-1" },
       { alias: "燕大侠", canonicalId: "char-2", source: "profile:char-2" },
     ]);
+    expect(memory.assertedFacts).toEqual({
+      "char-1": {
+        description: "书生",
+        personality: ["善良", "文弱"],
+        importance: "main",
+        dialogueStyle: "文雅",
+        gender: "male",
+        age: 20,
+      },
+      "char-2": {
+        personality: ["冷峻"],
+        importance: "secondary",
+        dialogueStyle: "豪迈",
+        gender: "male",
+      },
+    });
+  });
+
+  it("keeps fact-level character memory in the prompt reference summary", () => {
+    const memory = buildCharacterMemoryFromProfiles([
+      {
+        id: "char-1",
+        canonicalName: "宁采臣",
+        aliases: [{ alias: "宁公子" }],
+        characteristics: {
+          description: "书生",
+          personality: ["善良"],
+          importance: "main",
+        },
+        voicePreferences: {
+          dialogueStyle: "文雅",
+        },
+        genderHint: "male",
+        ageHint: 20,
+      } as any,
+    ]);
+
+    const context = buildAgentContext({
+      agentId: "script-generation-agent",
+      segmentText: "宁采臣抬头。",
+      characterMemory: memory,
+      budget: {
+        maxContextChars: 1200,
+        reservedOutputChars: 200,
+      },
+    });
+
+    expect(context.referenceMemory.characterMemorySummary).toContain('"name":"宁采臣"');
+    expect(context.referenceMemory.characterMemorySummary).toContain('"aliases":["宁公子"]');
+    expect(context.referenceMemory.characterMemorySummary).toContain(
+      '"dialogueStyle":"文雅"'
+    );
+    expect(context.referenceMemory.characterMemorySummary).toContain(
+      '"personality":["善良"]'
+    );
   });
 });

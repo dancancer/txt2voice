@@ -40,6 +40,10 @@ const createCharacterDiscoveryContractFixture = (params?: {
   contextRequirements?: string[];
   toolAllowlist?: string[];
   modelPolicy?: string;
+  agentInstructions?: string;
+  skillInstructions?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
 }) => {
   const fixtureRoot = fs.mkdtempSync(
     path.join(os.tmpdir(), "character-discovery-contract-")
@@ -70,7 +74,11 @@ const createCharacterDiscoveryContractFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Character Discovery\n", "utf8");
+  fs.writeFileSync(
+    path.join(agentDir, "AGENT.md"),
+    params?.agentInstructions ?? "# Character Discovery\n",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(skillDir, "skill.toml"),
     [
@@ -98,15 +106,19 @@ const createCharacterDiscoveryContractFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# Fixture\n", "utf8");
+  fs.writeFileSync(
+    path.join(skillDir, "SKILL.md"),
+    params?.skillInstructions ?? "# Fixture\n",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(skillDir, "prompts/system.md"),
-    "return json",
+    params?.systemPrompt ?? "return json",
     "utf8"
   );
   fs.writeFileSync(
     path.join(skillDir, "prompts/user.md"),
-    "{{segment_text}}",
+    params?.userPrompt ?? "{{segment_text}}",
     "utf8"
   );
 
@@ -177,10 +189,42 @@ describe("character discovery stage", () => {
     });
 
     const call = (adapter.call as jest.Mock).mock.calls[0]?.[0];
-    expect(call.prompt).toContain("names:宁采臣, 燕赤霞");
-    expect(call.prompt).toContain("aliasCount:1");
-    expect(call.prompt).toContain("assertedCount:1");
-    expect(call.prompt).toContain("inferredCount:1");
+    expect(call.prompt).toContain('"name":"宁采臣"');
+    expect(call.prompt).toContain('"aliases":[]');
+    expect(call.prompt).toContain('"role":"main"');
+    expect(call.prompt).toContain('"style":"冷峻"');
+  });
+
+  it("does not mutate literal placeholder text inside sampled text during prompt rendering", async () => {
+    const fixture = createCharacterDiscoveryContractFixture({
+      userPrompt: "文本：\n{{segment_text}}\n\n记忆：\n{{character_memory_summary}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    await runCharacterDiscoveryStage({
+      workflowRunId: "wf-character-literal-placeholder",
+      segmentText: "正文里出现 {{character_memory_summary}} 这个字样。",
+      skillDir: fixture.skillDir,
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [],
+        assertedFacts: { "char-1": { role: "main" } },
+        inferredHints: {},
+      },
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("正文里出现 {{character_memory_summary}} 这个字样。");
   });
 
   it("trims oversized segment input before sending character discovery prompt", async () => {
@@ -205,6 +249,33 @@ describe("character discovery stage", () => {
     expect(call.prompt.length).toBeLessThan(3200);
     expect(call.prompt).toContain("开头-");
     expect(call.prompt).not.toContain("尾标记");
+  });
+
+  it("fails fast when the full runtime prompt exceeds budget", async () => {
+    const fixture = createCharacterDiscoveryContractFixture({
+      agentInstructions: "A".repeat(4500),
+      skillInstructions: "B".repeat(4500),
+      systemPrompt: "C".repeat(4500),
+      userPrompt: "{{segment_text}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-character-full-prompt-over-budget",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixture.skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
   it("uses skill definition from the same skillDir source", async () => {

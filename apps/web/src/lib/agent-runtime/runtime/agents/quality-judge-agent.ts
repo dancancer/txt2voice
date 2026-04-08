@@ -1,6 +1,7 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type { QualityVerdict, SegmentScriptDraft, ValidationReport } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
+import { renderPromptTemplate } from "../prompt-template";
 
 export interface QualityJudgePrompts {
   systemPrompt: string;
@@ -20,6 +21,7 @@ export interface QualityJudgeAgentInput {
   failedArtifact?: unknown;
   modelPolicy: string;
   prompts: QualityJudgePrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface QualityJudgeAgentResult {
@@ -159,6 +161,22 @@ export const stringifyQualityPromptJson = (value: unknown): string => {
   }
 };
 
+export const renderQualityJudgeUserPromptFromVariables = (
+  template: string,
+  variables: {
+    segment_script_draft_json: string;
+    validation_report_json: string;
+    quality_signals_json: string;
+    failed_artifact_json: string;
+  }
+) =>
+  renderPromptTemplate(template, {
+    segment_script_draft_json: variables.segment_script_draft_json,
+    validation_report_json: variables.validation_report_json,
+    quality_signals_json: variables.quality_signals_json,
+    failed_artifact_json: variables.failed_artifact_json,
+  });
+
 export const renderQualityJudgeUserPrompt = (
   template: string,
   params: {
@@ -168,26 +186,25 @@ export const renderQualityJudgeUserPrompt = (
     failedArtifact?: unknown;
   }
 ) =>
-  template
-    .split("{{segment_script_draft_json}}")
-    .join(stringifyQualityPromptJson(params.segmentScriptDraft))
-    .split("{{validation_report_json}}")
-    .join(stringifyQualityPromptJson(params.validationReport))
-    .split("{{quality_signals_json}}")
-    .join(stringifyQualityPromptJson(params.qualitySignals ?? {}))
-    .split("{{failed_artifact_json}}")
-    .join(stringifyQualityPromptJson(params.failedArtifact ?? null));
+  renderQualityJudgeUserPromptFromVariables(template, {
+    segment_script_draft_json: stringifyQualityPromptJson(params.segmentScriptDraft),
+    validation_report_json: stringifyQualityPromptJson(params.validationReport),
+    quality_signals_json: stringifyQualityPromptJson(params.qualitySignals ?? {}),
+    failed_artifact_json: stringifyQualityPromptJson(params.failedArtifact ?? null),
+  });
 
 export const createQualityJudgeAgent = (deps: QualityJudgeAgentDeps) => ({
   async execute(input: QualityJudgeAgentInput): Promise<QualityJudgeAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderQualityJudgeUserPrompt(input.prompts.userPrompt, {
-        segmentScriptDraft: input.segmentScriptDraft,
-        validationReport: input.validationReport,
-        qualitySignals: input.qualitySignals,
-        failedArtifact: input.failedArtifact,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderQualityJudgeUserPrompt(input.prompts.userPrompt, {
+          segmentScriptDraft: input.segmentScriptDraft,
+          validationReport: input.validationReport,
+          qualitySignals: input.qualitySignals,
+          failedArtifact: input.failedArtifact,
+        }),
       modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.quality_judgement",

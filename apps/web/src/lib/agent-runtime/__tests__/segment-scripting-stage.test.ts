@@ -39,6 +39,10 @@ const createScriptGenerationSkillFixture = (params?: {
   allowedSkills?: string[];
   allowedTools?: string[];
   modelPolicy?: string;
+  agentInstructions?: string;
+  skillInstructions?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
 }) => {
   const skillId = params?.skillId ?? "script-generation";
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "segment-scripting-"));
@@ -67,7 +71,11 @@ const createScriptGenerationSkillFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
+  fs.writeFileSync(
+    path.join(agentDir, "AGENT.md"),
+    params?.agentInstructions ?? "# Fixture Agent\n",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "skill.toml"),
     [
@@ -92,15 +100,19 @@ const createScriptGenerationSkillFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "SKILL.md"),
+    params?.skillInstructions ?? "# Fixture\n",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/system.md"),
-    "return json",
+    params?.systemPrompt ?? "return json",
     "utf8"
   );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/user.md"),
-    "{{segment_text}}",
+    params?.userPrompt ?? "{{segment_text}}",
     "utf8"
   );
 
@@ -399,6 +411,77 @@ describe("segment scripting stage", () => {
     expect(call.prompt).toContain("角色记忆摘要");
     expect(call.prompt).toContain("宁采臣");
     expect(call.prompt).toContain("宁公子");
+  });
+
+  it("does not mutate literal placeholder text inside segment content during prompt rendering", async () => {
+    const fixtureSkillDir = createScriptGenerationSkillFixture({
+      userPrompt: "文本段落：\n{{segment_text}}\n\n角色记忆摘要：\n{{character_memory_summary}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "正文里写着 {{character_memory_summary}} 这串字。",
+            text: "正文里写着 {{character_memory_summary}} 这串字。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-literal-placeholder",
+      segmentId: "segment-literal-placeholder",
+      segmentText: "正文里写着 {{character_memory_summary}} 这串字。",
+      skillDir: fixtureSkillDir,
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [{ alias: "宁公子", canonicalId: "char-1", source: "seed" }],
+        assertedFacts: { "char-1": { dialogueStyle: "文雅" } },
+        inferredHints: {},
+      },
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("正文里写着 {{character_memory_summary}} 这串字。");
+  });
+
+  it("rejects over-budget full prompts before calling adapter", async () => {
+    const fixtureSkillDir = createScriptGenerationSkillFixture({
+      agentInstructions: "A".repeat(4500),
+      skillInstructions: "B".repeat(4500),
+      systemPrompt: "C".repeat(4500),
+      userPrompt: "{{segment_text}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-full-prompt-over-budget",
+      segmentId: "segment-full-prompt-over-budget",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("repairing");
+    expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
   it("returns repairing when adapter returns non-json payload", async () => {

@@ -9,6 +9,7 @@ import type {
 } from "../../context";
 import {
   createQualityJudgeAgent,
+  renderQualityJudgeUserPromptFromVariables,
   type QualitySignals,
 } from "../../runtime/agents/quality-judge-agent";
 import { validateAgentContract } from "../../runtime/agent-contract";
@@ -308,8 +309,13 @@ export const runMastraQualityStage = async (
             expectedOutputSchemaRef: "quality-verdict",
           });
           const failedArtifactSummary = summarizePromptArtifact(input.failedArtifact);
-          const promptBudgetResult = fitPromptToBudget({
+          const runtimeSystemPrompt = composeRuntimeSystemPrompt({
+            agentInstructions: agentContract.agentInstructions,
+            skillInstructions: skill.instructions,
             systemPrompt: skill.systemPrompt,
+          });
+          const promptBudgetResult = fitPromptToBudget({
+            systemPrompt: runtimeSystemPrompt,
             maxPromptChars: resolvePromptBudgetLimit(promptBudget),
             variables: {
               segment_script_draft_json: JSON.stringify(
@@ -323,15 +329,12 @@ export const runMastraQualityStage = async (
             },
             trimOrder: ["failed_artifact_json"],
             renderPrompt: (variables) =>
-              skill.userPrompt
-                .split("{{segment_script_draft_json}}")
-                .join(variables.segment_script_draft_json)
-                .split("{{validation_report_json}}")
-                .join(variables.validation_report_json)
-                .split("{{quality_signals_json}}")
-                .join(variables.quality_signals_json)
-                .split("{{failed_artifact_json}}")
-                .join(variables.failed_artifact_json),
+              renderQualityJudgeUserPromptFromVariables(skill.userPrompt, {
+                segment_script_draft_json: variables.segment_script_draft_json,
+                validation_report_json: variables.validation_report_json,
+                quality_signals_json: variables.quality_signals_json,
+                failed_artifact_json: variables.failed_artifact_json,
+              }),
           });
           if (promptBudgetResult.overBudget) {
             return {
@@ -365,16 +368,17 @@ export const runMastraQualityStage = async (
             qualitySignals: input.qualitySignals,
             failedArtifact: failedArtifactSummary ?? input.failedArtifact ?? null,
             modelPolicy: skill.definition.modelPolicy!,
+            renderedUserPrompt: promptBudgetResult.prompt,
             prompts: {
-              systemPrompt: composeRuntimeSystemPrompt({
-                agentInstructions: agentContract.agentInstructions,
-                skillInstructions: skill.instructions,
-                systemPrompt: skill.systemPrompt,
-              }),
-              userPrompt: promptBudgetResult.prompt,
+              systemPrompt: runtimeSystemPrompt,
+              userPrompt: skill.userPrompt,
             },
           });
-          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition, {
+            runtimeSystemPrompt,
+            systemPrompt: skill.systemPrompt,
+            userPrompt: skill.userPrompt,
+          });
           const decision = resolveSemanticDecision({
             segmentId: input.segmentId,
             verdict: result.verdict,

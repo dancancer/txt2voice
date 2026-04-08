@@ -1,3 +1,5 @@
+import { createHash } from "crypto";
+
 import type { ExecutionEvent } from "../../../protocol/events";
 import type { SkillDefinition } from "../../../protocol";
 import type { SegmentFailureDetail } from "../types";
@@ -43,6 +45,12 @@ export interface SkillMetadataSnapshot {
   telemetryTags?: string[];
 }
 
+interface PromptFingerprintSource {
+  runtimeSystemPrompt?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
+}
+
 export interface ScriptProductionRuntimeMetadata {
   workflowRunId: string;
   workflowId: string;
@@ -59,6 +67,26 @@ export interface ScriptProductionRuntimeMetadata {
 export const createRuntimeId = () =>
   `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
+const buildPromptFingerprint = (params: {
+  promptBundle?: string[];
+  promptSource?: PromptFingerprintSource;
+}): string | undefined => {
+  if (!Array.isArray(params.promptBundle)) {
+    return undefined;
+  }
+
+  return createHash("sha256")
+    .update(
+      JSON.stringify({
+        promptBundle: params.promptBundle,
+        runtimeSystemPrompt: params.promptSource?.runtimeSystemPrompt ?? "",
+        systemPrompt: params.promptSource?.systemPrompt ?? "",
+        userPrompt: params.promptSource?.userPrompt ?? "",
+      })
+    )
+    .digest("hex");
+};
+
 export const buildSkillMetadataSnapshot = (
   definition: Pick<
     SkillDefinition,
@@ -67,12 +95,16 @@ export const buildSkillMetadataSnapshot = (
     | "repairPolicy"
     | "successCriteria"
     | "telemetryTags"
-  >
+  >,
+  promptSource?: PromptFingerprintSource
 ): SkillMetadataSnapshot => ({
   ...(Array.isArray(definition.promptBundle)
     ? {
         promptBundle: [...definition.promptBundle],
-        promptFingerprint: definition.promptBundle.join("|"),
+        promptFingerprint: buildPromptFingerprint({
+          promptBundle: definition.promptBundle,
+          promptSource,
+        }),
       }
     : {}),
   modelPolicy: definition.modelPolicy ?? null,

@@ -4,6 +4,7 @@ import type {
   CharacterCanonicalIdentity,
   MemoryPatch,
 } from "../../context";
+import { renderPromptTemplate } from "../prompt-template";
 
 export interface CharacterDiscoveryPrompts {
   systemPrompt: string;
@@ -15,6 +16,7 @@ export interface CharacterDiscoveryAgentInput {
   characterMemorySummary: string;
   modelPolicy: string;
   prompts: CharacterDiscoveryPrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface CharacterDiscoveryAgentResult {
@@ -316,11 +318,10 @@ export const renderCharacterDiscoveryUserPrompt = (
   template: string,
   params: { segmentText: string; characterMemorySummary: string }
 ) =>
-  template
-    .split("{{segment_text}}")
-    .join(params.segmentText)
-    .split("{{character_memory_summary}}")
-    .join(params.characterMemorySummary || "none");
+  renderPromptTemplate(template, {
+    segment_text: params.segmentText,
+    character_memory_summary: params.characterMemorySummary || "none",
+  });
 
 export const createCharacterDiscoveryAgent = (
   deps: CharacterDiscoveryAgentDeps
@@ -330,10 +331,12 @@ export const createCharacterDiscoveryAgent = (
   ): Promise<CharacterDiscoveryAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderCharacterDiscoveryUserPrompt(input.prompts.userPrompt, {
-        segmentText: input.segmentText,
-        characterMemorySummary: input.characterMemorySummary,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderCharacterDiscoveryUserPrompt(input.prompts.userPrompt, {
+          segmentText: input.segmentText,
+          characterMemorySummary: input.characterMemorySummary,
+        }),
       modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.character_discovery",

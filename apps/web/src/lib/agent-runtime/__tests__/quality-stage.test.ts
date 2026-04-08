@@ -61,6 +61,10 @@ const createQualitySkillFixture = (params?: {
   allowedSkills?: string[];
   allowedTools?: string[];
   modelPolicy?: string;
+  agentInstructions?: string;
+  skillInstructions?: string;
+  systemPrompt?: string;
+  userPrompt?: string;
 }) => {
   const skillId = params?.skillId ?? "quality-judgement";
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "quality-stage-"));
@@ -89,7 +93,11 @@ const createQualitySkillFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
+  fs.writeFileSync(
+    path.join(agentDir, "AGENT.md"),
+    params?.agentInstructions ?? "# Fixture Agent\n",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "skill.toml"),
     [
@@ -115,11 +123,20 @@ const createQualitySkillFixture = (params?: {
     ].join("\n"),
     "utf8"
   );
-  fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
-  fs.writeFileSync(path.join(fixtureSkillDir, "prompts/system.md"), "return json", "utf8");
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "SKILL.md"),
+    params?.skillInstructions ?? "# Fixture\n",
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(fixtureSkillDir, "prompts/system.md"),
+    params?.systemPrompt ?? "return json",
+    "utf8"
+  );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/user.md"),
-    "{{segment_script_draft_json}} {{validation_report_json}} {{quality_signals_json}} {{failed_artifact_json}}",
+    params?.userPrompt ??
+      "{{segment_script_draft_json}} {{validation_report_json}} {{quality_signals_json}} {{failed_artifact_json}}",
     "utf8"
   );
 
@@ -274,6 +291,81 @@ describe("quality stage", () => {
     expect(request.prompt).toContain("rawResponseExcerpt");
     expect(request.prompt).not.toContain("TAIL_MARKER");
     expect(request.prompt).not.toContain("hugeField");
+  });
+
+  it("does not mutate literal placeholder text inside draft JSON during prompt rendering", async () => {
+    const fixtureSkillDir = createQualitySkillFixture({
+      userPrompt:
+        "草稿：\n{{segment_script_draft_json}}\n\n校验：\n{{validation_report_json}}\n\n失败：\n{{failed_artifact_json}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.91,
+        confidence: 0.88,
+        reasons: ["结构完整"],
+        summary: "质量稳定",
+      })
+    );
+
+    await runQualityStage({
+      workflowRunId: "wf-quality-literal-placeholder",
+      segmentId: "segment-quality-literal-placeholder",
+      segmentScriptDraft: {
+        ...createDraft("segment-quality-literal-placeholder"),
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "正文里出现 {{failed_artifact_json}} 这串字。",
+            text: "正文里出现 {{failed_artifact_json}} 这串字。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      },
+      validationReport: createValidationReport("segment-quality-literal-placeholder"),
+      failedArtifact: { stage: "segment_scripting" },
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    const request = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(request.prompt).toContain("正文里出现 {{failed_artifact_json}} 这串字。");
+  });
+
+  it("routes full-prompt over-budget requests to manual review without calling adapter", async () => {
+    const fixtureSkillDir = createQualitySkillFixture({
+      agentInstructions: "A".repeat(4500),
+      skillInstructions: "B".repeat(4500),
+      systemPrompt: "C".repeat(4500),
+      userPrompt: "{{segment_script_draft_json}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.91,
+        confidence: 0.88,
+        reasons: ["结构完整"],
+        summary: "质量稳定",
+      })
+    );
+
+    const result = await runQualityStage({
+      workflowRunId: "wf-quality-full-prompt-over-budget",
+      segmentId: "segment-quality-full-prompt-over-budget",
+      segmentScriptDraft: createDraft("segment-quality-full-prompt-over-budget"),
+      validationReport: createValidationReport(
+        "segment-quality-full-prompt-over-budget"
+      ),
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toBe("manual_review_required");
+    expect(completed.verdict.reasons).toEqual(["quality_prompt_over_budget"]);
+    expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
   it("converts low score output into manual_review_required", async () => {

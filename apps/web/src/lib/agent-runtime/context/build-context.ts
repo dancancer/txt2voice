@@ -42,19 +42,24 @@ const summarizeCharacterMemory = (memory?: CharacterMemory): string => {
     return "";
   }
 
-  const names = memory.canonicalIdentities.map((item) => item.name).join(", ");
-  const aliases = memory.aliasEvidence.map((item) => item.alias).join(", ");
-  const aliasCount = memory.aliasEvidence.length;
-  const assertedCount = Object.keys(memory.assertedFacts).length;
-  const inferredCount = Object.keys(memory.inferredHints).length;
+  const aliasMap = new Map<string, string[]>();
+  for (const evidence of memory.aliasEvidence) {
+    const bucket = aliasMap.get(evidence.canonicalId) || [];
+    if (!bucket.includes(evidence.alias)) {
+      bucket.push(evidence.alias);
+      aliasMap.set(evidence.canonicalId, bucket);
+    }
+  }
 
-  return [
-    `names:${names}`,
-    `aliases:${aliases}`,
-    `aliasCount:${aliasCount}`,
-    `assertedCount:${assertedCount}`,
-    `inferredCount:${inferredCount}`,
-  ].join(" | ");
+  const characters = memory.canonicalIdentities.map((identity) => ({
+    id: identity.id,
+    name: identity.name,
+    aliases: aliasMap.get(identity.id) || [],
+    assertedFacts: memory.assertedFacts[identity.id] ?? {},
+    inferredHints: memory.inferredHints[identity.id] ?? {},
+  }));
+
+  return JSON.stringify({ characters });
 };
 
 const buildInputContext = (

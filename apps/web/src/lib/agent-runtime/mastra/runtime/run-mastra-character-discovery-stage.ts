@@ -335,8 +335,13 @@ export const runMastraCharacterDiscoveryStage = async (
             characterMemory: input.characterMemory,
             budget: promptBudget,
           });
-          const promptBudgetResult = fitPromptToBudget({
+          const runtimeSystemPrompt = composeRuntimeSystemPrompt({
+            agentInstructions: agentContract.agentInstructions,
+            skillInstructions: skill.instructions,
             systemPrompt: skill.systemPrompt,
+          });
+          const promptBudgetResult = fitPromptToBudget({
+            systemPrompt: runtimeSystemPrompt,
             maxPromptChars: resolvePromptBudgetLimit(promptBudget),
             variables: {
               segment_text:
@@ -366,16 +371,17 @@ export const runMastraCharacterDiscoveryStage = async (
             characterMemorySummary:
               promptBudgetResult.variables.character_memory_summary,
             modelPolicy: skill.definition.modelPolicy!,
+            renderedUserPrompt: promptBudgetResult.prompt,
             prompts: {
-              systemPrompt: composeRuntimeSystemPrompt({
-                agentInstructions: agentContract.agentInstructions,
-                skillInstructions: skill.instructions,
-                systemPrompt: skill.systemPrompt,
-              }),
+              systemPrompt: runtimeSystemPrompt,
               userPrompt: skill.userPrompt,
             },
           });
-          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition, {
+            runtimeSystemPrompt,
+            systemPrompt: skill.systemPrompt,
+            userPrompt: skill.userPrompt,
+          });
           const reconciledDraft = reconcileCharacterMemoryDraft(
             result.characterMemoryDraft,
             input.characterMemory

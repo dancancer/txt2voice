@@ -7,12 +7,16 @@ import {
   type CharacterMemory,
   type SegmentScriptDraft,
 } from "../../context";
-import { createScriptGenerationAgent } from "../../runtime/agents/script-generation-agent";
+import {
+  createScriptGenerationAgent,
+  renderScriptGenerationUserPrompt,
+} from "../../runtime/agents/script-generation-agent";
 import { validateAgentContract } from "../../runtime/agent-contract";
 import {
   composeRuntimeSystemPrompt,
   loadSkillRuntimeBundle,
 } from "../../runtime/load-skill-runtime-bundle";
+import { fitPromptToBudget, resolvePromptBudgetLimit } from "../../runtime/prompt-budget";
 import type { AgentRunRecord } from "../../runtime/run-agent";
 import { runStage, type StageRunRecord } from "../../runtime/run-stage";
 import {
@@ -134,6 +138,10 @@ export const runMastraSegmentScriptingStage = async (
   deps: SegmentScriptingRuntimeDeps = {}
 ): Promise<RunSegmentScriptingStageResult> => {
   const runtimeAgentId = "script-generation-agent";
+  const promptBudget = {
+    maxContextChars: 4000,
+    reservedOutputChars: 1200,
+  } as const;
 
   const stageResult = await runStage({
     workflowRunId: input.workflowRunId,
@@ -176,12 +184,36 @@ export const runMastraSegmentScriptingStage = async (
             segmentText: input.segmentText,
             fullBookText: input.fullBookText,
             characterMemory: input.characterMemory,
-            budget: {
-              maxContextChars: 4000,
-              reservedOutputChars: 1200,
-            },
+            budget: promptBudget,
           });
           if (context.executionContext.inputOverBudget) {
+            throw new Error("Input context over budget for segment scripting stage");
+          }
+
+          const runtimeSystemPrompt = composeRuntimeSystemPrompt({
+            agentInstructions: agentContract.agentInstructions,
+            skillInstructions: skill.instructions,
+            systemPrompt: skill.systemPrompt,
+          });
+          const promptBudgetResult = fitPromptToBudget({
+            systemPrompt: runtimeSystemPrompt,
+            maxPromptChars: resolvePromptBudgetLimit(promptBudget),
+            variables: {
+              segment_text:
+                typeof context.inputContext.segmentText === "string"
+                  ? context.inputContext.segmentText
+                  : "",
+              character_memory_summary:
+                context.referenceMemory.characterMemorySummary,
+            },
+            trimOrder: ["character_memory_summary", "segment_text"],
+            renderPrompt: (variables) =>
+              renderScriptGenerationUserPrompt(skill.userPrompt, {
+                segmentText: variables.segment_text,
+                characterMemorySummary: variables.character_memory_summary,
+              }),
+          });
+          if (promptBudgetResult.overBudget) {
             throw new Error("Input context over budget for segment scripting stage");
           }
 
@@ -192,23 +224,21 @@ export const runMastraSegmentScriptingStage = async (
           });
           const result = await agent.execute({
             segmentId: input.segmentId,
-            segmentText:
-              typeof context.inputContext.segmentText === "string"
-                ? context.inputContext.segmentText
-                : "",
+            segmentText: promptBudgetResult.variables.segment_text,
             characterMemorySummary:
-              context.referenceMemory.characterMemorySummary,
+              promptBudgetResult.variables.character_memory_summary,
             modelPolicy: skill.definition.modelPolicy!,
+            renderedUserPrompt: promptBudgetResult.prompt,
             prompts: {
-              systemPrompt: composeRuntimeSystemPrompt({
-                agentInstructions: agentContract.agentInstructions,
-                skillInstructions: skill.instructions,
-                systemPrompt: skill.systemPrompt,
-              }),
+              systemPrompt: runtimeSystemPrompt,
               userPrompt: skill.userPrompt,
             },
           });
-          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition, {
+            runtimeSystemPrompt,
+            systemPrompt: skill.systemPrompt,
+            userPrompt: skill.userPrompt,
+          });
 
           return {
             status: "completed",
