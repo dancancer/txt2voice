@@ -4,7 +4,7 @@
 // pos: 自动编排共享模块
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
+import type { ScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/types";
 import type { TextProcessingOptions } from "@/lib/text-processor";
 import type { Prisma } from "@/lib/prisma";
 

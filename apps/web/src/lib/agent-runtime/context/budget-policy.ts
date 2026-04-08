@@ -18,14 +18,19 @@ export interface ReferenceBudgetResult {
 const clampNonNegative = (value: number): number =>
   Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
 
+export const resolveInputBudgetLimit = (budget: ContextBudget): number => {
+  const maxContextChars = clampNonNegative(budget.maxContextChars);
+  const reservedOutputChars = clampNonNegative(budget.reservedOutputChars);
+
+  return Math.max(maxContextChars - reservedOutputChars, 0);
+};
+
 export const applyReferenceMemoryBudget = (
   input: ReferenceBudgetInput
 ): ReferenceBudgetResult => {
   const { budget, inputContextChars, referenceCandidate } = input;
-  const maxContextChars = clampNonNegative(budget.maxContextChars);
-  const reservedOutputChars = clampNonNegative(budget.reservedOutputChars);
   const safeInputChars = clampNonNegative(inputContextChars);
-  const inputBudgetLimit = Math.max(maxContextChars - reservedOutputChars, 0);
+  const inputBudgetLimit = resolveInputBudgetLimit(budget);
   const inputOverBudget = safeInputChars > inputBudgetLimit;
   const remainingReferenceChars = Math.max(
     inputBudgetLimit - safeInputChars,

@@ -31,6 +31,91 @@ const asCompletedResult = (
   return result;
 };
 
+const createCharacterDiscoveryContractFixture = (params?: {
+  compatibleWorkflowStages?: string[];
+  allowedSkills?: string[];
+  allowedTools?: string[];
+  skillId?: string;
+  compatibleAgents?: string[];
+  contextRequirements?: string[];
+  toolAllowlist?: string[];
+  modelPolicy?: string;
+}) => {
+  const fixtureRoot = fs.mkdtempSync(
+    path.join(os.tmpdir(), "character-discovery-contract-")
+  );
+  const agentDir = path.join(fixtureRoot, "agents", "character-discovery");
+  const skillId = params?.skillId ?? "character-extraction";
+  const skillDir = path.join(fixtureRoot, "skills", skillId);
+
+  fs.mkdirSync(agentDir, { recursive: true });
+  fs.mkdirSync(path.join(skillDir, "prompts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(agentDir, "agent.toml"),
+    [
+      'id = "character-discovery-agent"',
+      'version = "1"',
+      'role = "discover_character_identities"',
+      `compatibleWorkflowStages = [${(params?.compatibleWorkflowStages ?? [
+        "character_discovery",
+      ])
+        .map((stageId) => `"${stageId}"`)
+        .join(", ")}]`,
+      `allowedSkills = [${(params?.allowedSkills ?? [skillId])
+        .map((allowedSkillId) => `"${allowedSkillId}"`)
+        .join(", ")}]`,
+      `allowedTools = [${(params?.allowedTools ?? ["load-book-context"])
+        .map((toolName) => `"${toolName}"`)
+        .join(", ")}]`,
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Character Discovery\n", "utf8");
+  fs.writeFileSync(
+    path.join(skillDir, "skill.toml"),
+    [
+      `id = "${skillId}"`,
+      'version = "1"',
+      'kind = "analysis"',
+      `compatibleAgents = [${(params?.compatibleAgents ?? [
+        "character-discovery-agent",
+      ])
+        .map((agentId) => `"${agentId}"`)
+        .join(", ")}]`,
+      'inputSchemaRef = "character-input"',
+      'outputSchemaRef = "character-output"',
+      `contextRequirements = [${(params?.contextRequirements ?? [
+        "segment",
+        "character_memory_summary",
+      ])
+        .map((requirement) => `"${requirement}"`)
+        .join(", ")}]`,
+      `toolAllowlist = [${(params?.toolAllowlist ?? ["load-book-context"])
+        .map((toolName) => `"${toolName}"`)
+        .join(", ")}]`,
+      'promptBundle = ["prompts/system.md", "prompts/user.md"]',
+      `modelPolicy = "${params?.modelPolicy ?? "balanced"}"`,
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(skillDir, "SKILL.md"), "# Fixture\n", "utf8");
+  fs.writeFileSync(
+    path.join(skillDir, "prompts/system.md"),
+    "return json",
+    "utf8"
+  );
+  fs.writeFileSync(
+    path.join(skillDir, "prompts/user.md"),
+    "{{segment_text}}",
+    "utf8"
+  );
+
+  return {
+    fixtureRoot,
+    skillDir,
+  };
+};
+
 describe("character discovery stage", () => {
   it("loads skill prompts and calls adapter via stage runtime", async () => {
     const adapter = createMockAdapter(
@@ -98,13 +183,52 @@ describe("character discovery stage", () => {
     expect(call.prompt).toContain("inferredCount:1");
   });
 
+  it("trims oversized segment input before sending character discovery prompt", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+    const longSegment = `开头-${"甲".repeat(5000)}-尾标记`;
+
+    await runCharacterDiscoveryStage({
+      workflowRunId: "wf-character-over-budget",
+      segmentText: longSegment,
+      skillDir,
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0];
+    expect(call.prompt.length).toBeLessThan(3200);
+    expect(call.prompt).toContain("开头-");
+    expect(call.prompt).not.toContain("尾标记");
+  });
+
   it("uses skill definition from the same skillDir source", async () => {
     const fixtureRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), "character-discovery-stage-")
     );
+    const fixtureAgentDir = path.join(fixtureRoot, "agents/character-discovery");
     const fixtureSkillDir = path.join(fixtureRoot, "skills/character-extraction");
 
+    fs.mkdirSync(fixtureAgentDir, { recursive: true });
     fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureAgentDir, "agent.toml"),
+      [
+        'id = "character-discovery-agent"',
+        'version = "1"',
+        'role = "discover_character_identities"',
+        'compatibleWorkflowStages = ["character_discovery"]',
+        'allowedSkills = ["character-extraction"]',
+        'allowedTools = ["load-book-context"]',
+      ].join("\n"),
+      "utf8"
+    );
+    fs.writeFileSync(path.join(fixtureAgentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
     fs.writeFileSync(
       path.join(fixtureSkillDir, "skill.toml"),
       [
@@ -116,6 +240,8 @@ describe("character discovery stage", () => {
         'outputSchemaRef = "character-output"',
         'contextRequirements = ["segment"]',
         'toolAllowlist = ["load-book-context"]',
+        'promptBundle = ["prompts/system.md", "prompts/user.md"]',
+        'modelPolicy = "balanced"',
       ].join("\n"),
       "utf8"
     );
@@ -149,6 +275,103 @@ describe("character discovery stage", () => {
 
     expect(result.status).toBe("failed");
     expect("artifact" in result).toBe(false);
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("fails fast when agent definition does not allow character_discovery stage", async () => {
+    const fixture = createCharacterDiscoveryContractFixture({
+      compatibleWorkflowStages: ["segment_scripting"],
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-agent-stage-mismatch",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixture.skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("fails fast when skill is not in agent allowedSkills", async () => {
+    const fixture = createCharacterDiscoveryContractFixture({
+      allowedSkills: ["other-skill"],
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-agent-skill-mismatch",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixture.skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("fails fast when skill contextRequirements drift from stage contract", async () => {
+    const fixture = createCharacterDiscoveryContractFixture({
+      contextRequirements: ["segment"],
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-agent-context-mismatch",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixture.skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("fails fast when agent and skill tool policies do not intersect", async () => {
+    const fixture = createCharacterDiscoveryContractFixture({
+      allowedTools: ["update-task-progress"],
+      toolAllowlist: ["load-book-context"],
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-agent-tool-mismatch",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixture.skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("failed");
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 

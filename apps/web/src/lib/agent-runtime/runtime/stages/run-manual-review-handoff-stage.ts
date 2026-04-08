@@ -1,4 +1,4 @@
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type { SegmentFailureDetail } from "../script-production/types";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
 import type { TraceDependencies } from "../write-trace";

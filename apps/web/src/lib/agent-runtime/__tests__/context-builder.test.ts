@@ -1,4 +1,7 @@
-import { buildAgentContext } from "../context";
+import {
+  buildAgentContext,
+  buildCharacterMemoryFromProfiles,
+} from "../context";
 import type { CharacterMemory, ValidationReport } from "../context";
 
 const createMemory = (): CharacterMemory => ({
@@ -112,5 +115,29 @@ describe("context builder", () => {
     expect(context.inputContext.segmentText).toBe(overBudgetSegment);
     expect(context.executionContext.remainingReferenceChars).toBe(0);
     expect(context.executionContext.inputOverBudget).toBe(true);
+  });
+
+  it("builds character memory from workflow character profiles before prompt injection", () => {
+    const memory = buildCharacterMemoryFromProfiles([
+      {
+        id: "char-1",
+        canonicalName: "宁采臣",
+        aliases: [{ alias: "宁公子" }],
+      },
+      {
+        id: "char-2",
+        canonicalName: "燕赤霞",
+        aliases: [{ alias: "燕大侠" }],
+      },
+    ]);
+
+    expect(memory.canonicalIdentities).toEqual([
+      { id: "char-1", name: "宁采臣" },
+      { id: "char-2", name: "燕赤霞" },
+    ]);
+    expect(memory.aliasEvidence).toEqual([
+      { alias: "宁公子", canonicalId: "char-1", source: "profile:char-1" },
+      { alias: "燕大侠", canonicalId: "char-2", source: "profile:char-2" },
+    ]);
   });
 });

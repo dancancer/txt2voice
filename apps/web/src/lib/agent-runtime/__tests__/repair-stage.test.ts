@@ -36,12 +36,39 @@ const createRepairSkillFixture = (params?: {
   contextRequirements?: string[];
   toolAllowlist?: string[];
   outputSchemaRef?: string;
+  compatibleWorkflowStages?: string[];
+  allowedSkills?: string[];
+  allowedTools?: string[];
+  modelPolicy?: string;
 }) => {
   const skillId = params?.skillId ?? "json-repair";
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "segment-repair-"));
+  const agentDir = path.join(fixtureRoot, "agents", "repair");
   const fixtureSkillDir = path.join(fixtureRoot, "skills", skillId);
 
+  fs.mkdirSync(agentDir, { recursive: true });
   fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(agentDir, "agent.toml"),
+    [
+      'id = "repair-agent"',
+      'version = "1"',
+      'role = "repair_failed_segment_artifacts"',
+      `compatibleWorkflowStages = [${(params?.compatibleWorkflowStages ?? [
+        "segment_repair",
+      ])
+        .map((stageId) => `"${stageId}"`)
+        .join(", ")}]`,
+      `allowedSkills = [${(params?.allowedSkills ?? [skillId])
+        .map((allowedSkillId) => `"${allowedSkillId}"`)
+        .join(", ")}]`,
+      `allowedTools = [${(params?.allowedTools ?? [])
+        .map((toolName) => `"${toolName}"`)
+        .join(", ")}]`,
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
   fs.writeFileSync(
     path.join(fixtureSkillDir, "skill.toml"),
     [
@@ -62,6 +89,8 @@ const createRepairSkillFixture = (params?: {
       `toolAllowlist = [${(params?.toolAllowlist ?? [])
         .map((tool) => `"${tool}"`)
         .join(", ")}]`,
+      'promptBundle = ["prompts/system.md", "prompts/user.md"]',
+      `modelPolicy = "${params?.modelPolicy ?? "cheap-repair"}"`,
     ].join("\n"),
     "utf8"
   );

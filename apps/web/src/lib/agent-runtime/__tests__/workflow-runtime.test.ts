@@ -1,4 +1,18 @@
+import path from "path";
+
+jest.mock("@mastra/core/workflows", () => ({
+  createWorkflow: jest.fn().mockImplementation((config) => ({
+    id: config.id,
+    config,
+  })),
+}));
+
 import type { WorkflowDefinition } from "../protocol/definitions";
+import { compileWorkflow } from "../mastra/compiler/compile-workflow";
+import {
+  SCRIPT_PRODUCTION_RUNTIME_SUBSTAGES,
+  loadScriptProductionWorkflowDefinition,
+} from "../runtime/script-production-workflow-definition";
 import { runWorkflow } from "../runtime/run-workflow";
 
 type JsonMap = Record<string, unknown>;
@@ -49,6 +63,18 @@ const updateStageStatus = (
 };
 
 describe("workflow runtime skeleton", () => {
+  it("keeps script-production authoring, runtime, and compiler stage order aligned", () => {
+    const workspaceRoot = path.resolve(__dirname, "../../../../../..");
+    const workflow = loadScriptProductionWorkflowDefinition(workspaceRoot);
+    const compiled = compileWorkflow(workspaceRoot, "script-production");
+
+    expect(workflow.stages).toEqual(compiled.stageOrder);
+    expect(workflow.stages).not.toContain("validation");
+    expect(SCRIPT_PRODUCTION_RUNTIME_SUBSTAGES).toEqual({
+      segment_scripting: ["validation"],
+    });
+  });
+
   it("supports coordinator mode while keeping a single workflow run", async () => {
     const workflowRuns: InMemoryWorkflowRun[] = [];
     const workflowUpdates: Array<Record<string, unknown>> = [];
@@ -58,7 +84,7 @@ describe("workflow runtime skeleton", () => {
       id: "wf-coordinator",
       version: "1",
       kind: "workflow",
-      stages: ["segment_scripting", "validation", "persist"],
+      stages: ["segment_scripting", "persist"],
     };
 
     const result = await runWorkflow({

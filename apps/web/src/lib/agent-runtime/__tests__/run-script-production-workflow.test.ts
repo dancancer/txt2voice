@@ -37,8 +37,8 @@ jest.mock("@/lib/prisma", () => ({
   },
 }));
 
-jest.mock("@/lib/script-generator", () => ({
-  getScriptGenerator: jest.fn(),
+jest.mock("@/lib/llm-service", () => ({
+  resolveConfiguredLLMProvider: jest.fn(),
 }));
 
 jest.mock("@/lib/agent-runtime/runtime/stages/run-segment-scripting-stage", () => ({
@@ -62,7 +62,6 @@ jest.mock("@/lib/agent-runtime/runtime/stages/run-persist-stage", () => ({
 }));
 
 import prisma from "@/lib/prisma";
-import { getScriptGenerator } from "@/lib/script-generator";
 import { runScriptProductionWorkflow } from "../runtime/run-script-production-workflow";
 import { runCharacterDiscoveryStage } from "../runtime/stages/run-character-discovery-stage";
 import { runSegmentScriptingStage } from "../runtime/stages/run-segment-scripting-stage";
@@ -71,9 +70,6 @@ import { runQualityStage } from "../runtime/stages/run-quality-stage";
 import { runPersistStage } from "../runtime/stages/run-persist-stage";
 
 const mockPrisma = prisma as any;
-const mockGetScriptGenerator = getScriptGenerator as jest.MockedFunction<
-  typeof getScriptGenerator
->;
 const mockRunCharacterDiscoveryStage =
   runCharacterDiscoveryStage as jest.MockedFunction<
     typeof runCharacterDiscoveryStage
@@ -86,40 +82,6 @@ const mockRunQualityStage =
   runQualityStage as jest.MockedFunction<typeof runQualityStage>;
 const mockRunPersistStage =
   runPersistStage as jest.MockedFunction<typeof runPersistStage>;
-
-const createLegacyGeneratorResult = () => ({
-  dialogueLines: [
-    {
-      id: "legacy-line-1",
-      segmentId: "legacy-seg-1",
-      chapterId: "chapter-1",
-      orderInSegment: 0,
-      text: "legacy",
-      isNarration: true,
-      characterName: "旁白",
-      rawSpeaker: "旁白",
-    },
-  ],
-  summary: {
-    totalLines: 1,
-    dialogueCount: 0,
-    narrationCount: 1,
-    totalSegments: 1,
-    processedSegments: 1,
-    failedSegments: 0,
-    failedSegmentIds: [],
-    failedSegmentDetails: [],
-    characterDistribution: {},
-    emotionDistribution: {},
-  },
-  segments: [
-    {
-      segmentId: "legacy-seg-1",
-      lineCount: 1,
-      characters: ["旁白"],
-    },
-  ],
-});
 
 const createBookFixture = () => ({
   id: "book-1",
@@ -146,6 +108,25 @@ const createBookFixture = () => ({
   characterProfiles: [],
 });
 
+const createSkillMetadata = (
+  partial?: Partial<{
+    promptBundle: string[];
+    promptFingerprint: string;
+    modelPolicy: string;
+    repairPolicy: string;
+    successCriteria: string[];
+    telemetryTags: string[];
+  }>
+) => ({
+  promptBundle: ["prompts/system.md", "prompts/user.md"],
+  promptFingerprint: "prompts/system.md|prompts/user.md",
+  modelPolicy: "balanced",
+  repairPolicy: "handoff-to-json-repair",
+  successCriteria: ["returns-segment-script-draft"],
+  telemetryTags: ["runtime", "segment-scripting"],
+  ...partial,
+});
+
 const createDraftArtifact = (
   segmentId: string,
   sourceText: string,
@@ -156,6 +137,7 @@ const createDraftArtifact = (
 ) => ({
   kind: "segment-script-draft" as const,
   skillId: "script-generation",
+  skillMetadata: createSkillMetadata(),
   segmentScriptDraft: {
     segmentId,
     createdAt: "2026-03-24T00:00:00.000Z",
@@ -174,6 +156,11 @@ const createDraftArtifact = (
 const createCharacterMemoryDraftArtifact = () => ({
   kind: "character-memory-draft" as const,
   skillId: "character-extraction" as const,
+  skillMetadata: createSkillMetadata({
+    repairPolicy: "retry-on-json-parse",
+    successCriteria: ["returns-memory-patch"],
+    telemetryTags: ["runtime", "character-discovery"],
+  }),
   characterMemoryDraft: {
     canonicalIdentities: [
       {
@@ -200,6 +187,11 @@ const createCharacterMemoryDraftArtifact = () => ({
 const createEmptyCharacterMemoryDraftArtifact = () => ({
   kind: "character-memory-draft" as const,
   skillId: "character-extraction" as const,
+  skillMetadata: createSkillMetadata({
+    repairPolicy: "retry-on-json-parse",
+    successCriteria: ["returns-memory-patch"],
+    telemetryTags: ["runtime", "character-discovery"],
+  }),
   characterMemoryDraft: {
     canonicalIdentities: [],
     aliasEvidence: [],
@@ -245,12 +237,6 @@ describe("runScriptProductionWorkflow", () => {
       },
     } as any);
 
-    mockGetScriptGenerator.mockReturnValue({
-      setExecutionObserver: jest.fn(),
-      generateScript: jest.fn().mockResolvedValue(createLegacyGeneratorResult()),
-      generatePartialScript: jest.fn().mockResolvedValue(createLegacyGeneratorResult()),
-      regenerateSegmentScript: jest.fn().mockResolvedValue(createLegacyGeneratorResult()),
-    } as any);
   });
 
   it("runs full mode through explicit runtime stages instead of legacy generator", async () => {
@@ -347,7 +333,6 @@ describe("runScriptProductionWorkflow", () => {
       onProgress,
     });
 
-    expect(mockGetScriptGenerator).not.toHaveBeenCalled();
     expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(3);
     expect(mockRunSegmentScriptingStage).toHaveBeenNthCalledWith(
       1,
@@ -505,7 +490,6 @@ describe("runScriptProductionWorkflow", () => {
       limitToSegments: 1,
     });
 
-    expect(mockGetScriptGenerator).not.toHaveBeenCalled();
     expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(1);
     expect(mockRunSegmentScriptingStage).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -620,7 +604,107 @@ describe("runScriptProductionWorkflow", () => {
     );
   });
 
-  it("passes mastra executor selection into workflow stages when allowlisted", async () => {
+  it.each([
+    {
+      title: "full",
+      input: {
+        bookId: "book-1",
+        options: {},
+        mode: "full" as const,
+      },
+      expectedSegmentId: "seg-1",
+    },
+    {
+      title: "partial",
+      input: {
+        bookId: "book-1",
+        options: {},
+        mode: "partial" as const,
+        startFromSegmentId: "seg-2",
+        limitToSegments: 1,
+      },
+      expectedSegmentId: "seg-2",
+    },
+    {
+      title: "regenerate",
+      input: {
+        bookId: "book-1",
+        options: {},
+        mode: "regenerate" as const,
+        segmentIds: ["seg-2"],
+      },
+      expectedSegmentId: "seg-2",
+    },
+  ])(
+    "passes existing character memory into segment scripting for $title mode",
+    async ({ input, expectedSegmentId }) => {
+      mockPrisma.book.findUnique.mockResolvedValue({
+        ...createBookFixture(),
+        characterProfiles: [
+          {
+            id: "char-1",
+            canonicalName: "宁采臣",
+            aliases: [{ alias: "宁公子" }],
+          },
+          {
+            id: "char-2",
+            canonicalName: "燕赤霞",
+            aliases: [{ alias: "燕大侠" }],
+          },
+        ],
+      });
+      mockRunSegmentScriptingStage.mockImplementation(
+        async ({ segmentId, segmentText }: any) =>
+          ({
+            stageRunId: `stage-${segmentId}`,
+            status: "completed",
+            artifact: createDraftArtifact(segmentId, segmentText),
+          }) as any
+      );
+      mockRunQualityStage.mockImplementation(
+        async ({ segmentId }: any) =>
+          ({
+            stageRunId: `quality-${segmentId}`,
+            status: "completed",
+            decision: "auto_pass",
+            verdict: {
+              segmentId,
+              verdict: "pass",
+              score: 0.95,
+              reasons: ["ok"],
+            },
+          }) as any
+      );
+      mockRunPersistStage.mockResolvedValue({
+        stageRunId: "persist-stage",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount: 0,
+          persistedSentenceCount: 1,
+        },
+      } as any);
+
+      await runScriptProductionWorkflow(input);
+
+      expect(mockRunSegmentScriptingStage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          segmentId: expectedSegmentId,
+          characterMemory: expect.objectContaining({
+            canonicalIdentities: expect.arrayContaining([
+              expect.objectContaining({ name: "宁采臣" }),
+              expect.objectContaining({ name: "燕赤霞" }),
+            ]),
+            aliasEvidence: expect.arrayContaining([
+              expect.objectContaining({ alias: "宁公子" }),
+            ]),
+          }),
+        })
+      );
+    }
+  );
+
+  it("marks mastra executor as disabled when no independent runtime path exists", async () => {
     const previousExecutor = process.env.AGENT_RUNTIME_EXECUTOR;
     const previousStages = process.env.AGENT_RUNTIME_MASTRA_STAGES;
 
@@ -673,19 +757,19 @@ describe("runScriptProductionWorkflow", () => {
 
       expect(mockRunCharacterDiscoveryStage).toHaveBeenCalledWith(
         expect.objectContaining({
-          executor: "mastra",
+          executor: "mastra-disabled",
           shadowMode: false,
         })
       );
       expect(mockRunSegmentScriptingStage).toHaveBeenCalledWith(
         expect.objectContaining({
-          executor: "mastra",
+          executor: "mastra-disabled",
           shadowMode: false,
         })
       );
       expect(mockRunQualityStage).toHaveBeenCalledWith(
         expect.objectContaining({
-          executor: "mastra",
+          executor: "mastra-disabled",
           shadowMode: false,
         })
       );
@@ -704,7 +788,7 @@ describe("runScriptProductionWorkflow", () => {
     }
   });
 
-  it("passes native executor plus shadow mode when only shadow validation is enabled", async () => {
+  it("keeps shadow mode disabled when mastra runtime is not independently available", async () => {
     const previousExecutor = process.env.AGENT_RUNTIME_EXECUTOR;
     const previousStages = process.env.AGENT_RUNTIME_MASTRA_STAGES;
     const previousShadow = process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE;
@@ -760,19 +844,19 @@ describe("runScriptProductionWorkflow", () => {
       expect(mockRunCharacterDiscoveryStage).toHaveBeenCalledWith(
         expect.objectContaining({
           executor: "native",
-          shadowMode: true,
+          shadowMode: false,
         })
       );
       expect(mockRunSegmentScriptingStage).toHaveBeenCalledWith(
         expect.objectContaining({
           executor: "native",
-          shadowMode: true,
+          shadowMode: false,
         })
       );
       expect(mockRunQualityStage).toHaveBeenCalledWith(
         expect.objectContaining({
           executor: "native",
-          shadowMode: true,
+          shadowMode: false,
         })
       );
     } finally {
@@ -796,7 +880,7 @@ describe("runScriptProductionWorkflow", () => {
     }
   });
 
-  it("persists shadow diff artifacts without changing the primary workflow result", async () => {
+  it("does not persist shadow diff artifacts when mastra shadow is disabled", async () => {
     const previousExecutor = process.env.AGENT_RUNTIME_EXECUTOR;
     const previousStages = process.env.AGENT_RUNTIME_MASTRA_STAGES;
     const previousShadow = process.env.AGENT_RUNTIME_MASTRA_SHADOW_MODE;
@@ -938,41 +1022,7 @@ describe("runScriptProductionWorkflow", () => {
         .map((call: any[]) => call[0]?.data)
         .filter((data: any) => data?.artifactKind === "shadow-diff");
 
-      expect(shadowArtifacts).toHaveLength(3);
-      expect(shadowArtifacts).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            artifactKind: "shadow-diff",
-            payload: expect.objectContaining({
-              stageId: "character_discovery",
-              matched: false,
-              differingFields: expect.arrayContaining(["outputSummary"]),
-            }),
-          }),
-          expect.objectContaining({
-            artifactKind: "shadow-diff",
-            payload: expect.objectContaining({
-              stageId: "segment_scripting",
-              segmentId: "seg-1",
-              matched: false,
-              differingFields: expect.arrayContaining(["outputSummary"]),
-            }),
-          }),
-          expect.objectContaining({
-            artifactKind: "shadow-diff",
-            payload: expect.objectContaining({
-              stageId: "quality_judgement",
-              segmentId: "seg-1",
-              matched: false,
-              differingFields: expect.arrayContaining([
-                "outputSummary",
-                "validationResult",
-                "manualReviewJudgement",
-              ]),
-            }),
-          }),
-        ])
-      );
+      expect(shadowArtifacts).toHaveLength(0);
     } finally {
       if (previousExecutor === undefined) {
         delete process.env.AGENT_RUNTIME_EXECUTOR;
@@ -2202,6 +2252,12 @@ describe("runScriptProductionWorkflow", () => {
         stageRunId: "stage-quality-1",
         status: "completed",
         decision: "auto_pass",
+        skillMetadata: createSkillMetadata({
+          modelPolicy: "quality",
+          repairPolicy: "escalate-low-confidence",
+          successCriteria: ["returns-quality-verdict"],
+          telemetryTags: ["runtime", "quality"],
+        }),
         verdict: {
           segmentId: "seg-1",
           verdict: "pass",
@@ -2344,6 +2400,21 @@ describe("runScriptProductionWorkflow", () => {
           processedSegments: 1,
           failedSegments: 0,
           persistedCharacterCount: 2,
+          stageSkillMetadata: expect.objectContaining({
+            character_discovery: expect.objectContaining({
+              modelPolicy: "balanced",
+            }),
+            segment_scripting: expect.objectContaining({
+              modelPolicy: "balanced",
+              telemetryTags: expect.arrayContaining([
+                "runtime",
+                "segment-scripting",
+              ]),
+            }),
+            quality_judgement: expect.objectContaining({
+              modelPolicy: "quality",
+            }),
+          }),
         }),
       })
     );
@@ -2358,6 +2429,22 @@ describe("runScriptProductionWorkflow", () => {
         segmentId: "seg-1",
         coverageRatio: 1,
         issueCodes: [],
+      })
+    );
+    const scriptingStageUpdate = mockPrisma.stageRun.update.mock.calls.find(
+      (call: any[]) => call[0]?.data?.summary?.stageId === "segment_scripting"
+    )?.[0];
+
+    expect(scriptingStageUpdate?.data?.summary).toEqual(
+      expect.objectContaining({
+        skillMetadata: expect.objectContaining({
+          modelPolicy: "balanced",
+          repairPolicy: "handoff-to-json-repair",
+          telemetryTags: expect.arrayContaining([
+            "runtime",
+            "segment-scripting",
+          ]),
+        }),
       })
     );
     expect(mockPrisma.toolCall.create).toHaveBeenCalledWith(

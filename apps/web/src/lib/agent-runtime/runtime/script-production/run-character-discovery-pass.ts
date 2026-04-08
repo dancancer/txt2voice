@@ -1,4 +1,5 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
+import { buildCharacterMemoryFromProfiles } from "../../context";
 import type { ExecutionEvent } from "../../protocol/events";
 import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import type { ScriptProductionRuntimeStore } from "../script-production-runtime-store";
@@ -76,6 +77,9 @@ export const runCharacterDiscoveryPass = async (
   const runDiscoveryStage =
     params.runCharacterDiscoveryStage || runCharacterDiscoveryStage;
   const runPersistCommitStage = params.runPersistStage || runPersistStage;
+  const characterMemory = buildCharacterMemoryFromProfiles(
+    params.characterProfiles
+  );
   let shadowStageResult: RunCharacterDiscoveryStageResult | null = null;
 
   if (sampleText.length === 0) {
@@ -101,12 +105,15 @@ export const runCharacterDiscoveryPass = async (
   const discoveryStage = await runDiscoveryStage({
     workflowRunId: params.workflowRunId,
     segmentText: sampleText,
+    characterMemory,
     adapter: params.adapter,
     executor: params.executor,
     shadowMode: params.shadowMode,
-    onShadowResult: async (result) => {
-      shadowStageResult = result;
-    },
+    onShadowResult: params.shadowMode
+      ? async (result) => {
+          shadowStageResult = result;
+        }
+      : undefined,
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,
@@ -130,6 +137,10 @@ export const runCharacterDiscoveryPass = async (
         discoveryStage.status === "completed"
           ? discoveryStage.artifact.kind
           : undefined,
+      skillMetadata:
+        discoveryStage.status === "completed"
+          ? discoveryStage.artifact.skillMetadata
+          : undefined,
     },
     completedAt: now(),
   });
@@ -144,6 +155,7 @@ export const runCharacterDiscoveryPass = async (
         discoveryStage.status === "completed"
           ? {
               skillId: discoveryStage.artifact.skillId,
+              skillMetadata: discoveryStage.artifact.skillMetadata,
             }
           : undefined,
       error:
@@ -176,6 +188,7 @@ export const runCharacterDiscoveryPass = async (
       artifactVersion: "v1",
       payload: {
         skillId: discoveryStage.artifact.skillId,
+        skillMetadata: discoveryStage.artifact.skillMetadata,
         characterMemoryDraft: discoveryStage.artifact.characterMemoryDraft,
       },
       createdAt: now(),

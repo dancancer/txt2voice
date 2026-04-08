@@ -1,6 +1,13 @@
 import fs from "fs";
 import path from "path";
 
+import {
+  DefinitionRegistryError,
+  validateSkillDefinition,
+  validateWorkflowDefinition,
+} from "../registry";
+import { isRuntimeSubstageDefinition } from "../protocol";
+
 const schemaPath = path.resolve(
   process.cwd(),
   "prisma/schema.prisma"
@@ -31,6 +38,46 @@ const expectJsonField = (schema: string, modelName: string, fieldName: string) =
 };
 
 describe("agent runtime prisma schema shape", () => {
+  it("separates workflow authoring stages from runtime-owned substages", () => {
+    expect(
+      isRuntimeSubstageDefinition({
+        id: "validation",
+        owner: "framework",
+        parentStage: "segment_scripting",
+      })
+    ).toBe(true);
+
+    expect(() =>
+      validateWorkflowDefinition(
+        {
+          id: "script-production",
+          version: "1",
+          kind: "workflow",
+          stages: ["prepare", "validation", "persist"],
+        },
+        "script-production"
+      )
+    ).toThrow(DefinitionRegistryError);
+  });
+
+  it("rejects runtime skills that defer prompt bundle failures to execution time", () => {
+    expect(() =>
+      validateSkillDefinition(
+        {
+          id: "script-generation",
+          version: "1",
+          kind: "generation",
+          compatibleAgents: ["script-generation-agent"],
+          inputSchemaRef: "segment-script-input",
+          outputSchemaRef: "segment-script-draft",
+          contextRequirements: ["segment"],
+          toolAllowlist: [],
+        },
+        "script-generation"
+      )
+    ).toThrow(DefinitionRegistryError);
+  });
+
   it("defines workflow execution models with minimum keys", () => {
     const schema = readSchema();
 

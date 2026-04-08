@@ -1,16 +1,15 @@
 import { TTSError } from "@/lib/error-handler";
-import { resolveConfiguredLLMProvider } from "@/lib/llm-service";
-import { calculateScriptSummary } from "@/lib/script-generator/pipeline/summary";
 import {
   loadBookForGeneration,
   resolvePartialSegments,
-} from "@/lib/script-generator/pipeline/workflow";
-import { buildCharacterMap } from "@/lib/script-generator/storage/character-utils";
+} from "./script-production/workflow-source";
+import { buildCharacterMap } from "./script-production/storage/character-utils";
 import type {
   DialogueLine,
   SegmentFailureDetail,
   SegmentSummary,
-} from "@/lib/script-generator/types";
+} from "./script-production/types";
+import { calculateScriptSummary } from "./script-production/summary";
 import type { LLMAdapter } from "../adapters/llm-adapter";
 import type { ExecutionEvent } from "../protocol/events";
 import {
@@ -26,6 +25,9 @@ import {
   isMastraShadowModeEnabled,
   resolveStageExecutor,
 } from "./executor-policy";
+import {
+  loadScriptProductionWorkflowDefinition,
+} from "./script-production-workflow-definition";
 import {
   createScriptProductionRuntimeStore,
   type ScriptProductionRuntimeStore,
@@ -48,6 +50,10 @@ import type {
 
 export type { ScriptProductionWorkflowMode } from "./script-production/shared-types";
 export type { RunScriptProductionWorkflowInput } from "./script-production/shared-types";
+export {
+  loadScriptProductionWorkflowDefinition,
+  SCRIPT_PRODUCTION_RUNTIME_SUBSTAGES,
+} from "./script-production-workflow-definition";
 
 type ScriptProductionWorkflowResult = { dialogueLines: DialogueLine[]; summary: ReturnType<typeof calculateScriptSummary>; segments: SegmentSummary[]; runtimeMetadata?: ScriptProductionRuntimeMetadata; };
 
@@ -84,6 +90,7 @@ export const runScriptProductionWorkflow = async (
   const createId = deps.createId || createRuntimeId;
   const now = deps.now ?? (() => new Date());
   const runtimeStore = deps.runtimeStore || createScriptProductionRuntimeStore();
+  const workflowDefinition = loadScriptProductionWorkflowDefinition();
   const executorPolicy = {
     shadowModeEnabled: isMastraShadowModeEnabled(),
     stageExecutors: {
@@ -148,6 +155,7 @@ export const runScriptProductionWorkflow = async (
   let qualityRejectedCount = 0;
   let traceEventCount = 0;
   let stageRunCount = 0;
+  const stageSkillMetadata: Record<string, Record<string, unknown>> = {};
 
   let persistedSegments = 0;
   const startedAt = now();
@@ -191,22 +199,7 @@ export const runScriptProductionWorkflow = async (
   };
 
   const workflowResult = await runWorkflow({
-    workflow: {
-      id: "script-production",
-      version: "1",
-      kind: "workflow",
-      stages: [
-        "prepare",
-        "character_discovery",
-        "segment_scripting",
-        "validation",
-        "segment_repair",
-        "quality_judgement",
-        "persist",
-        "manual_review_handoff",
-        "complete",
-      ],
-    },
+    workflow: workflowDefinition,
     entryPayload: {
       mode: input.mode,
       selectedSegmentIds: segments.map((segment) => segment.id),
@@ -300,7 +293,6 @@ export const runScriptProductionWorkflow = async (
       });
       coordinatorStageResults.push(prepareStage);
 
-      const llmModelId = (input.options as { llmModelId?: string }).llmModelId;
       const observedAdapter = deps.adapter
         ? createObservedAdapter({
             adapter: deps.adapter,
@@ -313,7 +305,6 @@ export const runScriptProductionWorkflow = async (
             },
           })
         : createObservedDefaultAdapter({
-            provider: await resolveConfiguredLLMProvider(llmModelId),
             onExecutionEvent: input.onExecutionEvent,
             trace: {
               workflowRunId,
@@ -351,6 +342,15 @@ export const runScriptProductionWorkflow = async (
         appendTrace: appendTrackedTrace,
         onStageResult: (stageResult) => {
           coordinatorStageResults.push(stageResult);
+          const skillMetadata = stageResult.agent.output?.skillMetadata;
+          if (
+            skillMetadata &&
+            typeof skillMetadata === "object" &&
+            !Array.isArray(skillMetadata)
+          ) {
+            stageSkillMetadata[stageResult.stageId] =
+              skillMetadata as Record<string, unknown>;
+          }
         },
         executor: executorPolicy.stageExecutors.character_discovery,
         shadowMode: executorPolicy.shadowModeEnabled,
@@ -397,6 +397,15 @@ export const runScriptProductionWorkflow = async (
           },
           onStageResult: (stageResult) => {
             coordinatorStageResults.push(stageResult);
+            const skillMetadata = stageResult.agent.output?.skillMetadata;
+            if (
+              skillMetadata &&
+              typeof skillMetadata === "object" &&
+              !Array.isArray(skillMetadata)
+            ) {
+              stageSkillMetadata[stageResult.stageId] =
+                skillMetadata as Record<string, unknown>;
+            }
           },
           runSegmentScriptingStage: runScriptingStage,
           runSegmentRepairStage: runRepairStage,
@@ -547,6 +556,7 @@ export const runScriptProductionWorkflow = async (
         completedAt: completedAt.toISOString(),
         segmentOutcomeIndex,
         manualReviewSync,
+        stageSkillMetadata,
       });
       const completeStage = await runStage({
         workflowRunId,
@@ -601,7 +611,7 @@ export const runScriptProductionWorkflow = async (
 
       const runtimeMetadata = buildRuntimeMetadata({
         workflowRunId,
-        workflowId: "script-production",
+        workflowId: workflowDefinition.id,
         status: runtimeStatus,
         mode: input.mode,
         startedAt: startedAt.toISOString(),

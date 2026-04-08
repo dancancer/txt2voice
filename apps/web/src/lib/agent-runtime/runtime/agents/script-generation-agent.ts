@@ -11,6 +11,8 @@ export interface ScriptGenerationPrompts {
 export interface ScriptGenerationAgentInput {
   segmentId: string;
   segmentText: string;
+  characterMemorySummary?: string;
+  modelPolicy: string;
   prompts: ScriptGenerationPrompts;
 }
 
@@ -180,8 +182,13 @@ const toSegmentScriptDraft = (params: {
 
 const renderUserPrompt = (
   template: string,
-  params: { segmentText: string }
-) => template.split("{{segment_text}}").join(params.segmentText);
+  params: { segmentText: string; characterMemorySummary?: string }
+) =>
+  template
+    .split("{{segment_text}}")
+    .join(params.segmentText)
+    .split("{{character_memory_summary}}")
+    .join(params.characterMemorySummary || "无");
 
 const asErrorMessage = (value: unknown): string => {
   if (value instanceof Error) {
@@ -221,7 +228,9 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
       systemPrompt: input.prompts.systemPrompt,
       prompt: renderUserPrompt(input.prompts.userPrompt, {
         segmentText: input.segmentText,
+        characterMemorySummary: input.characterMemorySummary,
       }),
+      modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.segment_scripting",
         stageId: "segment_scripting",

@@ -3,12 +3,15 @@ import {
   buildCharacterMap,
   mapCharacterMemoryToCandidates,
   upsertCharacterCandidates,
-} from "@/lib/script-generator/storage/character-utils";
+} from "../runtime/script-production/storage/character-utils";
 import {
   mapSegmentScriptDraftToDialogueLines,
   saveSegmentScriptToDatabase,
-} from "@/lib/script-generator/storage/persistence";
-import type { CharacterCandidate, DialogueLine } from "@/lib/script-generator/types";
+} from "../runtime/script-production/storage/persistence";
+import type {
+  CharacterCandidate,
+  DialogueLine,
+} from "../runtime/script-production/types";
 
 interface CharacterProfileLike {
   id?: string;

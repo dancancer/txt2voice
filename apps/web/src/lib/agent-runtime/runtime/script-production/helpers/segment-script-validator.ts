@@ -1,4 +1,4 @@
-import { normalizeNarrationText } from "@/lib/script-generator/narration-text-normalizer";
+import { normalizeNarrationText } from "./narration-text-normalizer";
 import {
   hasReportReadingCue,
   hasSpeechAttributionCue,

@@ -15,6 +15,7 @@ export interface RepairAgentInput {
   segmentId: string;
   segmentText: string;
   failedArtifact: unknown;
+  modelPolicy: string;
   prompts: RepairAgentPrompts;
 }
 
@@ -246,6 +247,7 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
         segmentText: input.segmentText,
         failedArtifact: input.failedArtifact,
       }),
+      modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.segment_repair",
         stageId: "segment_repair",

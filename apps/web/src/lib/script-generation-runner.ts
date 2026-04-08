@@ -4,9 +4,11 @@
 // pos: 任务执行器
 import prisma from "@/lib/prisma";
 import type { LLMExecutionEvent } from "@/lib/llm-service";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
 import { runScriptProductionWorkflow } from "@/lib/agent-runtime/runtime/run-script-production-workflow";
+import type {
+  ScriptGenerationOptions,
+  SegmentFailureDetail,
+} from "@/lib/agent-runtime/runtime/script-production/types";
 import {
   jsonObject,
   mergeTaskData,

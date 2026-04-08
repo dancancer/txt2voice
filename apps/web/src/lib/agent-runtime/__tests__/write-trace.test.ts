@@ -47,4 +47,47 @@ describe("writeTrace", () => {
       })
     );
   });
+
+  it("preserves skill metadata payloads for downstream observability", async () => {
+    const appendTrace = jest.fn();
+
+    const event = await writeTrace({
+      appendTrace,
+      createId: () => "trace-skill-metadata",
+      workflowRunId: "wf-1",
+      stageRunId: "stage-1",
+      agentRunId: "agent-1",
+      kind: "skill_selected",
+      status: "completed",
+      payload: {
+        skillId: "script-generation",
+        skillMetadata: {
+          promptFingerprint: "prompts/system.md|prompts/user.md",
+          modelPolicy: "balanced",
+          repairPolicy: "handoff-to-json-repair",
+          successCriteria: ["returns-segment-script-draft"],
+          telemetryTags: ["runtime", "segment-scripting"],
+        },
+      },
+    });
+
+    expect(event.payload).toEqual(
+      expect.objectContaining({
+        skillMetadata: expect.objectContaining({
+          modelPolicy: "balanced",
+          repairPolicy: "handoff-to-json-repair",
+          telemetryTags: ["runtime", "segment-scripting"],
+        }),
+      })
+    );
+    expect(appendTrace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({
+          skillMetadata: expect.objectContaining({
+            promptFingerprint: "prompts/system.md|prompts/user.md",
+          }),
+        }),
+      })
+    );
+  });
 });

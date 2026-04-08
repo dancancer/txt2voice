@@ -4,12 +4,14 @@ import {
 } from "@/lib/llm-service";
 import { runLLMRequest, type LLMRuntimeRequest } from "@/lib/llm-runtime";
 import type { LLMExecutionRequestOptions } from "@/lib/task-queue";
+import { resolveLLMExecutionPolicy } from "../runtime/model-policy";
 
 export interface LLMAdapterRequest {
   prompt: string;
   systemPrompt?: string;
   provider?: LLMProvider;
   modelId?: string;
+  modelPolicy?: string;
   metadata?: Record<string, unknown>;
   requestOptions?: LLMExecutionRequestOptions;
   requestId?: string;
@@ -64,13 +66,22 @@ export function createDefaultLLMAdapter(
 
   return {
     async call(input: LLMAdapterRequest): Promise<LLMAdapterResponse> {
+      const resolvedPolicy = input.modelPolicy
+        ? resolveLLMExecutionPolicy(input.modelPolicy)
+        : null;
+      const provider =
+        input.provider ??
+        (await getProvider(input.modelId ?? resolvedPolicy?.modelId));
       const result = await runRequest({
         requestId: input.requestId,
-        provider: input.provider ?? await getProvider(input.modelId),
+        provider,
         prompt: input.prompt,
         systemPrompt: input.systemPrompt,
         metadata: input.metadata,
-        requestOptions: input.requestOptions,
+        requestOptions: {
+          ...(resolvedPolicy?.requestOptions ?? {}),
+          ...(input.requestOptions ?? {}),
+        },
       });
 
       return toAdapterResponse(result);

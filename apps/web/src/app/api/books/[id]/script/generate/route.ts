@@ -8,7 +8,7 @@ import {
   ValidationError,
 } from "@/lib/error-handler";
 import prisma from "@/lib/prisma";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
+import type { ScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/types";
 import {
   jsonObject,
   mergeTaskData,

@@ -2,9 +2,11 @@ import {
   type AgentDefinition,
   type SkillDefinition,
   type WorkflowDefinition,
+  FRAMEWORK_OWNED_RUNTIME_SUBSTAGES,
   isAgentDefinition,
   isSkillDefinition,
   isWorkflowDefinition,
+  requiresPromptBundle,
 } from "../protocol";
 
 export type DefinitionRegistryErrorCode =
@@ -15,6 +17,8 @@ interface DefinitionRegistryErrorDetails {
   definitionType: "agent" | "skill" | "workflow";
   definitionId: string;
   missingFields?: string[];
+  invalidFields?: string[];
+  invalidStageIds?: string[];
   missingFile?: string;
 }
 
@@ -60,6 +64,44 @@ const findMissingFields = (
   value: Record<string, unknown>,
   requiredFields: readonly string[]
 ) => requiredFields.filter((fieldName) => !hasValue(value[fieldName]));
+
+const findInvalidWorkflowStageIds = (value: Record<string, unknown>): string[] => {
+  if (!Array.isArray(value.stages)) {
+    return [];
+  }
+
+  return value.stages.filter(
+    (stageId): stageId is string =>
+      typeof stageId === "string" &&
+      FRAMEWORK_OWNED_RUNTIME_SUBSTAGES.includes(
+        stageId as (typeof FRAMEWORK_OWNED_RUNTIME_SUBSTAGES)[number]
+      )
+  );
+};
+
+const findSkillFieldIssues = (value: Record<string, unknown>) => {
+  const missingFields = [...findMissingFields(value, REQUIRED_SKILL_FIELDS)];
+  const invalidFields: string[] = [];
+
+  if (requiresPromptBundle(value.kind)) {
+    if (!hasValue(value.promptBundle)) {
+      missingFields.push("promptBundle");
+    } else if (
+      !Array.isArray(value.promptBundle) ||
+      value.promptBundle.length === 0 ||
+      value.promptBundle.some(
+        (entry) => typeof entry !== "string" || entry.trim().length === 0
+      )
+    ) {
+      invalidFields.push("promptBundle");
+    }
+  }
+
+  return {
+    missingFields,
+    invalidFields,
+  };
+};
 
 export class DefinitionRegistryError extends Error {
   code: DefinitionRegistryErrorCode;
@@ -128,9 +170,9 @@ export const validateSkillDefinition = (
   definitionId: string
 ): SkillDefinition => {
   const record = isRecord(value) ? value : {};
-  const missingFields = findMissingFields(record, REQUIRED_SKILL_FIELDS);
+  const { missingFields, invalidFields } = findSkillFieldIssues(record);
 
-  if (missingFields.length > 0 || !isSkillDefinition(record)) {
+  if (missingFields.length > 0 || invalidFields.length > 0 || !isSkillDefinition(record)) {
     throw new DefinitionRegistryError(
       "VALIDATION_ERROR",
       `Invalid skill definition ${definitionId}`,
@@ -138,6 +180,7 @@ export const validateSkillDefinition = (
         definitionType: "skill",
         definitionId,
         missingFields,
+        invalidFields,
       }
     );
   }
@@ -151,8 +194,9 @@ export const validateWorkflowDefinition = (
 ): WorkflowDefinition => {
   const record = isRecord(value) ? value : {};
   const missingFields = findMissingFields(record, REQUIRED_WORKFLOW_FIELDS);
+  const invalidStageIds = findInvalidWorkflowStageIds(record);
 
-  if (missingFields.length > 0 || !isWorkflowDefinition(record)) {
+  if (missingFields.length > 0 || invalidStageIds.length > 0 || !isWorkflowDefinition(record)) {
     throw new DefinitionRegistryError(
       "VALIDATION_ERROR",
       `Invalid workflow definition ${definitionId}`,
@@ -160,6 +204,7 @@ export const validateWorkflowDefinition = (
         definitionType: "workflow",
         definitionId,
         missingFields,
+        invalidStageIds,
       }
     );
   }

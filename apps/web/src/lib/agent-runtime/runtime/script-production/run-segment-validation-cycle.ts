@@ -1,5 +1,5 @@
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type { SegmentFailureDetail } from "./types";
 import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import {
   buildInputRefinementSegments,

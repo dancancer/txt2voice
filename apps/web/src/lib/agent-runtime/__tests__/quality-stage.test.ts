@@ -57,12 +57,39 @@ const createQualitySkillFixture = (params?: {
   compatibleAgents?: string[];
   contextRequirements?: string[];
   outputSchemaRef?: string;
+  compatibleWorkflowStages?: string[];
+  allowedSkills?: string[];
+  allowedTools?: string[];
+  modelPolicy?: string;
 }) => {
   const skillId = params?.skillId ?? "quality-judgement";
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "quality-stage-"));
+  const agentDir = path.join(fixtureRoot, "agents", "quality-judge");
   const fixtureSkillDir = path.join(fixtureRoot, "skills", skillId);
 
+  fs.mkdirSync(agentDir, { recursive: true });
   fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(agentDir, "agent.toml"),
+    [
+      'id = "quality-judge-agent"',
+      'version = "1"',
+      'role = "judge_segment_quality"',
+      `compatibleWorkflowStages = [${(params?.compatibleWorkflowStages ?? [
+        "quality_judgement",
+      ])
+        .map((stageId) => `"${stageId}"`)
+        .join(", ")}]`,
+      `allowedSkills = [${(params?.allowedSkills ?? [skillId])
+        .map((allowedSkillId) => `"${allowedSkillId}"`)
+        .join(", ")}]`,
+      `allowedTools = [${(params?.allowedTools ?? [])
+        .map((toolName) => `"${toolName}"`)
+        .join(", ")}]`,
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
   fs.writeFileSync(
     path.join(fixtureSkillDir, "skill.toml"),
     [
@@ -83,6 +110,8 @@ const createQualitySkillFixture = (params?: {
         .map((requirement) => `"${requirement}"`)
         .join(", ")}]`,
       "toolAllowlist = []",
+      'promptBundle = ["prompts/system.md", "prompts/user.md"]',
+      `modelPolicy = "${params?.modelPolicy ?? "quality"}"`,
     ].join("\n"),
     "utf8"
   );
@@ -167,6 +196,9 @@ describe("quality stage", () => {
     });
     expect(completed.handoff).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(1);
+    expect((adapter.call as jest.Mock).mock.calls[0]?.[0]?.modelPolicy).toBe(
+      "quality"
+    );
   });
 
   it("passes prompt guardrails that limit reasons to script-generation quality", async () => {
@@ -196,6 +228,52 @@ describe("quality stage", () => {
     expect(request.systemPrompt).toContain("只评估台本生成质量");
     expect(request.systemPrompt).toContain("不要把原文题材、叙事质量、受众适宜性");
     expect(request.prompt).toContain("不要把原文叙事连贯性、题材敏感性、受众适宜性");
+  });
+
+  it("summarizes large failed artifacts before rendering quality prompt", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.91,
+        confidence: 0.88,
+        reasons: ["结构完整"],
+        summary: "质量稳定",
+      })
+    );
+
+    await runQualityStage({
+      workflowRunId: "wf-quality-artifact-summary",
+      segmentId: "segment-quality-artifact-summary",
+      segmentScriptDraft: createDraft("segment-quality-artifact-summary"),
+      validationReport: createValidationReport("segment-quality-artifact-summary"),
+      failedArtifact: {
+        kind: "segment-scripting-failure",
+        provider: "mock-provider",
+        model: "mock-model",
+        rawResponse: `${"X".repeat(5000)}TAIL_MARKER`,
+        structuredResult: {
+          lines: [
+            {
+              id: "line-1",
+              sourceText: "宁采臣抬头。",
+              text: "宁采臣抬头。",
+              speaker: "旁白",
+              orderInSegment: 0,
+            },
+          ],
+          hugeField: "Y".repeat(4000),
+        },
+      },
+      adapter,
+    });
+
+    const request = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+
+    expect(request.prompt.length).toBeLessThan(4000);
+    expect(request.prompt).toContain("rawResponseExcerpt");
+    expect(request.prompt).not.toContain("TAIL_MARKER");
+    expect(request.prompt).not.toContain("hugeField");
   });
 
   it("converts low score output into manual_review_required", async () => {

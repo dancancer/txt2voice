@@ -13,8 +13,15 @@ jest.mock("@/lib/llm-service", () => ({
 }));
 
 describe("agent runtime llm adapter", () => {
+  const originalEnv = process.env;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env = { ...originalEnv };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
   });
 
   it("uses configured provider by default and returns normalized response", async () => {
@@ -158,6 +165,81 @@ describe("agent runtime llm adapter", () => {
       expect.objectContaining({
         provider: explicitProvider,
       })
+    );
+  });
+
+  it("maps modelPolicy to provider lookup and request options", async () => {
+    process.env.LLM_DEFAULT_MODEL_ID = "balanced-model";
+    process.env.LLM_CHEAP_REPAIR_MODEL_ID = "repair-model";
+    process.env.LLM_QUALITY_MODEL_ID = "quality-model";
+
+    const getProvider = jest.fn(async (modelId?: string) => ({
+      name: "custom",
+      apiKey: "policy-key",
+      model: modelId || "fallback-model",
+      baseURL: "https://llm.example/v1",
+    }));
+
+    runLLMRequest.mockResolvedValue({
+      content: "policy",
+      provider: "custom",
+      model: "policy-model",
+      latencyMs: 5,
+      attempt: 1,
+      usage: null,
+    });
+
+    const { createDefaultLLMAdapter } = await import(
+      "../adapters/llm-adapter"
+    );
+    const adapter = createDefaultLLMAdapter({ getProvider });
+
+    await adapter.call({
+      prompt: "repair",
+      modelPolicy: "cheap-repair",
+    });
+    await adapter.call({
+      prompt: "quality",
+      modelPolicy: "quality",
+    });
+    await adapter.call({
+      prompt: "balanced",
+      modelPolicy: "balanced",
+    });
+
+    expect(getProvider).toHaveBeenNthCalledWith(1, "repair-model");
+    expect(getProvider).toHaveBeenNthCalledWith(2, "quality-model");
+    expect(getProvider).toHaveBeenNthCalledWith(3, "balanced-model");
+    expect(runLLMRequest).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        requestOptions: { temperature: 0, maxTokens: 2000 },
+      })
+    );
+    expect(runLLMRequest).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        requestOptions: { temperature: 0.1, maxTokens: 3000 },
+      })
+    );
+    expect(runLLMRequest).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        requestOptions: { temperature: 0.3, maxTokens: 8000 },
+      })
+    );
+  });
+
+  it("fails fast for missing or unknown modelPolicy", async () => {
+    const { resolveLLMExecutionPolicy } = await import(
+      "../runtime/model-policy"
+    );
+
+    expect(() => resolveLLMExecutionPolicy(undefined)).toThrow(
+      "modelPolicy is required"
+    );
+    expect(() => resolveLLMExecutionPolicy("unknown-policy")).toThrow(
+      "Unsupported modelPolicy"
     );
   });
 });

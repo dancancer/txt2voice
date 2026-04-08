@@ -1,4 +1,7 @@
-import type { SegmentScriptDraft } from "../../context";
+import {
+  buildCharacterMemoryFromProfiles,
+  type SegmentScriptDraft,
+} from "../../context";
 import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import {
   createFailureDetail,
@@ -53,16 +56,22 @@ export const resolveSegmentDraft = async (
   let counters = createEmptySegmentCounters();
   let scriptingShadowResult: RunSegmentScriptingStageResult | null = null;
   let formatRepairShadowResult: RunSegmentRepairStageResult | null = null;
+  const characterMemory = buildCharacterMemoryFromProfiles(
+    params.characterProfiles
+  );
   const scriptStage = await runScriptingStage({
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,
     segmentText: params.segment.content,
+    characterMemory,
     adapter: params.adapter,
     executor: params.executorPolicy?.segmentScripting,
     shadowMode: params.executorPolicy?.shadowModeEnabled,
-    onShadowResult: async (result) => {
-      scriptingShadowResult = result;
-    },
+    onShadowResult: params.executorPolicy?.shadowModeEnabled
+      ? async (result) => {
+          scriptingShadowResult = result;
+        }
+      : undefined,
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,
@@ -84,6 +93,7 @@ export const resolveSegmentDraft = async (
         scriptStage.status === "completed"
           ? {
               skillId: scriptStage.artifact.skillId,
+              skillMetadata: scriptStage.artifact.skillMetadata,
               lineCount: scriptStage.artifact.segmentScriptDraft.lines.length,
               sourceLength: params.segment.content.length,
             }
@@ -106,6 +116,7 @@ export const resolveSegmentDraft = async (
         scriptStage.status === "completed"
           ? {
               skillId: scriptStage.artifact.skillId,
+              skillMetadata: scriptStage.artifact.skillMetadata,
             }
           : undefined,
       error: scriptStage.status === "completed" ? undefined : scriptStage.error,
@@ -175,9 +186,11 @@ export const resolveSegmentDraft = async (
     adapter: params.adapter,
     executor: params.executorPolicy?.segmentRepair,
     shadowMode: params.executorPolicy?.shadowModeEnabled,
-    onShadowResult: async (result) => {
-      formatRepairShadowResult = result;
-    },
+    onShadowResult: params.executorPolicy?.shadowModeEnabled
+      ? async (result) => {
+          formatRepairShadowResult = result;
+        }
+      : undefined,
     createId: params.createId,
     now: params.now,
     createStageRun: params.createStageRun,

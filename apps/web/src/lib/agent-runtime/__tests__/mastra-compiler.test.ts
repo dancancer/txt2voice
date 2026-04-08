@@ -13,6 +13,15 @@ jest.mock("@mastra/core/workflows", () => ({
   })),
 }));
 
+jest.mock("@/lib/llm-service", () => ({
+  getConfiguredLLMProvider: jest.fn((modelId?: string) => ({
+    name: "openai",
+    apiKey: "test-key",
+    model: modelId || "gpt-4.1-mini",
+    baseURL: "https://api.openai.com/v1",
+  })),
+}));
+
 import path from "path";
 
 import { compileAgent } from "../mastra/compiler/compile-agent";
@@ -55,6 +64,9 @@ describe("mastra compiler", () => {
       "manual_review_handoff",
       "complete",
     ]);
+    expect(compiled.runtimeSubstages).toEqual({
+      segment_scripting: ["validation"],
+    });
     expect(compiled.workflow.id).toBe("script-production");
   });
 });

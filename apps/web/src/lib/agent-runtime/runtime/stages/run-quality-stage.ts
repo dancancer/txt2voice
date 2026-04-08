@@ -4,13 +4,25 @@ import path from "path";
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type { QualityVerdict, SegmentScriptDraft, ValidationReport } from "../../context";
 import type { StageExecutor } from "../executor-policy";
-import { loadSkillDefinition } from "../../registry";
 import {
   createQualityJudgeAgent,
   type QualitySignals,
 } from "../agents/quality-judge-agent";
+import {
+  renderQualityJudgeUserPrompt,
+  stringifyQualityPromptJson,
+} from "../agents/quality-judge-agent";
+import { validateAgentContract } from "../agent-contract";
+import { loadSkillRuntimeBundle } from "../load-skill-runtime-bundle";
+import { summarizePromptArtifact } from "../prompt-artifact-summary";
+import { fitPromptToBudget, resolvePromptBudgetLimit } from "../prompt-budget";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
+import {
+  buildSkillMetadataSnapshot,
+  type SkillMetadataSnapshot,
+} from "../script-production-runtime-helpers";
+import { validateSkillContract } from "../skill-contract";
 import type { TraceDependencies } from "../write-trace";
 
 interface QualityStageRuntimeDeps {
@@ -75,6 +87,7 @@ interface RunQualityStageCompletedResult {
   decision: QualityStageDecision;
   verdict: QualityVerdict;
   handoff?: QualityReviewHandoff;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunQualityStageNonCompletedResult {
@@ -134,19 +147,6 @@ const resolveWorkspaceRoot = (workspaceRoot?: string): string => {
   return process.cwd();
 };
 
-const readRequiredFile = (filePath: string): string => {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Missing required file: ${filePath}`);
-  }
-
-  return fs.readFileSync(filePath, "utf8");
-};
-
-const loadQualityPrompts = (skillDir: string) => ({
-  systemPrompt: readRequiredFile(path.join(skillDir, "prompts/system.md")),
-  userPrompt: readRequiredFile(path.join(skillDir, "prompts/user.md")),
-});
-
 const resolveQualitySkillSource = (params: {
   workspaceRoot?: string;
   skillDir?: string;
@@ -183,53 +183,6 @@ const resolveAdapter = async (adapter?: LLMAdapter): Promise<LLMAdapter> => {
 
   const { createDefaultLLMAdapter } = await import("../../adapters/llm-adapter");
   return createDefaultLLMAdapter();
-};
-
-const assertSkillCompatibleWithAgent = (
-  skillId: string,
-  compatibleAgents: string[],
-  agentId: string
-) => {
-  if (compatibleAgents.includes(agentId)) {
-    return;
-  }
-
-  throw new Error(`Skill ${skillId} is not compatible with ${agentId}`);
-};
-
-const assertSkillContract = (definition: {
-  id: string;
-  contextRequirements: string[];
-  toolAllowlist: string[];
-  outputSchemaRef: string;
-}) => {
-  const expectedRequirements = new Set([
-    "segment_script_draft",
-    "validation_report",
-    "quality_signals",
-    "failed_artifact",
-  ]);
-
-  if (
-    definition.contextRequirements.length !== expectedRequirements.size ||
-    definition.contextRequirements.some(
-      (requirement) => !expectedRequirements.has(requirement)
-    )
-  ) {
-    throw new Error(
-      `Skill ${definition.id} has unsupported contextRequirements: expected ["segment_script_draft", "validation_report", "quality_signals", "failed_artifact"]`
-    );
-  }
-
-  if (definition.toolAllowlist.length > 0) {
-    throw new Error(`Skill ${definition.id} must declare empty toolAllowlist`);
-  }
-
-  if (definition.outputSchemaRef !== "quality-verdict") {
-    throw new Error(
-      `Skill ${definition.id} has unsupported outputSchemaRef: expected "quality-verdict"`
-    );
-  }
 };
 
 const normalizeIssueReason = (issue: ValidationReport["issues"][number]): string =>
@@ -355,6 +308,10 @@ export const runQualityStageNative = async (
   input: RunQualityStageInput
 ): Promise<RunQualityStageResult> => {
   const runtimeAgentId = "quality-judge-agent";
+  const promptBudget = {
+    maxContextChars: 5000,
+    reservedOutputChars: 1200,
+  } as const;
 
   const stageResult = await runStage({
     workflowRunId: input.workflowRunId,
@@ -375,22 +332,86 @@ export const runQualityStageNative = async (
               output: deterministicDecision,
             };
           }
-
           const skillSource = resolveQualitySkillSource({
             workspaceRoot: input.workspaceRoot,
             skillDir: input.skillDir,
           });
-          const skill = loadSkillDefinition(
+          const skill = loadSkillRuntimeBundle(
             skillSource.workspaceRoot,
             skillSource.skillId
           );
-          assertSkillCompatibleWithAgent(
-            skill.definition.id,
-            skill.definition.compatibleAgents,
-            runtimeAgentId
+          validateAgentContract({
+            workspaceRoot: skillSource.workspaceRoot,
+            agentSourceId: "quality-judge",
+            stageId: "quality_judgement",
+            skill: skill.definition,
+            registeredTools: [],
+          });
+          validateSkillContract({
+            skill: skill.definition,
+            agentId: runtimeAgentId,
+            expectedContextRequirements: [
+              "segment_script_draft",
+              "validation_report",
+              "quality_signals",
+              "failed_artifact",
+            ],
+            expectedOutputSchemaRef: "quality-verdict",
+          });
+          const failedArtifactSummary = summarizePromptArtifact(
+            input.failedArtifact
           );
-          assertSkillContract(skill.definition);
-          const prompts = loadQualityPrompts(skillSource.skillDir);
+          const promptBudgetResult = fitPromptToBudget({
+            systemPrompt: skill.systemPrompt,
+            maxPromptChars: resolvePromptBudgetLimit(promptBudget),
+            variables: {
+              segment_script_draft_json: stringifyQualityPromptJson(
+                input.segmentScriptDraft
+              ),
+              validation_report_json: stringifyQualityPromptJson(
+                input.validationReport
+              ),
+              quality_signals_json: stringifyQualityPromptJson(
+                input.qualitySignals ?? {}
+              ),
+              failed_artifact_json: stringifyQualityPromptJson(
+                failedArtifactSummary
+              ),
+            },
+            trimOrder: ["failed_artifact_json"],
+            renderPrompt: (variables) =>
+              skill.userPrompt
+                .split("{{segment_script_draft_json}}")
+                .join(variables.segment_script_draft_json)
+                .split("{{validation_report_json}}")
+                .join(variables.validation_report_json)
+                .split("{{quality_signals_json}}")
+                .join(variables.quality_signals_json)
+                .split("{{failed_artifact_json}}")
+                .join(variables.failed_artifact_json),
+          });
+          if (promptBudgetResult.overBudget) {
+            return {
+              status: "completed",
+              output: {
+                decision: "manual_review_required",
+                verdict: {
+                  segmentId: input.segmentId,
+                  verdict: "manual_review",
+                  score: 0,
+                  reasons: ["quality_prompt_over_budget"],
+                },
+                handoff: createManualReviewHandoff({
+                  segmentId: input.segmentId,
+                  summary: "quality_prompt_over_budget",
+                  reasons: ["quality_prompt_over_budget"],
+                  score: 0,
+                  confidence: 0,
+                  validationReport: input.validationReport,
+                }),
+              },
+            };
+          }
           const adapter = await resolveAdapter(input.adapter);
           const agent = createQualityJudgeAgent({
             adapter,
@@ -400,9 +421,17 @@ export const runQualityStageNative = async (
             segmentScriptDraft: input.segmentScriptDraft,
             validationReport: input.validationReport,
             qualitySignals: input.qualitySignals,
-            failedArtifact: input.failedArtifact,
-            prompts,
+            failedArtifact:
+              failedArtifactSummary ??
+              input.failedArtifact ??
+              null,
+            modelPolicy: skill.definition.modelPolicy!,
+            prompts: {
+              systemPrompt: skill.systemPrompt,
+              userPrompt: skill.userPrompt,
+            },
           });
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
           const decision = resolveSemanticDecision({
             segmentId: input.segmentId,
             verdict: result.verdict,
@@ -414,7 +443,10 @@ export const runQualityStageNative = async (
 
           return {
             status: "completed",
-            output: decision,
+            output: {
+              ...decision,
+              skillMetadata,
+            },
           };
         },
       },
@@ -458,6 +490,8 @@ export const runQualityStageNative = async (
       fallbackVerdict,
     handoff: stageResult.agent.output
       ?.handoff as QualityReviewHandoff | undefined,
+    skillMetadata: stageResult.agent.output
+      ?.skillMetadata as SkillMetadataSnapshot | undefined,
   };
 };
 
@@ -481,9 +515,11 @@ export const runQualityStage = async (
 ): Promise<RunQualityStageResult> => {
   const runMastraQualityStage =
     input.runMastraQualityStage ??
-    (
-      await import("../../mastra/runtime/run-mastra-quality-stage")
-    ).runMastraQualityStage;
+    (async () => {
+      throw new Error(
+        "Mastra runtime is disabled for quality-judgement until an independent executor path exists"
+      );
+    });
 
   if (input.executor === "mastra") {
     return runMastraQualityStage(input);

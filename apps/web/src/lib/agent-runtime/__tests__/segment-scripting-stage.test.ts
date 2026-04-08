@@ -35,12 +35,39 @@ const createScriptGenerationSkillFixture = (params?: {
   compatibleAgents?: string[];
   contextRequirements?: string[];
   toolAllowlist?: string[];
+  compatibleWorkflowStages?: string[];
+  allowedSkills?: string[];
+  allowedTools?: string[];
+  modelPolicy?: string;
 }) => {
   const skillId = params?.skillId ?? "script-generation";
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "segment-scripting-"));
+  const agentDir = path.join(fixtureRoot, "agents", "script-generation");
   const fixtureSkillDir = path.join(fixtureRoot, "skills", skillId);
 
+  fs.mkdirSync(agentDir, { recursive: true });
   fs.mkdirSync(path.join(fixtureSkillDir, "prompts"), { recursive: true });
+  fs.writeFileSync(
+    path.join(agentDir, "agent.toml"),
+    [
+      'id = "script-generation-agent"',
+      'version = "1"',
+      'role = "generate_segment_script_draft"',
+      `compatibleWorkflowStages = [${(params?.compatibleWorkflowStages ?? [
+        "segment_scripting",
+      ])
+        .map((stageId) => `"${stageId}"`)
+        .join(", ")}]`,
+      `allowedSkills = [${(params?.allowedSkills ?? [skillId])
+        .map((allowedSkillId) => `"${allowedSkillId}"`)
+        .join(", ")}]`,
+      `allowedTools = [${(params?.allowedTools ?? [])
+        .map((toolName) => `"${toolName}"`)
+        .join(", ")}]`,
+    ].join("\n"),
+    "utf8"
+  );
+  fs.writeFileSync(path.join(agentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
   fs.writeFileSync(
     path.join(fixtureSkillDir, "skill.toml"),
     [
@@ -60,6 +87,8 @@ const createScriptGenerationSkillFixture = (params?: {
       `toolAllowlist = [${(params?.toolAllowlist ?? [])
         .map((tool) => `"${tool}"`)
         .join(", ")}]`,
+      'promptBundle = ["prompts/system.md", "prompts/user.md"]',
+      `modelPolicy = "${params?.modelPolicy ?? "balanced"}"`,
     ].join("\n"),
     "utf8"
   );
@@ -107,6 +136,9 @@ describe("segment scripting stage", () => {
     expect(completed.artifact.kind).toBe("segment-script-draft");
     expect(completed.artifact.segmentScriptDraft.segmentId).toBe("segment-1");
     expect(completed.artifact.segmentScriptDraft.lines).toHaveLength(1);
+    expect((adapter.call as jest.Mock).mock.calls[0]?.[0]?.modelPolicy).toBe(
+      "balanced"
+    );
   });
 
   it("keeps required line fields in draft", async () => {
@@ -273,13 +305,22 @@ describe("segment scripting stage", () => {
 
     expect(result.status).toBe("completed");
     const completed = asCompletedResult(result);
-    expect(completed.artifact).toEqual({
-      kind: "segment-script-draft",
-      skillId: "script-generation",
-      segmentScriptDraft: expect.objectContaining({
-        segmentId: "segment-3",
-      }),
-    });
+    expect(completed.artifact).toEqual(
+      expect.objectContaining({
+        kind: "segment-script-draft",
+        skillId: "script-generation",
+        segmentScriptDraft: expect.objectContaining({
+          segmentId: "segment-3",
+        }),
+        skillMetadata: expect.objectContaining({
+          modelPolicy: "balanced",
+          telemetryTags: expect.arrayContaining([
+            "runtime",
+            "segment-scripting",
+          ]),
+        }),
+      })
+    );
     expect("scriptSentences" in completed).toBe(false);
     expect("persisted" in completed).toBe(false);
   });
@@ -316,7 +357,7 @@ describe("segment scripting stage", () => {
     expect(completed.artifact.skillId).toBe("script-generation-custom");
   });
 
-  it("does not inject character memory summary into prompt for current minimal contract", async () => {
+  it("injects character memory summary into prompt when known characters exist", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         lines: [
@@ -336,12 +377,28 @@ describe("segment scripting stage", () => {
       segmentId: "segment-no-memory-summary",
       segmentText: "宁采臣抬头。",
       skillDir,
+      characterMemory: {
+        canonicalIdentities: [
+          { id: "char-1", name: "宁采臣" },
+          { id: "char-2", name: "燕赤霞" },
+        ],
+        aliasEvidence: [
+          { alias: "宁公子", canonicalId: "char-1", source: "profile:char-1" },
+        ],
+        assertedFacts: {
+          "char-1": { role: "main" },
+        },
+        inferredHints: {
+          "char-2": { style: "冷峻" },
+        },
+      },
       adapter,
     });
 
     const call = (adapter.call as jest.Mock).mock.calls[0]?.[0];
-    expect(call.prompt).not.toContain("角色记忆摘要");
-    expect(call.prompt).not.toContain("{{character_memory_summary}}");
+    expect(call.prompt).toContain("角色记忆摘要");
+    expect(call.prompt).toContain("宁采臣");
+    expect(call.prompt).toContain("宁公子");
   });
 
   it("returns repairing when adapter returns non-json payload", async () => {

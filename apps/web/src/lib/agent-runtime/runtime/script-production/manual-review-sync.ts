@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { resolveScriptValidationSubtype } from "@/lib/script-validation-review";
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type { SegmentFailureDetail } from "./types";
 
 const MANUAL_REVIEW_ISSUE_TYPE = "SCRIPT_VALIDATION";
 const MANUAL_REVIEW_HIGH_PRIORITY_CODES = new Set([

@@ -9,10 +9,16 @@ import {
   type ValidationReport,
 } from "../../context";
 import type { StageExecutor } from "../executor-policy";
-import { loadSkillDefinition } from "../../registry";
+import { validateAgentContract } from "../agent-contract";
 import { createRepairAgent } from "../agents/repair-agent";
+import { loadSkillRuntimeBundle } from "../load-skill-runtime-bundle";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
+import {
+  buildSkillMetadataSnapshot,
+  type SkillMetadataSnapshot,
+} from "../script-production-runtime-helpers";
+import { validateSkillContract } from "../skill-contract";
 import type { TraceDependencies } from "../write-trace";
 
 interface SegmentRepairRuntimeDeps {
@@ -62,6 +68,7 @@ export interface SegmentRepairArtifact {
   kind: "segment-script-draft";
   skillId: string;
   segmentScriptDraft: SegmentScriptDraft;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunSegmentRepairStageCompletedResult {
@@ -70,6 +77,7 @@ interface RunSegmentRepairStageCompletedResult {
   status: "completed";
   decision: RepairDecision;
   artifact?: SegmentRepairArtifact;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunSegmentRepairStageNonCompletedResult {
@@ -120,19 +128,6 @@ const resolveWorkspaceRoot = (workspaceRoot?: string): string => {
   return process.cwd();
 };
 
-const readRequiredFile = (filePath: string): string => {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Missing required file: ${filePath}`);
-  }
-
-  return fs.readFileSync(filePath, "utf8");
-};
-
-const loadRepairPrompts = (skillDir: string) => ({
-  systemPrompt: readRequiredFile(path.join(skillDir, "prompts/system.md")),
-  userPrompt: readRequiredFile(path.join(skillDir, "prompts/user.md")),
-});
-
 const resolveRepairSkillSource = (params: {
   workspaceRoot?: string;
   skillDir?: string;
@@ -169,47 +164,6 @@ const resolveAdapter = async (adapter?: LLMAdapter): Promise<LLMAdapter> => {
 
   const { createDefaultLLMAdapter } = await import("../../adapters/llm-adapter");
   return createDefaultLLMAdapter();
-};
-
-const assertSkillCompatibleWithAgent = (
-  skillId: string,
-  compatibleAgents: string[],
-  agentId: string
-) => {
-  if (compatibleAgents.includes(agentId)) {
-    return;
-  }
-
-  throw new Error(`Skill ${skillId} is not compatible with ${agentId}`);
-};
-
-const assertSkillContract = (definition: {
-  id: string;
-  contextRequirements: string[];
-  toolAllowlist: string[];
-  outputSchemaRef: string;
-}) => {
-  const expectedRequirements = new Set(["segment", "failed_artifact"]);
-  if (
-    definition.contextRequirements.length !== expectedRequirements.size ||
-    definition.contextRequirements.some(
-      (requirement) => !expectedRequirements.has(requirement)
-    )
-  ) {
-    throw new Error(
-      `Skill ${definition.id} has unsupported contextRequirements: expected ["segment", "failed_artifact"]`
-    );
-  }
-
-  if (definition.toolAllowlist.length > 0) {
-    throw new Error(`Skill ${definition.id} must declare empty toolAllowlist`);
-  }
-
-  if (definition.outputSchemaRef !== "segment-script-draft") {
-    throw new Error(
-      `Skill ${definition.id} has unsupported outputSchemaRef: expected "segment-script-draft"`
-    );
-  }
 };
 
 const createManualReviewDecision = (segmentId: string): RepairDecision => ({
@@ -284,17 +238,24 @@ export const runSegmentRepairStageNative = async (
             workspaceRoot: input.workspaceRoot,
             skillDir: input.skillDir,
           });
-          const skill = loadSkillDefinition(
+          const skill = loadSkillRuntimeBundle(
             skillSource.workspaceRoot,
             skillSource.skillId
           );
-          assertSkillCompatibleWithAgent(
-            skill.definition.id,
-            skill.definition.compatibleAgents,
-            runtimeAgentId
-          );
-          assertSkillContract(skill.definition);
-          const prompts = loadRepairPrompts(skillSource.skillDir);
+          validateAgentContract({
+            workspaceRoot: skillSource.workspaceRoot,
+            agentSourceId: "repair",
+            stageId: "segment_repair",
+            skill: skill.definition,
+            registeredTools: [],
+          });
+          validateSkillContract({
+            skill: skill.definition,
+            agentId: runtimeAgentId,
+            expectedContextRequirements: ["segment", "failed_artifact"],
+            expectedOutputSchemaRef: "segment-script-draft",
+          });
+
           const context = buildAgentContext({
             agentId: runtimeAgentId,
             segmentText: input.segmentText,
@@ -326,13 +287,19 @@ export const runSegmentRepairStageNative = async (
                 ? context.inputContext.segmentText
                 : "",
             failedArtifact: context.inputContext.failedArtifact,
-            prompts,
+            modelPolicy: skill.definition.modelPolicy!,
+            prompts: {
+              systemPrompt: skill.systemPrompt,
+              userPrompt: skill.userPrompt,
+            },
           });
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
 
           return {
             status: "completed",
             output: {
               skillId: skill.definition.id,
+              skillMetadata,
               decision: result.decision,
               repairedDraft: result.repairedDraft,
               provider: result.provider,
@@ -378,12 +345,16 @@ export const runSegmentRepairStageNative = async (
     agentRunId: stageResult.agent.runId,
     status: "completed",
     decision,
+    skillMetadata: stageResult.agent.output
+      ?.skillMetadata as SkillMetadataSnapshot | undefined,
     artifact:
       decision.action === "retry" && repairedDraft
         ? {
             kind: "segment-script-draft",
             skillId,
             segmentScriptDraft: repairedDraft,
+            skillMetadata: stageResult.agent.output
+              ?.skillMetadata as SkillMetadataSnapshot | undefined,
           }
         : undefined,
   };
@@ -409,9 +380,11 @@ export const runSegmentRepairStage = async (
 ): Promise<RunSegmentRepairStageResult> => {
   const runMastraSegmentRepairStage =
     input.runMastraSegmentRepairStage ??
-    (
-      await import("../../mastra/runtime/run-mastra-segment-repair")
-    ).runMastraSegmentRepair;
+    (async () => {
+      throw new Error(
+        "Mastra runtime is disabled for json-repair until an independent executor path exists"
+      );
+    });
 
   if (input.executor === "mastra") {
     return runMastraSegmentRepairStage(input);

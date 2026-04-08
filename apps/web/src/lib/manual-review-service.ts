@@ -24,11 +24,11 @@ import {
   resolveScriptValidationSubtype,
   SCRIPT_VALIDATION_ISSUE_TYPE,
 } from "@/lib/script-validation-review";
-import { resolveScriptGenerationOptions } from "@/lib/script-generator/options";
+import { resolveScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/options";
 import {
   buildSegmentProcessingResultFromStructuredResult,
-  persistSegmentResult,
-} from "@/lib/script-generator/pipeline/segment-processor";
+  persistSegmentProcessingResult,
+} from "@/lib/agent-runtime/runtime/script-production/manual-review-processor";
 import { hydrateManualReviewRuntimeDetails } from "@/lib/manual-review-runtime-recovery";
 
 export type ManualReviewStatus = "pending" | "reprocessing" | "resolved" | "rejected";
@@ -1535,7 +1535,7 @@ export const saveManualReviewScriptEdit = async ({
     options: resolveScriptGenerationOptions(),
   });
 
-  await persistSegmentResult({
+  await persistSegmentProcessingResult({
     bookId,
     segmentId: item.segmentId,
     result: segmentResult,

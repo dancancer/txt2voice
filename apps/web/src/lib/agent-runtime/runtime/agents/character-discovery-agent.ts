@@ -13,6 +13,7 @@ export interface CharacterDiscoveryPrompts {
 export interface CharacterDiscoveryAgentInput {
   segmentText: string;
   characterMemorySummary: string;
+  modelPolicy: string;
   prompts: CharacterDiscoveryPrompts;
 }
 
@@ -311,7 +312,7 @@ const mapResponseToMemoryPatch = (content: string): MemoryPatch => {
   };
 };
 
-const renderUserPrompt = (
+export const renderCharacterDiscoveryUserPrompt = (
   template: string,
   params: { segmentText: string; characterMemorySummary: string }
 ) =>
@@ -329,10 +330,11 @@ export const createCharacterDiscoveryAgent = (
   ): Promise<CharacterDiscoveryAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
+      prompt: renderCharacterDiscoveryUserPrompt(input.prompts.userPrompt, {
         segmentText: input.segmentText,
         characterMemorySummary: input.characterMemorySummary,
       }),
+      modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.character_discovery",
         stageId: "character_discovery",

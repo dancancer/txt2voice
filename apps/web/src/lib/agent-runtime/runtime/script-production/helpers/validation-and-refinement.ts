@@ -1,6 +1,6 @@
-import { refineFailedSegment } from "@/lib/script-generator/pipeline/refinement/failed-segment-refinement";
-import { validateSegmentScript } from "@/lib/script-generator/pipeline/segment-script-validator";
-import type { SegmentSummary } from "@/lib/script-generator/types";
+import { refineFailedSegment } from "./failed-segment-refinement";
+import { validateSegmentScript } from "./segment-script-validator";
+import type { SegmentSummary } from "../types";
 import type { SegmentScriptDraft, ValidationReport } from "../../../context";
 import {
   checkScriptCoverage,

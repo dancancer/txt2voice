@@ -1,3 +1,5 @@
+import fs from "fs";
+import os from "os";
 import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
@@ -29,6 +31,77 @@ const createMockAdapter = (): LLMAdapter => ({
 });
 
 describe("production prompt guardrails", () => {
+  it("loads prompts from promptBundle instead of fixed prompts directory", async () => {
+    const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "prompt-bundle-"));
+    const fixtureAgentDir = path.join(
+      fixtureRoot,
+      "agents",
+      "script-generation"
+    );
+    const fixtureSkillDir = path.join(
+      fixtureRoot,
+      "skills",
+      "script-generation"
+    );
+    const bundleDir = path.join(fixtureSkillDir, "bundle");
+
+    fs.mkdirSync(fixtureAgentDir, { recursive: true });
+    fs.mkdirSync(bundleDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(fixtureAgentDir, "agent.toml"),
+      [
+        'id = "script-generation-agent"',
+        'version = "1"',
+        'role = "generate_segment_script_draft"',
+        'compatibleWorkflowStages = ["segment_scripting"]',
+        'allowedSkills = ["script-generation"]',
+        "allowedTools = []",
+      ].join("\n"),
+      "utf8"
+    );
+    fs.writeFileSync(path.join(fixtureAgentDir, "AGENT.md"), "# Fixture Agent\n", "utf8");
+    fs.writeFileSync(
+      path.join(fixtureSkillDir, "skill.toml"),
+      [
+        'id = "script-generation"',
+        'version = "1"',
+        'kind = "generation"',
+        'compatibleAgents = ["script-generation-agent"]',
+        'inputSchemaRef = "segment-script-input"',
+        'outputSchemaRef = "segment-script-draft"',
+        'contextRequirements = ["segment"]',
+        "toolAllowlist = []",
+        'promptBundle = ["bundle/system.md", "bundle/user.md"]',
+      ].join("\n"),
+      "utf8"
+    );
+    fs.writeFileSync(path.join(fixtureSkillDir, "SKILL.md"), "# Fixture\n", "utf8");
+    fs.writeFileSync(path.join(bundleDir, "system.md"), "bundle system", "utf8");
+    fs.writeFileSync(
+      path.join(bundleDir, "user.md"),
+      "bundle user {{segment_text}}",
+      "utf8"
+    );
+
+    const adapter = createMockAdapter();
+
+    await runSegmentScriptingStage({
+      workflowRunId: "wf-script-prompt-bundle",
+      segmentId: "segment-script-prompt-bundle",
+      segmentText: "宁采臣抬头。",
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      systemPrompt: string;
+      prompt: string;
+    };
+
+    expect(call.systemPrompt).toContain("bundle system");
+    expect(call.prompt).toContain("bundle user 宁采臣抬头。");
+  });
+
   it("script-generation prompt carries anti-rewrite and source-alignment rules", async () => {
     const adapter = createMockAdapter();
 

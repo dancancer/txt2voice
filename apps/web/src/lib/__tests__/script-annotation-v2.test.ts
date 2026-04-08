@@ -1,4 +1,4 @@
-import { normalizeEmotionLabel } from "../script-generator/storage/persistence";
+import { normalizeEmotionLabel } from "../agent-runtime/runtime/script-production/storage/persistence";
 
 describe("annotation v2 emotion normalization", () => {
   it("maps known chinese and english tone aliases", () => {

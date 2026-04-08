@@ -1,11 +1,11 @@
-import { resolveScriptLineText } from "@/lib/script-generator/pipeline/segment-script-validator";
+import { resolveScriptLineText } from "./segment-script-validator";
 import {
   hasReportReadingCue,
   hasSpeechAttributionCue,
   isDisplayTextCue,
   looksLikeColonAttribution,
   looksLikeGenericDaoAttribution,
-} from "@/lib/script-generator/pipeline/dialogue-attribution-heuristics";
+} from "./dialogue-attribution-heuristics";
 import type { SegmentScriptDraft, SegmentScriptDraftLine } from "../../../context";
 
 const normalizeComparableText = (value: string): string =>

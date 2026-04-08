@@ -1,4 +1,4 @@
-export type StageExecutor = "native" | "mastra";
+export type StageExecutor = "native" | "mastra" | "mastra-disabled";
 
 type RuntimeEnv = Record<string, string | undefined>;
 
@@ -13,6 +13,9 @@ const parseStageAllowlist = (value: string | undefined): Set<string> =>
 const parseBooleanFlag = (value: string | undefined): boolean =>
   value === "1" || value === "true";
 
+const isRealMastraRuntimeEnabled = (env: RuntimeEnv): boolean =>
+  parseBooleanFlag(env.AGENT_RUNTIME_ENABLE_REAL_MASTRA);
+
 const getExecutorMode = (env: RuntimeEnv): StageExecutor =>
   env.AGENT_RUNTIME_EXECUTOR === "mastra" ? "mastra" : "native";
 
@@ -26,9 +29,12 @@ export const resolveStageExecutor = (params: {
   }
 
   return parseStageAllowlist(env.AGENT_RUNTIME_MASTRA_STAGES).has(params.stageId)
-    ? "mastra"
+    ? isRealMastraRuntimeEnabled(env)
+      ? "mastra"
+      : "mastra-disabled"
     : "native";
 };
 
 export const isMastraShadowModeEnabled = (env: RuntimeEnv = process.env) =>
+  isRealMastraRuntimeEnabled(env) &&
   parseBooleanFlag(env.AGENT_RUNTIME_MASTRA_SHADOW_MODE);

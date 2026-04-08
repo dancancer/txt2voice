@@ -1,7 +1,9 @@
 import { loadAgentDefinition } from "../../registry";
+import { getConfiguredLLMProvider } from "@/lib/llm-service";
 import type { AgentDefinition } from "../../protocol";
 import { compileSkill, type CompiledMastraSkill } from "./compile-skill";
 import { ensureMastraWebGlobals } from "../shared/ensure-mastra-web-globals";
+import { resolveLLMExecutionPolicy } from "../../runtime/model-policy";
 
 type MastraAgentInstance = InstanceType<typeof import("@mastra/core/agent").Agent>;
 
@@ -19,6 +21,8 @@ export const compileAgent = (
   const loadedAgent = loadAgentDefinition(rootDir, agentId);
   const primarySkillId = loadedAgent.definition.allowedSkills[0];
   const skill = compileSkill(rootDir, primarySkillId);
+  const policy = resolveLLMExecutionPolicy(skill.definition.modelPolicy);
+  const provider = getConfiguredLLMProvider(policy.modelId);
   ensureMastraWebGlobals();
   const { Agent } = require("@mastra/core/agent") as typeof import("@mastra/core/agent");
 
@@ -32,7 +36,7 @@ export const compileAgent = (
       instructions: [loadedAgent.instructions, skill.mastraInstructions]
         .filter((entry) => entry.trim().length > 0)
         .join("\n\n"),
-      model: "openai:gpt-4.1-mini",
+      model: `${provider.name}:${provider.model}`,
     }),
   };
 };

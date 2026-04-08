@@ -35,10 +35,13 @@ jest.mock("@/lib/processing-task-utils", () => ({
   mergeTaskData: jest.fn(),
 }));
 
-jest.mock("@/lib/script-generator/pipeline/segment-processor", () => ({
+jest.mock(
+  "@/lib/agent-runtime/runtime/script-production/manual-review-processor",
+  () => ({
   buildSegmentProcessingResultFromStructuredResult: jest.fn(),
-  persistSegmentResult: jest.fn(),
-}));
+  persistSegmentProcessingResult: jest.fn(),
+})
+);
 
 import prisma from "@/lib/prisma";
 import { ValidationError } from "@/lib/error-handler";
@@ -49,8 +52,8 @@ import {
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import {
   buildSegmentProcessingResultFromStructuredResult,
-  persistSegmentResult,
-} from "@/lib/script-generator/pipeline/segment-processor";
+  persistSegmentProcessingResult,
+} from "@/lib/agent-runtime/runtime/script-production/manual-review-processor";
 import {
   parseManualReviewBatchResolvePayload,
   listManualReviewItems,
@@ -85,9 +88,10 @@ const mockBuildSegmentProcessingResult =
   buildSegmentProcessingResultFromStructuredResult as jest.MockedFunction<
     typeof buildSegmentProcessingResultFromStructuredResult
   >;
-const mockPersistSegmentResult = persistSegmentResult as jest.MockedFunction<
-  typeof persistSegmentResult
->;
+const mockPersistSegmentResult =
+  persistSegmentProcessingResult as jest.MockedFunction<
+    typeof persistSegmentProcessingResult
+  >;
 
 const baseItem = (overrides: Record<string, unknown> = {}) => ({
   id: "review-1",

@@ -2,12 +2,22 @@ import fs from "fs";
 import path from "path";
 
 import type { LLMAdapter } from "../../adapters/llm-adapter";
-import { buildAgentContext, type SegmentScriptDraft } from "../../context";
+import {
+  buildAgentContext,
+  type CharacterMemory,
+  type SegmentScriptDraft,
+} from "../../context";
 import type { StageExecutor } from "../executor-policy";
-import { loadSkillDefinition } from "../../registry";
 import { createScriptGenerationAgent } from "../agents/script-generation-agent";
+import { validateAgentContract } from "../agent-contract";
+import { loadSkillRuntimeBundle } from "../load-skill-runtime-bundle";
 import type { AgentRunRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
+import {
+  buildSkillMetadataSnapshot,
+  type SkillMetadataSnapshot,
+} from "../script-production-runtime-helpers";
+import { validateSkillContract } from "../skill-contract";
 import type { TraceDependencies } from "../write-trace";
 
 interface SegmentScriptingRuntimeDeps {
@@ -28,6 +38,7 @@ export interface RunSegmentScriptingStageInput
   segmentId: string;
   segmentText: string;
   fullBookText?: string;
+  characterMemory?: CharacterMemory;
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;
@@ -45,6 +56,7 @@ export interface SegmentScriptingArtifact {
   kind: "segment-script-draft";
   skillId: string;
   segmentScriptDraft: SegmentScriptDraft;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunSegmentScriptingStageCompletedResult {
@@ -101,19 +113,6 @@ const resolveWorkspaceRoot = (workspaceRoot?: string): string => {
   return process.cwd();
 };
 
-const readRequiredFile = (filePath: string): string => {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Missing required file: ${filePath}`);
-  }
-
-  return fs.readFileSync(filePath, "utf8");
-};
-
-const loadScriptGenerationPrompts = (skillDir: string) => ({
-  systemPrompt: readRequiredFile(path.join(skillDir, "prompts/system.md")),
-  userPrompt: readRequiredFile(path.join(skillDir, "prompts/user.md")),
-});
-
 const resolveScriptGenerationSkillSource = (params: {
   workspaceRoot?: string;
   skillDir?: string;
@@ -150,37 +149,6 @@ const resolveAdapter = async (adapter?: LLMAdapter): Promise<LLMAdapter> => {
 
   const { createDefaultLLMAdapter } = await import("../../adapters/llm-adapter");
   return createDefaultLLMAdapter();
-};
-
-const assertSkillCompatibleWithAgent = (
-  skillId: string,
-  compatibleAgents: string[],
-  agentId: string
-) => {
-  if (compatibleAgents.includes(agentId)) {
-    return;
-  }
-
-  throw new Error(`Skill ${skillId} is not compatible with ${agentId}`);
-};
-
-const assertSkillContract = (definition: {
-  id: string;
-  contextRequirements: string[];
-  toolAllowlist: string[];
-}) => {
-  const hasExpectedContextRequirements =
-    definition.contextRequirements.length === 1 &&
-    definition.contextRequirements[0] === "segment";
-  if (!hasExpectedContextRequirements) {
-    throw new Error(
-      `Skill ${definition.id} has unsupported contextRequirements: expected ["segment"]`
-    );
-  }
-
-  if (definition.toolAllowlist.length > 0) {
-    throw new Error(`Skill ${definition.id} must declare empty toolAllowlist`);
-  }
 };
 
 const asErrorMessage = (error: unknown): string => {
@@ -224,21 +192,28 @@ export const runSegmentScriptingStageNative = async (
             workspaceRoot: input.workspaceRoot,
             skillDir: input.skillDir,
           });
-          const skill = loadSkillDefinition(
+          const skill = loadSkillRuntimeBundle(
             skillSource.workspaceRoot,
             skillSource.skillId
           );
-          assertSkillCompatibleWithAgent(
-            skill.definition.id,
-            skill.definition.compatibleAgents,
-            runtimeAgentId
-          );
-          assertSkillContract(skill.definition);
-          const prompts = loadScriptGenerationPrompts(skillSource.skillDir);
+          validateAgentContract({
+            workspaceRoot: skillSource.workspaceRoot,
+            agentSourceId: "script-generation",
+            stageId: "segment_scripting",
+            skill: skill.definition,
+            registeredTools: [],
+          });
+          validateSkillContract({
+            skill: skill.definition,
+            agentId: runtimeAgentId,
+            expectedContextRequirements: ["segment"],
+            expectedOutputSchemaRef: "segment-script-draft",
+          });
           const context = buildAgentContext({
             agentId: runtimeAgentId,
             segmentText: input.segmentText,
             fullBookText: input.fullBookText,
+            characterMemory: input.characterMemory,
             budget: {
               maxContextChars: 4000,
               reservedOutputChars: 1200,
@@ -259,13 +234,21 @@ export const runSegmentScriptingStageNative = async (
               typeof context.inputContext.segmentText === "string"
                 ? context.inputContext.segmentText
                 : "",
-            prompts,
+            characterMemorySummary:
+              context.referenceMemory.characterMemorySummary,
+            modelPolicy: skill.definition.modelPolicy!,
+            prompts: {
+              systemPrompt: skill.systemPrompt,
+              userPrompt: skill.userPrompt,
+            },
           });
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
 
           return {
             status: "completed",
             output: {
               skillId: skill.definition.id,
+              skillMetadata,
               segmentScriptDraft: result.segmentScriptDraft,
               provider: result.provider,
               model: result.model,
@@ -304,12 +287,14 @@ export const runSegmentScriptingStageNative = async (
     stageRunId: stageResult.id,
     agentRunId: stageResult.agent.runId,
     status: "completed",
-    artifact: {
-      kind: "segment-script-draft",
-      skillId,
-      segmentScriptDraft,
-    },
-  };
+      artifact: {
+        kind: "segment-script-draft",
+        skillId,
+        segmentScriptDraft,
+        skillMetadata: stageResult.agent.output
+          ?.skillMetadata as SkillMetadataSnapshot | undefined,
+      },
+    };
 };
 
 const buildShadowInput = (
@@ -330,9 +315,11 @@ export const runSegmentScriptingStage = async (
 ): Promise<RunSegmentScriptingStageResult> => {
   const runMastraSegmentScriptingStage =
     input.runMastraSegmentScriptingStage ??
-    (
-      await import("../../mastra/runtime/run-mastra-segment-scripting")
-    ).runMastraSegmentScripting;
+    (async () => {
+      throw new Error(
+        "Mastra runtime is disabled for script-generation until an independent executor path exists"
+      );
+    });
 
   if (input.executor === "mastra") {
     return runMastraSegmentScriptingStage(input);

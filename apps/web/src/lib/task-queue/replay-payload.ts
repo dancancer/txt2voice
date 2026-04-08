@@ -9,7 +9,7 @@ import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
 import type { QualitySignalSyncTaskType } from "@/lib/quality-signal-sync-runner";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
+import type { ScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/types";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 
 export type QueueTaskType =

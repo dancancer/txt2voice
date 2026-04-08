@@ -43,12 +43,14 @@ const summarizeCharacterMemory = (memory?: CharacterMemory): string => {
   }
 
   const names = memory.canonicalIdentities.map((item) => item.name).join(", ");
+  const aliases = memory.aliasEvidence.map((item) => item.alias).join(", ");
   const aliasCount = memory.aliasEvidence.length;
   const assertedCount = Object.keys(memory.assertedFacts).length;
   const inferredCount = Object.keys(memory.inferredHints).length;
 
   return [
     `names:${names}`,
+    `aliases:${aliases}`,
     `aliasCount:${aliasCount}`,
     `assertedCount:${assertedCount}`,
     `inferredCount:${inferredCount}`,

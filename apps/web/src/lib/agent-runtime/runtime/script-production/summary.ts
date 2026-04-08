@@ -2,16 +2,16 @@ import type {
   DialogueLine,
   ScriptGenerationSummary,
   SegmentFailureDetail,
-} from "../types";
+} from "./types";
 
-export function calculateScriptSummary(
+export const calculateScriptSummary = (
   dialogueLines: DialogueLine[],
   options?: {
     totalSegments?: number;
     failedSegmentIds?: string[];
     failedSegmentDetails?: SegmentFailureDetail[];
   }
-): ScriptGenerationSummary {
+): ScriptGenerationSummary => {
   const failedSegmentIds = options?.failedSegmentIds || [];
   const failedSegmentDetails = options?.failedSegmentDetails || [];
   const totalSegments =
@@ -47,4 +47,4 @@ export function calculateScriptSummary(
   }
 
   return summary;
-}
+};

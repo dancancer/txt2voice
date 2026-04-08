@@ -1,5 +1,6 @@
 import type { ExecutionEvent } from "../../../protocol/events";
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type { SkillDefinition } from "../../../protocol";
+import type { SegmentFailureDetail } from "../types";
 import type {
   ScriptProductionWorkflowMode,
   ScriptProductionBookSegment,
@@ -30,6 +31,16 @@ export interface ScriptProductionWorkflowSummary {
     pending: number;
     resolved: number;
   };
+  stageSkillMetadata?: Record<string, SkillMetadataSnapshot>;
+}
+
+export interface SkillMetadataSnapshot {
+  promptBundle?: string[];
+  promptFingerprint?: string;
+  modelPolicy?: string | null;
+  repairPolicy?: string | null;
+  successCriteria?: string[];
+  telemetryTags?: string[];
 }
 
 export interface ScriptProductionRuntimeMetadata {
@@ -47,6 +58,28 @@ export interface ScriptProductionRuntimeMetadata {
 
 export const createRuntimeId = () =>
   `workflow-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+
+export const buildSkillMetadataSnapshot = (
+  definition: Pick<
+    SkillDefinition,
+    | "promptBundle"
+    | "modelPolicy"
+    | "repairPolicy"
+    | "successCriteria"
+    | "telemetryTags"
+  >
+): SkillMetadataSnapshot => ({
+  ...(Array.isArray(definition.promptBundle)
+    ? {
+        promptBundle: [...definition.promptBundle],
+        promptFingerprint: definition.promptBundle.join("|"),
+      }
+    : {}),
+  modelPolicy: definition.modelPolicy ?? null,
+  repairPolicy: definition.repairPolicy ?? null,
+  successCriteria: [...(definition.successCriteria ?? [])],
+  telemetryTags: [...(definition.telemetryTags ?? [])],
+});
 
 export const asErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
@@ -226,6 +259,7 @@ export const buildWorkflowSummary = (params: {
     pending: number;
     resolved: number;
   };
+  stageSkillMetadata?: Record<string, SkillMetadataSnapshot>;
 }): ScriptProductionWorkflowSummary => {
   const durationMs = Math.max(
     new Date(params.completedAt).getTime() - new Date(params.startedAt).getTime(),
@@ -250,6 +284,7 @@ export const buildWorkflowSummary = (params: {
     durationMs,
     segmentOutcomeIndex: params.segmentOutcomeIndex,
     manualReviewSync: params.manualReviewSync,
+    stageSkillMetadata: params.stageSkillMetadata,
   };
 };
 

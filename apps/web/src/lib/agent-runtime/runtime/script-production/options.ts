@@ -9,11 +9,9 @@ export const DEFAULT_SCRIPT_GENERATION_OPTIONS: ScriptGenerationOptions = {
   preserveOriginalBreaks: true,
 };
 
-export function resolveScriptGenerationOptions(
+export const resolveScriptGenerationOptions = (
   options: Partial<ScriptGenerationOptions> = {}
-): ScriptGenerationOptions {
-  return {
-    ...DEFAULT_SCRIPT_GENERATION_OPTIONS,
-    ...options,
-  };
-}
+): ScriptGenerationOptions => ({
+  ...DEFAULT_SCRIPT_GENERATION_OPTIONS,
+  ...options,
+});

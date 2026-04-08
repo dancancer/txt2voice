@@ -1,4 +1,4 @@
-import { mapSegmentScriptDraftToDialogueLines } from "@/lib/script-generator/storage/persistence";
+import { mapSegmentScriptDraftToDialogueLines } from "./storage/persistence";
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
 import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
 import {
@@ -60,9 +60,11 @@ export const finalizeSegment = async (params: {
     adapter: params.context.adapter,
     executor: params.context.executorPolicy?.qualityJudgement,
     shadowMode: params.context.executorPolicy?.shadowModeEnabled,
-    onShadowResult: async (result) => {
-      qualityShadowResult = result;
-    },
+    onShadowResult: params.context.executorPolicy?.shadowModeEnabled
+      ? async (result) => {
+          qualityShadowResult = result;
+        }
+      : undefined,
     createId: params.context.createId,
     now: params.context.now,
     createStageRun: params.context.createStageRun,
@@ -89,6 +91,7 @@ export const finalizeSegment = async (params: {
               verdict: qualityStage.verdict.verdict,
               score: qualityStage.verdict.score,
               coverageRatio: params.validationReport.coverageRatio,
+              skillMetadata: qualityStage.skillMetadata,
             }
           : {
               errorCode: "QUALITY_STAGE_FAILED",
@@ -109,6 +112,7 @@ export const finalizeSegment = async (params: {
         qualityStage.status === "completed"
           ? {
               decision: qualityStage.decision,
+              skillMetadata: qualityStage.skillMetadata,
             }
           : undefined,
       error:
@@ -156,6 +160,7 @@ export const finalizeSegment = async (params: {
         decision: qualityStage.decision,
         verdict: qualityStage.verdict,
         handoff: qualityStage.handoff,
+        skillMetadata: qualityStage.skillMetadata,
       },
       createdAt: (params.context.now ?? (() => new Date()))(),
     });

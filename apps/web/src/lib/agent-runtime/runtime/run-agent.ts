@@ -1,5 +1,6 @@
 import type { TraceDependencies } from "./write-trace";
 import { writeTrace } from "./write-trace";
+import { isToolAllowed } from "../tools/contracts";
 
 export type AgentRetryDirective = "retrying" | "repairing";
 export type AgentFailureStatus = "failed" | AgentRetryDirective;
@@ -67,6 +68,7 @@ export type FailureResolver = (context: {
 export interface RuntimeAgentDefinition {
   id: string;
   skillId?: string;
+  allowedToolNames?: string[];
   inputSummary?: Record<string, unknown>;
   getInputSummary?: (
     input: AgentExecutorInput
@@ -153,6 +155,16 @@ const buildToolCallRecorder = (params: {
   const resolvedAgentRunId = agentRunId;
 
   return async <T>(invocation: ToolCallInvocation<T>): Promise<T> => {
+    const allowedToolNames = params.input.agent.allowedToolNames;
+    if (
+      Array.isArray(allowedToolNames) &&
+      !isToolAllowed(allowedToolNames, invocation.toolName)
+    ) {
+      throw new Error(
+        `Tool ${invocation.toolName} is not allowed for agent ${params.input.agent.id}`
+      );
+    }
+
     const toolCallId = params.input.createId();
     const startedAt = (params.input.now ?? (() => new Date()))();
 
@@ -312,6 +324,7 @@ export const runAgent = async (input: RunAgentInput): Promise<RunAgentResult> =>
         agentId: input.agent.id,
         skillId: resolvedSkillId,
         stageId: input.stageId,
+        skillMetadata: execution.output?.skillMetadata,
       },
     });
   }

@@ -18,6 +18,7 @@ export interface QualityJudgeAgentInput {
   validationReport: ValidationReport;
   qualitySignals?: QualitySignals;
   failedArtifact?: unknown;
+  modelPolicy: string;
   prompts: QualityJudgePrompts;
 }
 
@@ -150,7 +151,7 @@ const toQualityJudgeResult = (params: {
   };
 };
 
-const stringifyJson = (value: unknown): string => {
+export const stringifyQualityPromptJson = (value: unknown): string => {
   try {
     return JSON.stringify(value, null, 2);
   } catch {
@@ -158,7 +159,7 @@ const stringifyJson = (value: unknown): string => {
   }
 };
 
-const renderUserPrompt = (
+export const renderQualityJudgeUserPrompt = (
   template: string,
   params: {
     segmentScriptDraft: SegmentScriptDraft;
@@ -169,24 +170,25 @@ const renderUserPrompt = (
 ) =>
   template
     .split("{{segment_script_draft_json}}")
-    .join(stringifyJson(params.segmentScriptDraft))
+    .join(stringifyQualityPromptJson(params.segmentScriptDraft))
     .split("{{validation_report_json}}")
-    .join(stringifyJson(params.validationReport))
+    .join(stringifyQualityPromptJson(params.validationReport))
     .split("{{quality_signals_json}}")
-    .join(stringifyJson(params.qualitySignals ?? {}))
+    .join(stringifyQualityPromptJson(params.qualitySignals ?? {}))
     .split("{{failed_artifact_json}}")
-    .join(stringifyJson(params.failedArtifact ?? null));
+    .join(stringifyQualityPromptJson(params.failedArtifact ?? null));
 
 export const createQualityJudgeAgent = (deps: QualityJudgeAgentDeps) => ({
   async execute(input: QualityJudgeAgentInput): Promise<QualityJudgeAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
+      prompt: renderQualityJudgeUserPrompt(input.prompts.userPrompt, {
         segmentScriptDraft: input.segmentScriptDraft,
         validationReport: input.validationReport,
         qualitySignals: input.qualitySignals,
         failedArtifact: input.failedArtifact,
       }),
+      modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.quality_judgement",
         stageId: "quality_judgement",

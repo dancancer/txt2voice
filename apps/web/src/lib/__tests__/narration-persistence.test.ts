@@ -6,7 +6,7 @@ jest.mock("@/lib/prisma", () => ({
 }));
 
 import prisma from "@/lib/prisma";
-import { saveScriptToDatabase } from "@/lib/script-generator/storage/persistence";
+import { saveScriptToDatabase } from "@/lib/agent-runtime/runtime/script-production/storage/persistence";
 
 const mockPrisma = prisma as unknown as {
   $transaction: jest.Mock;

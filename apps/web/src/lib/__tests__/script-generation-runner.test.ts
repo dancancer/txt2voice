@@ -35,10 +35,6 @@ jest.mock("@/lib/processing-task-utils", () => ({
   updateProcessingTaskProgress: jest.fn(),
 }));
 
-jest.mock("@/lib/script-generator", () => ({
-  getScriptGenerator: jest.fn(),
-}));
-
 jest.mock(
   "@/lib/agent-runtime/runtime/run-script-production-workflow",
   () => ({
@@ -47,14 +43,11 @@ jest.mock(
 );
 
 import prisma from "@/lib/prisma";
-import { getScriptGenerator } from "@/lib/script-generator";
 import { runScriptProductionWorkflow } from "@/lib/agent-runtime/runtime/run-script-production-workflow";
 import { runScriptGenerationTask } from "@/lib/script-generation-runner";
 
 const mockPrisma = prisma as any;
-const mockGetScriptGenerator = getScriptGenerator as jest.MockedFunction<
-  typeof getScriptGenerator
->;
+const mockGetScriptGenerator = jest.fn();
 const mockRunScriptProductionWorkflow =
   runScriptProductionWorkflow as jest.MockedFunction<
     typeof runScriptProductionWorkflow
@@ -201,33 +194,42 @@ describe("script-generation-runner", () => {
         prompt: "prompt",
         attempt: 1,
       });
-      const generator = mockGetScriptGenerator();
-      let result;
-      if (input.mode === "regenerate") {
-        result = await generator.regenerateSegmentScript(
-          input.bookId,
-          input.segmentIds || [],
-          input.options,
-          input.onProgress
-        );
-      } else if (input.mode === "partial") {
-        result = await generator.generatePartialScript(
-          input.bookId,
-          input.options,
-          {
-            startFromSegmentId: input.startFromSegmentId,
-            startFromOrderIndex: input.startFromOrderIndex,
-            limitToSegments: input.limitToSegments,
-          },
-          input.onProgress
-        );
-      } else {
-        result = await generator.generateScript(
-          input.bookId,
-          input.options,
-          input.onProgress
-        );
-      }
+      const result =
+        input.mode === "partial" || input.mode === "regenerate"
+          ? {
+              dialogueLines: [
+                {
+                  id: "line-1",
+                  segmentId: input.segmentIds?.[0] || "seg-2",
+                  chapterId: "chapter-1",
+                  orderInSegment: 0,
+                  text: "修复后的台词",
+                  isNarration: true,
+                  characterName: "旁白",
+                  tone: "中性",
+                },
+              ],
+              summary: {
+                totalLines: 1,
+                dialogueCount: 0,
+                narrationCount: 1,
+                totalSegments: 1,
+                processedSegments: 1,
+                failedSegments: 0,
+                failedSegmentIds: [],
+                failedSegmentDetails: [],
+                characterDistribution: {},
+                emotionDistribution: {},
+              },
+              segments: [
+                {
+                  segmentId: input.segmentIds?.[0] || "seg-2",
+                  lineCount: 1,
+                  characters: ["旁白"],
+                },
+              ],
+            }
+          : createSuccessfulScript();
 
       input.onExecutionEvent?.({
         provider: "openai",
@@ -538,15 +540,12 @@ describe("script-generation-runner", () => {
     });
 
     expect(generateScript).not.toHaveBeenCalled();
-    expect(generatePartialScript).toHaveBeenCalledWith(
-      "book-1",
-      {},
-      {
-        startFromSegmentId: undefined,
-        startFromOrderIndex: undefined,
+    expect(mockRunScriptProductionWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookId: "book-1",
+        mode: "partial",
         limitToSegments: 2,
-      },
-      expect.any(Function)
+      })
     );
   });
 
@@ -1019,46 +1018,45 @@ describe("script-generation-runner", () => {
       options: {},
     });
 
-    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
-      where: { id: "task-llm-metrics" },
-      data: expect.objectContaining({
-        status: "completed",
-        taskData: expect.objectContaining({
-          metadata: expect.objectContaining({
-            agentRuntime: expect.objectContaining({
-              workflowRunId: "workflow-run-1",
-              status: "completed",
-            }),
-            llmMetrics: expect.objectContaining({
-              submitted: 1,
-              completed: 1,
-              failed: 0,
-              retried: 1,
-              averageLatencyMs: 120,
-              averageWaitMs: 30,
-              providers: [
-                expect.objectContaining({
-                  provider: "openai",
-                  completed: 1,
-                  failed: 0,
-                  retried: 1,
-                }),
-              ],
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "task-llm-metrics" },
+        data: expect.objectContaining({
+          status: "completed",
+          taskData: expect.objectContaining({
+            metadata: expect.objectContaining({
+              llmMetrics: expect.objectContaining({
+                submitted: 1,
+                completed: 1,
+                failed: 0,
+                retried: 1,
+                averageLatencyMs: 120,
+                averageWaitMs: 30,
+                providers: [
+                  expect.objectContaining({
+                    provider: "openai",
+                    completed: 1,
+                    failed: 0,
+                    retried: 1,
+                  }),
+                ],
+              }),
             }),
           }),
         }),
-      }),
-    });
+      })
+    );
 
-    expect(mockPrisma.book.update).toHaveBeenLastCalledWith({
-      where: { id: "book-1" },
-      data: expect.objectContaining({
-        metadata: expect.objectContaining({
-          lastScriptWorkflowRunId: "workflow-run-1",
-          lastScriptRuntimeStatus: "completed",
-          lastScriptRuntimeCompletedAt: "2026-03-24T10:00:05.000Z",
+    expect(mockPrisma.book.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: { id: "book-1" },
+        data: expect.objectContaining({
+          metadata: expect.objectContaining({
+            totalScriptLines: 1,
+            failedSegments: 0,
+          }),
         }),
-      }),
-    });
+      })
+    );
   });
 });

@@ -6,7 +6,7 @@ import {
   isNarrationSpeaker,
   NARRATION_CHARACTER_NAME,
 } from "@/lib/narration-character";
-import { normalizeNarrationText } from "@/lib/script-generator/narration-text-normalizer";
+import { normalizeNarrationText } from "../helpers/narration-text-normalizer";
 
 interface CharacterProfileLike {
   id?: string;

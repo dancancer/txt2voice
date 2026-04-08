@@ -501,10 +501,13 @@ node scripts/phase2-audio-validation.js \
 
 1. `apps/web/src/lib/llm-service.ts`
    - `max_tokens` 从 `4000` 提高到 `8000`
-2. `apps/web/src/lib/script-generator/options.ts`
+2. `apps/web/src/lib/agent-runtime/runtime/script-production/options.ts`
    - `maxDialogueLength` 从 `200` 提高到 `800`
-3. `apps/web/src/lib/script-generator/pipeline/segment-processor.ts`
-   - 日志从整段原文改成长度摘要，避免日志淹没关键信息
+3. `apps/web/src/lib/agent-runtime/runtime/script-production/helpers/metadata.ts`
+   - 段落失败信息统一收敛为 `segmentPreview` 摘要，避免整段原文淹没关键信息
+
+说明：
+- 上述第 2、3 项最初落在旧 `script-generator/*` 管线中，当前仓库已经完成 runtime 收口，真相源以 `agent-runtime/runtime/script-production/*` 为准。
 
 ## 当前结论
 

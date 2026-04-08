@@ -1,11 +1,11 @@
 import type { LLMExecutionEvent } from "@/lib/llm-service";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
 import type { SegmentScriptDraft } from "../../context";
 import type {
+  ScriptGenerationOptions,
   DialogueLine,
   SegmentFailureDetail,
   SegmentSummary,
-} from "@/lib/script-generator/types";
+} from "./types";
 
 export type ScriptProductionWorkflowMode = "full" | "partial" | "regenerate";
 

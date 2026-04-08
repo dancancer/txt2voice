@@ -10,7 +10,7 @@ import {
   looksLikeColonAttribution,
   looksLikeGenericDaoAttribution,
   PUNCTUATION_ONLY_PATTERN,
-} from "../dialogue-attribution-heuristics";
+} from "./dialogue-attribution-heuristics";
 
 export interface FailedSegmentRefinementInput {
   segment: {

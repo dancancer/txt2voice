@@ -4,9 +4,18 @@ import path from "path";
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import { buildAgentContext, type CharacterMemory, type MemoryPatch } from "../../context";
 import type { StageExecutor } from "../executor-policy";
-import { loadSkillDefinition } from "../../registry";
+import { LOAD_BOOK_CONTEXT_TOOL } from "../../tools/io-tools";
+import { validateAgentContract } from "../agent-contract";
 import { createCharacterDiscoveryAgent } from "../agents/character-discovery-agent";
+import { renderCharacterDiscoveryUserPrompt } from "../agents/character-discovery-agent";
+import { loadSkillRuntimeBundle } from "../load-skill-runtime-bundle";
+import { fitPromptToBudget, resolvePromptBudgetLimit } from "../prompt-budget";
 import { runStage, type StageRunRecord } from "../run-stage";
+import {
+  buildSkillMetadataSnapshot,
+  type SkillMetadataSnapshot,
+} from "../script-production-runtime-helpers";
+import { validateSkillContract } from "../skill-contract";
 import type { TraceDependencies } from "../write-trace";
 
 interface CharacterDiscoveryRuntimeDeps {
@@ -40,6 +49,7 @@ export interface CharacterDiscoveryArtifact {
   kind: "character-memory-draft";
   skillId: "character-extraction";
   characterMemoryDraft: MemoryPatch;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunCharacterDiscoveryStageCompletedResult {
@@ -86,19 +96,6 @@ const resolveWorkspaceRoot = (workspaceRoot?: string): string => {
 
   return process.cwd();
 };
-
-const readRequiredFile = (filePath: string): string => {
-  if (!fs.existsSync(filePath)) {
-    throw new Error(`Missing required file: ${filePath}`);
-  }
-
-  return fs.readFileSync(filePath, "utf8");
-};
-
-const loadCharacterExtractionPrompts = (skillDir: string) => ({
-  systemPrompt: readRequiredFile(path.join(skillDir, "prompts/system.md")),
-  userPrompt: readRequiredFile(path.join(skillDir, "prompts/user.md")),
-});
 
 interface CharacterExtractionSkillSource {
   workspaceRoot: string;
@@ -328,22 +325,14 @@ const resolveAdapter = async (adapter?: LLMAdapter): Promise<LLMAdapter> => {
   return createDefaultLLMAdapter();
 };
 
-const assertSkillCompatibleWithAgent = (
-  skillId: string,
-  compatibleAgents: string[],
-  agentId: string
-) => {
-  if (compatibleAgents.includes(agentId)) {
-    return;
-  }
-
-  throw new Error(`Skill ${skillId} is not compatible with ${agentId}`);
-};
-
 export const runCharacterDiscoveryStageNative = async (
   input: RunCharacterDiscoveryStageInput
 ): Promise<RunCharacterDiscoveryStageResult> => {
   const runtimeAgentId = "character-discovery-agent";
+  const promptBudget = {
+    maxContextChars: 4000,
+    reservedOutputChars: 1200,
+  } as const;
 
   const stageResult = await runStage({
     workflowRunId: input.workflowRunId,
@@ -356,38 +345,69 @@ export const runCharacterDiscoveryStageNative = async (
             workspaceRoot: input.workspaceRoot,
             skillDir: input.skillDir,
           });
-          const skill = loadSkillDefinition(
+          const skill = loadSkillRuntimeBundle(
             skillSource.workspaceRoot,
             skillSource.skillId
           );
-          assertSkillCompatibleWithAgent(
-            skill.definition.id,
-            skill.definition.compatibleAgents,
-            runtimeAgentId
-          );
-          const prompts = loadCharacterExtractionPrompts(skillSource.skillDir);
+          validateAgentContract({
+            workspaceRoot: skillSource.workspaceRoot,
+            agentSourceId: "character-discovery",
+            stageId: "character_discovery",
+            skill: skill.definition,
+            registeredTools: [LOAD_BOOK_CONTEXT_TOOL],
+          });
+          validateSkillContract({
+            skill: skill.definition,
+            agentId: runtimeAgentId,
+            expectedContextRequirements: ["segment", "character_memory_summary"],
+            expectedOutputSchemaRef: "character-output",
+          });
           const context = buildAgentContext({
             agentId: runtimeAgentId,
             segmentText: input.segmentText,
             fullBookText: input.fullBookText,
             characterMemory: input.characterMemory,
-            budget: {
-              maxContextChars: 4000,
-              reservedOutputChars: 1200,
-            },
+            budget: promptBudget,
           });
+          const promptBudgetResult = fitPromptToBudget({
+            systemPrompt: skill.systemPrompt,
+            maxPromptChars: resolvePromptBudgetLimit(promptBudget),
+            variables: {
+              segment_text:
+                typeof context.inputContext.segmentText === "string"
+                  ? context.inputContext.segmentText
+                  : "",
+              character_memory_summary:
+                context.referenceMemory.characterMemorySummary,
+            },
+            trimOrder: ["segment_text", "character_memory_summary"],
+            renderPrompt: (variables) =>
+              renderCharacterDiscoveryUserPrompt(skill.userPrompt, {
+                segmentText: variables.segment_text,
+                characterMemorySummary:
+                  variables.character_memory_summary,
+              }),
+          });
+          if (promptBudgetResult.overBudget) {
+            throw new Error(
+              "Input context over budget for character discovery stage"
+            );
+          }
           const adapter = await resolveAdapter(input.adapter);
           const agent = createCharacterDiscoveryAgent({
             adapter,
           });
           const result = await agent.execute({
-            segmentText:
-              typeof context.inputContext.segmentText === "string"
-                ? context.inputContext.segmentText
-                : "",
-            characterMemorySummary: context.referenceMemory.characterMemorySummary,
-            prompts,
+            segmentText: promptBudgetResult.variables.segment_text,
+            characterMemorySummary:
+              promptBudgetResult.variables.character_memory_summary,
+            modelPolicy: skill.definition.modelPolicy!,
+            prompts: {
+              systemPrompt: skill.systemPrompt,
+              userPrompt: skill.userPrompt,
+            },
           });
+          const skillMetadata = buildSkillMetadataSnapshot(skill.definition);
           const reconciledDraft = reconcileCharacterMemoryDraft(
             result.characterMemoryDraft,
             input.characterMemory
@@ -397,6 +417,7 @@ export const runCharacterDiscoveryStageNative = async (
             status: "completed",
             output: {
               skillId: skill.definition.id,
+              skillMetadata,
               characterMemoryDraft: reconciledDraft,
               provider: result.provider,
               model: result.model,
@@ -433,6 +454,8 @@ export const runCharacterDiscoveryStageNative = async (
       kind: "character-memory-draft",
       skillId: skillId as "character-extraction",
       characterMemoryDraft: memoryDraft,
+      skillMetadata: stageResult.agent.output
+        ?.skillMetadata as SkillMetadataSnapshot | undefined,
     },
   };
 };
@@ -453,9 +476,11 @@ export const runCharacterDiscoveryStage = async (
 ): Promise<RunCharacterDiscoveryStageResult> => {
   const runMastraCharacterDiscoveryStage =
     input.runMastraCharacterDiscoveryStage ??
-    (
-      await import("../../mastra/runtime/run-mastra-character-discovery")
-    ).runMastraCharacterDiscovery;
+    (async () => {
+      throw new Error(
+        "Mastra runtime is disabled for character-extraction until an independent executor path exists"
+      );
+    });
 
   if (input.executor === "mastra") {
     return runMastraCharacterDiscoveryStage(input);
