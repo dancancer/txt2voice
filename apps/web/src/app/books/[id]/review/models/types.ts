@@ -128,6 +128,7 @@ export interface ReviewRegenerateAllPendingResult {
     taskType: "AUDIO_GENERATION";
     status: string;
   } | null;
+  warnings?: string[];
 }
 
 export interface ReviewRegenerateAllPendingResponse {

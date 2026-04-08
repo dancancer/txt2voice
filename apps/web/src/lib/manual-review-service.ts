@@ -11,6 +11,7 @@ import {
 } from "@/lib/pagination";
 import { mergeTaskData } from "@/lib/processing-task-utils";
 import {
+  cancelProcessingTaskJob,
   enqueueAudioGenerationJob,
   enqueueScriptGenerationJob,
 } from "@/lib/task-queue";
@@ -173,6 +174,7 @@ interface RegenerateAllPendingManualReviewResult {
   processedCount: number;
   scriptTask: ManualReviewRetryTask | null;
   audioTask: ManualReviewRetryTask | null;
+  warnings?: string[];
 }
 
 const MAX_BATCH_RESOLVE_ITEMS = 200;
@@ -588,6 +590,39 @@ const appendResolutionNote = (
   return `${current}\n${next}`;
 };
 
+const resetPendingReviewItemState = async (itemIds: string[]): Promise<void> => {
+  for (const itemId of itemIds) {
+    await prisma.manualReviewItem.update({
+      where: { id: itemId },
+      data: {
+        status: "pending",
+        resolutionType: null,
+        resolutionNote: null,
+        resolvedAt: null,
+      },
+    });
+  }
+};
+
+const markReprocessingReviewItems = async (params: {
+  items: Array<{ id: string }>;
+  resolutionType: string;
+  resolutionNote: string;
+}) => {
+  for (const item of params.items) {
+    await prisma.manualReviewItem.update({
+      where: { id: item.id },
+      data: {
+        status: "reprocessing",
+        resolutionType: params.resolutionType,
+        resolutionNote: params.resolutionNote,
+        resolvedAt: null,
+      },
+      include: MANUAL_REVIEW_INCLUDE,
+    });
+  }
+};
+
 const resolveUpdatedStatus = (
   action: ManualReviewResolveAction
 ): "resolved" | "rejected" => {
@@ -659,6 +694,31 @@ const handleTaskEnqueueFailure = async ({
 
 const handleScriptTaskEnqueueFailure = handleTaskEnqueueFailure;
 const handleAudioTaskEnqueueFailure = handleTaskEnqueueFailure;
+
+const markTaskRolledBack = async ({
+  taskId,
+  message,
+}: {
+  taskId: string;
+  message: string;
+}) => {
+  const failedTaskData = await mergeTaskData(taskId, {
+    message,
+    metadata: {
+      compensation: "rolled_back_before_execution",
+    },
+  });
+
+  await prisma.processingTask.update({
+    where: { id: taskId },
+    data: {
+      status: "failed",
+      completedAt: new Date(),
+      errorMessage: message,
+      taskData: failedTaskData,
+    },
+  });
+};
 
 const toExportCell = (value: unknown): string => {
   if (value === null || value === undefined) {
@@ -1317,13 +1377,16 @@ export const regenerateAllPendingManualReviewItems = async ({
   let scriptTask: ManualReviewRetryTask | null = null;
   let audioTask: ManualReviewRetryTask | null = null;
   let processedCount = 0;
+  const warnings: string[] = [];
+  let scriptTaskId: string | null = null;
+  let scriptStatusesMarked = false;
 
   if (scriptSegmentIds.length > 0) {
     const task = await prisma.processingTask.create({
       data: {
         bookId,
         taskType: "SCRIPT_GENERATION",
-        status: "processing",
+        status: "pending",
         progress: 0,
         totalItems: scriptSegmentIds.length,
         taskData: {
@@ -1358,29 +1421,11 @@ export const regenerateAllPendingManualReviewItems = async ({
       throw queueError;
     }
 
-    await prisma.book.update({
-      where: { id: bookId },
-      data: { status: "generating_script" },
-    });
-
-    for (const item of scriptItems) {
-      await prisma.manualReviewItem.update({
-        where: { id: item.id },
-        data: {
-          status: "reprocessing",
-          resolutionType: "bulk_regenerate_pending",
-          resolutionNote: buildAllPendingRegenerateNote(task.id),
-          resolvedAt: null,
-        },
-        include: MANUAL_REVIEW_INCLUDE,
-      });
-    }
-
-    processedCount += scriptItems.length;
+    scriptTaskId = task.id;
     scriptTask = {
       taskId: task.id,
       taskType: "SCRIPT_GENERATION",
-      status: task.status,
+      status: "processing",
     };
   }
 
@@ -1390,7 +1435,7 @@ export const regenerateAllPendingManualReviewItems = async ({
       data: {
         bookId,
         taskType: "AUDIO_GENERATION",
-        status: "processing",
+        status: "pending",
         progress: 0,
         totalItems: audioSentenceIds.length,
         taskData: {
@@ -1428,28 +1473,81 @@ export const regenerateAllPendingManualReviewItems = async ({
         queueError,
         message: "人工复核全量音频重生任务入队失败",
       });
+
+      if (scriptTaskId) {
+        const cancelResult = await cancelProcessingTaskJob(
+          "SCRIPT_GENERATION",
+          scriptTaskId
+        );
+
+        if (cancelResult.canceled) {
+          await markTaskRolledBack({
+            taskId: scriptTaskId,
+            message: "人工复核全量台本重跑任务已回滚：音频任务入队失败",
+          });
+          if (scriptStatusesMarked) {
+            await resetPendingReviewItemState(scriptReviewItemIds);
+          }
+          throw queueError;
+        }
+
+        if (!scriptStatusesMarked) {
+          await prisma.book.update({
+            where: { id: bookId },
+            data: { status: "generating_script" },
+          });
+          await markReprocessingReviewItems({
+            items: scriptItems,
+            resolutionType: "bulk_regenerate_pending",
+            resolutionNote: buildAllPendingRegenerateNote(scriptTaskId),
+          });
+          processedCount += scriptItems.length;
+          scriptStatusesMarked = true;
+        }
+
+        warnings.push(
+          "音频任务入队失败，但台本任务已经开始执行；音频复核项仍保持待复核。"
+        );
+        return {
+          reviewItemCount: rows.length,
+          processedCount,
+          scriptTask,
+          audioTask: null,
+          warnings,
+        };
+      }
+
       throw queueError;
     }
 
-    for (const item of audioItems) {
-      await prisma.manualReviewItem.update({
-        where: { id: item.id },
-        data: {
-          status: "reprocessing",
-          resolutionType: "bulk_regenerate_pending",
-          resolutionNote: buildAllPendingRegenerateNote(task.id),
-          resolvedAt: null,
-        },
-        include: MANUAL_REVIEW_INCLUDE,
-      });
-    }
-
-    processedCount += audioItems.length;
     audioTask = {
       taskId: task.id,
       taskType: "AUDIO_GENERATION",
-      status: task.status,
+      status: "processing",
     };
+  }
+
+  if (scriptTaskId && !scriptStatusesMarked) {
+    await prisma.book.update({
+      where: { id: bookId },
+      data: { status: "generating_script" },
+    });
+    await markReprocessingReviewItems({
+      items: scriptItems,
+      resolutionType: "bulk_regenerate_pending",
+      resolutionNote: buildAllPendingRegenerateNote(scriptTaskId),
+    });
+    processedCount += scriptItems.length;
+    scriptStatusesMarked = true;
+  }
+
+  if (audioTask) {
+    await markReprocessingReviewItems({
+      items: audioItems,
+      resolutionType: "bulk_regenerate_pending",
+      resolutionNote: buildAllPendingRegenerateNote(audioTask.taskId),
+    });
+    processedCount += audioItems.length;
   }
 
   return {
@@ -1457,6 +1555,7 @@ export const regenerateAllPendingManualReviewItems = async ({
     processedCount,
     scriptTask,
     audioTask,
+    ...(warnings.length > 0 ? { warnings } : {}),
   };
 };
 

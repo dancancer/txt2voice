@@ -34,6 +34,7 @@ export {
 export { getTaskQueueHealth } from "@/lib/task-queue/ops/health";
 export { recoverStalledProcessingTasks } from "@/lib/task-queue/ops/recovery";
 export { replayProcessingTask } from "@/lib/task-queue/ops/replay";
+export { cancelProcessingTaskJob } from "@/lib/task-queue/core/runtime";
 export { runLLMExecutionJob } from "@/lib/task-queue/ops/llm-execute";
 export { runAudioSynthesisJob } from "@/lib/task-queue/ops/audio-synthesis-execute";
 export { ensureTaskWorkerStarted } from "@/lib/task-queue/ops/worker";

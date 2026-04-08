@@ -267,8 +267,12 @@ export function useReviewWorkbenchActions({
 
         const taskCount = [payload.data.scriptTask, payload.data.audioTask].filter(Boolean)
           .length;
+        const warningText =
+          Array.isArray(payload.data.warnings) && payload.data.warnings.length > 0
+            ? `；注意：${payload.data.warnings.join("；")}`
+            : "";
         toast.success(
-          `已触发全量待复核重生，覆盖 ${payload.data.reviewItemCount} 条，创建 ${taskCount} 个任务`
+          `已触发全量待复核重生，覆盖 ${payload.data.reviewItemCount} 条，创建 ${taskCount} 个任务${warningText}`
         );
         await refreshAfterReviewMutation();
         return true;

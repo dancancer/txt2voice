@@ -29,6 +29,7 @@ jest.mock("@/lib/prisma", () => ({
 jest.mock("@/lib/task-queue", () => ({
   enqueueAudioGenerationJob: jest.fn(),
   enqueueScriptGenerationJob: jest.fn(),
+  cancelProcessingTaskJob: jest.fn(),
 }));
 
 jest.mock("@/lib/processing-task-utils", () => ({
@@ -46,6 +47,7 @@ jest.mock(
 import prisma from "@/lib/prisma";
 import { ValidationError } from "@/lib/error-handler";
 import {
+  cancelProcessingTaskJob,
   enqueueAudioGenerationJob,
   enqueueScriptGenerationJob,
 } from "@/lib/task-queue";
@@ -82,6 +84,9 @@ const mockEnqueueAudio = enqueueAudioGenerationJob as jest.MockedFunction<
 >;
 const mockEnqueueScript = enqueueScriptGenerationJob as jest.MockedFunction<
   typeof enqueueScriptGenerationJob
+>;
+const mockCancelTaskJob = cancelProcessingTaskJob as jest.MockedFunction<
+  typeof cancelProcessingTaskJob
 >;
 const mockMergeTaskData = mergeTaskData as jest.MockedFunction<typeof mergeTaskData>;
 const mockBuildSegmentProcessingResult =
@@ -151,6 +156,11 @@ describe("manual-review-service", () => {
     mockFindBook.mockResolvedValue({
       id: "book-1",
       characterProfiles: [],
+    });
+    mockCancelTaskJob.mockResolvedValue({
+      canceled: false,
+      state: null,
+      exists: false,
     });
   });
 
@@ -1110,6 +1120,72 @@ describe("manual-review-service", () => {
     expect(mockCreateTask).not.toHaveBeenCalled();
     expect(mockEnqueueScript).not.toHaveBeenCalled();
     expect(mockEnqueueAudio).not.toHaveBeenCalled();
+  });
+
+  it("should compensate queued script task when audio enqueue fails during regenerate-all-pending", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({
+        id: "review-script-all-1",
+        issueType: "SCRIPT_VALIDATION",
+        sentenceId: null,
+        audioFileId: null,
+        qcResultId: null,
+        attemptId: null,
+        segmentId: "segment-script-all-1",
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+      }),
+      baseItem({
+        id: "review-audio-all-1",
+        issueType: "CER",
+        sentenceId: "sentence-audio-all-1",
+        segmentId: null,
+      }),
+    ]);
+    mockFindFirstTask.mockResolvedValueOnce(null).mockResolvedValueOnce(null);
+    mockCreateTask
+      .mockResolvedValueOnce({
+        id: "task-all-script-1",
+        status: "pending",
+      })
+      .mockResolvedValueOnce({
+        id: "task-all-audio-1",
+        status: "pending",
+      });
+    mockEnqueueScript.mockResolvedValueOnce({
+      jobId: "task-all-script-1",
+      dedupeKey: "script:segment-script-all-1",
+      reused: false,
+      state: "waiting",
+    });
+    mockEnqueueAudio.mockRejectedValueOnce(new Error("audio queue down"));
+    mockCancelTaskJob.mockResolvedValueOnce({
+      canceled: true,
+      state: "waiting",
+      exists: true,
+    });
+    mockMergeTaskData
+      .mockResolvedValueOnce({
+        message: "人工复核全量音频重生任务入队失败",
+      } as any)
+      .mockResolvedValueOnce({
+        message: "人工复核全量台本重跑任务已回滚",
+      } as any);
+    mockUpdateTask.mockResolvedValue({});
+
+    await expect(
+      regenerateAllPendingManualReviewItems({
+        bookId: "book-1",
+      })
+    ).rejects.toThrow("audio queue down");
+
+    expect(mockCancelTaskJob).toHaveBeenCalledWith(
+      "SCRIPT_GENERATION",
+      "task-all-script-1"
+    );
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockUpdateBook).not.toHaveBeenCalled();
   });
 
   it("should build manual review csv payload", () => {

@@ -4,6 +4,7 @@
 // pos: 配置中心服务
 import { z } from "zod";
 import prisma from "@/lib/prisma";
+import { ValidationError } from "@/lib/error-handler";
 import {
   getDefaultLLMModel,
   getLLMModelById,
@@ -66,6 +67,52 @@ const normalizeApiKey = (apiKey?: string | null): string | null => {
 
   const trimmed = apiKey.trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+const isPrivateHostname = (hostname: string): boolean => {
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+    return true;
+  }
+
+  if (hostname.startsWith("10.") || hostname.startsWith("192.168.")) {
+    return true;
+  }
+
+  const match = hostname.match(/^172\.(\d+)\./);
+  if (!match) {
+    return false;
+  }
+
+  const secondOctet = Number(match[1]);
+  return Number.isFinite(secondOctet) && secondOctet >= 16 && secondOctet <= 31;
+};
+
+const isLocalBaseURL = (baseURL?: string | null): boolean => {
+  if (typeof baseURL !== "string" || baseURL.trim().length === 0) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(baseURL);
+    return isPrivateHostname(parsed.hostname.trim().toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
+const assertApiKeyPolicy = (params: {
+  baseURL?: string | null;
+  apiKey?: string | null;
+}) => {
+  if (normalizeApiKey(params.apiKey)) {
+    return;
+  }
+
+  if (isLocalBaseURL(params.baseURL)) {
+    return;
+  }
+
+  throw new ValidationError("当前模型缺少 API Key，且不是本地免鉴权模型");
 };
 
 const toSettingsView = (
@@ -186,6 +233,11 @@ export async function resolveConfiguredLLMProvider(
       throw new Error(`找不到已配置的 LLM 模型: ${modelId}`);
     }
 
+    assertApiKeyPolicy({
+      baseURL: selectedModel.baseURL,
+      apiKey: selectedModel.apiKey,
+    });
+
     return {
       name: selectedModel.provider,
       apiKey: selectedModel.apiKey || "",
@@ -197,6 +249,10 @@ export async function resolveConfiguredLLMProvider(
   const fallbackModel = modelId
     ? getLLMModelById(modelId)
     : getDefaultLLMModel();
+  assertApiKeyPolicy({
+    baseURL: fallbackModel.baseURL,
+    apiKey: fallbackModel.apiKey,
+  });
   return toEnvResolvedProvider(fallbackModel);
 }
 
@@ -204,6 +260,12 @@ export async function createLLMModelConfig(
   payload: LLMModelConfigInput
 ): Promise<LLMSettingsModelView> {
   return prisma.$transaction(async (tx) => {
+    const normalizedApiKey = normalizeApiKey(payload.apiKey);
+    assertApiKeyPolicy({
+      baseURL: payload.baseURL,
+      apiKey: normalizedApiKey,
+    });
+
     const existingDefault = await tx.llmModelConfig.findFirst({
       where: { isDefault: true },
     });
@@ -222,7 +284,7 @@ export async function createLLMModelConfig(
         provider: payload.provider,
         baseURL: payload.baseURL,
         model: payload.model,
-        apiKey: normalizeApiKey(payload.apiKey),
+        apiKey: normalizedApiKey,
         isDefault: shouldBeDefault,
         isActive: payload.isActive,
         sortOrder: payload.sortOrder,
@@ -246,6 +308,17 @@ export async function updateLLMModelConfig(
       throw new Error("LLM 模型配置不存在");
     }
 
+    const nextBaseURL = payload.baseURL ?? existing.baseURL;
+    const nextApiKey =
+      payload.apiKey !== undefined
+        ? normalizeApiKey(payload.apiKey)
+        : existing.apiKey;
+
+    assertApiKeyPolicy({
+      baseURL: nextBaseURL,
+      apiKey: nextApiKey,
+    });
+
     const nextIsActive = payload.isActive ?? existing.isActive;
     const makeDefault = payload.isDefault === true;
     const clearDefault = existing.isDefault && nextIsActive === false;
@@ -264,9 +337,7 @@ export async function updateLLMModelConfig(
         ...(payload.provider !== undefined ? { provider: payload.provider } : {}),
         ...(payload.baseURL !== undefined ? { baseURL: payload.baseURL } : {}),
         ...(payload.model !== undefined ? { model: payload.model } : {}),
-        ...(payload.apiKey !== undefined
-          ? { apiKey: normalizeApiKey(payload.apiKey) }
-          : {}),
+        ...(payload.apiKey !== undefined ? { apiKey: nextApiKey } : {}),
         ...(payload.isActive !== undefined ? { isActive: payload.isActive } : {}),
         ...(payload.sortOrder !== undefined ? { sortOrder: payload.sortOrder } : {}),
         ...(makeDefault ? { isDefault: true } : {}),

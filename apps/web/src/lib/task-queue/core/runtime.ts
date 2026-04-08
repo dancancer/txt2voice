@@ -254,3 +254,60 @@ export async function getQueueJobState(
     exists: true,
   };
 }
+
+export async function cancelProcessingTaskJob(
+  taskType: QueueTaskType,
+  taskId: string
+): Promise<{ canceled: boolean; state: string | null; exists: boolean }> {
+  const queue =
+    taskType === "SCRIPT_GENERATION"
+      ? getScriptQueue()
+      : taskType === "AUDIO_GENERATION"
+        ? getAudioQueue()
+        : taskType === "QUALITY_CHECK"
+          ? getQualityQueue()
+          : taskType === "QUALITY_SIGNAL_SYNC"
+            ? getSignalSyncQueue()
+            : getAutoPipelineQueue();
+  const job = await queue.getJob(taskId);
+
+  if (!job) {
+    return {
+      canceled: false,
+      state: null,
+      exists: false,
+    };
+  }
+
+  const state = await job.getState();
+  if (!RUNNING_STATES.has(state as JobRuntimeState) || state === "active") {
+    return {
+      canceled: false,
+      state,
+      exists: true,
+    };
+  }
+
+  try {
+    await job.remove();
+    return {
+      canceled: true,
+      state,
+      exists: true,
+    };
+  } catch (error) {
+    console.warn("[task-queue] cancel job failed", {
+      queueName: queue.name,
+      taskType,
+      taskId,
+      state,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
+    return {
+      canceled: false,
+      state,
+      exists: true,
+    };
+  }
+}

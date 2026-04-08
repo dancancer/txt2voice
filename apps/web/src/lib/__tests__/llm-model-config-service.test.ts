@@ -19,10 +19,12 @@ jest.mock("@/lib/prisma", () => ({
 }));
 
 import prisma from "@/lib/prisma";
+import { ValidationError } from "@/lib/error-handler";
 import {
   createLLMModelConfig,
   listSelectableLLMModels,
   resolveConfiguredLLMProvider,
+  updateLLMModelConfig,
 } from "@/lib/llm-model-config-service";
 
 const prismaMock = prisma as unknown as {
@@ -42,7 +44,7 @@ describe("llm-model-config-service", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
     process.env = { ...originalEnv };
     prismaMock.$transaction.mockImplementation(async (callback: any) =>
       callback(prismaMock)
@@ -164,5 +166,70 @@ describe("llm-model-config-service", () => {
       hasApiKey: false,
       isDefault: true,
     });
+  });
+
+  it("should reject remote persisted configs without apiKey", async () => {
+    prismaMock.llmModelConfig.findMany.mockResolvedValue([
+      {
+        id: "db-model-remote-1",
+        name: "DeepSeek Cloud",
+        provider: "custom",
+        baseURL: "https://api.deepseek.com/v1",
+        model: "deepseek-chat",
+        apiKey: null,
+        isDefault: true,
+        isActive: true,
+        sortOrder: 0,
+        createdAt: new Date("2026-04-03T00:00:00.000Z"),
+        updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+      },
+    ]);
+
+    await expect(resolveConfiguredLLMProvider()).rejects.toThrow(
+      new ValidationError("当前模型缺少 API Key，且不是本地免鉴权模型")
+    );
+  });
+
+  it("should reject creating remote configs without apiKey", async () => {
+    prismaMock.llmModelConfig.findFirst.mockResolvedValue(null);
+
+    await expect(
+      createLLMModelConfig({
+        name: "DeepSeek Cloud",
+        provider: "custom",
+        baseURL: "https://api.deepseek.com/v1",
+        model: "deepseek-chat",
+        apiKey: "",
+        isDefault: false,
+        isActive: true,
+        sortOrder: 0,
+      })
+    ).rejects.toThrow("当前模型缺少 API Key，且不是本地免鉴权模型");
+
+    expect(prismaMock.llmModelConfig.create).not.toHaveBeenCalled();
+  });
+
+  it("should reject clearing apiKey for remote configs", async () => {
+    prismaMock.llmModelConfig.findUnique.mockResolvedValue({
+      id: "db-model-remote-1",
+      name: "DeepSeek Cloud",
+      provider: "custom",
+      baseURL: "https://api.deepseek.com/v1",
+      model: "deepseek-chat",
+      apiKey: "existing-key",
+      isDefault: true,
+      isActive: true,
+      sortOrder: 0,
+      createdAt: new Date("2026-04-03T00:00:00.000Z"),
+      updatedAt: new Date("2026-04-03T00:00:00.000Z"),
+    });
+
+    await expect(
+      updateLLMModelConfig("db-model-remote-1", {
+        apiKey: "",
+      })
+    ).rejects.toThrow("当前模型缺少 API Key，且不是本地免鉴权模型");
+
+    expect(prismaMock.llmModelConfig.update).not.toHaveBeenCalled();
   });
 });
