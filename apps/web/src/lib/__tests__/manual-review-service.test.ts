@@ -5,6 +5,7 @@
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
   default: {
+    $transaction: jest.fn(),
     manualReviewItem: {
       count: jest.fn(),
       findMany: jest.fn(),
@@ -73,6 +74,7 @@ const mockCount = (prisma as any).manualReviewItem.count as jest.Mock;
 const mockFindMany = (prisma as any).manualReviewItem.findMany as jest.Mock;
 const mockFindUnique = (prisma as any).manualReviewItem.findUnique as jest.Mock;
 const mockUpdate = (prisma as any).manualReviewItem.update as jest.Mock;
+const mockTransaction = (prisma as any).$transaction as jest.Mock;
 const mockFindFirstTask = (prisma as any).processingTask.findFirst as jest.Mock;
 const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
@@ -97,6 +99,7 @@ const mockPersistSegmentResult =
   persistSegmentProcessingResult as jest.MockedFunction<
     typeof persistSegmentProcessingResult
   >;
+const mockTxManualReviewUpdate = jest.fn();
 
 const baseItem = (overrides: Record<string, unknown> = {}) => ({
   id: "review-1",
@@ -157,6 +160,13 @@ describe("manual-review-service", () => {
       id: "book-1",
       characterProfiles: [],
     });
+    mockTransaction.mockImplementation(async (callback: any) =>
+      callback({
+        manualReviewItem: {
+          update: mockTxManualReviewUpdate,
+        },
+      })
+    );
     mockCancelTaskJob.mockResolvedValue({
       canceled: false,
       state: null,
@@ -598,7 +608,7 @@ describe("manual-review-service", () => {
       characterCandidates: [],
     });
     mockPersistSegmentResult.mockResolvedValueOnce(undefined);
-    mockUpdate.mockResolvedValueOnce(
+    mockTxManualReviewUpdate.mockResolvedValueOnce(
       baseItem({
         id: "review-script-edit-1",
         issueType: "SCRIPT_VALIDATION",
@@ -687,10 +697,13 @@ describe("manual-review-service", () => {
       result: expect.objectContaining({
         dialogueLines: expect.any(Array),
       }),
+      db: expect.any(Object),
       characterMap: expect.any(Map),
       characterProfiles: [],
     });
-    expect(mockUpdate).toHaveBeenCalledWith({
+    expect(mockTransaction).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(mockTxManualReviewUpdate).toHaveBeenCalledWith({
       where: { id: "review-script-edit-1" },
       data: expect.objectContaining({
         status: "resolved",

@@ -14,6 +14,8 @@ interface CharacterProfileLike {
   aliases?: Array<{ alias: string }>;
 }
 
+type ScriptPersistenceClient = Prisma.TransactionClient;
+
 export interface SegmentScriptDraftLikeLine {
   id: string;
   text: string;
@@ -255,66 +257,90 @@ export const mapSegmentScriptDraftToDialogueLines = (params: {
     });
 };
 
+const saveSegmentScriptToDatabaseWithDb = async (params: {
+  bookId: string;
+  segmentId: string;
+  dialogueLines: DialogueLine[];
+  characterProfiles: CharacterProfileLike[];
+  characterMap: Map<string, string>;
+  db: ScriptPersistenceClient;
+}): Promise<void> => {
+  const { bookId, segmentId, dialogueLines, characterProfiles, characterMap } =
+    params;
+  const { db } = params;
+
+  const existingProfiles = await db.characterProfile.findMany({
+    where: {
+      bookId,
+      isActive: true,
+    },
+    include: {
+      aliases: true,
+    },
+  });
+  const runtimeProfiles = mergeProfileBuckets(characterProfiles, existingProfiles);
+  const runtimeMap = new Map(characterMap);
+  const profileByCanonical = new Map<string, CharacterProfileLike>();
+
+  for (const profile of runtimeProfiles) {
+    if (!profile?.canonicalName) {
+      continue;
+    }
+    profileByCanonical.set(profile.canonicalName, profile);
+    addCharacterToMap(runtimeMap, profile);
+    addCharacterToMap(characterMap, profile);
+  }
+
+  await db.scriptSentence.deleteMany({
+    where: {
+      bookId,
+      segmentId,
+    },
+  });
+
+  for (const line of dialogueLines) {
+    const speaker = (line.characterName || "").trim();
+    const canonicalName = speaker
+      ? runtimeMap.get(speaker) || speaker
+      : undefined;
+    const character = canonicalName
+      ? profileByCanonical.get(canonicalName)
+      : undefined;
+
+    let characterId: string | null = null;
+    if (character?.id) {
+      characterId = character.id;
+    } else if (!isNarrationLine(line)) {
+      console.warn(`未找到角色: ${line.characterName}`);
+    }
+
+    await db.scriptSentence.create({
+      data: buildSentenceData(bookId, line, characterId),
+    });
+  }
+};
+
 export async function saveSegmentScriptToDatabase(params: {
   bookId: string;
   segmentId: string;
   dialogueLines: DialogueLine[];
   characterProfiles: CharacterProfileLike[];
   characterMap: Map<string, string>;
+  db?: ScriptPersistenceClient;
 }): Promise<void> {
-  const { bookId, segmentId, dialogueLines, characterProfiles, characterMap } =
-    params;
+  if (params.db) {
+    await saveSegmentScriptToDatabaseWithDb({
+      ...params,
+      db: params.db,
+    });
+    return;
+  }
 
   await prisma.$transaction(async (tx) => {
-    const existingProfiles = await tx.characterProfile.findMany({
-      where: {
-        bookId,
-        isActive: true,
-      },
-      include: {
-        aliases: true,
-      },
+    await saveSegmentScriptToDatabaseWithDb({
+      ...params,
+      db: tx,
     });
-    const runtimeProfiles = mergeProfileBuckets(characterProfiles, existingProfiles);
-    const runtimeMap = new Map(characterMap);
-    const profileByCanonical = new Map<string, CharacterProfileLike>();
-
-    for (const profile of runtimeProfiles) {
-      if (!profile?.canonicalName) {
-        continue;
-      }
-      profileByCanonical.set(profile.canonicalName, profile);
-      addCharacterToMap(runtimeMap, profile);
-      addCharacterToMap(characterMap, profile);
-    }
-
-    await tx.scriptSentence.deleteMany({
-      where: {
-        bookId,
-        segmentId,
-      },
-    });
-
-    for (const line of dialogueLines) {
-      const speaker = (line.characterName || "").trim();
-      const canonicalName = speaker
-        ? runtimeMap.get(speaker) || speaker
-        : undefined;
-      const character = canonicalName
-        ? profileByCanonical.get(canonicalName)
-        : undefined;
-
-      let characterId: string | null = null;
-      if (character?.id) {
-        characterId = character.id;
-      } else if (!isNarrationLine(line)) {
-        console.warn(`未找到角色: ${line.characterName}`);
-      }
-
-      await tx.scriptSentence.create({
-        data: buildSentenceData(bookId, line, characterId),
-      });
-    }
   });
 }
 

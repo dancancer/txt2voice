@@ -1634,31 +1634,35 @@ export const saveManualReviewScriptEdit = async ({
     options: resolveScriptGenerationOptions(),
   });
 
-  await persistSegmentProcessingResult({
-    bookId,
-    segmentId: item.segmentId,
-    result: segmentResult,
-    characterMap,
-    characterProfiles: book.characterProfiles,
-  });
+  const updated = await prisma.$transaction(async (tx) => {
+    await persistSegmentProcessingResult({
+      bookId,
+      segmentId: item.segmentId as string,
+      result: segmentResult,
+      characterMap,
+      characterProfiles: book.characterProfiles,
+      db: tx,
+    });
 
-  const updated = await prisma.manualReviewItem.update({
-    where: { id: itemId },
-    data: {
-      status: "resolved",
-      resolutionType: "manual_edit_saved",
-      resolutionNote: appendResolutionNote(
-        item.resolutionNote,
-        `manual_edit_saved:${new Date().toISOString()}`
-      ),
-      resolvedAt: new Date(),
-      issueDetail: {
-        ...(detail || {}),
-        manualEditedStructuredResult: payload.structuredResult,
-        manualEditedAt: new Date().toISOString(),
-      } as Prisma.InputJsonValue,
-    },
-    include: MANUAL_REVIEW_INCLUDE,
+    const now = new Date();
+    return tx.manualReviewItem.update({
+      where: { id: itemId },
+      data: {
+        status: "resolved",
+        resolutionType: "manual_edit_saved",
+        resolutionNote: appendResolutionNote(
+          item.resolutionNote,
+          `manual_edit_saved:${now.toISOString()}`
+        ),
+        resolvedAt: now,
+        issueDetail: {
+          ...(detail || {}),
+          manualEditedStructuredResult: payload.structuredResult,
+          manualEditedAt: now.toISOString(),
+        } as Prisma.InputJsonValue,
+      },
+      include: MANUAL_REVIEW_INCLUDE,
+    });
   });
 
   return {

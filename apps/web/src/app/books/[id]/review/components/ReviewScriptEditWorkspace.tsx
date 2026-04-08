@@ -48,10 +48,16 @@ interface CharacterDraft {
   name: string;
   aliases: string;
   description: string;
+  personality: string;
   gender: string;
   age: string;
   dialogueStyle: string;
   importance: string;
+}
+
+export interface ReviewScriptEditDraft {
+  dialogues: DialogueDraft[];
+  characters: CharacterDraft[];
 }
 
 const asRecord = (value: unknown): Record<string, unknown> | null => {
@@ -113,36 +119,38 @@ const normalizeCharacters = (value: unknown): CharacterDraft[] =>
       name: asString(record?.name),
       aliases,
       description: asString(record?.description),
+      personality,
       gender: asString(record?.gender),
       age:
         record?.age === null || record?.age === undefined ? "" : String(record?.age),
       dialogueStyle: asString(record?.dialogueStyle),
       importance: asString(record?.importance),
-      // 先把 personality 合并进 description 辅助展示，避免新增更多字段
-      ...(personality
-        ? {
-            description:
-              [asString(record?.description), `性格: ${personality}`]
-                .filter(Boolean)
-                .join("\n"),
-          }
-        : {}),
     };
   });
 
-const buildInitialDraft = (item: ManualReviewItem | null) => {
+const resolveCurrentStructuredResult = (
+  item: ManualReviewItem | null
+): Record<string, unknown> | null => {
   const detail = asRecord(item?.issueDetail);
-  const structuredResult = asRecord(detail?.structuredResult);
+  return (
+    asRecord(detail?.manualEditedStructuredResult) ||
+    asRecord(detail?.structuredResult)
+  );
+};
+
+export const buildInitialDraft = (
+  item: ManualReviewItem | null
+): ReviewScriptEditDraft => {
+  const structuredResult = resolveCurrentStructuredResult(item);
   return {
     dialogues: normalizeDialogues(resolveDialogueEntries(structuredResult)),
     characters: normalizeCharacters(resolveCharacterEntries(structuredResult)),
   };
 };
 
-const toStructuredResult = (draft: {
-  dialogues: DialogueDraft[];
-  characters: CharacterDraft[];
-}): Record<string, unknown> => ({
+export const toStructuredResult = (
+  draft: ReviewScriptEditDraft
+): Record<string, unknown> => ({
   dialogues: draft.dialogues.map((dialogue) => ({
     id: dialogue.id,
     sourceText: dialogue.sourceText,
@@ -158,9 +166,12 @@ const toStructuredResult = (draft: {
       .map((alias) => alias.trim())
       .filter(Boolean),
     description: character.description,
+    personality: character.personality
+      .split(",")
+      .map((trait) => trait.trim())
+      .filter(Boolean),
     gender: character.gender || "unknown",
     age: character.age.trim() ? character.age.trim() : null,
-    personality: [],
     importance: character.importance || "minor",
     dialogueStyle: character.dialogueStyle,
   })),
@@ -217,6 +228,10 @@ export function ReviewScriptEditWorkspace({
         : null,
     [detail]
   );
+  const currentStructuredResult = useMemo(
+    () => resolveCurrentStructuredResult(item),
+    [item]
+  );
   const [draft, setDraft] = useState(() => buildInitialDraft(item));
   const [selectedDialogueIndex, setSelectedDialogueIndex] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -233,7 +248,7 @@ export function ReviewScriptEditWorkspace({
     .filter(Boolean);
   const focusedSourceText =
     draft.dialogues[selectedDialogueIndex]?.sourceText || issuePreviews[0] || "";
-  const changeSummary = buildChangeSummary(originalStructuredResult, structuredResult);
+  const changeSummary = buildChangeSummary(currentStructuredResult, structuredResult);
   const speakerOptions = useMemo(() => {
     const roles = new Set<string>(["旁白"]);
     draft.characters.forEach((character) => {
@@ -349,6 +364,7 @@ export function ReviewScriptEditWorkspace({
           age: "",
           dialogueStyle: "",
           importance: "minor",
+          personality: "",
         },
       ],
     }));
@@ -619,6 +635,13 @@ export function ReviewScriptEditWorkspace({
                             placeholder="gender"
                           />
                           <Input
+                            value={character.personality}
+                            onChange={(event) =>
+                              updateCharacter(index, "personality", event.target.value)
+                            }
+                            placeholder="personality，用逗号分隔"
+                          />
+                          <Input
                             value={character.age}
                             onChange={(event) => updateCharacter(index, "age", event.target.value)}
                             placeholder="age"
@@ -680,7 +703,11 @@ export function ReviewScriptEditWorkspace({
                   <TabsContent value="structured">
                     <Textarea
                       readOnly
-                      value={JSON.stringify(originalStructuredResult || {}, null, 2)}
+                      value={JSON.stringify(
+                        originalStructuredResult || currentStructuredResult || {},
+                        null,
+                        2
+                      )}
                       className="min-h-[60vh] font-mono text-xs"
                     />
                   </TabsContent>

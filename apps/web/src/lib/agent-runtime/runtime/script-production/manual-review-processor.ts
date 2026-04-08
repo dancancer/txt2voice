@@ -1,4 +1,5 @@
 import { TTSError } from "@/lib/error-handler";
+import type { Prisma } from "@/lib/prisma";
 import {
   addCharacterToMap,
   normalizeCharacterCandidates,
@@ -317,8 +318,9 @@ export const persistSegmentProcessingResult = async (params: {
   result: SegmentProcessingResult;
   characterMap: Map<string, string>;
   characterProfiles: any[];
+  db?: Prisma.TransactionClient;
 }) => {
-  const { bookId, segmentId, result, characterMap, characterProfiles } = params;
+  const { bookId, segmentId, result, characterMap, characterProfiles, db } = params;
 
   if (result.dialogueLines.length === 0) {
     throw new TTSError(
@@ -334,6 +336,7 @@ export const persistSegmentProcessingResult = async (params: {
       candidates: result.characterCandidates,
       characterProfiles,
       characterMap,
+      db,
     });
   }
 
@@ -343,5 +346,6 @@ export const persistSegmentProcessingResult = async (params: {
     dialogueLines: result.dialogueLines,
     characterProfiles,
     characterMap,
+    db,
   });
 };

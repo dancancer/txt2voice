@@ -1,5 +1,7 @@
-import prisma from "@/lib/prisma";
+import prisma, { Prisma } from "@/lib/prisma";
 import type { CharacterCandidate } from "../types";
+
+type CharacterPersistenceClient = Prisma.TransactionClient;
 
 interface AliasItem {
   alias: string;
@@ -409,13 +411,14 @@ export function parseAgeHint(age: any): number | null {
   return null;
 }
 
-export async function upsertCharacterCandidates(params: {
+const upsertCharacterCandidatesWithDb = async (params: {
   bookId: string;
   candidates: CharacterCandidate[];
   characterProfiles: CharacterProfileLike[];
   characterMap: Map<string, string>;
-}): Promise<void> {
-  const { bookId, candidates, characterProfiles, characterMap } = params;
+  db: CharacterPersistenceClient;
+}): Promise<void> => {
+  const { bookId, candidates, characterProfiles, characterMap, db } = params;
 
   if (candidates.length === 0) {
     return;
@@ -427,199 +430,220 @@ export async function upsertCharacterCandidates(params: {
     minor: 1,
   };
 
-  await prisma.$transaction(async (tx) => {
-    const existingProfiles = await tx.characterProfile.findMany({
-      where: {
-        bookId,
-        isActive: true,
-      },
-      include: {
-        aliases: true,
-      },
-    });
-    const runtimeProfiles = mergeCharacterProfiles(
-      characterProfiles,
-      existingProfiles
-    );
-    const runtimeMap = new Map(characterMap);
-    for (const profile of runtimeProfiles) {
-      addCharacterToMap(runtimeMap, profile);
-      addCharacterToMap(characterMap, profile);
+  const existingProfiles = await db.characterProfile.findMany({
+    where: {
+      bookId,
+      isActive: true,
+    },
+    include: {
+      aliases: true,
+    },
+  });
+  const runtimeProfiles = mergeCharacterProfiles(
+    characterProfiles,
+    existingProfiles
+  );
+  const runtimeMap = new Map(characterMap);
+  for (const profile of runtimeProfiles) {
+    addCharacterToMap(runtimeMap, profile);
+    addCharacterToMap(characterMap, profile);
+  }
+
+  for (const candidate of candidates) {
+    const canonicalName = resolveCandidateCanonicalName(
+      candidate,
+      runtimeMap
+    ).trim();
+
+    if (!canonicalName || canonicalName === "旁白") {
+      continue;
     }
 
-    for (const candidate of candidates) {
-      const canonicalName = resolveCandidateCanonicalName(
-        candidate,
-        runtimeMap
-      ).trim();
+    let profile = runtimeProfiles.find(
+      (item) => item.canonicalName === canonicalName
+    );
 
-      if (!canonicalName || canonicalName === "旁白") {
-        continue;
+    const aliasSet = new Set(candidate.aliases);
+    if (candidate.name && candidate.name !== canonicalName) {
+      aliasSet.add(candidate.name);
+    }
+
+    if (!profile) {
+      const created = await db.characterProfile.create({
+        data: {
+          bookId,
+          canonicalName,
+          characteristics: {
+            description:
+              candidate.description ||
+              `台本生成识别的角色：${canonicalName}`,
+            personality: candidate.personality,
+            importance: candidate.importance || "minor",
+            relationships: {},
+          },
+          voicePreferences: {
+            dialogueStyle: candidate.dialogueStyle || "自然",
+          },
+          genderHint:
+            candidate.gender === "male" || candidate.gender === "female"
+              ? candidate.gender
+              : "unknown",
+          ageHint: parseAgeHint(candidate.age),
+          emotionBaseline: "neutral",
+          isActive: true,
+        },
+      });
+
+      profile = { ...created, aliases: [] };
+      runtimeProfiles.push(profile);
+      characterProfiles.push(profile);
+    } else {
+      const updateData: Record<string, any> = {};
+      const characteristics = (profile.characteristics as any) || {};
+      const voicePreferences = (profile.voicePreferences as any) || {};
+      const nextCharacteristics = { ...characteristics };
+      let shouldUpdateCharacteristics = false;
+
+      if (candidate.description && !characteristics.description) {
+        nextCharacteristics.description = candidate.description;
+        shouldUpdateCharacteristics = true;
       }
 
-      let profile = runtimeProfiles.find(
-        (item) => item.canonicalName === canonicalName
+      if (
+        candidate.personality.length > 0 &&
+        (!Array.isArray(characteristics.personality) ||
+          characteristics.personality.length === 0)
+      ) {
+        nextCharacteristics.personality = candidate.personality;
+        shouldUpdateCharacteristics = true;
+      }
+
+      const currentImportance: "main" | "secondary" | "minor" =
+        characteristics.importance === "main" ||
+        characteristics.importance === "secondary" ||
+        characteristics.importance === "minor"
+          ? characteristics.importance
+          : "minor";
+      const candidateImportance: "main" | "secondary" | "minor" =
+        candidate.importance === "main" ||
+        candidate.importance === "secondary" ||
+        candidate.importance === "minor"
+          ? candidate.importance
+          : "minor";
+      if (importanceWeight[candidateImportance] > importanceWeight[currentImportance]) {
+        nextCharacteristics.importance = candidateImportance;
+        shouldUpdateCharacteristics = true;
+      }
+
+      if (shouldUpdateCharacteristics) {
+        updateData.characteristics = nextCharacteristics;
+      }
+
+      if (candidate.dialogueStyle && !voicePreferences.dialogueStyle) {
+        updateData.voicePreferences = {
+          ...voicePreferences,
+          dialogueStyle: candidate.dialogueStyle,
+        };
+      }
+
+      if (
+        profile.genderHint === "unknown" &&
+        candidate.gender &&
+        candidate.gender !== "unknown"
+      ) {
+        updateData.genderHint = candidate.gender;
+      }
+
+      if (profile.ageHint === null || profile.ageHint === undefined) {
+        const ageHint = parseAgeHint(candidate.age);
+        if (ageHint !== null) {
+          updateData.ageHint = ageHint;
+        }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        const updatedProfile = await db.characterProfile.update({
+          where: { id: profile.id },
+          data: updateData,
+        });
+        profile = {
+          ...profile,
+          ...updatedProfile,
+          aliases: profile.aliases,
+        };
+        const profileIndex = characterProfiles.findIndex(
+          (item) => item.id === profile?.id
+        );
+        if (profileIndex >= 0) {
+          characterProfiles[profileIndex] = profile;
+        }
+        const runtimeProfileIndex = runtimeProfiles.findIndex(
+          (item) => item.id === profile?.id
+        );
+        if (runtimeProfileIndex >= 0) {
+          runtimeProfiles[runtimeProfileIndex] = profile;
+        }
+      }
+    }
+
+    if (!profile || !profile.id) {
+      continue;
+    }
+
+    if (aliasSet.size > 0) {
+      const existingAliases = new Set(
+        (profile.aliases || []).map((alias: any) => alias.alias)
+      );
+      const aliasesToCreate = [...aliasSet].filter(
+        (alias) => alias && alias !== canonicalName && !existingAliases.has(alias)
       );
 
-      const aliasSet = new Set(candidate.aliases);
-      if (candidate.name && candidate.name !== canonicalName) {
-        aliasSet.add(candidate.name);
-      }
-
-      if (!profile) {
-        const created = await tx.characterProfile.create({
-          data: {
-            bookId,
-            canonicalName,
-            characteristics: {
-              description:
-                candidate.description ||
-                `台本生成识别的角色：${canonicalName}`,
-              personality: candidate.personality,
-              importance: candidate.importance || "minor",
-              relationships: {},
-            },
-            voicePreferences: {
-              dialogueStyle: candidate.dialogueStyle || "自然",
-            },
-            genderHint:
-              candidate.gender === "male" || candidate.gender === "female"
-                ? candidate.gender
-                : "unknown",
-            ageHint: parseAgeHint(candidate.age),
-            emotionBaseline: "neutral",
-            isActive: true,
-          },
+      if (aliasesToCreate.length > 0) {
+        await db.characterAlias.createMany({
+          data: aliasesToCreate.map((alias) => ({
+            characterId: profile.id as string,
+            alias,
+          })),
+          skipDuplicates: true,
         });
 
-        profile = { ...created, aliases: [] };
-        runtimeProfiles.push(profile);
-        characterProfiles.push(profile);
-      } else {
-        const updateData: Record<string, any> = {};
-        const characteristics = (profile.characteristics as any) || {};
-        const voicePreferences = (profile.voicePreferences as any) || {};
-        const nextCharacteristics = { ...characteristics };
-        let shouldUpdateCharacteristics = false;
-
-        if (candidate.description && !characteristics.description) {
-          nextCharacteristics.description = candidate.description;
-          shouldUpdateCharacteristics = true;
-        }
-
-        if (
-          candidate.personality.length > 0 &&
-          (!Array.isArray(characteristics.personality) ||
-            characteristics.personality.length === 0)
-        ) {
-          nextCharacteristics.personality = candidate.personality;
-          shouldUpdateCharacteristics = true;
-        }
-
-        const currentImportance: "main" | "secondary" | "minor" =
-          characteristics.importance === "main" ||
-          characteristics.importance === "secondary" ||
-          characteristics.importance === "minor"
-            ? characteristics.importance
-            : "minor";
-        const candidateImportance: "main" | "secondary" | "minor" =
-          candidate.importance === "main" ||
-          candidate.importance === "secondary" ||
-          candidate.importance === "minor"
-            ? candidate.importance
-            : "minor";
-        if (importanceWeight[candidateImportance] > importanceWeight[currentImportance]) {
-          nextCharacteristics.importance = candidateImportance;
-          shouldUpdateCharacteristics = true;
-        }
-
-        if (shouldUpdateCharacteristics) {
-          updateData.characteristics = nextCharacteristics;
-        }
-
-        if (candidate.dialogueStyle && !voicePreferences.dialogueStyle) {
-          updateData.voicePreferences = {
-            ...voicePreferences,
-            dialogueStyle: candidate.dialogueStyle,
-          };
-        }
-
-        if (
-          profile.genderHint === "unknown" &&
-          candidate.gender &&
-          candidate.gender !== "unknown"
-        ) {
-          updateData.genderHint = candidate.gender;
-        }
-
-        if (profile.ageHint === null || profile.ageHint === undefined) {
-          const ageHint = parseAgeHint(candidate.age);
-          if (ageHint !== null) {
-            updateData.ageHint = ageHint;
-          }
-        }
-
-        if (Object.keys(updateData).length > 0) {
-          const updatedProfile = await tx.characterProfile.update({
-            where: { id: profile.id },
-            data: updateData,
-          });
-          profile = {
-            ...profile,
-            ...updatedProfile,
-            aliases: profile.aliases,
-          };
-          const profileIndex = characterProfiles.findIndex(
-            (item) => item.id === profile?.id
-          );
-          if (profileIndex >= 0) {
-            characterProfiles[profileIndex] = profile;
-          }
-          const runtimeProfileIndex = runtimeProfiles.findIndex(
-            (item) => item.id === profile?.id
-          );
-          if (runtimeProfileIndex >= 0) {
-            runtimeProfiles[runtimeProfileIndex] = profile;
-          }
-        }
+        profile.aliases = [
+          ...(profile.aliases || []),
+          ...aliasesToCreate.map((alias) => ({ alias })),
+        ];
       }
-
-      if (!profile || !profile.id) {
-        continue;
-      }
-
-      if (aliasSet.size > 0) {
-        const existingAliases = new Set(
-          (profile.aliases || []).map((alias: any) => alias.alias)
-        );
-        const aliasesToCreate = [...aliasSet].filter(
-          (alias) => alias && alias !== canonicalName && !existingAliases.has(alias)
-        );
-
-        if (aliasesToCreate.length > 0) {
-          await tx.characterAlias.createMany({
-            data: aliasesToCreate.map((alias) => ({
-              characterId: profile.id as string,
-              alias,
-            })),
-            skipDuplicates: true,
-          });
-
-          profile.aliases = [
-            ...(profile.aliases || []),
-            ...aliasesToCreate.map((alias) => ({ alias })),
-          ];
-        }
-      }
-
-      addCharacterToMap(characterMap, {
-        canonicalName: profile?.canonicalName,
-        aliases: profile?.aliases || [],
-      });
-      addCharacterToMap(runtimeMap, {
-        canonicalName: profile?.canonicalName,
-        aliases: profile?.aliases || [],
-      });
     }
+
+    addCharacterToMap(characterMap, {
+      canonicalName: profile?.canonicalName,
+      aliases: profile?.aliases || [],
+    });
+    addCharacterToMap(runtimeMap, {
+      canonicalName: profile?.canonicalName,
+      aliases: profile?.aliases || [],
+    });
+  }
+};
+
+export async function upsertCharacterCandidates(params: {
+  bookId: string;
+  candidates: CharacterCandidate[];
+  characterProfiles: CharacterProfileLike[];
+  characterMap: Map<string, string>;
+  db?: CharacterPersistenceClient;
+}): Promise<void> {
+  if (params.db) {
+    await upsertCharacterCandidatesWithDb({
+      ...params,
+      db: params.db,
+    });
+    return;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await upsertCharacterCandidatesWithDb({
+      ...params,
+      db: tx,
+    });
   });
 }
