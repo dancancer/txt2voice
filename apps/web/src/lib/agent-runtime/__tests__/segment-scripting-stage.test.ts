@@ -413,6 +413,45 @@ describe("segment scripting stage", () => {
     expect(call.prompt).toContain("宁公子");
   });
 
+  it("normalizes alias speaker names back to canonical names before returning the draft", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“见过姑娘。”",
+            text: "见过姑娘。",
+            speaker: "宁公子",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-normalize-speaker-alias",
+      segmentId: "segment-normalize-speaker-alias",
+      segmentText: "“见过姑娘。”",
+      skillDir,
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [
+          { alias: "宁公子", canonicalId: "char-1", source: "profile:char-1" },
+        ],
+        assertedFacts: {
+          "char-1": { role: "main" },
+        },
+        inferredHints: {},
+      },
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    expect(asCompletedResult(result).artifact.segmentScriptDraft.lines[0]?.speaker).toBe(
+      "宁采臣"
+    );
+  });
+
   it("does not mutate literal placeholder text inside segment content during prompt rendering", async () => {
     const fixtureSkillDir = createScriptGenerationSkillFixture({
       userPrompt: "文本段落：\n{{segment_text}}\n\n角色记忆摘要：\n{{character_memory_summary}}",
@@ -476,6 +515,39 @@ describe("segment scripting stage", () => {
       workflowRunId: "wf-segment-full-prompt-over-budget",
       segmentId: "segment-full-prompt-over-budget",
       segmentText: "宁采臣抬头。",
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("repairing");
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("refuses to silently trim segment_text to fit the prompt budget", async () => {
+    const fixtureSkillDir = createScriptGenerationSkillFixture({
+      agentInstructions: "A".repeat(2200),
+      skillInstructions: "B".repeat(200),
+      systemPrompt: "C".repeat(200),
+      userPrompt: "{{segment_text}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-disallow-trimmed-source",
+      segmentId: "segment-disallow-trimmed-source",
+      segmentText: "甲".repeat(1200),
       skillDir: fixtureSkillDir,
       adapter,
     });

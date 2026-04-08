@@ -237,10 +237,25 @@ describe("segment repair stage", () => {
     expect(call.prompt).toContain("原文里出现 {{failed_artifact_json}} 这个字样。");
   });
 
-  it("routes semantic validation failures to semantic_retry without calling adapter", async () => {
+  it("repairs semantic validation failures into a retriable draft", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
-        lines: [],
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+          {
+            id: "line-2",
+            sourceText: "燕赤霞点头。",
+            text: "燕赤霞点头。",
+            speaker: "旁白",
+            orderInSegment: 1,
+          },
+        ],
       })
     );
 
@@ -277,8 +292,8 @@ describe("segment repair stage", () => {
       reason: "semantic_retry",
       retryable: true,
     });
-    expect(completed.artifact).toBeUndefined();
-    expect(adapter.call).toHaveBeenCalledTimes(0);
+    expect(completed.artifact?.segmentScriptDraft.lines).toHaveLength(2);
+    expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
   it("routes over-budget failures to input_refinement without calling adapter", async () => {

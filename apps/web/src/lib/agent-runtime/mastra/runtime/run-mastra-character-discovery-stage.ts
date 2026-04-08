@@ -7,7 +7,6 @@ import {
   type CharacterMemory,
   type MemoryPatch,
 } from "../../context";
-import { LOAD_BOOK_CONTEXT_TOOL } from "../../tools/io-tools";
 import { createCharacterDiscoveryAgent } from "../../runtime/agents/character-discovery-agent";
 import { renderCharacterDiscoveryUserPrompt } from "../../runtime/agents/character-discovery-agent";
 import { validateAgentContract } from "../../runtime/agent-contract";
@@ -15,7 +14,11 @@ import {
   composeRuntimeSystemPrompt,
   loadSkillRuntimeBundle,
 } from "../../runtime/load-skill-runtime-bundle";
-import { fitPromptToBudget, resolvePromptBudgetLimit } from "../../runtime/prompt-budget";
+import {
+  fitPromptToBudget,
+  preservePromptValueEdges,
+  resolvePromptBudgetLimit,
+} from "../../runtime/prompt-budget";
 import { runStage, type StageRunRecord } from "../../runtime/run-stage";
 import {
   buildSkillMetadataSnapshot,
@@ -320,7 +323,7 @@ export const runMastraCharacterDiscoveryStage = async (
             agentSourceId: "character-discovery",
             stageId: "character_discovery",
             skill: skill.definition,
-            registeredTools: [LOAD_BOOK_CONTEXT_TOOL],
+            registeredTools: [],
           });
           validateSkillContract({
             skill: skill.definition,
@@ -358,6 +361,24 @@ export const runMastraCharacterDiscoveryStage = async (
                 characterMemorySummary: variables.character_memory_summary,
               }),
           });
+          const segmentTextWasTrimmed =
+            promptBudgetResult.trimmedKeys.includes("segment_text") &&
+            promptBudgetResult.variables.segment_text.length > 0;
+          const segmentText =
+            segmentTextWasTrimmed &&
+            typeof context.inputContext.segmentText === "string"
+              ? preservePromptValueEdges(
+                  context.inputContext.segmentText,
+                  promptBudgetResult.variables.segment_text.length
+                )
+              : promptBudgetResult.variables.segment_text;
+          const renderedUserPrompt = segmentTextWasTrimmed
+            ? renderCharacterDiscoveryUserPrompt(skill.userPrompt, {
+                segmentText,
+                characterMemorySummary:
+                  promptBudgetResult.variables.character_memory_summary,
+              })
+            : promptBudgetResult.prompt;
           if (promptBudgetResult.overBudget) {
             throw new Error(
               "Input context over budget for character discovery stage"
@@ -367,11 +388,11 @@ export const runMastraCharacterDiscoveryStage = async (
           const adapter = await resolveAdapter(input.adapter);
           const agent = createCharacterDiscoveryAgent({ adapter });
           const result = await agent.execute({
-            segmentText: promptBudgetResult.variables.segment_text,
+            segmentText,
             characterMemorySummary:
               promptBudgetResult.variables.character_memory_summary,
             modelPolicy: skill.definition.modelPolicy!,
-            renderedUserPrompt: promptBudgetResult.prompt,
+            renderedUserPrompt,
             prompts: {
               systemPrompt: runtimeSystemPrompt,
               userPrompt: skill.userPrompt,

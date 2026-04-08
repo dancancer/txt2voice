@@ -128,13 +128,6 @@ const createManualReviewDecision = (segmentId: string): RepairDecision => ({
   retryable: false,
 });
 
-const createSemanticRetryDecision = (segmentId: string): RepairDecision => ({
-  segmentId,
-  action: "retry",
-  reason: "semantic_retry",
-  retryable: true,
-});
-
 const createInputRefinementDecision = (segmentId: string): RepairDecision => ({
   segmentId,
   action: "refine",
@@ -171,16 +164,6 @@ export const runMastraSegmentRepairStage = async (
               status: "completed",
               output: {
                 decision: createManualReviewDecision(input.segmentId),
-              },
-            };
-          }
-
-          if (input.failureKind === "semantic_retry") {
-            return {
-              status: "completed",
-              output: {
-                decision: createSemanticRetryDecision(input.segmentId),
-                validationReport: input.validationReport,
               },
             };
           }
@@ -276,6 +259,10 @@ export const runMastraSegmentRepairStage = async (
             segmentId: input.segmentId,
             segmentText: promptBudgetResult.variables.segment_text,
             failedArtifact: promptBudgetResult.variables.failed_artifact_json,
+            failureKind:
+              input.failureKind === "semantic_retry"
+                ? "semantic_retry"
+                : "format_repair",
             modelPolicy: skill.definition.modelPolicy!,
             renderedUserPrompt: promptBudgetResult.prompt,
             prompts: {

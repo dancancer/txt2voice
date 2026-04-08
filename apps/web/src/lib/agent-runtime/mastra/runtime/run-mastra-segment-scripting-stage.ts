@@ -133,6 +133,59 @@ const isRepairableError = (message: string): boolean =>
   message.startsWith("Invalid script line") ||
   message.startsWith("Input context over budget");
 
+const normalizeDraftSpeakers = (
+  draft: SegmentScriptDraft,
+  characterMemory?: CharacterMemory
+): SegmentScriptDraft => {
+  if (!characterMemory) {
+    return draft;
+  }
+
+  const canonicalNameById = new Map(
+    characterMemory.canonicalIdentities
+      .map((identity) => [identity.id.trim(), identity.name.trim()] as const)
+      .filter((entry) => entry[0].length > 0 && entry[1].length > 0)
+  );
+  const canonicalNameBySpeaker = new Map<string, string>();
+
+  for (const identity of characterMemory.canonicalIdentities) {
+    const name = identity.name.trim();
+    if (!name || canonicalNameBySpeaker.has(name)) {
+      continue;
+    }
+
+    canonicalNameBySpeaker.set(name, name);
+  }
+
+  for (const evidence of characterMemory.aliasEvidence) {
+    const alias = evidence.alias.trim();
+    const canonicalName =
+      canonicalNameById.get(evidence.canonicalId.trim()) || alias;
+    if (!alias || canonicalNameBySpeaker.has(alias)) {
+      continue;
+    }
+
+    canonicalNameBySpeaker.set(alias, canonicalName);
+  }
+
+  return {
+    ...draft,
+    lines: draft.lines.map((line) => {
+      const speaker = line.speaker.trim();
+      const canonicalSpeaker = canonicalNameBySpeaker.get(speaker);
+
+      if (!canonicalSpeaker || canonicalSpeaker === speaker) {
+        return line;
+      }
+
+      return {
+        ...line,
+        speaker: canonicalSpeaker,
+      };
+    }),
+  };
+};
+
 export const runMastraSegmentScriptingStage = async (
   input: RunSegmentScriptingStageInput,
   deps: SegmentScriptingRuntimeDeps = {}
@@ -213,7 +266,10 @@ export const runMastraSegmentScriptingStage = async (
                 characterMemorySummary: variables.character_memory_summary,
               }),
           });
-          if (promptBudgetResult.overBudget) {
+          if (
+            promptBudgetResult.overBudget ||
+            promptBudgetResult.trimmedKeys.includes("segment_text")
+          ) {
             throw new Error("Input context over budget for segment scripting stage");
           }
 
@@ -245,7 +301,10 @@ export const runMastraSegmentScriptingStage = async (
             output: {
               skillId: skill.definition.id,
               skillMetadata,
-              segmentScriptDraft: result.segmentScriptDraft,
+              segmentScriptDraft: normalizeDraftSpeakers(
+                result.segmentScriptDraft,
+                input.characterMemory
+              ),
               provider: result.provider,
               model: result.model,
             },

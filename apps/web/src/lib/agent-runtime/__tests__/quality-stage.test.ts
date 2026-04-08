@@ -399,6 +399,41 @@ describe("quality stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("trims oversized primary quality inputs before degrading to manual review", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.91,
+        confidence: 0.88,
+        reasons: ["长段落在裁剪后仍可完成判断"],
+        summary: "质量判断完成",
+      })
+    );
+    const longDraft: SegmentScriptDraft = {
+      segmentId: "segment-quality-large-draft",
+      createdAt: "2026-03-24T00:00:00.000Z",
+      lines: Array.from({ length: 18 }, (_, index) => ({
+        id: `segment-quality-large-draft-line-${index + 1}`,
+        sourceText: `第${index + 1}句${"甲".repeat(360)}`,
+        text: `第${index + 1}句${"甲".repeat(360)}`,
+        speaker: "旁白",
+        orderInSegment: index,
+      })),
+    };
+
+    const result = await runQualityStage({
+      workflowRunId: "wf-quality-trim-primary-inputs",
+      segmentId: "segment-quality-large-draft",
+      segmentScriptDraft: longDraft,
+      validationReport: createValidationReport("segment-quality-large-draft"),
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toBe("auto_pass");
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+  });
+
   it("includes minimal evidence package for low confidence manual review handoff", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({

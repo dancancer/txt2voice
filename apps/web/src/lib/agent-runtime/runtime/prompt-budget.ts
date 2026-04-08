@@ -26,6 +26,32 @@ export const measurePromptChars = (params: {
 export const resolvePromptBudgetLimit = (budget: ContextBudget) =>
   resolveInputBudgetLimit(budget);
 
+export const preservePromptValueEdges = (
+  value: string,
+  targetLength: number
+): string => {
+  if (targetLength <= 0) {
+    return "";
+  }
+
+  if (value.length <= targetLength) {
+    return value;
+  }
+
+  if (targetLength <= 8) {
+    return value.slice(0, targetLength);
+  }
+
+  const separator = "\n...\n";
+  const contentLength = Math.max(targetLength - separator.length, 2);
+  const headLength = Math.ceil(contentLength / 2);
+  const tailLength = Math.floor(contentLength / 2);
+
+  return `${value.slice(0, headLength)}${separator}${value.slice(
+    value.length - tailLength
+  )}`;
+};
+
 export const fitPromptToBudget = (
   input: FitPromptToBudgetInput
 ): FitPromptToBudgetResult => {

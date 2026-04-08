@@ -1751,6 +1751,89 @@ describe("runScriptProductionWorkflow", () => {
     expect(result.summary.totalLines).toBe(3);
   });
 
+  it("preserves manual review semantics after repeated format_repair failures", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-format-repair-fail",
+      status: "repairing",
+      error: "Invalid script generation payload: expected JSON object",
+      failedArtifact: {
+        kind: "segment-scripting-failure",
+        rawResponse: "not-json",
+        provider: "mock-provider",
+        model: "mock-model",
+        message: "Invalid script generation payload: expected JSON object",
+      },
+    } as any);
+    mockRunSegmentRepairStage.mockImplementation(async (input: any) => {
+      if (input.repairDepth < 2) {
+        return {
+          stageRunId: `stage-repair-format-failed-${input.repairDepth}`,
+          status: "failed",
+          error: "Invalid repair payload: expected JSON object",
+          failedArtifact: {
+            kind: "segment-repair-failure",
+            rawResponse: "still-not-json",
+            provider: "mock-provider",
+            model: "mock-model",
+            message: "Invalid repair payload: expected JSON object",
+          },
+        } as any;
+      }
+
+      return {
+        stageRunId: "stage-repair-format-manual-review",
+        status: "completed",
+        decision: {
+          segmentId: input.segmentId,
+          action: "manual_review",
+          reason: "repair_depth_exceeded",
+          retryable: false,
+        },
+      } as any;
+    });
+
+    const result = await runScriptProductionWorkflow({
+      taskId: "task-format-repair-depth",
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunSegmentRepairStage).toHaveBeenCalledTimes(3);
+    expect(mockRunSegmentRepairStage).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        segmentId: "seg-1",
+        failureKind: "format_repair",
+        repairDepth: 0,
+      })
+    );
+    expect(mockRunSegmentRepairStage).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        segmentId: "seg-1",
+        failureKind: "format_repair",
+        repairDepth: 2,
+      })
+    );
+    expect((result as any).runtimeMetadata?.summary.manualReviewRequiredCount).toBe(
+      1
+    );
+    expect(result.summary.failedSegmentDetails).toEqual([
+      expect.objectContaining({
+        segmentId: "seg-1",
+        stage: "segment_repair",
+        errorCode: "SEGMENT_MANUAL_REVIEW_REQUIRED",
+        message: "repair_depth_exceeded",
+      }),
+    ]);
+  });
+
   it("emits execution events from bridge adapter calls", async () => {
     const adapter = {
       call: jest.fn().mockResolvedValue({

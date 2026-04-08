@@ -68,7 +68,7 @@ const createCharacterDiscoveryContractFixture = (params?: {
       `allowedSkills = [${(params?.allowedSkills ?? [skillId])
         .map((allowedSkillId) => `"${allowedSkillId}"`)
         .join(", ")}]`,
-      `allowedTools = [${(params?.allowedTools ?? ["load-book-context"])
+      `allowedTools = [${(params?.allowedTools ?? [])
         .map((toolName) => `"${toolName}"`)
         .join(", ")}]`,
     ].join("\n"),
@@ -98,7 +98,7 @@ const createCharacterDiscoveryContractFixture = (params?: {
       ])
         .map((requirement) => `"${requirement}"`)
         .join(", ")}]`,
-      `toolAllowlist = [${(params?.toolAllowlist ?? ["load-book-context"])
+      `toolAllowlist = [${(params?.toolAllowlist ?? [])
         .map((toolName) => `"${toolName}"`)
         .join(", ")}]`,
       'promptBundle = ["prompts/system.md", "prompts/user.md"]',
@@ -248,7 +248,7 @@ describe("character discovery stage", () => {
     const call = (adapter.call as jest.Mock).mock.calls[0]?.[0];
     expect(call.prompt.length).toBeLessThan(3200);
     expect(call.prompt).toContain("开头-");
-    expect(call.prompt).not.toContain("尾标记");
+    expect(call.prompt).toContain("尾标记");
   });
 
   it("fails fast when the full runtime prompt exceeds budget", async () => {
@@ -295,7 +295,7 @@ describe("character discovery stage", () => {
         'role = "discover_character_identities"',
         'compatibleWorkflowStages = ["character_discovery"]',
         'allowedSkills = ["character-extraction"]',
-        'allowedTools = ["load-book-context"]',
+        'allowedTools = []',
       ].join("\n"),
       "utf8"
     );
@@ -310,7 +310,7 @@ describe("character discovery stage", () => {
         'inputSchemaRef = "character-input"',
         'outputSchemaRef = "character-output"',
         'contextRequirements = ["segment"]',
-        'toolAllowlist = ["load-book-context"]',
+        'toolAllowlist = []',
         'promptBundle = ["prompts/system.md", "prompts/user.md"]',
         'modelPolicy = "balanced"',
       ].join("\n"),

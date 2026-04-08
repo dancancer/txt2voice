@@ -29,6 +29,7 @@ import type {
 } from "./run-single-segment-types";
 
 const MAX_INPUT_REFINEMENT_DEPTH = 2;
+const MAX_FORMAT_REPAIR_DEPTH = 2;
 
 type DraftResolutionResult =
   | {
@@ -148,7 +149,7 @@ export const resolveSegmentDraft = async (
       failureKind: "format_repair",
     },
   });
-  const repairStage = await runRepairStage({
+  let repairStage = await runRepairStage({
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,
     segmentText: params.segment.content,
@@ -166,6 +167,32 @@ export const resolveSegmentDraft = async (
     updateToolCall: params.updateToolCall,
     appendTrace: params.appendTrace,
   });
+
+  for (
+    let repairDepth = 1;
+    repairStage.status !== "completed" && repairDepth <= MAX_FORMAT_REPAIR_DEPTH;
+    repairDepth += 1
+  ) {
+    repairStage = await runRepairStage({
+      workflowRunId: params.workflowRunId,
+      segmentId: params.segment.id,
+      segmentText: params.segment.content,
+      failureKind: "format_repair",
+      failedArtifact:
+        repairStage.failedArtifact ?? resolveFailureArtifact(scriptStage),
+      repairDepth,
+      adapter: params.adapter,
+      createId: params.createId,
+      now: params.now,
+      createStageRun: params.createStageRun,
+      updateStageRun: params.updateStageRun,
+      createAgentRun: params.createAgentRun,
+      updateAgentRun: params.updateAgentRun,
+      createToolCall: params.createToolCall,
+      updateToolCall: params.updateToolCall,
+      appendTrace: params.appendTrace,
+    });
+  }
 
   await params.runtimeStore.updateStageRun({
     id: repairStage.stageRunId,
@@ -284,12 +311,18 @@ export const resolveSegmentDraft = async (
 
   if (repairStage.decision.action !== "retry" || !repairStage.artifact) {
     if (!draft) {
+      const errorCode =
+        repairStage.decision.action === "manual_review"
+          ? "SEGMENT_MANUAL_REVIEW_REQUIRED"
+          : repairStage.decision.action === "refine"
+            ? "SEGMENT_INPUT_REFINEMENT_REQUIRED"
+            : "SEGMENT_REPAIR_NOT_RECOVERED";
       return {
         status: "failed",
         failure: createFailureDetail({
           segment: params.segment,
           stage: "segment_repair",
-          errorCode: "SEGMENT_REPAIR_NOT_RECOVERED",
+          errorCode,
           message:
             repairStage.decision.reason || "segment_repair_not_recovered",
           retryable: repairStage.decision.retryable,

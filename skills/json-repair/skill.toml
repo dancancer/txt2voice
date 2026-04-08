@@ -9,5 +9,5 @@ toolAllowlist = []
 promptBundle = ["prompts/system.md", "prompts/user.md"]
 modelPolicy = "cheap-repair"
 repairPolicy = "bounded-repair-depth"
-successCriteria = ["returns-repaired-draft-or-decision", "does-not-persist"]
+successCriteria = ["returns-repaired-draft", "does-not-persist"]
 telemetryTags = ["runtime", "repair"]

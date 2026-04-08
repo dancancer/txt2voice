@@ -5,6 +5,7 @@ import path from "path";
 import type { LLMAdapter } from "../adapters/llm-adapter";
 import { runSegmentRepairStage } from "../runtime/stages/run-segment-repair-stage";
 import { runSegmentScriptingStage } from "../runtime/stages/run-segment-scripting-stage";
+import { loadSkillRuntimeBundle } from "../runtime/load-skill-runtime-bundle";
 
 const workspaceRoot = path.resolve(__dirname, "../../../../../..");
 const scriptSkillDir = path.join(workspaceRoot, "skills/script-generation");
@@ -156,5 +157,18 @@ describe("production prompt guardrails", () => {
     expect(call.systemPrompt).toContain("text 必须与 sourceText 完全一致");
     expect(call.systemPrompt).toContain("像“宁尘说。”这类没有真正对白的句子");
     expect(call.prompt).toContain('\\"text\\":\\"\\"');
+  });
+
+  it("script-generation prompt requires canonical speaker names when known aliases already exist", () => {
+    const bundle = loadSkillRuntimeBundle(workspaceRoot, "script-generation");
+
+    expect(bundle.systemPrompt).toContain("canonical 名称");
+    expect(bundle.systemPrompt).toContain("不要输出别名变体");
+  });
+
+  it("quality prompt does not ask the judge to score fields that the draft does not contain", () => {
+    const bundle = loadSkillRuntimeBundle(workspaceRoot, "quality-judgement");
+
+    expect(bundle.systemPrompt).not.toContain("情绪、语气、朗读意图");
   });
 });

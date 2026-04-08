@@ -327,7 +327,12 @@ export const runMastraQualityStage = async (
               quality_signals_json: JSON.stringify(input.qualitySignals ?? {}, null, 2),
               failed_artifact_json: JSON.stringify(failedArtifactSummary, null, 2),
             },
-            trimOrder: ["failed_artifact_json"],
+            trimOrder: [
+              "failed_artifact_json",
+              "quality_signals_json",
+              "validation_report_json",
+              "segment_script_draft_json",
+            ],
             renderPrompt: (variables) =>
               renderQualityJudgeUserPromptFromVariables(skill.userPrompt, {
                 segment_script_draft_json: variables.segment_script_draft_json,

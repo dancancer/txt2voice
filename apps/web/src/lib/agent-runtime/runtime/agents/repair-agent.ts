@@ -16,6 +16,7 @@ export interface RepairAgentInput {
   segmentId: string;
   segmentText: string;
   failedArtifact: unknown;
+  failureKind?: "format_repair" | "semantic_retry";
   modelPolicy: string;
   prompts: RepairAgentPrompts;
   renderedUserPrompt?: string;
@@ -266,7 +267,7 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
       metadata: {
         source: "agent_runtime.segment_repair",
         stageId: "segment_repair",
-        failureCategory: "format_repair",
+        failureCategory: input.failureKind ?? "format_repair",
       },
     });
     const now = deps.now ?? (() => new Date());
@@ -282,7 +283,7 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
         decision: {
           segmentId: input.segmentId,
           action: "retry",
-          reason: "format_repair",
+          reason: input.failureKind ?? "format_repair",
           retryable: true,
         },
         repairedDraft: {

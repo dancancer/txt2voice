@@ -11,7 +11,27 @@ import type {
   ScriptProductionBookSegment,
 } from "./shared-types";
 
-export const CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT = 3;
+export const CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT = 5;
+const CHARACTER_DISCOVERY_SEGMENT_CHAR_LIMIT = 320;
+
+const preserveSampleEdges = (value: string, targetLength: number): string => {
+  if (value.length <= targetLength) {
+    return value;
+  }
+
+  if (targetLength <= 8) {
+    return value.slice(0, targetLength);
+  }
+
+  const separator = "\n...\n";
+  const contentLength = Math.max(targetLength - separator.length, 2);
+  const headLength = Math.ceil(contentLength / 2);
+  const tailLength = Math.floor(contentLength / 2);
+
+  return `${value.slice(0, headLength)}${separator}${value.slice(
+    value.length - tailLength
+  )}`;
+};
 
 const selectCharacterDiscoverySampleIndexes = (
   segmentCount: number
@@ -48,6 +68,9 @@ export const buildCharacterDiscoverySampleText = (
         typeof segment?.content === "string"
     )
     .map((segment) => segment.content.trim())
+    .map((segmentText) =>
+      preserveSampleEdges(segmentText, CHARACTER_DISCOVERY_SEGMENT_CHAR_LIMIT)
+    )
     .filter((segmentText) => segmentText.length > 0)
     .join("\n\n");
 

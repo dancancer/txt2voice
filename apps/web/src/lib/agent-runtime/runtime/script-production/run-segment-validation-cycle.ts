@@ -198,6 +198,31 @@ export const runSegmentValidationCycle = async (
     repairStage.decision.action === "retry" &&
     params.semanticRetryDepth < MAX_SEMANTIC_RETRY_DEPTH
   ) {
+    if (repairStage.artifact?.segmentScriptDraft) {
+      currentDraft = normalizeSegmentScriptDraft({
+        segmentText: params.segment.content,
+        draft: repairStage.artifact.segmentScriptDraft,
+      });
+      validationReport = buildValidationReport({
+        segment: params.segment,
+        draft: currentDraft,
+      });
+      await runValidationStage({
+        context: params,
+        draft: currentDraft,
+        validationReport,
+      });
+
+      if (validationReport.valid) {
+        return {
+          status: "success",
+          draft: currentDraft,
+          validationReport,
+          counters,
+        };
+      }
+    }
+
     const retriedResult = await recurse({
       segment: params.segment,
       semanticRetryDepth: params.semanticRetryDepth + 1,
