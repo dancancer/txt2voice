@@ -168,6 +168,13 @@ describe("persist stage", () => {
         },
       ],
       tools,
+      characterProfiles: [
+        {
+          id: "char-ning",
+          canonicalName: "宁采臣",
+        },
+      ],
+      characterMap: new Map([["宁采臣", "宁采臣"]]),
       ...runtimeDeps,
     });
 
@@ -198,6 +205,67 @@ describe("persist stage", () => {
         }),
       }),
     ]);
+  });
+
+  it("在段落里出现未知角色时先补建角色候选，再持久化台词", async () => {
+    const upsertCalls: PersistCharacterMemoryDraftInput[] = [];
+    const sentenceCalls: PersistSegmentScriptDraftInput[] = [];
+    const tools = createPersistTools({
+      upsertCharacterCandidates: async (input) => {
+        upsertCalls.push(input);
+        for (const candidate of input.candidates) {
+          input.characterMap.set(candidate.name, candidate.name);
+        }
+      },
+      saveSegmentScriptToDatabase: async (input) => {
+        sentenceCalls.push(input);
+      },
+    });
+
+    const result = await runPersistStage({
+      workflowRunId: "wf-persist-auto-upsert-speaker",
+      bookId: "book-1",
+      artifacts: [
+        {
+          kind: "segment-script-draft",
+          segmentScriptDraft: {
+            segmentId: "segment-unknown-speaker",
+            createdAt: "2026-04-08T00:00:00.000Z",
+            lines: [
+              {
+                id: "line-1",
+                sourceText: "宁采臣道：“在下告辞。”",
+                text: "在下告辞。",
+                speaker: "宁采臣",
+                orderInSegment: 0,
+              },
+            ],
+          },
+        },
+      ],
+      tools,
+      characterProfiles: [],
+      characterMap: new Map(),
+      ...createRuntimeDeps(),
+    });
+
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.persistedCharacterCount).toBe(1);
+    expect(completed.artifact.persistedSentenceCount).toBe(1);
+    expect(upsertCalls).toHaveLength(1);
+    expect(upsertCalls[0]?.candidates).toEqual([
+      expect.objectContaining({
+        name: "宁采臣",
+        aliases: [],
+        importance: "minor",
+      }),
+    ]);
+    expect(sentenceCalls).toHaveLength(1);
+    expect(sentenceCalls[0]?.dialogueLines[0]).toEqual(
+      expect.objectContaining({
+        characterName: "宁采臣",
+      })
+    );
   });
 
   it("normalizes wrapped narration text back to sourceText before persistence", async () => {

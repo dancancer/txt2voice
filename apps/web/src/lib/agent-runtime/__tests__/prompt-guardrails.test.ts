@@ -70,7 +70,7 @@ describe("production prompt guardrails", () => {
         'compatibleAgents = ["script-generation-agent"]',
         'inputSchemaRef = "segment-script-input"',
         'outputSchemaRef = "segment-script-draft"',
-        'contextRequirements = ["segment"]',
+        'contextRequirements = ["segment", "character_memory_summary"]',
         "toolAllowlist = []",
         'promptBundle = ["bundle/system.md", "bundle/user.md"]',
       ].join("\n"),

@@ -89,7 +89,10 @@ const createScriptGenerationSkillFixture = (params?: {
         .join(", ")}]`,
       'inputSchemaRef = "segment-script-input"',
       'outputSchemaRef = "segment-script-draft"',
-      `contextRequirements = [${(params?.contextRequirements ?? ["segment"])
+      `contextRequirements = [${(params?.contextRequirements ?? [
+        "segment",
+        "character_memory_summary",
+      ])
         .map((requirement) => `"${requirement}"`)
         .join(", ")}]`,
       `toolAllowlist = [${(params?.toolAllowlist ?? [])

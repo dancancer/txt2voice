@@ -333,6 +333,12 @@ export const runMastraQualityStage = async (
               "validation_report_json",
               "segment_script_draft_json",
             ],
+            variableStrategies: {
+              failed_artifact_json: "json_summary",
+              quality_signals_json: "json_summary",
+              validation_report_json: "json_summary",
+              segment_script_draft_json: "json_summary",
+            },
             renderPrompt: (variables) =>
               renderQualityJudgeUserPromptFromVariables(skill.userPrompt, {
                 segment_script_draft_json: variables.segment_script_draft_json,

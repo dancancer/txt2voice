@@ -12,6 +12,7 @@ import type {
   CharacterCandidate,
   DialogueLine,
 } from "../runtime/script-production/types";
+import { isNarrationSpeaker } from "@/lib/narration-character";
 
 interface CharacterProfileLike {
   id?: string;
@@ -62,6 +63,7 @@ export interface PersistCharacterMemoryDraftResult {
 
 export interface PersistSegmentScriptDraftResult {
   persistedSentenceCount: number;
+  persistedCharacterCount: number;
 }
 
 export interface PersistTools {
@@ -72,6 +74,49 @@ export interface PersistTools {
     input: PersistSegmentScriptDraftRequest
   ) => Promise<PersistSegmentScriptDraftResult>;
 }
+
+const buildSpeakerCandidates = (params: {
+  dialogueLines: DialogueLine[];
+  characterProfiles: CharacterProfileLike[];
+  characterMap: Map<string, string>;
+}): CharacterCandidate[] => {
+  const knownNames = new Set<string>();
+  for (const profile of params.characterProfiles) {
+    if (typeof profile.canonicalName === "string" && profile.canonicalName.trim()) {
+      knownNames.add(profile.canonicalName.trim());
+    }
+    for (const alias of profile.aliases || []) {
+      if (typeof alias?.alias === "string" && alias.alias.trim()) {
+        knownNames.add(alias.alias.trim());
+      }
+    }
+  }
+  for (const key of params.characterMap.keys()) {
+    knownNames.add(key);
+  }
+
+  const candidates: CharacterCandidate[] = [];
+  const seen = new Set<string>();
+  for (const line of params.dialogueLines) {
+    const speaker = (line.characterName || line.rawSpeaker || "").trim();
+    if (!speaker || speaker === "未知" || isNarrationSpeaker(speaker)) {
+      continue;
+    }
+    if (knownNames.has(speaker) || seen.has(speaker)) {
+      continue;
+    }
+
+    seen.add(speaker);
+    candidates.push({
+      name: speaker,
+      aliases: [],
+      personality: [],
+      importance: "minor",
+    });
+  }
+
+  return candidates;
+};
 
 const createPersistenceContext = (params: {
   characterProfiles?: CharacterProfileLike[];
@@ -127,6 +172,20 @@ export const createPersistTools = (deps: PersistToolsDeps = {}): PersistTools =>
         segmentScriptDraft: input.segmentScriptDraft,
         chapterId: input.chapterId,
       });
+      const speakerCandidates = buildSpeakerCandidates({
+        dialogueLines,
+        characterProfiles: context.characterProfiles,
+        characterMap: context.characterMap,
+      });
+
+      if (speakerCandidates.length > 0) {
+        await persistCharacters({
+          bookId: input.bookId,
+          candidates: speakerCandidates,
+          characterProfiles: context.characterProfiles,
+          characterMap: context.characterMap,
+        });
+      }
 
       await persistSegmentSentences({
         bookId: input.bookId,
@@ -138,6 +197,7 @@ export const createPersistTools = (deps: PersistToolsDeps = {}): PersistTools =>
 
       return {
         persistedSentenceCount: dialogueLines.length,
+        persistedCharacterCount: speakerCandidates.length,
       };
     },
   };

@@ -193,6 +193,7 @@ export const runPersistStage = async (
                 })
               : await persistSegmentDraft();
             persistedSentenceCount += result.persistedSentenceCount;
+            persistedCharacterCount += result.persistedCharacterCount;
           }
 
           return {

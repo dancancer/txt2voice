@@ -229,7 +229,7 @@ export const runMastraSegmentScriptingStage = async (
           validateSkillContract({
             skill: skill.definition,
             agentId: runtimeAgentId,
-            expectedContextRequirements: ["segment"],
+            expectedContextRequirements: ["segment", "character_memory_summary"],
             expectedOutputSchemaRef: "segment-script-draft",
           });
           const context = buildAgentContext({

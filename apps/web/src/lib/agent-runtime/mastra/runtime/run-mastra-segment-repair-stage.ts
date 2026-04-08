@@ -235,6 +235,10 @@ export const runMastraSegmentRepairStage = async (
               ),
             },
             trimOrder: ["failed_artifact_json", "segment_text"],
+            variableStrategies: {
+              failed_artifact_json: "json_summary",
+              segment_text: "preserve_edges",
+            },
             renderPrompt: (variables) =>
               renderRepairUserPromptFromVariables(skill.userPrompt, {
                 segment_text: variables.segment_text,

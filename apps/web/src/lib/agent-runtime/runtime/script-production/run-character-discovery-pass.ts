@@ -4,10 +4,12 @@ import type { ExecutionEvent } from "../../protocol/events";
 import type { ScriptProductionRuntimeStore } from "../script-production-runtime-store";
 import type { RunStageResult, StageRunRecord } from "../run-stage";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
+import { createFailureDetail } from "../script-production-runtime-helpers";
 import { runCharacterDiscoveryStage } from "../stages/run-character-discovery-stage";
 import { runPersistStage } from "../stages/run-persist-stage";
 import type {
   CharacterProfileSnapshot,
+  SegmentFailureResult,
   ScriptProductionBookSegment,
 } from "./shared-types";
 
@@ -116,7 +118,10 @@ interface RunCharacterDiscoveryPassParams {
 
 export const runCharacterDiscoveryPass = async (
   params: RunCharacterDiscoveryPassParams
-): Promise<{ persistedCharacterCount: number }> => {
+): Promise<{
+  persistedCharacterCount: number;
+  failure?: SegmentFailureResult["failure"];
+}> => {
   const sampleText = buildCharacterDiscoverySampleText(params.segments);
   const now = params.now ?? (() => new Date());
   const runDiscoveryStage =
@@ -222,6 +227,19 @@ export const runCharacterDiscoveryPass = async (
     discoveryStage.status !== "completed" ||
     !hasCharacterMemoryDraftContent(discoveryStage.artifact.characterMemoryDraft)
   ) {
+    if (discoveryStage.status !== "completed") {
+      return {
+        persistedCharacterCount: 0,
+        failure: createFailureDetail({
+          segment: params.segments[0]!,
+          stage: "character_discovery",
+          errorCode: "CHARACTER_DISCOVERY_FAILED",
+          message: discoveryStage.error || "character_discovery_failed",
+          retryable: discoveryStage.status === "retrying",
+        }),
+      };
+    }
+
     return { persistedCharacterCount: 0 };
   }
 

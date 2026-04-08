@@ -1,5 +1,11 @@
 import type { ContextBudget } from "../context";
 import { resolveInputBudgetLimit } from "../context/budget-policy";
+import { summarizePromptArtifact } from "./prompt-artifact-summary";
+
+export type PromptVariableStrategy =
+  | "truncate"
+  | "preserve_edges"
+  | "json_summary";
 
 export interface FitPromptToBudgetInput {
   systemPrompt: string;
@@ -7,6 +13,7 @@ export interface FitPromptToBudgetInput {
   variables: Record<string, string>;
   trimOrder: string[];
   renderPrompt: (variables: Record<string, string>) => string;
+  variableStrategies?: Partial<Record<string, PromptVariableStrategy>>;
 }
 
 export interface FitPromptToBudgetResult {
@@ -66,6 +73,30 @@ export const fitPromptToBudget = (
   let promptChars = originalPromptChars;
   const trimmedKeys: string[] = [];
 
+  const applyVariableStrategy = (
+    key: string,
+    value: string,
+    targetLength: number
+  ): string => {
+    const strategy = input.variableStrategies?.[key] ?? "truncate";
+
+    if (strategy === "preserve_edges") {
+      return preservePromptValueEdges(value, targetLength);
+    }
+
+    if (strategy === "json_summary") {
+      try {
+        const parsed = JSON.parse(value);
+        const summary = summarizePromptArtifact(parsed);
+        return JSON.stringify(summary ?? null, null, 2);
+      } catch {
+        return preservePromptValueEdges(value, targetLength);
+      }
+    }
+
+    return value.slice(0, targetLength);
+  };
+
   for (const key of input.trimOrder) {
     if (promptChars <= input.maxPromptChars) {
       break;
@@ -82,7 +113,7 @@ export const fitPromptToBudget = (
       continue;
     }
 
-    variables[key] = currentValue.slice(0, nextLength);
+    variables[key] = applyVariableStrategy(key, currentValue, nextLength);
     trimmedKeys.push(key);
     prompt = input.renderPrompt(variables);
     promptChars = measurePromptChars({

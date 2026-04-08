@@ -335,94 +335,108 @@ export const runScriptProductionWorkflow = async (
         runPersistStage: runPersistCommitStage,
       });
       persistedCharacterCount += characterDiscoveryResult.persistedCharacterCount;
+      if (characterDiscoveryResult.failure) {
+        failedSegmentDetails.push(characterDiscoveryResult.failure);
+        failedSegmentIds.push(...segments.map((segment) => segment.id));
+        segmentOutcomeIndex.push(
+          ...segments.map((segment) => ({
+            segmentId: segment.id,
+            finalStatus: "failed" as const,
+            terminalStage: "character_discovery",
+            errorCode: "CHARACTER_DISCOVERY_FAILED",
+          }))
+        );
+        manualReviewRequiredCount += 1;
+      } else {
 
-      for (const segment of segments) {
-        const result = await runSingleSegment({
-          workflowRunId,
-          bookId: input.bookId,
-          segment,
-          adapter: observedAdapter,
-          runtimeStore,
-          characterProfiles,
-          characterMap,
-          createId,
-          now: deps.now,
-          semanticRetryDepth: 0,
-          inputRefinementDepth: 0,
-          createStageRun: createTrackedStageRun,
-          updateStageRun: updateTrackedStageRun,
-          createAgentRun: createTrackedAgentRun,
-          updateAgentRun: updateTrackedAgentRun,
-          createToolCall: async (record) => {
-            await runtimeStore.createToolCall({
-              ...record,
-              createdAt: record.createdAt ?? now(),
+        for (const segment of segments) {
+          const result = await runSingleSegment({
+            workflowRunId,
+            bookId: input.bookId,
+            segment,
+            adapter: observedAdapter,
+            runtimeStore,
+            characterProfiles,
+            characterMap,
+            createId,
+            now: deps.now,
+            semanticRetryDepth: 0,
+            inputRefinementDepth: 0,
+            createStageRun: createTrackedStageRun,
+            updateStageRun: updateTrackedStageRun,
+            createAgentRun: createTrackedAgentRun,
+            updateAgentRun: updateTrackedAgentRun,
+            createToolCall: async (record) => {
+              await runtimeStore.createToolCall({
+                ...record,
+                createdAt: record.createdAt ?? now(),
+              });
+            },
+            updateToolCall: async (record) => {
+              await runtimeStore.updateToolCall({
+                ...record,
+                completedAt: record.completedAt ?? now(),
+              });
+            },
+            appendTrace: appendTrackedTrace,
+            onStageResult: (stageResult) => {
+              coordinatorStageResults.push(stageResult);
+              const skillMetadata = stageResult.agent.output?.skillMetadata;
+              if (
+                skillMetadata &&
+                typeof skillMetadata === "object" &&
+                !Array.isArray(skillMetadata)
+              ) {
+                stageSkillMetadata[stageResult.stageId] =
+                  skillMetadata as Record<string, unknown>;
+              }
+            },
+            runSegmentScriptingStage: runScriptingStage,
+            runSegmentRepairStage: runRepairStage,
+            runQualityStage: runQualityJudgeStage,
+            runPersistStage: runPersistCommitStage,
+          });
+
+          persistedSentenceCount += result.counters.persistedSentenceCount;
+          persistedCharacterCount += result.counters.persistedCharacterCount;
+          formatRepairCount += result.counters.formatRepairCount;
+          semanticRetryCount += result.counters.semanticRetryCount;
+
+          if (result.status === "failed") {
+            failedSegmentIds.push(segment.id);
+            failedSegmentDetails.push(result.failure);
+            segmentOutcomeIndex.push({
+              segmentId: segment.id,
+              finalStatus: "failed",
+              terminalStage: result.failure.stage,
+              errorCode: result.failure.errorCode,
             });
-          },
-          updateToolCall: async (record) => {
-            await runtimeStore.updateToolCall({
-              ...record,
-              completedAt: record.completedAt ?? now(),
-            });
-          },
-          appendTrace: appendTrackedTrace,
-          onStageResult: (stageResult) => {
-            coordinatorStageResults.push(stageResult);
-            const skillMetadata = stageResult.agent.output?.skillMetadata;
-            if (
-              skillMetadata &&
-              typeof skillMetadata === "object" &&
-              !Array.isArray(skillMetadata)
-            ) {
-              stageSkillMetadata[stageResult.stageId] =
-                skillMetadata as Record<string, unknown>;
+            if (result.failure.stage === "segment_repair") {
+              if (result.failure.errorCode === "SEGMENT_MANUAL_REVIEW_REQUIRED") {
+                manualReviewRequiredCount += 1;
+              }
             }
-          },
-          runSegmentScriptingStage: runScriptingStage,
-          runSegmentRepairStage: runRepairStage,
-          runQualityStage: runQualityJudgeStage,
-          runPersistStage: runPersistCommitStage,
-        });
+            if (result.failure.stage === "quality_judgement") {
+              qualityRejectedCount += 1;
+              if (result.failure.errorCode === "QUALITY_MANUAL_REVIEW_REQUIRED") {
+                manualReviewRequiredCount += 1;
+              }
+            }
+            continue;
+          }
 
-        persistedSentenceCount += result.counters.persistedSentenceCount;
-        persistedCharacterCount += result.counters.persistedCharacterCount;
-        formatRepairCount += result.counters.formatRepairCount;
-        semanticRetryCount += result.counters.semanticRetryCount;
-
-        if (result.status === "failed") {
-          failedSegmentIds.push(segment.id);
-          failedSegmentDetails.push(result.failure);
+          dialogueLines.push(...result.dialogueLines);
+          segmentSummaries.push(result.summary);
+          persistedSegments += 1;
           segmentOutcomeIndex.push({
             segmentId: segment.id,
-            finalStatus: "failed",
-            terminalStage: result.failure.stage,
-            errorCode: result.failure.errorCode,
+            finalStatus: "success",
+            terminalStage: "persist",
           });
-          if (result.failure.stage === "segment_repair") {
-            if (result.failure.errorCode === "SEGMENT_MANUAL_REVIEW_REQUIRED") {
-              manualReviewRequiredCount += 1;
-            }
-          }
-          if (result.failure.stage === "quality_judgement") {
-            qualityRejectedCount += 1;
-            if (result.failure.errorCode === "QUALITY_MANUAL_REVIEW_REQUIRED") {
-              manualReviewRequiredCount += 1;
-            }
-          }
-          continue;
-        }
 
-        dialogueLines.push(...result.dialogueLines);
-        segmentSummaries.push(result.summary);
-        persistedSegments += 1;
-        segmentOutcomeIndex.push({
-          segmentId: segment.id,
-          finalStatus: "success",
-          terminalStage: "persist",
-        });
-
-        if (input.onProgress) {
-          await input.onProgress(persistedSegments, segments.length);
+          if (input.onProgress) {
+            await input.onProgress(persistedSegments, segments.length);
+          }
         }
       }
 

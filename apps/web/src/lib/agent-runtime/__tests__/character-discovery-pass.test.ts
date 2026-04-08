@@ -1,36 +1,52 @@
-import {
-  buildCharacterDiscoverySampleText,
-  CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT,
-} from "../runtime/script-production/run-character-discovery-pass";
+import { runCharacterDiscoveryPass } from "../runtime/script-production/run-character-discovery-pass";
 
-describe("character discovery pass sampling", () => {
-  it("samples across the whole book instead of only the earliest segments", () => {
-    expect(CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT).toBe(5);
+describe("character discovery pass", () => {
+  it("在角色发现失败时返回人工审查失败详情，而不是静默跳过", async () => {
+    const result = await runCharacterDiscoveryPass({
+      workflowRunId: "wf-1",
+      bookId: "book-1",
+      segments: [
+        {
+          id: "seg-1",
+          chapterId: "chapter-1",
+          orderIndex: 0,
+          content: "宁采臣抬头。",
+        },
+      ],
+      adapter: {} as any,
+      runtimeStore: {
+        updateStageRun: jest.fn(),
+        createRuntimeArtifact: jest.fn(),
+      } as any,
+      characterProfiles: [],
+      characterMap: new Map(),
+      createId: (() => {
+        let next = 0;
+        return () => `runtime-${next++}`;
+      })(),
+      createStageRun: jest.fn(async () => undefined),
+      updateStageRun: jest.fn(async () => undefined),
+      createAgentRun: jest.fn(async () => undefined),
+      updateAgentRun: jest.fn(async () => undefined),
+      createToolCall: jest.fn(async () => undefined),
+      updateToolCall: jest.fn(async () => undefined),
+      appendTrace: jest.fn(async () => undefined),
+      runCharacterDiscoveryStage: jest.fn().mockResolvedValue({
+        stageRunId: "stage-discovery-1",
+        status: "failed",
+        error: "llm_unavailable",
+      }),
+      runPersistStage: jest.fn(),
+    });
 
-    const sampleText = buildCharacterDiscoverySampleText([
-      { id: "seg-1", content: "第一段角色铺垫。" },
-      { id: "seg-2", content: "第二段环境描写。" },
-      { id: "seg-3", content: "第三段路人对白。" },
-      { id: "seg-4", content: "第四段重要角色登场。" },
-      { id: "seg-5", content: "第五段反派揭面。" },
-    ]);
-
-    expect(sampleText).toContain("第一段角色铺垫。");
-    expect(sampleText).toContain("第二段环境描写。");
-    expect(sampleText).toContain("第三段路人对白。");
-    expect(sampleText).toContain("第四段重要角色登场。");
-    expect(sampleText).toContain("第五段反派揭面。");
-  });
-
-  it("keeps both the opening and trailing clues when a sampled segment is too long", () => {
-    const sampleText = buildCharacterDiscoverySampleText([
-      {
-        id: "seg-long",
-        content: `开头角色线索${"甲".repeat(1600)}尾部角色线索`,
-      },
-    ]);
-
-    expect(sampleText).toContain("开头角色线索");
-    expect(sampleText).toContain("尾部角色线索");
+    expect(result).toEqual({
+      persistedCharacterCount: 0,
+      failure: expect.objectContaining({
+        stage: "character_discovery",
+        errorCode: "CHARACTER_DISCOVERY_FAILED",
+        message: "llm_unavailable",
+        retryable: false,
+      }),
+    });
   });
 });
