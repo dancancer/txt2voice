@@ -1,4 +1,5 @@
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
+import { buildCharacterMemoryFromProfiles } from "../../context";
 import type { SegmentFailureDetail } from "./types";
 import {
   buildInputRefinementSegments,
@@ -48,6 +49,9 @@ export const runSegmentValidationCycle = async (
   recurse: RecursiveRunSingleSegment
 ): Promise<ValidationCycleResult> => {
   const runRepairStage = params.runSegmentRepairStage || runSegmentRepairStage;
+  const characterMemory = buildCharacterMemoryFromProfiles(
+    params.characterProfiles
+  );
 
   let counters = initialCounters;
   let currentDraft = normalizeSegmentScriptDraft({
@@ -92,6 +96,7 @@ export const runSegmentValidationCycle = async (
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,
     segmentText: params.segment.content,
+    characterMemory,
     failureKind: "semantic_retry",
     failedArtifact: {
       kind: "validation-failure",
@@ -259,6 +264,7 @@ export const runSegmentValidationCycle = async (
       workflowRunId: params.workflowRunId,
       segmentId: params.segment.id,
       segmentText: params.segment.content,
+      characterMemory,
       failureKind: "input_refinement",
       failedArtifact: {
         kind: "validation-failure",

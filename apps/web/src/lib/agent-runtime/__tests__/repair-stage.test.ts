@@ -91,6 +91,8 @@ const createRepairSkillFixture = (params?: {
       `contextRequirements = [${(params?.contextRequirements ?? [
         "segment",
         "failed_artifact",
+        "character_memory_summary",
+        "character_resolution_hints",
       ])
         .map((requirement) => `"${requirement}"`)
         .join(", ")}]`,
@@ -115,7 +117,7 @@ const createRepairSkillFixture = (params?: {
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/user.md"),
     params?.userPrompt ??
-      "{{segment_text}} {{failed_artifact_json}} {{failure_category}}",
+      "{{segment_text}} {{failed_artifact_json}} {{character_memory_summary}} {{character_resolution_hints}} {{failure_category}}",
     "utf8"
   );
 
@@ -199,6 +201,48 @@ describe("segment repair stage", () => {
     expect(call.prompt).toContain('"broken": true');
     expect(call.prompt).not.toContain("{{failure_category}}");
     expect(call.prompt).not.toContain("failure_category");
+  });
+
+  it("injects character memory summary and canonical hints into repair prompt", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“见过姑娘。”",
+            text: "见过姑娘。",
+            speaker: "宁公子",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    await runSegmentRepairStage({
+      workflowRunId: "wf-repair-memory-summary",
+      segmentId: "segment-repair-memory-summary",
+      segmentText: "“见过姑娘。”",
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [
+          { alias: "宁公子", canonicalId: "char-1", source: "profile:char-1" },
+        ],
+        assertedFacts: {},
+        inferredHints: {},
+      },
+      failureKind: "format_repair",
+      failedArtifact: { broken: true },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("宁采臣");
+    expect(call.prompt).toContain("宁公子");
   });
 
   it("does not mutate literal placeholder text inside segment content during repair prompt rendering", async () => {
@@ -296,6 +340,47 @@ describe("segment repair stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("normalizes alias speaker names back to canonical names before returning repaired draft", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“见过姑娘。”",
+            text: "见过姑娘。",
+            speaker: "宁公子",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-normalize-speaker-alias",
+      segmentId: "segment-repair-normalize-speaker-alias",
+      segmentText: "“见过姑娘。”",
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [
+          { alias: "宁公子", canonicalId: "char-1", source: "profile:char-1" },
+        ],
+        assertedFacts: {},
+        inferredHints: {},
+      },
+      failureKind: "format_repair",
+      failedArtifact: { broken: true },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact?.segmentScriptDraft.lines[0]?.speaker).toBe("宁采臣");
+    expect(completed.artifact?.memoryVersion).toBe(1);
+  });
+
   it("routes over-budget failures to input_refinement without calling adapter", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -366,6 +451,79 @@ describe("segment repair stage", () => {
     });
     expect(completed.artifact).toBeUndefined();
     expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
+  it("keeps nested validation evidence when semantic retry artifact is summarized", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    await runSegmentRepairStage({
+      workflowRunId: "wf-repair-semantic-summary-evidence",
+      segmentId: "segment-semantic-summary-evidence",
+      segmentText: "宁采臣抬头。",
+      failureKind: "semantic_retry",
+      failedArtifact: {
+        kind: "validation-failure",
+        segmentId: "segment-semantic-summary-evidence",
+        validationReport: {
+          segmentId: "segment-semantic-summary-evidence",
+          valid: false,
+          coverageRatio: 0.61,
+          issues: [
+            {
+              code: "LOW_COVERAGE",
+              message: "coverage below threshold",
+            },
+          ],
+        },
+        rawResponse: "X".repeat(1600),
+        structuredResult: {
+          segmentId: "segment-semantic-summary-evidence",
+          lines: Array.from({ length: 3 }, (_, index) => ({
+            id: `line-${index + 1}`,
+            sourceText: `第${index + 1}句${"甲".repeat(120)}`,
+            text: `第${index + 1}句${"甲".repeat(120)}`,
+            speaker: "旁白",
+            orderInSegment: index,
+          })),
+        },
+      },
+      validationReport: {
+        segmentId: "segment-semantic-summary-evidence",
+        valid: false,
+        coverageRatio: 0.61,
+        issues: [
+          {
+            code: "LOW_COVERAGE",
+            message: "coverage below threshold",
+          },
+        ],
+      },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+    expect(call.prompt).toContain('"validationReport"');
+    expect(call.prompt).toContain('"coverageRatio": 0.61');
+    expect(call.prompt).toContain('"LOW_COVERAGE"');
   });
 
   it.each([

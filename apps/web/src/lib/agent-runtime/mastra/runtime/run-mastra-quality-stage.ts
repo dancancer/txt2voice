@@ -4,7 +4,6 @@ import path from "path";
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type {
   QualityVerdict,
-  SegmentScriptDraft,
   ValidationReport,
 } from "../../context";
 import {
@@ -13,6 +12,8 @@ import {
   type QualitySignals,
 } from "../../runtime/agents/quality-judge-agent";
 import { validateAgentContract } from "../../runtime/agent-contract";
+import { buildCharacterMemorySummary } from "../../runtime/character-memory/summary";
+import { createCharacterMemorySnapshot } from "../../runtime/character-memory/store";
 import {
   composeRuntimeSystemPrompt,
   loadSkillRuntimeBundle,
@@ -223,22 +224,42 @@ const resolveSemanticDecision = (params: {
   summary: string;
   validationReport: ValidationReport;
   qualitySignals?: QualitySignals;
+  unresolvedSpeakers?: string[];
+  aliasConflictCount?: number;
 }): StageOutput => {
   const forceManualReview = params.qualitySignals?.forceManualReview === true;
   const lowScore = params.verdict.score < AUTO_REVIEW_SCORE_THRESHOLD;
   const lowConfidence = params.confidence < AUTO_REVIEW_CONFIDENCE_THRESHOLD;
+  const hasUnresolvedSpeakers = (params.unresolvedSpeakers?.length ?? 0) > 0;
+  const hasAliasConflicts = (params.aliasConflictCount ?? 0) > 0;
 
-  if (forceManualReview || lowScore || lowConfidence) {
+  if (
+    forceManualReview ||
+    lowScore ||
+    lowConfidence ||
+    hasUnresolvedSpeakers ||
+    hasAliasConflicts
+  ) {
+    const reasons = [...params.verdict.reasons];
+
+    if (hasUnresolvedSpeakers) {
+      reasons.push("unresolved_speakers_present");
+    }
+    if (hasAliasConflicts) {
+      reasons.push("alias_conflicts_present");
+    }
+
     return {
       decision: "manual_review_required",
       verdict: {
         ...params.verdict,
         verdict: "manual_review",
+        reasons,
       },
       handoff: createManualReviewHandoff({
         segmentId: params.segmentId,
         summary: params.summary,
-        reasons: params.verdict.reasons,
+        reasons,
         score: params.verdict.score,
         confidence: params.confidence,
         validationReport: params.validationReport,
@@ -305,10 +326,20 @@ export const runMastraQualityStage = async (
               "validation_report",
               "quality_signals",
               "failed_artifact",
+              "character_memory_summary",
+              "character_resolution_evidence",
             ],
             expectedOutputSchemaRef: "quality-verdict",
           });
           const failedArtifactSummary = summarizePromptArtifact(input.failedArtifact);
+          const memorySnapshot = input.characterMemory
+            ? createCharacterMemorySnapshot({
+                memory: input.characterMemory,
+              })
+            : undefined;
+          const characterMemorySummary = memorySnapshot
+            ? buildCharacterMemorySummary(memorySnapshot)
+            : "";
           const runtimeSystemPrompt = composeRuntimeSystemPrompt({
             agentInstructions: agentContract.agentInstructions,
             skillInstructions: skill.instructions,
@@ -326,15 +357,24 @@ export const runMastraQualityStage = async (
               validation_report_json: JSON.stringify(input.validationReport, null, 2),
               quality_signals_json: JSON.stringify(input.qualitySignals ?? {}, null, 2),
               failed_artifact_json: JSON.stringify(failedArtifactSummary, null, 2),
+              character_memory_summary: characterMemorySummary,
+              character_resolution_evidence_json: JSON.stringify(
+                input.characterResolutionEvidence ?? null,
+                null,
+                2
+              ),
             },
             trimOrder: [
               "failed_artifact_json",
+              "character_resolution_evidence_json",
+              "character_memory_summary",
               "quality_signals_json",
               "validation_report_json",
               "segment_script_draft_json",
             ],
             variableStrategies: {
               failed_artifact_json: "json_summary",
+              character_resolution_evidence_json: "json_summary",
               quality_signals_json: "json_summary",
               validation_report_json: "json_summary",
               segment_script_draft_json: "json_summary",
@@ -345,6 +385,9 @@ export const runMastraQualityStage = async (
                 validation_report_json: variables.validation_report_json,
                 quality_signals_json: variables.quality_signals_json,
                 failed_artifact_json: variables.failed_artifact_json,
+                character_memory_summary: variables.character_memory_summary,
+                character_resolution_evidence_json:
+                  variables.character_resolution_evidence_json,
               }),
           });
           if (promptBudgetResult.overBudget) {
@@ -378,6 +421,8 @@ export const runMastraQualityStage = async (
             validationReport: input.validationReport,
             qualitySignals: input.qualitySignals,
             failedArtifact: failedArtifactSummary ?? input.failedArtifact ?? null,
+            characterMemorySummary,
+            characterResolutionEvidence: input.characterResolutionEvidence ?? null,
             modelPolicy: skill.definition.modelPolicy!,
             renderedUserPrompt: promptBudgetResult.prompt,
             prompts: {
@@ -397,6 +442,10 @@ export const runMastraQualityStage = async (
             summary: result.summary,
             validationReport: input.validationReport,
             qualitySignals: input.qualitySignals,
+            unresolvedSpeakers:
+              input.characterResolutionEvidence?.unresolvedSpeakers,
+            aliasConflictCount:
+              input.characterResolutionEvidence?.aliasConflicts.length,
           });
 
           return {

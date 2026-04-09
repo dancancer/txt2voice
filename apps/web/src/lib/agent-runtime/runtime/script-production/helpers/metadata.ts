@@ -33,6 +33,19 @@ export interface ScriptProductionWorkflowSummary {
     pending: number;
     resolved: number;
   };
+  characterMemoryVersion?: number;
+  degradedMode?: boolean;
+  characterDiscoveryStatus?: "completed" | "failed" | "skipped";
+  characterDiscoveryFailure?: {
+    code: string;
+    message: string;
+  };
+  workflowIssues?: Array<{
+    code: string;
+    stage: string;
+    message: string;
+    retryable?: boolean;
+  }>;
   stageSkillMetadata?: Record<string, SkillMetadataSnapshot>;
 }
 
@@ -291,6 +304,19 @@ export const buildWorkflowSummary = (params: {
     pending: number;
     resolved: number;
   };
+  characterMemoryVersion?: number;
+  degradedMode?: boolean;
+  characterDiscoveryStatus?: "completed" | "failed" | "skipped";
+  characterDiscoveryFailure?: {
+    code: string;
+    message: string;
+  };
+  workflowIssues?: Array<{
+    code: string;
+    stage: string;
+    message: string;
+    retryable?: boolean;
+  }>;
   stageSkillMetadata?: Record<string, SkillMetadataSnapshot>;
 }): ScriptProductionWorkflowSummary => {
   const durationMs = Math.max(
@@ -316,6 +342,11 @@ export const buildWorkflowSummary = (params: {
     durationMs,
     segmentOutcomeIndex: params.segmentOutcomeIndex,
     manualReviewSync: params.manualReviewSync,
+    characterMemoryVersion: params.characterMemoryVersion,
+    degradedMode: params.degradedMode,
+    characterDiscoveryStatus: params.characterDiscoveryStatus,
+    characterDiscoveryFailure: params.characterDiscoveryFailure,
+    workflowIssues: params.workflowIssues,
     stageSkillMetadata: params.stageSkillMetadata,
   };
 };

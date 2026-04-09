@@ -153,6 +153,7 @@ export const resolveSegmentDraft = async (
     workflowRunId: params.workflowRunId,
     segmentId: params.segment.id,
     segmentText: params.segment.content,
+    characterMemory,
     failureKind: "format_repair",
     failedArtifact: resolveFailureArtifact(scriptStage),
     repairDepth: 0,
@@ -177,6 +178,7 @@ export const resolveSegmentDraft = async (
       workflowRunId: params.workflowRunId,
       segmentId: params.segment.id,
       segmentText: params.segment.content,
+      characterMemory,
       failureKind: "format_repair",
       failedArtifact:
         repairStage.failedArtifact ?? resolveFailureArtifact(scriptStage),

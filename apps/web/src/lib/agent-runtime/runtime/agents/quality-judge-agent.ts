@@ -168,6 +168,8 @@ export const renderQualityJudgeUserPromptFromVariables = (
     validation_report_json: string;
     quality_signals_json: string;
     failed_artifact_json: string;
+    character_memory_summary?: string;
+    character_resolution_evidence_json?: string;
   }
 ) =>
   renderPromptTemplate(template, {
@@ -175,6 +177,9 @@ export const renderQualityJudgeUserPromptFromVariables = (
     validation_report_json: variables.validation_report_json,
     quality_signals_json: variables.quality_signals_json,
     failed_artifact_json: variables.failed_artifact_json,
+    character_memory_summary: variables.character_memory_summary || "",
+    character_resolution_evidence_json:
+      variables.character_resolution_evidence_json || "",
   });
 
 export const renderQualityJudgeUserPrompt = (
@@ -184,6 +189,8 @@ export const renderQualityJudgeUserPrompt = (
     validationReport: ValidationReport;
     qualitySignals?: QualitySignals;
     failedArtifact?: unknown;
+    characterMemorySummary?: string;
+    characterResolutionEvidence?: unknown;
   }
 ) =>
   renderQualityJudgeUserPromptFromVariables(template, {
@@ -191,6 +198,10 @@ export const renderQualityJudgeUserPrompt = (
     validation_report_json: stringifyQualityPromptJson(params.validationReport),
     quality_signals_json: stringifyQualityPromptJson(params.qualitySignals ?? {}),
     failed_artifact_json: stringifyQualityPromptJson(params.failedArtifact ?? null),
+    character_memory_summary: params.characterMemorySummary || "",
+    character_resolution_evidence_json: stringifyQualityPromptJson(
+      params.characterResolutionEvidence ?? null
+    ),
   });
 
 export const createQualityJudgeAgent = (deps: QualityJudgeAgentDeps) => ({

@@ -1,4 +1,5 @@
 import { TTSError } from "@/lib/error-handler";
+import { createBootstrapCharacterMemorySnapshot } from "./character-memory/store";
 import {
   loadBookForGeneration,
   resolvePartialSegments,
@@ -12,6 +13,11 @@ import type {
 import { calculateScriptSummary } from "./script-production/summary";
 import type { LLMAdapter } from "../adapters/llm-adapter";
 import type { ExecutionEvent } from "../protocol/events";
+import {
+  EVENT_KIND_CHARACTER_MEMORY_BOOTSTRAPPED,
+  EVENT_KIND_CHARACTER_MEMORY_REFRESH_FAILED,
+} from "../protocol/events";
+import { ARTIFACT_KIND_CHARACTER_MEMORY_SNAPSHOT } from "../protocol/artifacts";
 import {
   buildRuntimeMetadata,
   buildWorkflowSummary,
@@ -37,6 +43,7 @@ import { runQualityStage } from "./stages/run-quality-stage";
 import { runSegmentRepairStage } from "./stages/run-segment-repair-stage";
 import { runSegmentScriptingStage } from "./stages/run-segment-scripting-stage";
 import { runCharacterDiscoveryPass } from "./script-production/run-character-discovery-pass";
+import { runIncrementalCharacterDiscoveryRefresh } from "./character-memory/refresh";
 import { runSingleSegment } from "./script-production/run-single-segment";
 import type {
   RunScriptProductionWorkflowInput,
@@ -115,6 +122,10 @@ export const runScriptProductionWorkflow = async (
     ? book.characterProfiles
     : [];
   const characterMap = buildCharacterMap(characterProfiles);
+  let characterMemorySnapshot = createBootstrapCharacterMemorySnapshot(
+    characterProfiles,
+    now
+  );
   const dialogueLines: DialogueLine[] = [];
   const segmentSummaries: SegmentSummary[] = [];
   const failedSegmentIds: string[] = [];
@@ -135,6 +146,20 @@ export const runScriptProductionWorkflow = async (
   let traceEventCount = 0;
   let stageRunCount = 0;
   const stageSkillMetadata: Record<string, Record<string, unknown>> = {};
+  const workflowIssues: Array<{
+    code: string;
+    stage: string;
+    message: string;
+    retryable?: boolean;
+  }> = [];
+  let degradedMode = false;
+  let characterDiscoveryStatus: "completed" | "failed" | "skipped" = "skipped";
+  let characterDiscoveryFailure:
+    | {
+        code: string;
+        message: string;
+      }
+    | undefined;
 
   let persistedSegments = 0;
   const startedAt = now();
@@ -271,6 +296,28 @@ export const runScriptProductionWorkflow = async (
         completedAt: now(),
       });
       coordinatorStageResults.push(prepareStage);
+      await runtimeStore.createRuntimeArtifact({
+        id: createId(),
+        workflowRunId,
+        stageRunId: prepareStage.id,
+        artifactKind: ARTIFACT_KIND_CHARACTER_MEMORY_SNAPSHOT,
+        artifactVersion: "v1",
+        payload: characterMemorySnapshot,
+        createdAt: now(),
+      });
+      await appendTrackedTrace({
+        id: createId(),
+        kind: EVENT_KIND_CHARACTER_MEMORY_BOOTSTRAPPED,
+        createdAt: now().toISOString(),
+        workflowRunId,
+        stageRunId: prepareStage.id,
+        status: "completed",
+        payload: {
+          memoryVersion: characterMemorySnapshot.version,
+          canonicalIdentityCount:
+            characterMemorySnapshot.canonicalIdentities.length,
+        },
+      });
 
       const observedAdapter = deps.adapter
         ? createObservedAdapter({
@@ -336,21 +383,136 @@ export const runScriptProductionWorkflow = async (
       });
       persistedCharacterCount += characterDiscoveryResult.persistedCharacterCount;
       if (characterDiscoveryResult.failure) {
-        failedSegmentDetails.push(characterDiscoveryResult.failure);
-        failedSegmentIds.push(...segments.map((segment) => segment.id));
-        segmentOutcomeIndex.push(
-          ...segments.map((segment) => ({
-            segmentId: segment.id,
-            finalStatus: "failed" as const,
-            terminalStage: "character_discovery",
-            errorCode: "CHARACTER_DISCOVERY_FAILED",
-          }))
-        );
-        manualReviewRequiredCount += 1;
-      } else {
+        characterDiscoveryStatus = "failed";
+        characterDiscoveryFailure = {
+          code: characterDiscoveryResult.failure.errorCode,
+          message: characterDiscoveryResult.failure.message,
+        };
+        workflowIssues.push({
+          code: characterDiscoveryResult.failure.errorCode,
+          stage: characterDiscoveryResult.failure.stage,
+          message: characterDiscoveryResult.failure.message,
+          retryable: characterDiscoveryResult.failure.retryable,
+        });
+        if (characterMemorySnapshot.canonicalIdentities.length === 0) {
+          await appendTrackedTrace({
+            id: createId(),
+            kind: EVENT_KIND_CHARACTER_MEMORY_REFRESH_FAILED,
+            createdAt: now().toISOString(),
+            workflowRunId,
+            status: "failed",
+            payload: {
+              errorCode: characterDiscoveryResult.failure.errorCode,
+              message: characterDiscoveryResult.failure.message,
+              retryable: characterDiscoveryResult.failure.retryable,
+            },
+          });
+          const completedAt = now();
+          const workflowSummary = buildWorkflowSummary({
+            mode: input.mode,
+            selectedSegmentIds: segments.map((segment) => segment.id),
+            totalSegments: segments.length,
+            processedSegments: 0,
+            failedSegmentIds: [],
+            persistedSentenceCount,
+            persistedCharacterCount,
+            formatRepairCount,
+            semanticRetryCount,
+            manualReviewRequiredCount,
+            qualityRejectedCount,
+            startedAt: startedAt.toISOString(),
+            completedAt: completedAt.toISOString(),
+            segmentOutcomeIndex,
+            characterMemoryVersion: characterMemorySnapshot.version,
+            degradedMode: false,
+            characterDiscoveryStatus,
+            characterDiscoveryFailure,
+            workflowIssues,
+            stageSkillMetadata,
+          });
+          const runtimeMetadata = buildRuntimeMetadata({
+            workflowRunId,
+            workflowId: workflowDefinition.id,
+            status: "failed",
+            mode: input.mode,
+            startedAt: startedAt.toISOString(),
+            completedAt: completedAt.toISOString(),
+            summary: workflowSummary,
+            traceEventCount,
+            stageRunCount,
+          });
 
-        for (const segment of segments) {
-          const result = await runSingleSegment({
+          return {
+            status: "failed",
+            summary: workflowSummary as unknown as Record<string, unknown>,
+            stages: coordinatorStageResults,
+            result: {
+              dialogueLines: [],
+              summary: calculateScriptSummary([], {
+                totalSegments: segments.length,
+                failedSegmentIds: [],
+                failedSegmentDetails: [characterDiscoveryResult.failure],
+              }),
+              segments: [],
+              runtimeMetadata,
+            },
+          };
+        }
+        degradedMode = true;
+        characterMemorySnapshot = {
+          ...characterMemorySnapshot,
+          status: "degraded",
+          diagnostics: {
+            ...characterMemorySnapshot.diagnostics,
+            issues: [
+              ...characterMemorySnapshot.diagnostics.issues,
+              characterDiscoveryResult.failure.errorCode,
+            ],
+          },
+        };
+        await runtimeStore.createRuntimeArtifact({
+          id: createId(),
+          workflowRunId,
+          artifactKind: ARTIFACT_KIND_CHARACTER_MEMORY_SNAPSHOT,
+          artifactVersion: "v1",
+          payload: characterMemorySnapshot,
+          createdAt: now(),
+        });
+        await appendTrackedTrace({
+          id: createId(),
+          kind: EVENT_KIND_CHARACTER_MEMORY_REFRESH_FAILED,
+          createdAt: now().toISOString(),
+          workflowRunId,
+          status: "failed",
+          payload: {
+            errorCode: characterDiscoveryResult.failure.errorCode,
+            message: characterDiscoveryResult.failure.message,
+            retryable: characterDiscoveryResult.failure.retryable,
+            memoryVersion: characterMemorySnapshot.version,
+          },
+        });
+      } else {
+        characterDiscoveryStatus = "completed";
+        if (characterDiscoveryResult.persistedCharacterCount > 0) {
+          characterMemorySnapshot = {
+            ...createBootstrapCharacterMemorySnapshot(characterProfiles, now),
+            version: characterMemorySnapshot.version + 1,
+            source: "discovery_refresh",
+          };
+          await runtimeStore.createRuntimeArtifact({
+            id: createId(),
+            workflowRunId,
+            artifactKind: ARTIFACT_KIND_CHARACTER_MEMORY_SNAPSHOT,
+            artifactVersion: "v1",
+            payload: characterMemorySnapshot,
+            createdAt: now(),
+          });
+        }
+      }
+
+      for (const [segmentIndex, segment] of segments.entries()) {
+        if (segmentIndex > 0) {
+          const refreshResult = await runIncrementalCharacterDiscoveryRefresh({
             workflowRunId,
             bookId: input.bookId,
             segment,
@@ -360,8 +522,6 @@ export const runScriptProductionWorkflow = async (
             characterMap,
             createId,
             now: deps.now,
-            semanticRetryDepth: 0,
-            inputRefinementDepth: 0,
             createStageRun: createTrackedStageRun,
             updateStageRun: updateTrackedStageRun,
             createAgentRun: createTrackedAgentRun,
@@ -391,52 +551,137 @@ export const runScriptProductionWorkflow = async (
                   skillMetadata as Record<string, unknown>;
               }
             },
-            runSegmentScriptingStage: runScriptingStage,
-            runSegmentRepairStage: runRepairStage,
-            runQualityStage: runQualityJudgeStage,
+            runCharacterDiscoveryStage: runDiscoveryStage,
             runPersistStage: runPersistCommitStage,
           });
 
-          persistedSentenceCount += result.counters.persistedSentenceCount;
-          persistedCharacterCount += result.counters.persistedCharacterCount;
-          formatRepairCount += result.counters.formatRepairCount;
-          semanticRetryCount += result.counters.semanticRetryCount;
-
-          if (result.status === "failed") {
-            failedSegmentIds.push(segment.id);
-            failedSegmentDetails.push(result.failure);
-            segmentOutcomeIndex.push({
-              segmentId: segment.id,
-              finalStatus: "failed",
-              terminalStage: result.failure.stage,
-              errorCode: result.failure.errorCode,
+          persistedCharacterCount += refreshResult.persistedCharacterCount;
+          if (refreshResult.persistedCharacterCount > 0) {
+            characterMemorySnapshot = {
+              ...createBootstrapCharacterMemorySnapshot(characterProfiles, now),
+              version: characterMemorySnapshot.version + 1,
+              source: "discovery_refresh",
+            };
+            await runtimeStore.createRuntimeArtifact({
+              id: createId(),
+              workflowRunId,
+              artifactKind: ARTIFACT_KIND_CHARACTER_MEMORY_SNAPSHOT,
+              artifactVersion: "v1",
+              payload: characterMemorySnapshot,
+              createdAt: now(),
             });
-            if (result.failure.stage === "segment_repair") {
-              if (result.failure.errorCode === "SEGMENT_MANUAL_REVIEW_REQUIRED") {
-                manualReviewRequiredCount += 1;
-              }
-            }
-            if (result.failure.stage === "quality_judgement") {
-              qualityRejectedCount += 1;
-              if (result.failure.errorCode === "QUALITY_MANUAL_REVIEW_REQUIRED") {
-                manualReviewRequiredCount += 1;
-              }
-            }
-            continue;
           }
 
-          dialogueLines.push(...result.dialogueLines);
-          segmentSummaries.push(result.summary);
-          persistedSegments += 1;
+          if (refreshResult.failure) {
+            degradedMode = true;
+            workflowIssues.push({
+              code: refreshResult.failure.errorCode,
+              stage: refreshResult.failure.stage,
+              message: refreshResult.failure.message,
+              retryable: refreshResult.failure.retryable,
+            });
+            await appendTrackedTrace({
+              id: createId(),
+              kind: EVENT_KIND_CHARACTER_MEMORY_REFRESH_FAILED,
+              createdAt: now().toISOString(),
+              workflowRunId,
+              status: "failed",
+              payload: {
+                segmentId: segment.id,
+                errorCode: refreshResult.failure.errorCode,
+                message: refreshResult.failure.message,
+                retryable: refreshResult.failure.retryable,
+              },
+            });
+          }
+        }
+
+        const result = await runSingleSegment({
+          workflowRunId,
+          bookId: input.bookId,
+          segment,
+          adapter: observedAdapter,
+          runtimeStore,
+          characterProfiles,
+          characterMap,
+          createId,
+          now: deps.now,
+          semanticRetryDepth: 0,
+          inputRefinementDepth: 0,
+          createStageRun: createTrackedStageRun,
+          updateStageRun: updateTrackedStageRun,
+          createAgentRun: createTrackedAgentRun,
+          updateAgentRun: updateTrackedAgentRun,
+          createToolCall: async (record) => {
+            await runtimeStore.createToolCall({
+              ...record,
+              createdAt: record.createdAt ?? now(),
+            });
+          },
+          updateToolCall: async (record) => {
+            await runtimeStore.updateToolCall({
+              ...record,
+              completedAt: record.completedAt ?? now(),
+            });
+          },
+          appendTrace: appendTrackedTrace,
+          onStageResult: (stageResult) => {
+            coordinatorStageResults.push(stageResult);
+            const skillMetadata = stageResult.agent.output?.skillMetadata;
+            if (
+              skillMetadata &&
+              typeof skillMetadata === "object" &&
+              !Array.isArray(skillMetadata)
+            ) {
+              stageSkillMetadata[stageResult.stageId] =
+                skillMetadata as Record<string, unknown>;
+            }
+          },
+          runSegmentScriptingStage: runScriptingStage,
+          runSegmentRepairStage: runRepairStage,
+          runQualityStage: runQualityJudgeStage,
+          runPersistStage: runPersistCommitStage,
+        });
+
+        persistedSentenceCount += result.counters.persistedSentenceCount;
+        persistedCharacterCount += result.counters.persistedCharacterCount;
+        formatRepairCount += result.counters.formatRepairCount;
+        semanticRetryCount += result.counters.semanticRetryCount;
+
+        if (result.status === "failed") {
+          failedSegmentIds.push(segment.id);
+          failedSegmentDetails.push(result.failure);
           segmentOutcomeIndex.push({
             segmentId: segment.id,
-            finalStatus: "success",
-            terminalStage: "persist",
+            finalStatus: "failed",
+            terminalStage: result.failure.stage,
+            errorCode: result.failure.errorCode,
           });
-
-          if (input.onProgress) {
-            await input.onProgress(persistedSegments, segments.length);
+          if (result.failure.stage === "segment_repair") {
+            if (result.failure.errorCode === "SEGMENT_MANUAL_REVIEW_REQUIRED") {
+              manualReviewRequiredCount += 1;
+            }
           }
+          if (result.failure.stage === "quality_judgement") {
+            qualityRejectedCount += 1;
+            if (result.failure.errorCode === "QUALITY_MANUAL_REVIEW_REQUIRED") {
+              manualReviewRequiredCount += 1;
+            }
+          }
+          continue;
+        }
+
+        dialogueLines.push(...result.dialogueLines);
+        segmentSummaries.push(result.summary);
+        persistedSegments += 1;
+        segmentOutcomeIndex.push({
+          segmentId: segment.id,
+          finalStatus: "success",
+          terminalStage: "persist",
+        });
+
+        if (input.onProgress) {
+          await input.onProgress(persistedSegments, segments.length);
         }
       }
 
@@ -541,6 +786,11 @@ export const runScriptProductionWorkflow = async (
         completedAt: completedAt.toISOString(),
         segmentOutcomeIndex,
         manualReviewSync,
+        characterMemoryVersion: characterMemorySnapshot.version,
+        degradedMode,
+        characterDiscoveryStatus,
+        characterDiscoveryFailure,
+        workflowIssues,
         stageSkillMetadata,
       });
       const completeStage = await runStage({

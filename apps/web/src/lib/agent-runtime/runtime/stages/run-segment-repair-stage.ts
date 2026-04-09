@@ -1,5 +1,6 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type {
+  CharacterMemory,
   RepairDecision,
   SegmentScriptDraft,
   ValidationReport,
@@ -35,6 +36,7 @@ export interface RunSegmentRepairStageInput extends SegmentRepairRuntimeDeps {
   workflowRunId: string;
   segmentId: string;
   segmentText: string;
+  characterMemory?: CharacterMemory;
   failureKind: SegmentRepairFailureKind;
   failedArtifact: unknown;
   validationReport?: ValidationReport;
@@ -52,6 +54,7 @@ export interface SegmentRepairArtifact {
   kind: "segment-script-draft";
   skillId: string;
   segmentScriptDraft: SegmentScriptDraft;
+  memoryVersion?: number;
   skillMetadata?: SkillMetadataSnapshot;
 }
 

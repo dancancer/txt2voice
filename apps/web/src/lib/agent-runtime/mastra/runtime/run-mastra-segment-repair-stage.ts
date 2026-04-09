@@ -5,8 +5,17 @@ import type { LLMAdapter } from "../../adapters/llm-adapter";
 import {
   buildAgentContext,
   type RepairDecision,
-  type SegmentScriptDraft,
 } from "../../context";
+import {
+  canonicalizeSegmentScriptDraftSpeakers,
+} from "../../runtime/character-memory/canonicalize";
+import {
+  buildCharacterMemorySummary,
+  buildCharacterResolutionHints,
+} from "../../runtime/character-memory/summary";
+import {
+  createCharacterMemorySnapshot,
+} from "../../runtime/character-memory/store";
 import { validateAgentContract } from "../../runtime/agent-contract";
 import {
   createRepairAgent,
@@ -195,7 +204,12 @@ export const runMastraSegmentRepairStage = async (
           validateSkillContract({
             skill: skill.definition,
             agentId: runtimeAgentId,
-            expectedContextRequirements: ["segment", "failed_artifact"],
+            expectedContextRequirements: [
+              "segment",
+              "failed_artifact",
+              "character_memory_summary",
+              "character_resolution_hints",
+            ],
             expectedOutputSchemaRef: "segment-script-draft",
           });
 
@@ -205,6 +219,17 @@ export const runMastraSegmentRepairStage = async (
             failedArtifact: input.failedArtifact,
             budget: promptBudget,
           });
+          const memorySnapshot = input.characterMemory
+            ? createCharacterMemorySnapshot({
+                memory: input.characterMemory,
+              })
+            : undefined;
+          const characterMemorySummary = memorySnapshot
+            ? buildCharacterMemorySummary(memorySnapshot)
+            : "";
+          const characterResolutionHints = memorySnapshot
+            ? buildCharacterResolutionHints(memorySnapshot)
+            : "";
 
           if (context.executionContext.inputOverBudget) {
             return {
@@ -233,8 +258,15 @@ export const runMastraSegmentRepairStage = async (
                 null,
                 2
               ),
+              character_memory_summary: characterMemorySummary,
+              character_resolution_hints: characterResolutionHints,
             },
-            trimOrder: ["failed_artifact_json", "segment_text"],
+            trimOrder: [
+              "failed_artifact_json",
+              "character_resolution_hints",
+              "character_memory_summary",
+              "segment_text",
+            ],
             variableStrategies: {
               failed_artifact_json: "json_summary",
               segment_text: "preserve_edges",
@@ -243,6 +275,8 @@ export const runMastraSegmentRepairStage = async (
               renderRepairUserPromptFromVariables(skill.userPrompt, {
                 segment_text: variables.segment_text,
                 failed_artifact_json: variables.failed_artifact_json,
+                character_memory_summary: variables.character_memory_summary,
+                character_resolution_hints: variables.character_resolution_hints,
               }),
           });
           if (promptBudgetResult.overBudget) {
@@ -286,7 +320,14 @@ export const runMastraSegmentRepairStage = async (
               skillId: skill.definition.id,
               skillMetadata,
               decision: result.decision,
-              repairedDraft: result.repairedDraft,
+              memoryVersion: memorySnapshot?.version,
+              repairedDraft:
+                result.repairedDraft && memorySnapshot
+                  ? canonicalizeSegmentScriptDraftSpeakers({
+                      draft: result.repairedDraft,
+                      snapshot: memorySnapshot,
+                    }).draft
+                  : result.repairedDraft,
               provider: result.provider,
               model: result.model,
             },
@@ -333,6 +374,10 @@ export const runMastraSegmentRepairStage = async (
           kind: "segment-script-draft",
           skillId,
           segmentScriptDraft: repairedDraft,
+          memoryVersion:
+            typeof stageResult.agent.output?.memoryVersion === "number"
+              ? stageResult.agent.output.memoryVersion
+              : undefined,
           skillMetadata: stageResult.agent.output
             ?.skillMetadata as SkillMetadataSnapshot | undefined,
         }

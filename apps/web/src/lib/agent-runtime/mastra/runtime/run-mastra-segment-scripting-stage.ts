@@ -4,13 +4,20 @@ import path from "path";
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import {
   buildAgentContext,
-  type CharacterMemory,
-  type SegmentScriptDraft,
 } from "../../context";
 import {
   createScriptGenerationAgent,
   renderScriptGenerationUserPrompt,
 } from "../../runtime/agents/script-generation-agent";
+import {
+  canonicalizeSegmentScriptDraftSpeakers,
+} from "../../runtime/character-memory/canonicalize";
+import {
+  buildCharacterMemorySummary,
+} from "../../runtime/character-memory/summary";
+import {
+  createCharacterMemorySnapshot,
+} from "../../runtime/character-memory/store";
 import { validateAgentContract } from "../../runtime/agent-contract";
 import {
   composeRuntimeSystemPrompt,
@@ -133,59 +140,6 @@ const isRepairableError = (message: string): boolean =>
   message.startsWith("Invalid script line") ||
   message.startsWith("Input context over budget");
 
-const normalizeDraftSpeakers = (
-  draft: SegmentScriptDraft,
-  characterMemory?: CharacterMemory
-): SegmentScriptDraft => {
-  if (!characterMemory) {
-    return draft;
-  }
-
-  const canonicalNameById = new Map(
-    characterMemory.canonicalIdentities
-      .map((identity) => [identity.id.trim(), identity.name.trim()] as const)
-      .filter((entry) => entry[0].length > 0 && entry[1].length > 0)
-  );
-  const canonicalNameBySpeaker = new Map<string, string>();
-
-  for (const identity of characterMemory.canonicalIdentities) {
-    const name = identity.name.trim();
-    if (!name || canonicalNameBySpeaker.has(name)) {
-      continue;
-    }
-
-    canonicalNameBySpeaker.set(name, name);
-  }
-
-  for (const evidence of characterMemory.aliasEvidence) {
-    const alias = evidence.alias.trim();
-    const canonicalName =
-      canonicalNameById.get(evidence.canonicalId.trim()) || alias;
-    if (!alias || canonicalNameBySpeaker.has(alias)) {
-      continue;
-    }
-
-    canonicalNameBySpeaker.set(alias, canonicalName);
-  }
-
-  return {
-    ...draft,
-    lines: draft.lines.map((line) => {
-      const speaker = line.speaker.trim();
-      const canonicalSpeaker = canonicalNameBySpeaker.get(speaker);
-
-      if (!canonicalSpeaker || canonicalSpeaker === speaker) {
-        return line;
-      }
-
-      return {
-        ...line,
-        speaker: canonicalSpeaker,
-      };
-    }),
-  };
-};
-
 export const runMastraSegmentScriptingStage = async (
   input: RunSegmentScriptingStageInput,
   deps: SegmentScriptingRuntimeDeps = {}
@@ -239,6 +193,14 @@ export const runMastraSegmentScriptingStage = async (
             characterMemory: input.characterMemory,
             budget: promptBudget,
           });
+          const memorySnapshot = input.characterMemory
+            ? createCharacterMemorySnapshot({
+                memory: input.characterMemory,
+              })
+            : undefined;
+          const characterMemorySummary = memorySnapshot
+            ? buildCharacterMemorySummary(memorySnapshot)
+            : context.referenceMemory.characterMemorySummary;
           if (context.executionContext.inputOverBudget) {
             throw new Error("Input context over budget for segment scripting stage");
           }
@@ -256,8 +218,7 @@ export const runMastraSegmentScriptingStage = async (
                 typeof context.inputContext.segmentText === "string"
                   ? context.inputContext.segmentText
                   : "",
-              character_memory_summary:
-                context.referenceMemory.characterMemorySummary,
+              character_memory_summary: characterMemorySummary,
             },
             trimOrder: ["character_memory_summary", "segment_text"],
             renderPrompt: (variables) =>
@@ -301,10 +262,13 @@ export const runMastraSegmentScriptingStage = async (
             output: {
               skillId: skill.definition.id,
               skillMetadata,
-              segmentScriptDraft: normalizeDraftSpeakers(
-                result.segmentScriptDraft,
-                input.characterMemory
-              ),
+              memoryVersion: memorySnapshot?.version,
+              segmentScriptDraft: memorySnapshot
+                ? canonicalizeSegmentScriptDraftSpeakers({
+                    draft: result.segmentScriptDraft,
+                    snapshot: memorySnapshot,
+                  }).draft
+                : result.segmentScriptDraft,
               provider: result.provider,
               model: result.model,
             },
@@ -344,6 +308,10 @@ export const runMastraSegmentScriptingStage = async (
     kind: "segment-script-draft",
     skillId,
     segmentScriptDraft,
+    memoryVersion:
+      typeof stageResult.agent.output?.memoryVersion === "number"
+        ? stageResult.agent.output.memoryVersion
+        : undefined,
     skillMetadata: stageResult.agent.output
       ?.skillMetadata as SkillMetadataSnapshot | undefined,
   };

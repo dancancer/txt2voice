@@ -569,7 +569,7 @@ describe("runScriptProductionWorkflow", () => {
 
     expect(mockRunCharacterDiscoveryStage).toHaveBeenCalledWith(
       expect.objectContaining({
-        segmentText: "第一段原文。",
+        segmentText: expect.stringContaining("第一段原文。"),
       })
     );
     expect(mockRunPersistStage).toHaveBeenNthCalledWith(
@@ -598,6 +598,267 @@ describe("runScriptProductionWorkflow", () => {
         persistedSentenceCount: 1,
       })
     );
+  });
+
+  it("fails workflow when character discovery fails and no bootstrap character memory exists", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+    mockRunCharacterDiscoveryStage.mockResolvedValue({
+      stageRunId: "discovery-stage-failed",
+      status: "failed",
+      error: "llm_unavailable",
+    } as any);
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-1",
+      status: "completed",
+      artifact: createDraftArtifact("seg-1", "第一段原文。"),
+    } as any);
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "quality-1",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "seg-1",
+        verdict: "pass",
+        score: 0.95,
+        reasons: ["ok"],
+      },
+    } as any);
+    mockRunPersistStage.mockResolvedValue({
+      stageRunId: "stage-persist-segment",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 1,
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(0);
+    expect((result as any).runtimeMetadata?.status).toBe("failed");
+    expect((result as any).runtimeMetadata?.summary).toMatchObject({
+      totalSegments: 1,
+      processedSegments: 0,
+      failedSegments: 0,
+      characterDiscoveryStatus: "failed",
+      degradedMode: false,
+      characterDiscoveryFailure: {
+        code: "CHARACTER_DISCOVERY_FAILED",
+        message: "llm_unavailable",
+      },
+      workflowIssues: [
+        expect.objectContaining({
+          code: "CHARACTER_DISCOVERY_FAILED",
+          stage: "character_discovery",
+        }),
+      ],
+    });
+  });
+
+  it("continues segment scripting in degraded mode when bootstrap character memory exists", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [
+        {
+          id: "char-1",
+          canonicalName: "宁采臣",
+          aliases: [{ alias: "宁公子" }],
+        },
+      ],
+    });
+    mockRunCharacterDiscoveryStage.mockResolvedValue({
+      stageRunId: "discovery-stage-failed",
+      status: "failed",
+      error: "llm_unavailable",
+    } as any);
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-1",
+      status: "completed",
+      artifact: createDraftArtifact("seg-1", "第一段原文。"),
+    } as any);
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "quality-1",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "seg-1",
+        verdict: "pass",
+        score: 0.95,
+        reasons: ["ok"],
+      },
+    } as any);
+    mockRunPersistStage.mockResolvedValue({
+      stageRunId: "stage-persist-segment",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 1,
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(1);
+    expect((result as any).runtimeMetadata?.summary).toMatchObject({
+      totalSegments: 1,
+      processedSegments: 1,
+      failedSegments: 0,
+      characterDiscoveryStatus: "failed",
+      degradedMode: true,
+      characterMemoryVersion: 1,
+    });
+  });
+
+  it("refreshes character memory before later segments so late-introduced characters become available", async () => {
+    const book = {
+      id: "book-1",
+      textSegments: [
+        {
+          id: "seg-1",
+          chapterId: "chapter-1",
+          orderIndex: 0,
+          content: "第一段原文。",
+        },
+        {
+          id: "seg-2",
+          chapterId: "chapter-1",
+          orderIndex: 1,
+          content: "龙雅歌缓步走来。",
+        },
+      ],
+      characterProfiles: [] as any[],
+    };
+    mockPrisma.book.findUnique.mockResolvedValue(book);
+    mockRunCharacterDiscoveryStage
+      .mockResolvedValueOnce({
+        stageRunId: "bootstrap-discovery-stage",
+        status: "completed",
+        artifact: {
+          kind: "character-memory-draft",
+          skillId: "character-extraction",
+          characterMemoryDraft: {
+            canonicalIdentities: [],
+            aliasEvidence: [],
+            assertedFacts: {},
+            inferredHints: {},
+          },
+        },
+      } as any)
+      .mockResolvedValueOnce({
+        stageRunId: "refresh-discovery-stage",
+        status: "completed",
+        artifact: {
+          kind: "character-memory-draft",
+          skillId: "character-extraction",
+          characterMemoryDraft: {
+            canonicalIdentities: [{ id: "char-long", name: "龙雅歌" }],
+            aliasEvidence: [],
+            assertedFacts: {},
+            inferredHints: {},
+          },
+        },
+      } as any);
+    mockRunPersistStage.mockImplementation(async (input: any) => {
+      const artifact = input.artifacts?.[0];
+      if (artifact?.kind === "character-memory-draft") {
+        if (
+          !input.characterProfiles.some(
+            (profile: any) => profile.canonicalName === "龙雅歌"
+          ) &&
+          artifact.characterMemory?.canonicalIdentities?.some(
+            (identity: any) => identity.name === "龙雅歌"
+          )
+        ) {
+          input.characterProfiles.push({
+            id: "char-long",
+            canonicalName: "龙雅歌",
+            aliases: [],
+          });
+        }
+        return {
+          stageRunId: "stage-persist-character-memory",
+          status: "completed",
+          artifact: {
+            kind: "persisted-business-facts",
+            persistedCharacterCount: artifact.characterMemory?.canonicalIdentities?.length ?? 0,
+            persistedSentenceCount: 0,
+          },
+        };
+      }
+
+      return {
+        stageRunId: "stage-persist-segment",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount: 0,
+          persistedSentenceCount: 1,
+        },
+      };
+    });
+    mockRunSegmentScriptingStage
+      .mockImplementationOnce(async (input: any) => {
+        expect(input.characterMemory?.canonicalIdentities ?? []).toHaveLength(0);
+        return {
+          stageRunId: "stage-script-1",
+          status: "completed",
+          artifact: createDraftArtifact("seg-1", "第一段原文。"),
+        } as any;
+      })
+      .mockImplementationOnce(async (input: any) => {
+        expect(input.characterMemory?.canonicalIdentities).toEqual([
+          { id: "char-long", name: "龙雅歌" },
+        ]);
+        return {
+          stageRunId: "stage-script-2",
+          status: "completed",
+          artifact: createDraftArtifact("seg-2", "龙雅歌缓步走来。", {
+            speaker: "龙雅歌",
+            text: "龙雅歌缓步走来。",
+          }),
+        } as any;
+      });
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "quality-1",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "seg-1",
+        verdict: "pass",
+        score: 0.95,
+        reasons: ["ok"],
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunCharacterDiscoveryStage).toHaveBeenCalledTimes(2);
+    expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(2);
+    expect((result as any).runtimeMetadata?.summary).toMatchObject({
+      totalSegments: 2,
+      processedSegments: 2,
+      characterMemoryVersion: 2,
+      persistedCharacterCount: 1,
+    });
   });
 
   it.each([

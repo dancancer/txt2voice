@@ -1,10 +1,20 @@
 import { mapSegmentScriptDraftToDialogueLines } from "./storage/persistence";
-import type { SegmentScriptDraft, ValidationReport } from "../../context";
+import {
+  buildCharacterMemoryFromProfiles,
+  type SegmentScriptDraft,
+  type ValidationReport,
+} from "../../context";
 import {
   createFailureDetail,
   createStageSummary,
   toSegmentSummary,
 } from "../script-production-runtime-helpers";
+import { canonicalizeSegmentScriptDraftSpeakers } from "../character-memory/canonicalize";
+import { createCharacterMemorySnapshot } from "../character-memory/store";
+import {
+  ARTIFACT_KIND_CHARACTER_RESOLUTION_EVIDENCE,
+} from "../../protocol/artifacts";
+import { EVENT_KIND_SPEAKER_CANONICALIZED } from "../../protocol/events";
 import { runPersistStage } from "../stages/run-persist-stage";
 import {
   runQualityStage,
@@ -48,12 +58,24 @@ export const finalizeSegment = async (params: {
     params.context.runQualityStage || runQualityStage;
   const runPersistCommitStage =
     params.context.runPersistStage || runPersistStage;
+  const characterMemory = buildCharacterMemoryFromProfiles(
+    params.context.characterProfiles
+  );
+  const memorySnapshot = createCharacterMemorySnapshot({
+    memory: characterMemory,
+  });
+  const canonicalized = canonicalizeSegmentScriptDraftSpeakers({
+    draft: params.draft,
+    snapshot: memorySnapshot,
+  });
 
   const qualityStage = await runQualityJudgeStage({
     workflowRunId: params.context.workflowRunId,
     segmentId: params.context.segment.id,
-    segmentScriptDraft: params.draft,
+    segmentScriptDraft: canonicalized.draft,
     validationReport: params.validationReport,
+    characterMemory,
+    characterResolutionEvidence: canonicalized.evidence,
     adapter: params.context.adapter,
     createId: params.context.createId,
     now: params.context.now,
@@ -117,6 +139,17 @@ export const finalizeSegment = async (params: {
       stageRunId: qualityStage.stageRunId,
       agentRunId: qualityStage.agentRunId ?? null,
       segmentId: params.context.segment.id,
+      artifactKind: ARTIFACT_KIND_CHARACTER_RESOLUTION_EVIDENCE,
+      artifactVersion: "v1",
+      payload: canonicalized.evidence,
+      createdAt: (params.context.now ?? (() => new Date()))(),
+    });
+    await params.context.runtimeStore.createRuntimeArtifact({
+      id: params.context.createId(),
+      workflowRunId: params.context.workflowRunId,
+      stageRunId: qualityStage.stageRunId,
+      agentRunId: qualityStage.agentRunId ?? null,
+      segmentId: params.context.segment.id,
       artifactKind: "segment-script-draft",
       artifactVersion: "v1",
       payload: params.draft,
@@ -138,6 +171,27 @@ export const finalizeSegment = async (params: {
       },
       createdAt: (params.context.now ?? (() => new Date()))(),
     });
+    for (const resolvedSpeaker of canonicalized.evidence.resolvedSpeakers) {
+      if (resolvedSpeaker.reason !== "alias_match") {
+        continue;
+      }
+
+      await params.context.appendTrace({
+        id: params.context.createId(),
+        kind: EVENT_KIND_SPEAKER_CANONICALIZED,
+        createdAt: (params.context.now ?? (() => new Date()))().toISOString(),
+        workflowRunId: params.context.workflowRunId,
+        stageRunId: qualityStage.stageRunId,
+        agentRunId: qualityStage.agentRunId,
+        status: "completed",
+        payload: {
+          segmentId: params.context.segment.id,
+          raw: resolvedSpeaker.raw,
+          canonical: resolvedSpeaker.canonical,
+          memoryVersion: canonicalized.evidence.memoryVersion,
+        },
+      });
+    }
   }
 
   if (qualityStage.status !== "completed") {
@@ -186,7 +240,7 @@ export const finalizeSegment = async (params: {
     artifacts: [
       {
         kind: "segment-script-draft",
-        segmentScriptDraft: params.draft,
+        segmentScriptDraft: canonicalized.draft,
         chapterId: params.context.segment.chapterId ?? null,
       },
     ],
@@ -276,7 +330,7 @@ export const finalizeSegment = async (params: {
   });
 
   const dialogueLines = mapSegmentScriptDraftToDialogueLines({
-    segmentScriptDraft: params.draft,
+    segmentScriptDraft: canonicalized.draft,
     chapterId: params.context.segment.chapterId ?? null,
   });
   const counters = {

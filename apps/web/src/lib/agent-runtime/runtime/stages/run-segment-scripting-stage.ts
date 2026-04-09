@@ -39,6 +39,7 @@ export interface SegmentScriptingArtifact {
   kind: "segment-script-draft";
   skillId: string;
   segmentScriptDraft: SegmentScriptDraft;
+  memoryVersion?: number;
   skillMetadata?: SkillMetadataSnapshot;
 }
 

@@ -114,6 +114,8 @@ const createQualitySkillFixture = (params?: {
         "validation_report",
         "quality_signals",
         "failed_artifact",
+        "character_memory_summary",
+        "character_resolution_evidence",
       ])
         .map((requirement) => `"${requirement}"`)
         .join(", ")}]`,
@@ -136,7 +138,7 @@ const createQualitySkillFixture = (params?: {
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/user.md"),
     params?.userPrompt ??
-      "{{segment_script_draft_json}} {{validation_report_json}} {{quality_signals_json}} {{failed_artifact_json}}",
+      "{{segment_script_draft_json}} {{validation_report_json}} {{quality_signals_json}} {{failed_artifact_json}} {{character_memory_summary}} {{character_resolution_evidence_json}}",
     "utf8"
   );
 
@@ -245,6 +247,83 @@ describe("quality stage", () => {
     expect(request.systemPrompt).toContain("只评估台本生成质量");
     expect(request.systemPrompt).toContain("不要把原文题材、叙事质量、受众适宜性");
     expect(request.prompt).toContain("不要把原文叙事连贯性、题材敏感性、受众适宜性");
+  });
+
+  it("injects character memory summary and character resolution evidence into quality prompt", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.91,
+        confidence: 0.92,
+        reasons: ["角色归属稳定"],
+        summary: "台本质量稳定，可自动通过",
+      })
+    );
+
+    await runQualityStage({
+      workflowRunId: "wf-quality-character-evidence",
+      segmentId: "segment-quality-character-evidence",
+      segmentScriptDraft: createDraft("segment-quality-character-evidence"),
+      validationReport: createValidationReport("segment-quality-character-evidence"),
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [
+          { alias: "宁公子", canonicalId: "char-1", source: "profile:char-1" },
+        ],
+        assertedFacts: {},
+        inferredHints: {},
+      },
+      characterResolutionEvidence: {
+        memoryVersion: 1,
+        rawSpeakers: ["宁公子"],
+        resolvedSpeakers: [
+          { raw: "宁公子", canonical: "宁采臣", reason: "alias_match" },
+        ],
+        unresolvedSpeakers: [],
+        aliasConflicts: [],
+      },
+      adapter,
+    });
+
+    const request = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(request.prompt).toContain("宁采臣");
+    expect(request.prompt).toContain("宁公子");
+    expect(request.prompt).toContain("alias_match");
+  });
+
+  it("forces manual review when character resolution evidence contains unresolved speakers", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.95,
+        confidence: 0.99,
+        reasons: ["结构稳定"],
+        summary: "结构稳定",
+      })
+    );
+
+    const result = await runQualityStage({
+      workflowRunId: "wf-quality-unresolved-speaker",
+      segmentId: "segment-quality-unresolved-speaker",
+      segmentScriptDraft: createDraft("segment-quality-unresolved-speaker"),
+      validationReport: createValidationReport("segment-quality-unresolved-speaker"),
+      characterResolutionEvidence: {
+        memoryVersion: 1,
+        rawSpeakers: ["陌生人"],
+        resolvedSpeakers: [
+          { raw: "陌生人", canonical: "陌生人", reason: "unknown" },
+        ],
+        unresolvedSpeakers: ["陌生人"],
+        aliasConflicts: [],
+      },
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toBe("manual_review_required");
+    expect(completed.verdict.verdict).toBe("manual_review");
+    expect(completed.verdict.reasons).toContain("unresolved_speakers_present");
   });
 
   it("summarizes large failed artifacts before rendering quality prompt", async () => {
@@ -432,6 +511,52 @@ describe("quality stage", () => {
     const completed = asCompletedResult(result);
     expect(completed.decision).toBe("auto_pass");
     expect(adapter.call).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps validation evidence in prompt after oversized draft trimming", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.91,
+        confidence: 0.88,
+        reasons: ["结构完整"],
+        summary: "质量稳定",
+      })
+    );
+    const longDraft: SegmentScriptDraft = {
+      segmentId: "segment-quality-keep-evidence",
+      createdAt: "2026-03-24T00:00:00.000Z",
+      lines: Array.from({ length: 30 }, (_, index) => ({
+        id: `segment-quality-keep-evidence-line-${index + 1}`,
+        sourceText: `第${index + 1}句${"甲".repeat(420)}`,
+        text: `第${index + 1}句${"甲".repeat(420)}`,
+        speaker: "旁白",
+        orderInSegment: index,
+      })),
+    };
+
+    await runQualityStage({
+      workflowRunId: "wf-quality-keep-evidence",
+      segmentId: "segment-quality-keep-evidence",
+      segmentScriptDraft: longDraft,
+      validationReport: createValidationReport("segment-quality-keep-evidence", {
+        coverageRatio: 0.87,
+        issues: [
+          {
+            code: "EDGE_CASE",
+            message: "trimmed inputs should still keep validation evidence",
+          },
+        ],
+      }),
+      adapter,
+    });
+
+    const request = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+
+    expect(request.prompt).toContain('"coverageRatio": 0.87');
+    expect(request.prompt).toContain('"EDGE_CASE"');
+    expect(request.prompt).toContain('"lines"');
   });
 
   it("includes minimal evidence package for low confidence manual review handoff", async () => {

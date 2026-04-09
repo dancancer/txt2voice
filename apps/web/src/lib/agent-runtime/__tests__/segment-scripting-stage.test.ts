@@ -450,9 +450,9 @@ describe("segment scripting stage", () => {
     });
 
     expect(result.status).toBe("completed");
-    expect(asCompletedResult(result).artifact.segmentScriptDraft.lines[0]?.speaker).toBe(
-      "宁采臣"
-    );
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.segmentScriptDraft.lines[0]?.speaker).toBe("宁采臣");
+    expect(completed.artifact.memoryVersion).toBe(1);
   });
 
   it("does not mutate literal placeholder text inside segment content during prompt rendering", async () => {

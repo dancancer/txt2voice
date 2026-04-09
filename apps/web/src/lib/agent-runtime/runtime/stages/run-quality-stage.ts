@@ -1,5 +1,6 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type {
+  CharacterMemory,
   QualityVerdict,
   SegmentScriptDraft,
   ValidationReport,
@@ -10,6 +11,7 @@ import type { StageRunRecord } from "../run-stage";
 import type { SkillMetadataSnapshot } from "../script-production-runtime-helpers";
 import type { TraceDependencies } from "../write-trace";
 import { runMastraQualityStage as runMastraQualityStageDefault } from "../../mastra/runtime/run-mastra-quality-stage";
+import type { CharacterResolutionEvidence } from "../character-memory/types";
 
 interface QualityStageRuntimeDeps {
   createId?: TraceDependencies["createId"];
@@ -32,6 +34,8 @@ export interface RunQualityStageInput extends QualityStageRuntimeDeps {
   segmentId: string;
   segmentScriptDraft: SegmentScriptDraft;
   validationReport: ValidationReport;
+  characterMemory?: CharacterMemory;
+  characterResolutionEvidence?: CharacterResolutionEvidence;
   qualitySignals?: QualitySignals;
   failedArtifact?: unknown;
   adapter?: LLMAdapter;

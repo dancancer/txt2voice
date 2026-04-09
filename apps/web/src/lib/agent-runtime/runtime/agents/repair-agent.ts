@@ -193,11 +193,15 @@ export const renderRepairUserPrompt = (
   params: {
     segmentText: string;
     failedArtifact: unknown;
+    characterMemorySummary?: string;
+    characterResolutionHints?: string;
   }
 ) =>
   renderRepairUserPromptFromVariables(template, {
     segment_text: params.segmentText,
     failed_artifact_json: stringifyArtifact(params.failedArtifact),
+    character_memory_summary: params.characterMemorySummary || "",
+    character_resolution_hints: params.characterResolutionHints || "",
   });
 
 export const renderRepairUserPromptFromVariables = (
@@ -205,11 +209,15 @@ export const renderRepairUserPromptFromVariables = (
   variables: {
     segment_text: string;
     failed_artifact_json: string;
+    character_memory_summary?: string;
+    character_resolution_hints?: string;
   }
 ) =>
   renderPromptTemplate(template, {
     segment_text: variables.segment_text,
     failed_artifact_json: variables.failed_artifact_json,
+    character_memory_summary: variables.character_memory_summary || "",
+    character_resolution_hints: variables.character_resolution_hints || "",
   });
 
 const asErrorMessage = (value: unknown): string => {
