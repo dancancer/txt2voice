@@ -171,4 +171,12 @@ describe("production prompt guardrails", () => {
 
     expect(bundle.systemPrompt).not.toContain("情绪、语气、朗读意图");
   });
+
+  it("character extraction prompt treats alias source as a provenance label instead of a strict trace id", () => {
+    const bundle = loadSkillRuntimeBundle(workspaceRoot, "character-extraction");
+
+    expect(bundle.userPrompt).not.toContain("要带 `source`");
+    expect(bundle.userPrompt).toContain("source");
+    expect(bundle.userPrompt).toContain("llm");
+  });
 });

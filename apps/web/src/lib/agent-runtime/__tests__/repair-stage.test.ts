@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
+import { buildAgentContext } from "../context";
 import {
   runSegmentRepairStage,
   type RunSegmentRepairStageResult,
@@ -243,6 +244,82 @@ describe("segment repair stage", () => {
     };
     expect(call.prompt).toContain("宁采臣");
     expect(call.prompt).toContain("宁公子");
+  });
+
+  it("uses the same relevance-aware character summary source as buildAgentContext", async () => {
+    const fixtureSkillDir = createRepairSkillFixture({
+      userPrompt: "{{character_memory_summary}}",
+      systemPrompt: "return json",
+      agentInstructions: "# Agent",
+      skillInstructions: "# Skill",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“退后。”",
+            text: "退后。",
+            speaker: "燕赤霞",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+    const characterMemory = {
+      canonicalIdentities: [
+        ...Array.from({ length: 3 }, (_, index) => ({
+          id: `char-${index + 1}`,
+          name: `前置角色${index + 1}`,
+        })),
+        { id: "char-relevant", name: "燕赤霞" },
+      ],
+      aliasEvidence: [
+        { alias: "燕大侠", canonicalId: "char-relevant", source: "profile:char-relevant" },
+      ],
+      assertedFacts: Object.fromEntries(
+        Array.from({ length: 3 }, (_, index) => [
+          `char-${index + 1}`,
+          {
+            description: `描述${index + 1}-${"甲".repeat(40)}`,
+          },
+        ])
+      ),
+      inferredHints: {
+        "char-relevant": {
+          dialogueStyle: "冷峻",
+        },
+      },
+    };
+    const expectedSummary = buildAgentContext({
+      agentId: "repair-agent",
+      segmentText: "燕赤霞喝道：“退后。”",
+      failedArtifact: { broken: true },
+      characterMemory,
+      budget: {
+        maxContextChars: 5000,
+        reservedOutputChars: 1200,
+      },
+    }).referenceMemory.characterMemorySummary;
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-summary-source",
+      segmentId: "segment-repair-summary-source",
+      segmentText: "燕赤霞喝道：“退后。”",
+      characterMemory,
+      failureKind: "format_repair",
+      failedArtifact: { broken: true },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toBe(expectedSummary);
   });
 
   it("does not mutate literal placeholder text inside segment content during repair prompt rendering", async () => {

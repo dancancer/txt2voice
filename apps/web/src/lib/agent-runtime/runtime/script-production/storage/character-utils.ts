@@ -1,5 +1,7 @@
 import prisma, { Prisma } from "@/lib/prisma";
 import type { CharacterCandidate } from "../types";
+import { generateCommonCharacterNameVariations } from "../../character-name-variations";
+import { normalizeCharacterDiscoveryGender } from "../../contracts/character-discovery";
 
 type CharacterPersistenceClient = Prisma.TransactionClient;
 
@@ -111,11 +113,7 @@ const pickNonEmptyText = (...values: unknown[]): string | undefined => {
 };
 
 const normalizeGender = (value: unknown): CharacterCandidate["gender"] => {
-  if (value === "male" || value === "female" || value === "unknown") {
-    return value;
-  }
-
-  return "unknown";
+  return normalizeCharacterDiscoveryGender(value);
 };
 
 const normalizeImportance = (value: unknown): CharacterCandidate["importance"] => {
@@ -239,21 +237,6 @@ export function buildCharacterMap(
   return map;
 }
 
-const generateCommonVariations = (name: string): string[] => {
-  const variations: string[] = [];
-
-  if (name.length > 2) {
-    variations.push(name.slice(0, -1));
-    variations.push(name.slice(1));
-  }
-
-  if (name.includes("先生") || name.includes("小姐") || name.includes("女士")) {
-    variations.push(name.replace(/先生|小姐|女士/g, ""));
-  }
-
-  return variations;
-};
-
 export function addCharacterToMap(
   map: Map<string, string>,
   profile: { canonicalName?: string; aliases?: Array<{ alias: string }> }
@@ -272,7 +255,9 @@ export function addCharacterToMap(
     }
   }
 
-  const commonVariations = generateCommonVariations(profile.canonicalName);
+  const commonVariations = generateCommonCharacterNameVariations(
+    profile.canonicalName
+  );
   for (const variation of commonVariations) {
     map.set(variation, profile.canonicalName);
   }

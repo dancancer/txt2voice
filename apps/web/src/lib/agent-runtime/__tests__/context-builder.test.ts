@@ -213,4 +213,74 @@ describe("context builder", () => {
       '"personality":["善良"]'
     );
   });
+
+  it("keeps trimmed character memory summary as parseable JSON", () => {
+    const memory: CharacterMemory = {
+      canonicalIdentities: Array.from({ length: 12 }, (_, index) => ({
+        id: `char-${index + 1}`,
+        name: `角色${index + 1}`,
+      })),
+      aliasEvidence: Array.from({ length: 24 }, (_, index) => ({
+        alias: `别名${index + 1}-${"甲".repeat(18)}`,
+        canonicalId: `char-${(index % 12) + 1}`,
+        source: `segment-${index + 1}`,
+      })),
+      assertedFacts: Object.fromEntries(
+        Array.from({ length: 12 }, (_, index) => [
+          `char-${index + 1}`,
+          {
+            description: `描述${index + 1}-${"乙".repeat(80)}`,
+            personality: [`性格${index + 1}-${"丙".repeat(20)}`],
+          },
+        ])
+      ),
+      inferredHints: {},
+    };
+
+    const context = buildAgentContext({
+      agentId: "script-generation-agent",
+      segmentText: "宁采臣抬头。",
+      characterMemory: memory,
+      budget: {
+        maxContextChars: 420,
+        reservedOutputChars: 180,
+      },
+    });
+
+    expect(() =>
+      JSON.parse(context.referenceMemory.characterMemorySummary)
+    ).not.toThrow();
+    expect(context.referenceMemory.characterMemorySummary.length).toBeLessThanOrEqual(
+      context.executionContext.remainingReferenceChars
+    );
+  });
+
+  it("prioritizes characters mentioned in the current segment when trimming memory", () => {
+    const context = buildAgentContext({
+      agentId: "script-generation-agent",
+      segmentText: "压轴出场的是燕赤霞，他让宁采臣后退。",
+      characterMemory: {
+        canonicalIdentities: [
+          { id: "char-1", name: "前置角色一" },
+          { id: "char-2", name: "前置角色二" },
+          { id: "char-3", name: "燕赤霞" },
+        ],
+        aliasEvidence: [
+          { alias: "燕大侠", canonicalId: "char-3", source: "profile:char-3" },
+        ],
+        assertedFacts: {
+          "char-1": { description: `描述一${"甲".repeat(140)}` },
+          "char-2": { description: `描述二${"乙".repeat(140)}` },
+          "char-3": { description: "关键角色" },
+        },
+        inferredHints: {},
+      },
+      budget: {
+        maxContextChars: 340,
+        reservedOutputChars: 160,
+      },
+    });
+
+    expect(context.referenceMemory.characterMemorySummary).toContain("燕赤霞");
+  });
 });

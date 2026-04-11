@@ -49,4 +49,35 @@ describe("prompt budget", () => {
     expect(result.variables.failed_artifact_json).not.toContain('"rawResponse"');
     expect(() => JSON.parse(result.variables.failed_artifact_json)).not.toThrow();
   });
+
+  it("默认也会把结构化 JSON 变量裁剪成可解析结果，而不是直接 slice", () => {
+    const result = fitPromptToBudget({
+      systemPrompt: "",
+      maxPromptChars: 180,
+      variables: {
+        character_memory_summary: JSON.stringify(
+          {
+            version: 3,
+            characters: Array.from({ length: 6 }, (_, index) => ({
+              id: `char-${index + 1}`,
+              name: `角色${index + 1}`,
+              aliases: [`别名${index + 1}-${"甲".repeat(18)}`],
+              assertedFacts: {
+                description: `描述${index + 1}-${"乙".repeat(40)}`,
+              },
+            })),
+          },
+          null,
+          2
+        ),
+      },
+      trimOrder: ["character_memory_summary"],
+      renderPrompt: (variables) => variables.character_memory_summary,
+    });
+
+    expect(result.trimmedKeys).toContain("character_memory_summary");
+    expect(() =>
+      JSON.parse(result.variables.character_memory_summary)
+    ).not.toThrow();
+  });
 });

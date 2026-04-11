@@ -58,12 +58,24 @@ const readRequiredFile = (params: {
   skillId: string;
   relativePath: string;
 }) => {
-  const absolutePath = path.join(
-    params.rootDir,
-    "skills",
-    params.skillId,
-    params.relativePath
-  );
+  const skillRoot = path.join(params.rootDir, "skills", params.skillId);
+  const absolutePath = path.resolve(skillRoot, params.relativePath);
+  const relativeFromSkillRoot = path.relative(skillRoot, absolutePath);
+
+  if (
+    relativeFromSkillRoot.startsWith("..") ||
+    path.isAbsolute(relativeFromSkillRoot)
+  ) {
+    throw new DefinitionRegistryError(
+      "VALIDATION_ERROR",
+      `Skill ${params.skillId} promptBundle path escapes skill directory: ${params.relativePath}`,
+      {
+        definitionType: "skill",
+        definitionId: params.skillId,
+        invalidFields: ["promptBundle"],
+      }
+    );
+  }
 
   if (!fs.existsSync(absolutePath)) {
     throw new DefinitionRegistryError(

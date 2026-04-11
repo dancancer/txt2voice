@@ -5,6 +5,7 @@ interface PromptArtifactSummaryOptions {
 
 const DEFAULT_RAW_RESPONSE_CHARS = 600;
 const DEFAULT_MAX_LINES = 3;
+const DEFAULT_LINE_TEXT_CHARS = 160;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === "object" && !Array.isArray(value);
@@ -47,8 +48,8 @@ const summarizeStructuredResult = (
 
       return {
         id: line.id,
-        sourceText: line.sourceText,
-        text: line.text,
+        sourceText: truncateText(line.sourceText, DEFAULT_LINE_TEXT_CHARS),
+        text: truncateText(line.text, DEFAULT_LINE_TEXT_CHARS),
         speaker: line.speaker,
         orderInSegment: line.orderInSegment,
       };
@@ -56,6 +57,13 @@ const summarizeStructuredResult = (
   }
 
   return Object.keys(summary).length > 0 ? summary : undefined;
+};
+
+const summarizeValidationReport = (
+  value: unknown,
+  maxLines: number
+): Record<string, unknown> | undefined => {
+  return summarizeStructuredResult(value, maxLines);
 };
 
 export const summarizePromptArtifact = (
@@ -74,6 +82,9 @@ export const summarizePromptArtifact = (
 
   if (typeof artifact.kind === "string") {
     summary.kind = artifact.kind;
+  }
+  if (typeof artifact.segmentId === "string") {
+    summary.segmentId = artifact.segmentId;
   }
   if (typeof artifact.provider === "string") {
     summary.provider = artifact.provider;
@@ -99,6 +110,19 @@ export const summarizePromptArtifact = (
   );
   if (structuredResult) {
     summary.structuredResult = structuredResult;
+  }
+
+  const directStructuredSummary = summarizeStructuredResult(artifact, maxLines);
+  if (directStructuredSummary) {
+    Object.assign(summary, directStructuredSummary);
+  }
+
+  const validationReport = summarizeValidationReport(
+    artifact.validationReport,
+    maxLines
+  );
+  if (validationReport) {
+    summary.validationReport = validationReport;
   }
 
   return summary;

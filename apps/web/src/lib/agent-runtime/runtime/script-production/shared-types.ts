@@ -58,6 +58,13 @@ export interface ScriptProductionBook {
   characterProfiles: CharacterProfileSnapshot[];
 }
 
+export interface RuntimeSegmentState {
+  segmentId: string;
+  chapterId?: string | null;
+  orderIndex?: number;
+  sourceText: string;
+}
+
 export interface SegmentRuntimeCounters {
   persistedSentenceCount: number;
   persistedCharacterCount: number;

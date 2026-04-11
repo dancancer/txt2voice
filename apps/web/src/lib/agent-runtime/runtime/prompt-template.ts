@@ -8,12 +8,26 @@ const hasOwn = (value: Record<string, string>, key: string): boolean =>
 export const renderPromptTemplate = (
   template: string,
   variables: PromptTemplateVariables
-): string =>
-  template.replace(PROMPT_PLACEHOLDER_PATTERN, (placeholder, rawKey) => {
-    const key = rawKey.trim();
-    if (!hasOwn(variables, key)) {
-      return "";
-    }
+): string => {
+  const missingKeys = new Set<string>();
+  const rendered = template.replace(
+    PROMPT_PLACEHOLDER_PATTERN,
+    (placeholder, rawKey) => {
+      const key = rawKey.trim();
+      if (!hasOwn(variables, key)) {
+        missingKeys.add(key);
+        return "";
+      }
 
-    return variables[key] ?? "";
-  });
+      return variables[key] ?? "";
+    }
+  );
+
+  if (missingKeys.size > 0) {
+    throw new Error(
+      `Missing prompt template variables: ${[...missingKeys].join(", ")}`
+    );
+  }
+
+  return rendered;
+};

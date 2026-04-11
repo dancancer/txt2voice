@@ -1,11 +1,16 @@
 import type { ContextBudget } from "../context";
 import { resolveInputBudgetLimit } from "../context/budget-policy";
 import { summarizePromptArtifact } from "./prompt-artifact-summary";
+import {
+  fitJsonTextToPromptBudget,
+  resolvePromptVariableStrategy,
+} from "./prompt-context";
 
 export type PromptVariableStrategy =
   | "truncate"
   | "preserve_edges"
-  | "json_summary";
+  | "json_summary"
+  | "json_fit";
 
 export interface FitPromptToBudgetInput {
   systemPrompt: string;
@@ -78,17 +83,27 @@ export const fitPromptToBudget = (
     value: string,
     targetLength: number
   ): string => {
-    const strategy = input.variableStrategies?.[key] ?? "truncate";
+    const strategy = resolvePromptVariableStrategy({
+      value,
+      explicitStrategy: input.variableStrategies?.[key],
+    });
 
     if (strategy === "preserve_edges") {
       return preservePromptValueEdges(value, targetLength);
+    }
+
+    if (strategy === "json_fit") {
+      return fitJsonTextToPromptBudget(value, targetLength);
     }
 
     if (strategy === "json_summary") {
       try {
         const parsed = JSON.parse(value);
         const summary = summarizePromptArtifact(parsed);
-        return JSON.stringify(summary ?? null, null, 2);
+        return fitJsonTextToPromptBudget(
+          JSON.stringify(summary ?? null, null, 2),
+          targetLength
+        );
       } catch {
         return preservePromptValueEdges(value, targetLength);
       }
