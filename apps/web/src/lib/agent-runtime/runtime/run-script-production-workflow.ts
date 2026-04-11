@@ -1,5 +1,8 @@
 import { TTSError } from "@/lib/error-handler";
-import { createBootstrapCharacterMemorySnapshot } from "./character-memory/store";
+import {
+  createBootstrapCharacterMemorySnapshot,
+  createDiscoveryRefreshCharacterMemorySnapshot,
+} from "./character-memory/store";
 import {
   loadBookForGeneration,
   resolvePartialSegments,
@@ -146,6 +149,12 @@ export const runScriptProductionWorkflow = async (
   let traceEventCount = 0;
   let stageRunCount = 0;
   const stageSkillMetadata: Record<string, Record<string, unknown>> = {};
+  const stageSkillMetadataIndex: Array<{
+    stageRunId: string;
+    stageId: string;
+    segmentId?: string;
+    metadata: Record<string, unknown>;
+  }> = [];
   const workflowIssues: Array<{
     code: string;
     stage: string;
@@ -376,6 +385,11 @@ export const runScriptProductionWorkflow = async (
           ) {
             stageSkillMetadata[stageResult.stageId] =
               skillMetadata as Record<string, unknown>;
+            stageSkillMetadataIndex.push({
+              stageRunId: stageResult.id,
+              stageId: stageResult.stageId,
+              metadata: skillMetadata as Record<string, unknown>,
+            });
           }
         },
         runCharacterDiscoveryStage: runDiscoveryStage,
@@ -429,6 +443,7 @@ export const runScriptProductionWorkflow = async (
             characterDiscoveryFailure,
             workflowIssues,
             stageSkillMetadata,
+            stageSkillMetadataIndex,
           });
           const runtimeMetadata = buildRuntimeMetadata({
             workflowRunId,
@@ -494,11 +509,13 @@ export const runScriptProductionWorkflow = async (
       } else {
         characterDiscoveryStatus = "completed";
         if (characterDiscoveryResult.persistedCharacterCount > 0) {
-          characterMemorySnapshot = {
-            ...createBootstrapCharacterMemorySnapshot(characterProfiles, now),
-            version: characterMemorySnapshot.version + 1,
-            source: "discovery_refresh",
-          };
+          characterMemorySnapshot = createDiscoveryRefreshCharacterMemorySnapshot(
+            characterProfiles,
+            {
+              version: characterMemorySnapshot.version + 1,
+              now,
+            }
+          );
           await runtimeStore.createRuntimeArtifact({
             id: createId(),
             workflowRunId,
@@ -542,26 +559,34 @@ export const runScriptProductionWorkflow = async (
             onStageResult: (stageResult) => {
               coordinatorStageResults.push(stageResult);
               const skillMetadata = stageResult.agent.output?.skillMetadata;
-              if (
-                skillMetadata &&
-                typeof skillMetadata === "object" &&
-                !Array.isArray(skillMetadata)
-              ) {
-                stageSkillMetadata[stageResult.stageId] =
-                  skillMetadata as Record<string, unknown>;
-              }
-            },
+          if (
+            skillMetadata &&
+            typeof skillMetadata === "object" &&
+            !Array.isArray(skillMetadata)
+          ) {
+            stageSkillMetadata[stageResult.stageId] =
+              skillMetadata as Record<string, unknown>;
+            stageSkillMetadataIndex.push({
+              stageRunId: stageResult.id,
+              stageId: stageResult.stageId,
+              segmentId: segment.id,
+              metadata: skillMetadata as Record<string, unknown>,
+            });
+          }
+        },
             runCharacterDiscoveryStage: runDiscoveryStage,
             runPersistStage: runPersistCommitStage,
           });
 
           persistedCharacterCount += refreshResult.persistedCharacterCount;
           if (refreshResult.persistedCharacterCount > 0) {
-            characterMemorySnapshot = {
-              ...createBootstrapCharacterMemorySnapshot(characterProfiles, now),
-              version: characterMemorySnapshot.version + 1,
-              source: "discovery_refresh",
-            };
+            characterMemorySnapshot = createDiscoveryRefreshCharacterMemorySnapshot(
+              characterProfiles,
+              {
+                version: characterMemorySnapshot.version + 1,
+                now,
+              }
+            );
             await runtimeStore.createRuntimeArtifact({
               id: createId(),
               workflowRunId,
@@ -635,6 +660,12 @@ export const runScriptProductionWorkflow = async (
             ) {
               stageSkillMetadata[stageResult.stageId] =
                 skillMetadata as Record<string, unknown>;
+              stageSkillMetadataIndex.push({
+                stageRunId: stageResult.id,
+                stageId: stageResult.stageId,
+                segmentId: segment.id,
+                metadata: skillMetadata as Record<string, unknown>,
+              });
             }
           },
           runSegmentScriptingStage: runScriptingStage,
@@ -792,6 +823,7 @@ export const runScriptProductionWorkflow = async (
         characterDiscoveryFailure,
         workflowIssues,
         stageSkillMetadata,
+        stageSkillMetadataIndex,
       });
       const completeStage = await runStage({
         workflowRunId,

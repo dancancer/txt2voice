@@ -13,26 +13,65 @@ import type {
   ScriptProductionBookSegment,
 } from "./shared-types";
 
-export const CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT = 5;
-const CHARACTER_DISCOVERY_SEGMENT_CHAR_LIMIT = 320;
+export const CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT = 8;
+const CHARACTER_DISCOVERY_TOTAL_SAMPLE_CHAR_LIMIT = 2400;
+const CHARACTER_DISCOVERY_MIN_SEGMENT_CHAR_LIMIT = 180;
+const CHARACTER_DISCOVERY_MAX_SEGMENT_CHAR_LIMIT = 640;
 
-const preserveSampleEdges = (value: string, targetLength: number): string => {
+const preserveSampleCoverage = (value: string, targetLength: number): string => {
   if (value.length <= targetLength) {
     return value;
   }
 
-  if (targetLength <= 8) {
+  if (targetLength <= 24) {
     return value.slice(0, targetLength);
   }
 
   const separator = "\n...\n";
-  const contentLength = Math.max(targetLength - separator.length, 2);
-  const headLength = Math.ceil(contentLength / 2);
-  const tailLength = Math.floor(contentLength / 2);
+  const separatorBudget = separator.length * 2;
+  const contentLength = Math.max(targetLength - separatorBudget, 3);
+  const headLength = Math.ceil(contentLength / 3);
+  const middleLength = Math.floor(contentLength / 3);
+  const tailLength = Math.max(contentLength - headLength - middleLength, 1);
+  const middleStart = Math.max(
+    Math.floor((value.length - middleLength) / 2),
+    headLength
+  );
+  const middleEnd = middleStart + middleLength;
 
   return `${value.slice(0, headLength)}${separator}${value.slice(
-    value.length - tailLength
-  )}`;
+    middleStart,
+    middleEnd
+  )}${separator}${value.slice(value.length - tailLength)}`;
+};
+
+const formatDiscoverySampleSegment = (
+  segment: ScriptProductionBookSegment,
+  targetLength: number
+) => {
+  const chapterId =
+    typeof segment.chapterId === "string" && segment.chapterId.length > 0
+      ? segment.chapterId
+      : "unknown";
+  const orderIndex =
+    typeof segment.orderIndex === "number" ? segment.orderIndex : -1;
+  const segmentText = preserveSampleCoverage(segment.content.trim(), targetLength);
+
+  return [
+    `[segment id=${segment.id} chapter=${chapterId} order=${orderIndex}]`,
+    segmentText,
+  ].join("\n");
+};
+
+const resolvePerSegmentSampleLimit = (segmentCount: number) => {
+  const budgetPerSegment = Math.floor(
+    CHARACTER_DISCOVERY_TOTAL_SAMPLE_CHAR_LIMIT / Math.max(segmentCount, 1)
+  );
+
+  return Math.max(
+    CHARACTER_DISCOVERY_MIN_SEGMENT_CHAR_LIMIT,
+    Math.min(CHARACTER_DISCOVERY_MAX_SEGMENT_CHAR_LIMIT, budgetPerSegment)
+  );
 };
 
 const selectCharacterDiscoverySampleIndexes = (
@@ -62,19 +101,20 @@ const selectCharacterDiscoverySampleIndexes = (
 
 export const buildCharacterDiscoverySampleText = (
   segments: ScriptProductionBookSegment[]
-): string =>
-  selectCharacterDiscoverySampleIndexes(segments.length)
+): string => {
+  const selectedSegments = selectCharacterDiscoverySampleIndexes(segments.length)
     .map((index) => segments[index])
     .filter(
       (segment): segment is ScriptProductionBookSegment =>
         typeof segment?.content === "string"
-    )
-    .map((segment) => segment.content.trim())
-    .map((segmentText) =>
-      preserveSampleEdges(segmentText, CHARACTER_DISCOVERY_SEGMENT_CHAR_LIMIT)
-    )
+    );
+  const perSegmentLimit = resolvePerSegmentSampleLimit(selectedSegments.length);
+
+  return selectedSegments
+    .map((segment) => formatDiscoverySampleSegment(segment, perSegmentLimit))
     .filter((segmentText) => segmentText.length > 0)
     .join("\n\n");
+};
 
 export const hasCharacterMemoryDraftContent = (draft: {
   canonicalIdentities?: unknown[];
@@ -163,11 +203,28 @@ export const runCharacterDiscoveryPass = async (
     appendTrace: params.appendTrace,
   });
 
+  const discoveryFailure =
+    discoveryStage.status !== "completed"
+      ? createFailureDetail({
+          segment: params.segments[0]!,
+          stage: "character_discovery",
+          errorCode: "CHARACTER_DISCOVERY_FAILED",
+          message: discoveryStage.error || "character_discovery_failed",
+          retryable: discoveryStage.status === "retrying",
+        })
+      : null;
+  const discoveryStageStatus = discoveryFailure
+    ? discoveryStage.status === "retrying"
+      ? "retrying"
+      : "failed"
+    : discoveryStage.status;
+  const discoveryStageError = discoveryFailure?.message;
+
   await params.runtimeStore.updateStageRun({
     id: discoveryStage.stageRunId,
     workflowRunId: params.workflowRunId,
     stageId: "character_discovery",
-    status: discoveryStage.status,
+    status: discoveryStageStatus,
     summary: {
       stageId: "character_discovery",
       sampleSegmentCount: Math.min(
@@ -176,38 +233,37 @@ export const runCharacterDiscoveryPass = async (
       ),
       sampleCharCount: sampleText.length,
       artifactKind:
-        discoveryStage.status === "completed"
+        !discoveryFailure && discoveryStage.status === "completed"
           ? discoveryStage.artifact.kind
           : undefined,
       skillMetadata:
-        discoveryStage.status === "completed"
+        !discoveryFailure && discoveryStage.status === "completed"
           ? discoveryStage.artifact.skillMetadata
           : undefined,
+      errorCode: discoveryFailure?.errorCode,
+      message: discoveryStageError,
     },
     completedAt: now(),
   });
   params.onStageResult?.({
     id: discoveryStage.stageRunId,
     stageId: "character_discovery",
-    status: discoveryStage.status,
+    status: discoveryStageStatus,
     agent: {
       agentId: "character-discovery-agent",
-      status: discoveryStage.status,
+      status: discoveryStageStatus,
       output:
-        discoveryStage.status === "completed"
+        !discoveryFailure && discoveryStage.status === "completed"
           ? {
               skillId: discoveryStage.artifact.skillId,
               skillMetadata: discoveryStage.artifact.skillMetadata,
             }
           : undefined,
-      error:
-        discoveryStage.status === "completed"
-          ? undefined
-          : discoveryStage.error,
+      error: discoveryStageError,
     },
   });
 
-  if (discoveryStage.status === "completed") {
+  if (!discoveryFailure && discoveryStage.status === "completed") {
     await params.runtimeStore.createRuntimeArtifact({
       id: params.createId(),
       workflowRunId: params.workflowRunId,
@@ -223,23 +279,23 @@ export const runCharacterDiscoveryPass = async (
     });
   }
 
-  if (
-    discoveryStage.status !== "completed" ||
-    !hasCharacterMemoryDraftContent(discoveryStage.artifact.characterMemoryDraft)
-  ) {
-    if (discoveryStage.status !== "completed") {
-      return {
-        persistedCharacterCount: 0,
-        failure: createFailureDetail({
-          segment: params.segments[0]!,
-          stage: "character_discovery",
-          errorCode: "CHARACTER_DISCOVERY_FAILED",
-          message: discoveryStage.error || "character_discovery_failed",
-          retryable: discoveryStage.status === "retrying",
-        }),
-      };
-    }
+  if (discoveryFailure) {
+    return {
+      persistedCharacterCount: 0,
+      failure: discoveryFailure,
+    };
+  }
 
+  const completedDiscoveryStage = discoveryStage as Extract<
+    typeof discoveryStage,
+    { status: "completed" }
+  >;
+
+  if (
+    !hasCharacterMemoryDraftContent(
+      completedDiscoveryStage.artifact.characterMemoryDraft
+    )
+  ) {
     return { persistedCharacterCount: 0 };
   }
 
@@ -249,7 +305,7 @@ export const runCharacterDiscoveryPass = async (
     artifacts: [
       {
         kind: "character-memory-draft",
-        characterMemory: discoveryStage.artifact.characterMemoryDraft,
+        characterMemory: completedDiscoveryStage.artifact.characterMemoryDraft,
       },
     ],
     characterProfiles: params.characterProfiles,

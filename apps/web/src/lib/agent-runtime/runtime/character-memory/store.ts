@@ -3,6 +3,7 @@ import {
   buildCharacterMemoryFromProfiles,
   type MemoryPatch,
 } from "../../context";
+import { generateCommonCharacterNameVariations } from "../character-name-variations";
 import { mergeCharacterMemoryPatch } from "./merge";
 import type {
   CharacterMemorySnapshot,
@@ -34,25 +35,47 @@ const buildDerivedMaps = (snapshot: {
   const canonicalNameById = Object.fromEntries(
     snapshot.canonicalIdentities.map((identity) => [identity.id, identity.name])
   );
-  const canonicalNameByAlias = Object.fromEntries(
-    unique(snapshot.aliasEvidence.map((entry) => entry.alias)).flatMap((alias) => {
-      const canonicalNames = unique(
-        snapshot.aliasEvidence
-          .filter((entry) => entry.alias === alias)
-          .map((entry) => canonicalNameById[entry.canonicalId])
-          .filter((name): name is string => typeof name === "string" && name.length > 0)
-      );
+  const aliasCandidates = new Map<string, string[]>();
 
-      return canonicalNames.length === 1 ? [[alias, canonicalNames[0]!]] : [];
-    })
+  for (const identity of snapshot.canonicalIdentities) {
+    for (const alias of generateCommonCharacterNameVariations(identity.name)) {
+      const bucket = aliasCandidates.get(alias) || [];
+      bucket.push(identity.name);
+      aliasCandidates.set(alias, unique(bucket));
+    }
+  }
+
+  for (const entry of snapshot.aliasEvidence) {
+    const canonicalName = canonicalNameById[entry.canonicalId];
+    if (typeof canonicalName !== "string" || canonicalName.length === 0) {
+      continue;
+    }
+
+    const alias = entry.alias.trim();
+    if (!alias) {
+      continue;
+    }
+
+    const bucket = aliasCandidates.get(alias) || [];
+    bucket.push(canonicalName);
+    aliasCandidates.set(alias, unique(bucket));
+  }
+
+  const canonicalNameByAlias = Object.fromEntries(
+    [...aliasCandidates.entries()].flatMap(([alias, canonicalNames]) =>
+      canonicalNames.length === 1 ? [[alias, canonicalNames[0]!]] : []
+    )
   );
   const aliasSetByCanonicalId = Object.fromEntries(
     snapshot.canonicalIdentities.map((identity) => [
       identity.id,
       unique(
-        snapshot.aliasEvidence
-          .filter((entry) => entry.canonicalId === identity.id)
-          .map((entry) => entry.alias)
+        [
+          ...snapshot.aliasEvidence
+            .filter((entry) => entry.canonicalId === identity.id)
+            .map((entry) => entry.alias),
+          ...generateCommonCharacterNameVariations(identity.name),
+        ]
       ),
     ])
   );
@@ -89,6 +112,23 @@ export const createBootstrapCharacterMemorySnapshot = (
     version: 1,
     source: "bootstrap",
     now,
+  });
+};
+
+export const createDiscoveryRefreshCharacterMemorySnapshot = (
+  profiles: CharacterProfileSeed[],
+  options: {
+    version?: number;
+    now?: () => Date;
+  } = {}
+): CharacterMemorySnapshot => {
+  const memory = buildCharacterMemoryFromProfiles(profiles);
+
+  return createCharacterMemorySnapshot({
+    memory,
+    version: options.version,
+    source: "discovery_refresh",
+    now: options.now,
   });
 };
 

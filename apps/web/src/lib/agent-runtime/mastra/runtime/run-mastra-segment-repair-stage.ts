@@ -5,12 +5,12 @@ import type { LLMAdapter } from "../../adapters/llm-adapter";
 import {
   buildAgentContext,
   type RepairDecision,
+  type SegmentScriptDraft,
 } from "../../context";
 import {
   canonicalizeSegmentScriptDraftSpeakers,
 } from "../../runtime/character-memory/canonicalize";
 import {
-  buildCharacterMemorySummary,
   buildCharacterResolutionHints,
 } from "../../runtime/character-memory/summary";
 import {
@@ -217,6 +217,7 @@ export const runMastraSegmentRepairStage = async (
             agentId: runtimeAgentId,
             segmentText: input.segmentText,
             failedArtifact: input.failedArtifact,
+            characterMemory: input.characterMemory,
             budget: promptBudget,
           });
           const memorySnapshot = input.characterMemory
@@ -224,9 +225,8 @@ export const runMastraSegmentRepairStage = async (
                 memory: input.characterMemory,
               })
             : undefined;
-          const characterMemorySummary = memorySnapshot
-            ? buildCharacterMemorySummary(memorySnapshot)
-            : "";
+          const characterMemorySummary =
+            context.referenceMemory.characterMemorySummary;
           const characterResolutionHints = memorySnapshot
             ? buildCharacterResolutionHints(memorySnapshot)
             : "";

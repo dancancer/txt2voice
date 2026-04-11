@@ -47,6 +47,7 @@ export interface ScriptProductionWorkflowSummary {
     retryable?: boolean;
   }>;
   stageSkillMetadata?: Record<string, SkillMetadataSnapshot>;
+  stageSkillMetadataIndex?: StageSkillMetadataIndexEntry[];
 }
 
 export interface SkillMetadataSnapshot {
@@ -56,6 +57,13 @@ export interface SkillMetadataSnapshot {
   repairPolicy?: string | null;
   successCriteria?: string[];
   telemetryTags?: string[];
+}
+
+export interface StageSkillMetadataIndexEntry {
+  stageRunId: string;
+  stageId: string;
+  segmentId?: string;
+  metadata: SkillMetadataSnapshot;
 }
 
 interface PromptFingerprintSource {
@@ -318,6 +326,7 @@ export const buildWorkflowSummary = (params: {
     retryable?: boolean;
   }>;
   stageSkillMetadata?: Record<string, SkillMetadataSnapshot>;
+  stageSkillMetadataIndex?: StageSkillMetadataIndexEntry[];
 }): ScriptProductionWorkflowSummary => {
   const durationMs = Math.max(
     new Date(params.completedAt).getTime() - new Date(params.startedAt).getTime(),
@@ -348,6 +357,7 @@ export const buildWorkflowSummary = (params: {
     characterDiscoveryFailure: params.characterDiscoveryFailure,
     workflowIssues: params.workflowIssues,
     stageSkillMetadata: params.stageSkillMetadata,
+    stageSkillMetadataIndex: params.stageSkillMetadataIndex,
   };
 };
 

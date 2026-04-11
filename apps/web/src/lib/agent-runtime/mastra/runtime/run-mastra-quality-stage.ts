@@ -68,6 +68,21 @@ const defaultQualitySkillId = "quality-judgement";
 const DETERMINISTIC_HARD_FAIL_COVERAGE_THRESHOLD = 0.5;
 const AUTO_REVIEW_SCORE_THRESHOLD = 0.8;
 const AUTO_REVIEW_CONFIDENCE_THRESHOLD = 0.75;
+const CORE_QUALITY_EVIDENCE_KEYS = new Set([
+  "segment_script_draft_json",
+  "validation_report_json",
+  "character_resolution_evidence_json",
+]);
+
+const resolveCoreQualityEvidenceKeys = (input: RunQualityStageInput) => {
+  const keys = new Set(CORE_QUALITY_EVIDENCE_KEYS);
+
+  if (input.characterResolutionEvidence == null) {
+    keys.delete("character_resolution_evidence_json");
+  }
+
+  return keys;
+};
 
 const createRuntimeId = () =>
   `runtime-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
@@ -226,6 +241,7 @@ const resolveSemanticDecision = (params: {
   qualitySignals?: QualitySignals;
   unresolvedSpeakers?: string[];
   aliasConflictCount?: number;
+  resolvedSpeakers?: Array<{ reason?: string }>;
 }): StageOutput => {
   const forceManualReview = params.qualitySignals?.forceManualReview === true;
   const lowScore = params.verdict.score < AUTO_REVIEW_SCORE_THRESHOLD;
@@ -278,6 +294,7 @@ export const runMastraQualityStage = async (
   deps: QualityStageRuntimeDeps = {}
 ): Promise<RunQualityStageResult> => {
   const runtimeAgentId = "quality-judge-agent";
+  const coreQualityEvidenceKeys = resolveCoreQualityEvidenceKeys(input);
   const promptBudget = {
     maxContextChars: 5000,
     reservedOutputChars: 1200,
@@ -412,6 +429,75 @@ export const runMastraQualityStage = async (
               },
             };
           }
+          const trimmedCoreEvidenceKeys = promptBudgetResult.trimmedKeys.filter(
+            (key) => coreQualityEvidenceKeys.has(key)
+          );
+          if (trimmedCoreEvidenceKeys.length > 0) {
+            const trimmedCoreEvidenceDetail = `trimmed_core_evidence:${trimmedCoreEvidenceKeys.join(
+              ","
+            )}`;
+            const reasons = [
+              "quality_prompt_core_evidence_trimmed",
+              trimmedCoreEvidenceDetail,
+            ];
+
+            return {
+              status: "completed",
+              output: {
+                decision: "manual_review_required",
+                verdict: {
+                  segmentId: input.segmentId,
+                  verdict: "manual_review",
+                  score: 0,
+                  reasons,
+                },
+                handoff: createManualReviewHandoff({
+                  segmentId: input.segmentId,
+                  summary: "quality_prompt_core_evidence_trimmed",
+                  reasons,
+                  score: 0,
+                  confidence: 0,
+                  validationReport: input.validationReport,
+                }),
+              },
+            };
+          }
+          const unresolvedSpeakers =
+            input.characterResolutionEvidence?.unresolvedSpeakers ?? [];
+          const aliasConflicts =
+            input.characterResolutionEvidence?.aliasConflicts ?? [];
+          if (unresolvedSpeakers.length > 0 || aliasConflicts.length > 0) {
+            const score = Number(input.validationReport.coverageRatio.toFixed(4));
+            const reasons: string[] = [];
+
+            if (unresolvedSpeakers.length > 0) {
+              reasons.push("unresolved_speakers_present");
+            }
+            if (aliasConflicts.length > 0) {
+              reasons.push("alias_conflicts_present");
+            }
+
+            return {
+              status: "completed",
+              output: {
+                decision: "manual_review_required",
+                verdict: {
+                  segmentId: input.segmentId,
+                  verdict: "manual_review",
+                  score,
+                  reasons,
+                },
+                handoff: createManualReviewHandoff({
+                  segmentId: input.segmentId,
+                  summary: "character_resolution_requires_manual_review",
+                  reasons,
+                  score,
+                  confidence: 1,
+                  validationReport: input.validationReport,
+                }),
+              },
+            };
+          }
 
           const adapter = await resolveAdapter(input.adapter);
           const agent = createQualityJudgeAgent({ adapter });
@@ -446,6 +532,8 @@ export const runMastraQualityStage = async (
               input.characterResolutionEvidence?.unresolvedSpeakers,
             aliasConflictCount:
               input.characterResolutionEvidence?.aliasConflicts.length,
+            resolvedSpeakers:
+              input.characterResolutionEvidence?.resolvedSpeakers,
           });
 
           return {

@@ -7,6 +7,7 @@ jest.mock("@/lib/prisma", () => ({
     },
     manualReviewItem: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       updateMany: jest.fn(),
@@ -78,6 +79,10 @@ const mockRunQualityStage =
   runQualityStage as jest.MockedFunction<typeof runQualityStage>;
 const mockRunPersistStage =
   runPersistStage as jest.MockedFunction<typeof runPersistStage>;
+const countPersistCallsByArtifactKind = (kind: string): number =>
+  mockRunPersistStage.mock.calls.filter(
+    ([input]) => input?.artifacts?.[0]?.kind === kind
+  ).length;
 
 const createBookFixture = () => ({
   id: "book-1",
@@ -203,6 +208,7 @@ describe("runScriptProductionWorkflow", () => {
     mockPrisma.book.findUnique.mockResolvedValue(createBookFixture());
     mockPrisma.$transaction.mockImplementation(async (callback: any) => callback(mockPrisma));
     mockPrisma.manualReviewItem.findFirst.mockResolvedValue(null);
+    mockPrisma.manualReviewItem.findMany.mockResolvedValue([]);
     mockPrisma.manualReviewItem.create.mockResolvedValue({ id: "review-1" });
     mockPrisma.manualReviewItem.update.mockResolvedValue({});
     mockPrisma.manualReviewItem.updateMany.mockResolvedValue({ count: 0 });
@@ -220,8 +226,32 @@ describe("runScriptProductionWorkflow", () => {
     mockRunCharacterDiscoveryStage.mockResolvedValue({
       stageRunId: "discovery-unused",
       status: "completed",
-      artifact: createEmptyCharacterMemoryDraftArtifact(),
+      artifact: createCharacterMemoryDraftArtifact(),
     } as any);
+    mockRunPersistStage.mockImplementation(async (input: any) => {
+      const artifactKind = input.artifacts?.[0]?.kind;
+      if (artifactKind === "character-memory-draft") {
+        return {
+          stageRunId: "persist-character-memory-default",
+          status: "completed",
+          artifact: {
+            kind: "persisted-business-facts",
+            persistedCharacterCount: 0,
+            persistedSentenceCount: 0,
+          },
+        } as any;
+      }
+
+      return {
+        stageRunId: "persist-segment-default",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount: 0,
+          persistedSentenceCount: 1,
+        },
+      } as any;
+    });
     mockRunSegmentRepairStage.mockResolvedValue({
       stageRunId: "repair-unused",
       status: "completed",
@@ -344,7 +374,7 @@ describe("runScriptProductionWorkflow", () => {
         segmentText: "第三段原文。",
       })
     );
-    expect(mockRunPersistStage).toHaveBeenCalledTimes(2);
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(2);
     expect(onProgress).toHaveBeenNthCalledWith(1, 1, 3);
     expect(onProgress).toHaveBeenNthCalledWith(2, 2, 3);
     expect(result.summary).toMatchObject({
@@ -410,6 +440,9 @@ describe("runScriptProductionWorkflow", () => {
         },
       },
     } as any);
+    mockPrisma.manualReviewItem.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: "review-1" }]);
 
     const result = await runScriptProductionWorkflow({
       taskId: "task-review-1",
@@ -664,6 +697,106 @@ describe("runScriptProductionWorkflow", () => {
     });
   });
 
+  it("treats empty character discovery drafts as a no-op when no bootstrap memory exists", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+    mockRunCharacterDiscoveryStage.mockResolvedValue({
+      stageRunId: "discovery-stage-empty",
+      status: "completed",
+      artifact: createEmptyCharacterMemoryDraftArtifact(),
+    } as any);
+    mockRunSegmentScriptingStage.mockResolvedValue({
+      stageRunId: "stage-script-1",
+      status: "completed",
+      artifact: createDraftArtifact("seg-1", "第一段原文。"),
+    } as any);
+    mockRunQualityStage.mockResolvedValue({
+      stageRunId: "quality-1",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "seg-1",
+        verdict: "pass",
+        score: 0.95,
+        reasons: ["ok"],
+      },
+    } as any);
+    mockRunPersistStage.mockResolvedValue({
+      stageRunId: "stage-persist-segment",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 1,
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(1);
+    expect((result as any).runtimeMetadata?.status).toBe("completed");
+    expect((result as any).runtimeMetadata?.summary).toMatchObject({
+      totalSegments: 1,
+      processedSegments: 1,
+      failedSegments: 0,
+      characterDiscoveryStatus: "completed",
+      degradedMode: false,
+      persistedSentenceCount: 1,
+      persistedCharacterCount: 0,
+    });
+  });
+
+  it("marks character discovery retrying failures as retryable in workflow summary", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      id: "book-1",
+      textSegments: [createBookFixture().textSegments[0]],
+      characterProfiles: [],
+    });
+    mockRunCharacterDiscoveryStage.mockResolvedValue({
+      stageRunId: "discovery-stage-retrying",
+      status: "retrying",
+      error: "temporary_parse_issue",
+      failedArtifact: {
+        kind: "character-discovery-failure",
+        message: "Invalid character discovery payload: expected JSON object",
+      },
+    } as any);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(0);
+    expect((result as any).runtimeMetadata?.status).toBe("failed");
+    expect((result as any).runtimeMetadata?.summary).toMatchObject({
+      totalSegments: 1,
+      processedSegments: 0,
+      failedSegments: 0,
+      characterDiscoveryStatus: "failed",
+      degradedMode: false,
+      characterDiscoveryFailure: {
+        code: "CHARACTER_DISCOVERY_FAILED",
+        message: "temporary_parse_issue",
+      },
+      workflowIssues: [
+        expect.objectContaining({
+          code: "CHARACTER_DISCOVERY_FAILED",
+          stage: "character_discovery",
+          retryable: true,
+        }),
+      ],
+    });
+  });
+
   it("continues segment scripting in degraded mode when bootstrap character memory exists", async () => {
     mockPrisma.book.findUnique.mockResolvedValue({
       id: "book-1",
@@ -755,7 +888,9 @@ describe("runScriptProductionWorkflow", () => {
             canonicalIdentities: [],
             aliasEvidence: [],
             assertedFacts: {},
-            inferredHints: {},
+            inferredHints: {
+              discoverySeed: "bootstrap",
+            },
           },
         },
       } as any)
@@ -859,6 +994,100 @@ describe("runScriptProductionWorkflow", () => {
       characterMemoryVersion: 2,
       persistedCharacterCount: 1,
     });
+  });
+
+  it("writes discovery refresh snapshots with refresh-aligned diagnostics", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      ...createBookFixture(),
+      textSegments: createBookFixture().textSegments.slice(0, 2),
+      characterProfiles: [],
+    });
+    mockRunCharacterDiscoveryStage
+      .mockResolvedValueOnce({
+        stageRunId: "discovery-initial",
+        status: "completed",
+        artifact: createCharacterMemoryDraftArtifact(),
+      } as any)
+      .mockResolvedValueOnce({
+        stageRunId: "discovery-refresh",
+        status: "completed",
+        artifact: createCharacterMemoryDraftArtifact(),
+      } as any);
+    mockRunPersistStage.mockImplementation(async (input: any) => {
+      const artifactKind = input.artifacts?.[0]?.kind;
+      return {
+        stageRunId:
+          artifactKind === "character-memory-draft"
+            ? "stage-persist-character-memory"
+            : "stage-persist-segment",
+        status: "completed",
+        artifact: {
+          kind: "persisted-business-facts",
+          persistedCharacterCount:
+            artifactKind === "character-memory-draft" ? 1 : 0,
+          persistedSentenceCount:
+            artifactKind === "segment-script-draft" ? 1 : 0,
+        },
+      } as any;
+    });
+    mockRunSegmentScriptingStage
+      .mockResolvedValueOnce({
+        stageRunId: "stage-script-1",
+        status: "completed",
+        artifact: createDraftArtifact("seg-1", "第一段原文。"),
+      } as any)
+      .mockResolvedValueOnce({
+        stageRunId: "stage-script-2",
+        status: "completed",
+        artifact: createDraftArtifact("seg-2", "第二段原文。"),
+      } as any);
+    mockRunQualityStage
+      .mockResolvedValueOnce({
+        stageRunId: "quality-1",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: "seg-1",
+          verdict: "pass",
+          score: 0.95,
+          reasons: ["ok"],
+        },
+      } as any)
+      .mockResolvedValueOnce({
+        stageRunId: "quality-2",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: "seg-2",
+          verdict: "pass",
+          score: 0.94,
+          reasons: ["ok"],
+        },
+      } as any);
+
+    await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    const refreshSnapshotArtifactCall = mockPrisma.runtimeArtifact.create.mock.calls.find(
+      ([arg]: any[]) =>
+        arg?.data?.artifactKind === "character-memory-snapshot" &&
+        arg?.data?.payload?.source === "discovery_refresh"
+    );
+
+    expect(refreshSnapshotArtifactCall?.[0]?.data?.payload).toEqual(
+      expect.objectContaining({
+        source: "discovery_refresh",
+        diagnostics: expect.objectContaining({
+          discoveryRunCount: 1,
+          sampleCoverage: expect.objectContaining({
+            strategy: "incremental",
+          }),
+        }),
+      })
+    );
   });
 
   it.each([
@@ -1108,7 +1337,7 @@ describe("runScriptProductionWorkflow", () => {
         }),
       })
     );
-    expect(mockRunPersistStage).toHaveBeenCalledTimes(1);
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(1);
     expect((result as any).runtimeMetadata?.summary).toEqual(
       expect.objectContaining({
         formatRepairCount: 1,
@@ -1260,7 +1489,7 @@ describe("runScriptProductionWorkflow", () => {
       }),
     ]);
     expect(mockRunQualityStage).not.toHaveBeenCalled();
-    expect(mockRunPersistStage).not.toHaveBeenCalled();
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(0);
   });
 
   it("refines oversized format repair input into slices and persists merged parent draft once", async () => {
@@ -1332,8 +1561,21 @@ describe("runScriptProductionWorkflow", () => {
     } as any);
 
     mockRunPersistStage.mockImplementation(async (input: any) => {
-      expect(input.artifacts[0].segmentScriptDraft.segmentId).toBe("seg-overbudget");
-      expect(input.artifacts[0].segmentScriptDraft.lines).toHaveLength(2);
+      const artifact = input.artifacts?.[0];
+      if (artifact?.kind === "character-memory-draft") {
+        return {
+          stageRunId: "persist-overbudget-character-memory",
+          status: "completed",
+          artifact: {
+            kind: "persisted-business-facts",
+            persistedCharacterCount: 0,
+            persistedSentenceCount: 0,
+          },
+        } as any;
+      }
+
+      expect(artifact.segmentScriptDraft.segmentId).toBe("seg-overbudget");
+      expect(artifact.segmentScriptDraft.lines).toHaveLength(2);
 
       return {
         stageRunId: "persist-overbudget",
@@ -1358,7 +1600,7 @@ describe("runScriptProductionWorkflow", () => {
         failureKind: "format_repair",
       })
     );
-    expect(mockRunPersistStage).toHaveBeenCalledTimes(1);
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(1);
     expect(result.summary.failedSegments).toBe(0);
     expect(result.summary.totalLines).toBe(2);
   });
@@ -1435,7 +1677,7 @@ describe("runScriptProductionWorkflow", () => {
       })
     );
     expect(mockRunSegmentScriptingStage).toHaveBeenCalledTimes(2);
-    expect(mockRunPersistStage).toHaveBeenCalledTimes(1);
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(1);
     expect(result.summary.failedSegments).toBe(0);
   });
 
@@ -1544,7 +1786,7 @@ describe("runScriptProductionWorkflow", () => {
         failureKind: "input_refinement",
       })
     );
-    expect(mockRunPersistStage).toHaveBeenCalledTimes(1);
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(1);
     expect(mockRunPersistStage).toHaveBeenCalledWith(
       expect.objectContaining({
         artifacts: [
@@ -1980,7 +2222,7 @@ describe("runScriptProductionWorkflow", () => {
         failureKind: "format_repair",
       })
     );
-    expect(mockRunPersistStage).toHaveBeenCalledTimes(1);
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(1);
     expect(mockRunPersistStage).toHaveBeenCalledWith(
       expect.objectContaining({
         artifacts: [
@@ -2284,6 +2526,19 @@ describe("runScriptProductionWorkflow", () => {
         status: "completed",
       });
 
+      const artifactKind = input.artifacts?.[0]?.kind;
+      if (artifactKind === "character-memory-draft") {
+        return {
+          stageRunId: "stage-persist-1",
+          status: "completed",
+          artifact: {
+            kind: "persisted-business-facts",
+            persistedCharacterCount: 0,
+            persistedSentenceCount: 0,
+          },
+        } as any;
+      }
+
       return {
         stageRunId: "stage-persist-1",
         status: "completed",
@@ -2415,6 +2670,15 @@ describe("runScriptProductionWorkflow", () => {
               modelPolicy: "quality",
             }),
           }),
+          stageSkillMetadataIndex: expect.arrayContaining([
+            expect.objectContaining({
+              stageId: "segment_scripting",
+              segmentId: "seg-1",
+              metadata: expect.objectContaining({
+                modelPolicy: "balanced",
+              }),
+            }),
+          ]),
         }),
       })
     );
@@ -2454,6 +2718,69 @@ describe("runScriptProductionWorkflow", () => {
           status: "processing",
         }),
       })
+    );
+  });
+
+  it("keeps per-run stage skill metadata instead of overwriting repeated stage entries", async () => {
+    mockPrisma.book.findUnique.mockResolvedValue({
+      ...createBookFixture(),
+      textSegments: createBookFixture().textSegments.slice(0, 2),
+    });
+    mockRunSegmentScriptingStage
+      .mockResolvedValueOnce({
+        stageRunId: "stage-seg-1",
+        status: "completed",
+        artifact: createDraftArtifact("seg-1", "第一段原文。"),
+      } as any)
+      .mockResolvedValueOnce({
+        stageRunId: "stage-seg-2",
+        status: "completed",
+        artifact: createDraftArtifact("seg-2", "第二段原文。"),
+      } as any);
+    mockRunQualityStage
+      .mockResolvedValueOnce({
+        stageRunId: "quality-seg-1",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: "seg-1",
+          verdict: "pass",
+          score: 0.98,
+          reasons: ["ok"],
+        },
+      } as any)
+      .mockResolvedValueOnce({
+        stageRunId: "quality-seg-2",
+        status: "completed",
+        decision: "auto_pass",
+        verdict: {
+          segmentId: "seg-2",
+          verdict: "pass",
+          score: 0.97,
+          reasons: ["ok"],
+        },
+      } as any);
+    mockPrisma.manualReviewItem.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
+
+    const result = await runScriptProductionWorkflow({
+      bookId: "book-1",
+      options: {},
+      mode: "full",
+    });
+
+    expect((result as any).runtimeMetadata?.summary.stageSkillMetadataIndex).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          stageId: "segment_scripting",
+          segmentId: "seg-1",
+        }),
+        expect.objectContaining({
+          stageId: "segment_scripting",
+          segmentId: "seg-2",
+        }),
+      ])
     );
   });
 

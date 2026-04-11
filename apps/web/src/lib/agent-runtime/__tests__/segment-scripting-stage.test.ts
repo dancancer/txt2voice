@@ -3,6 +3,7 @@ import os from "os";
 import path from "path";
 
 import type { LLMAdapter } from "../adapters/llm-adapter";
+import { buildAgentContext } from "../context";
 import {
   runSegmentScriptingStage,
   type RunSegmentScriptingStageResult,
@@ -261,7 +262,7 @@ describe("segment scripting stage", () => {
     });
   });
 
-  it("fills missing speaker with unknown instead of failing the draft", async () => {
+  it("routes missing speaker into repair instead of silently defaulting to unknown", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         lines: [
@@ -284,15 +285,15 @@ describe("segment scripting stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("completed");
-    const completed = asCompletedResult(result);
-    expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
-      id: "line-1",
-      sourceText: "“胆儿挺大的啊。”",
-      text: "胆儿挺大的啊。",
-      speaker: "未知",
-      orderInSegment: 0,
-    });
+    expect(result.status).toBe("repairing");
+    if (result.status === "repairing") {
+      expect(result.error).toMatch(/Invalid script line/);
+      expect(result.failedArtifact).toEqual(
+        expect.objectContaining({
+          kind: "segment-scripting-failure",
+        })
+      );
+    }
   });
 
   it("returns draft artifact only and does not expose persistence outputs", async () => {
@@ -416,7 +417,79 @@ describe("segment scripting stage", () => {
     expect(call.prompt).toContain("宁公子");
   });
 
-  it("normalizes alias speaker names back to canonical names before returning the draft", async () => {
+  it("prioritizes segment-relevant characters in prompt summary under budget pressure", async () => {
+    const fixtureSkillDir = createScriptGenerationSkillFixture({
+      userPrompt: "{{character_memory_summary}}",
+      systemPrompt: "return json",
+      agentInstructions: "# Agent",
+      skillInstructions: "# Skill",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "燕赤霞喝道：“退后。”",
+            text: "退后。",
+            speaker: "燕赤霞",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const characterMemory = {
+      canonicalIdentities: [
+        ...Array.from({ length: 3 }, (_, index) => ({
+          id: `char-${index + 1}`,
+          name: `前置角色${index + 1}`,
+        })),
+        { id: "char-relevant", name: "燕赤霞" },
+      ],
+      aliasEvidence: [
+        { alias: "燕大侠", canonicalId: "char-relevant", source: "profile:char-relevant" },
+      ],
+      assertedFacts: Object.fromEntries(
+        Array.from({ length: 3 }, (_, index) => [
+          `char-${index + 1}`,
+          {
+            description: `描述${index + 1}-${"甲".repeat(40)}`,
+          },
+        ])
+      ),
+      inferredHints: {
+        "char-relevant": {
+          dialogueStyle: "冷峻",
+        },
+      },
+    };
+    const expectedSummary = buildAgentContext({
+      agentId: "script-generation-agent",
+      segmentText: "燕赤霞喝道：“退后。”",
+      characterMemory,
+      budget: {
+        maxContextChars: 4000,
+        reservedOutputChars: 1200,
+      },
+    }).referenceMemory.characterMemorySummary;
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-relevant-summary-priority",
+      segmentId: "segment-relevant-summary-priority",
+      segmentText: "燕赤霞喝道：“退后。”",
+      skillDir: fixtureSkillDir,
+      characterMemory,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toBe(expectedSummary);
+  });
+
+  it("returns raw alias speaker names in stage artifact without pre-finalize canonicalization", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         lines: [
@@ -451,7 +524,7 @@ describe("segment scripting stage", () => {
 
     expect(result.status).toBe("completed");
     const completed = asCompletedResult(result);
-    expect(completed.artifact.segmentScriptDraft.lines[0]?.speaker).toBe("宁采臣");
+    expect(completed.artifact.segmentScriptDraft.lines[0]?.speaker).toBe("宁公子");
     expect(completed.artifact.memoryVersion).toBe(1);
   });
 

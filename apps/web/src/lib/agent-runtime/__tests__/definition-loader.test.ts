@@ -173,6 +173,34 @@ describe("definition loader", () => {
     expect(workflow.definition.stages).not.toContain("validation");
   });
 
+  it("rejects promptBundle entries that escape the skill directory", () => {
+    const rootDir = createFixtureRoot();
+
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        'kind = "analysis"',
+        'compatibleAgents = ["character-discovery"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+        'promptBundle = ["../shared/system.md", "prompts/user.md"]',
+      ].join("\n")
+    );
+    writeFile(path.join(rootDir, "skills/shared/system.md"), "escaped");
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/prompts/user.md"),
+      "{{segment_text}}"
+    );
+
+    expect(() =>
+      loadSkillRuntimeBundle(rootDir, "character-extraction")
+    ).toThrow(DefinitionRegistryError);
+  });
+
   it("raises a structured validation error when required toml fields are missing", () => {
     const rootDir = createFixtureRoot();
 

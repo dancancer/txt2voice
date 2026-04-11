@@ -3,6 +3,7 @@ import {
   applyCharacterMemoryPatch,
   createBootstrapCharacterMemorySnapshot,
 } from "../runtime/character-memory/store";
+import { mapCharacterMemoryToCandidates } from "../runtime/script-production/storage/character-utils";
 
 describe("character memory store", () => {
   it("bootstraps snapshot from character profiles with version 1", () => {
@@ -104,5 +105,80 @@ describe("character memory store", () => {
       宁公子: "宁尘",
       宁少: "宁尘",
     });
+  });
+
+  it("exposes a dedicated discovery refresh snapshot builder with refresh-aligned diagnostics", () => {
+    const store = require("../runtime/character-memory/store") as {
+      createDiscoveryRefreshCharacterMemorySnapshot?: (
+        profiles: Array<{
+          id: string;
+          canonicalName: string;
+          aliases: Array<{ alias: string }>;
+        }>,
+        options?: {
+          version?: number;
+          now?: () => Date;
+        }
+      ) => {
+        version: number;
+        source: string;
+        diagnostics: {
+          discoveryRunCount: number;
+          sampleCoverage: {
+            strategy: string;
+          };
+          lastDiscoveryAt?: string;
+        };
+      };
+    };
+
+    expect(typeof store.createDiscoveryRefreshCharacterMemorySnapshot).toBe(
+      "function"
+    );
+
+    const snapshot = store.createDiscoveryRefreshCharacterMemorySnapshot!(
+      [
+        {
+          id: "char-ning",
+          canonicalName: "宁尘",
+          aliases: [{ alias: "宁公子" }],
+        },
+      ],
+      {
+        version: 3,
+        now: () => new Date("2026-04-11T08:00:00.000Z"),
+      }
+    );
+
+    expect(snapshot.version).toBe(3);
+    expect(snapshot.source).toBe("discovery_refresh");
+    expect(snapshot.diagnostics.discoveryRunCount).toBe(1);
+    expect(snapshot.diagnostics.sampleCoverage.strategy).toBe("incremental");
+    expect(snapshot.diagnostics.lastDiscoveryAt).toBe(
+      "2026-04-11T08:00:00.000Z"
+    );
+  });
+
+  it("normalizes Chinese gender labels into runtime candidate enums", () => {
+    const candidates = mapCharacterMemoryToCandidates({
+      canonicalIdentities: [
+        { id: "char-1", name: "宁采臣" },
+        { id: "char-2", name: "聂小倩" },
+        { id: "char-3", name: "路人甲" },
+      ],
+      aliasEvidence: [],
+      assertedFacts: {
+        "char-1": { gender: "男" },
+        "char-2": { gender: "女性" },
+        "char-3": { gender: "未知种类" },
+      },
+      inferredHints: {},
+    } as any);
+
+    expect(candidates).toEqual([
+      expect.objectContaining({ name: "宁采臣", gender: "male" }),
+      expect.objectContaining({ name: "聂小倩", gender: "female" }),
+      expect.objectContaining({ name: "路人甲", gender: "unknown" }),
+    ]);
   });
 });

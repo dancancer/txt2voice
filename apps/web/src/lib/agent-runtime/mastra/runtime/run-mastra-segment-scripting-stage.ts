@@ -4,17 +4,12 @@ import path from "path";
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import {
   buildAgentContext,
+  type SegmentScriptDraft,
 } from "../../context";
 import {
   createScriptGenerationAgent,
   renderScriptGenerationUserPrompt,
 } from "../../runtime/agents/script-generation-agent";
-import {
-  canonicalizeSegmentScriptDraftSpeakers,
-} from "../../runtime/character-memory/canonicalize";
-import {
-  buildCharacterMemorySummary,
-} from "../../runtime/character-memory/summary";
 import {
   createCharacterMemorySnapshot,
 } from "../../runtime/character-memory/store";
@@ -198,9 +193,8 @@ export const runMastraSegmentScriptingStage = async (
                 memory: input.characterMemory,
               })
             : undefined;
-          const characterMemorySummary = memorySnapshot
-            ? buildCharacterMemorySummary(memorySnapshot)
-            : context.referenceMemory.characterMemorySummary;
+          const characterMemorySummary =
+            context.referenceMemory.characterMemorySummary;
           if (context.executionContext.inputOverBudget) {
             throw new Error("Input context over budget for segment scripting stage");
           }
@@ -263,12 +257,7 @@ export const runMastraSegmentScriptingStage = async (
               skillId: skill.definition.id,
               skillMetadata,
               memoryVersion: memorySnapshot?.version,
-              segmentScriptDraft: memorySnapshot
-                ? canonicalizeSegmentScriptDraftSpeakers({
-                    draft: result.segmentScriptDraft,
-                    snapshot: memorySnapshot,
-                  }).draft
-                : result.segmentScriptDraft,
+              segmentScriptDraft: result.segmentScriptDraft,
               provider: result.provider,
               model: result.model,
             },

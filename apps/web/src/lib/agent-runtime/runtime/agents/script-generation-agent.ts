@@ -118,10 +118,10 @@ const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
   const id = asText(value.id);
   const sourceText = asText(value.sourceText);
   const text = asText(value.text);
-  const speaker = asText(value.speaker) ?? "未知";
+  const speaker = asText(value.speaker);
   const orderInSegment = asOrderInSegment(value.orderInSegment);
 
-  if (!id || !sourceText || !text || orderInSegment === null) {
+  if (!id || !sourceText || !text || !speaker || orderInSegment === null) {
     throw new Error("Invalid script line: required fields are empty or invalid");
   }
 

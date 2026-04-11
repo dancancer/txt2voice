@@ -107,4 +107,38 @@ describe("character memory canonicalize", () => {
       { raw: "少主", canonical: "少主", reason: "unknown" },
     ]);
   });
+
+  it("does not canonicalize heuristic short-name variations without explicit alias evidence", () => {
+    const snapshot = createBootstrapCharacterMemorySnapshot([
+      {
+        id: "char-ning",
+        canonicalName: "宁采臣",
+        aliases: [],
+      },
+    ]);
+    const draft: SegmentScriptDraft = {
+      segmentId: "segment-3",
+      createdAt: "2026-04-09T00:00:00.000Z",
+      lines: [
+        {
+          id: "line-1",
+          sourceText: "“我知道了。”",
+          text: "我知道了。",
+          speaker: "采臣",
+          orderInSegment: 0,
+        },
+      ],
+    };
+
+    const result = canonicalizeSegmentScriptDraftSpeakers({
+      draft,
+      snapshot,
+    });
+
+    expect(result.draft.lines[0]?.speaker).toBe("采臣");
+    expect(result.evidence.unresolvedSpeakers).toEqual(["采臣"]);
+    expect(result.evidence.resolvedSpeakers).toEqual([
+      { raw: "采臣", canonical: "采臣", reason: "unknown" },
+    ]);
+  });
 });
