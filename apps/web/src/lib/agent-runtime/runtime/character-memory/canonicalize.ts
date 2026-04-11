@@ -37,9 +37,8 @@ export const canonicalizeSegmentScriptDraftSpeakers = (params: {
 
   const lines = params.draft.lines.map((line) => {
     const speaker = line.speaker.trim();
-    const directCanonical =
-      params.snapshot.derivedMaps.canonicalNameByAlias[speaker] ||
-      params.snapshot.derivedMaps.canonicalNameById[speaker];
+    const canonicalByAlias = params.snapshot.derivedMaps.canonicalNameByAlias[speaker];
+    const canonicalById = params.snapshot.derivedMaps.canonicalNameById[speaker];
     const canonicalIdentity = params.snapshot.canonicalIdentities.find(
       (identity) => identity.name.trim() === speaker
     );
@@ -54,6 +53,18 @@ export const canonicalizeSegmentScriptDraftSpeakers = (params: {
     }
 
     const aliasCandidates = resolveAliasCandidates(speaker, params.snapshot);
+    if (canonicalByAlias && canonicalByAlias !== speaker) {
+      resolvedSpeakers.push({
+        raw: speaker,
+        canonical: canonicalByAlias,
+        reason: "alias_match",
+      });
+      return {
+        ...line,
+        speaker: canonicalByAlias,
+      };
+    }
+
     if (aliasCandidates.length === 1) {
       resolvedSpeakers.push({
         raw: speaker,
@@ -80,15 +91,15 @@ export const canonicalizeSegmentScriptDraftSpeakers = (params: {
       return line;
     }
 
-    if (directCanonical && directCanonical !== speaker) {
+    if (canonicalById && canonicalById !== speaker) {
       resolvedSpeakers.push({
         raw: speaker,
-        canonical: directCanonical,
+        canonical: canonicalById,
         reason: "unchanged",
       });
       return {
         ...line,
-        speaker: directCanonical,
+        speaker: canonicalById,
       };
     }
 

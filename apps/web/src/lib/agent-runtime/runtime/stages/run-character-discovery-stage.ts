@@ -44,6 +44,7 @@ interface RunCharacterDiscoveryStageNonCompletedResult {
   stageRunId: string;
   status: "failed" | "retrying" | "repairing";
   error?: string;
+  failedArtifact?: unknown;
 }
 
 export type RunCharacterDiscoveryStageResult =

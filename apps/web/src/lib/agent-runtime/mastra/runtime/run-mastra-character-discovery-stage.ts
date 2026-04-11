@@ -293,6 +293,21 @@ const resolveAdapter = async (adapter?: LLMAdapter): Promise<LLMAdapter> => {
   return createDefaultLLMAdapter();
 };
 
+const asErrorMessage = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  return "Unknown stage execution error";
+};
+
+const isRetryableCharacterDiscoveryError = (message: string): boolean =>
+  message.startsWith("Invalid character discovery payload");
+
 export const runMastraCharacterDiscoveryStage = async (
   input: RunCharacterDiscoveryStageInput,
   deps: CharacterDiscoveryRuntimeDeps = {}
@@ -309,6 +324,12 @@ export const runMastraCharacterDiscoveryStage = async (
       id: "character_discovery",
       agent: {
         id: runtimeAgentId,
+        resolveFailure: ({ error }) => {
+          const message = asErrorMessage(error);
+          return isRetryableCharacterDiscoveryError(message)
+            ? "retrying"
+            : "failed";
+        },
         execute: async () => {
           const skillSource = resolveCharacterExtractionSkillSource({
             workspaceRoot: input.workspaceRoot,
@@ -391,6 +412,7 @@ export const runMastraCharacterDiscoveryStage = async (
             segmentText,
             characterMemorySummary:
               promptBudgetResult.variables.character_memory_summary,
+            existingCharacterMemory: input.characterMemory,
             modelPolicy: skill.definition.modelPolicy!,
             renderedUserPrompt,
             prompts: {
@@ -435,6 +457,7 @@ export const runMastraCharacterDiscoveryStage = async (
       stageRunId: stageResult.id,
       status: stageResult.status,
       error: stageResult.agent.error,
+      failedArtifact: stageResult.agent.output?.failedArtifact,
     };
   }
 

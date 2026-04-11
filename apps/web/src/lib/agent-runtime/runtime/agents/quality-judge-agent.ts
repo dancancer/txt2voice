@@ -19,6 +19,8 @@ export interface QualityJudgeAgentInput {
   validationReport: ValidationReport;
   qualitySignals?: QualitySignals;
   failedArtifact?: unknown;
+  characterMemorySummary?: string;
+  characterResolutionEvidence?: unknown;
   modelPolicy: string;
   prompts: QualityJudgePrompts;
   renderedUserPrompt?: string;
@@ -215,6 +217,8 @@ export const createQualityJudgeAgent = (deps: QualityJudgeAgentDeps) => ({
           validationReport: input.validationReport,
           qualitySignals: input.qualitySignals,
           failedArtifact: input.failedArtifact,
+          characterMemorySummary: input.characterMemorySummary,
+          characterResolutionEvidence: input.characterResolutionEvidence,
         }),
       modelPolicy: input.modelPolicy,
       metadata: {

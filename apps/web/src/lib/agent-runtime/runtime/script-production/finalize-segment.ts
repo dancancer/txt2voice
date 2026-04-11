@@ -152,7 +152,7 @@ export const finalizeSegment = async (params: {
       segmentId: params.context.segment.id,
       artifactKind: "segment-script-draft",
       artifactVersion: "v1",
-      payload: params.draft,
+      payload: canonicalized.draft,
       createdAt: (params.context.now ?? (() => new Date()))(),
     });
     await params.context.runtimeStore.createRuntimeArtifact({
@@ -379,6 +379,6 @@ export const finalizeSegment = async (params: {
       [...new Set(dialogueLines.map((line) => line.characterName || "未知"))]
     ),
     counters,
-    draft: params.draft,
+    draft: canonicalized.draft,
   };
 };

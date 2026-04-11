@@ -195,6 +195,31 @@ describe("character discovery stage", () => {
     expect(call.prompt).toContain('"style":"冷峻"');
   });
 
+  it("requires gender to use shared enum labels in the discovery prompt contract", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+
+    await runCharacterDiscoveryStage({
+      workflowRunId: "wf-gender-enum-contract",
+      segmentText: "宁采臣与聂小倩相遇。",
+      skillDir,
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      systemPrompt: string;
+    };
+    expect(call.systemPrompt).toContain('"male"');
+    expect(call.systemPrompt).toContain('"female"');
+    expect(call.systemPrompt).toContain('"unknown"');
+  });
+
   it("does not mutate literal placeholder text inside sampled text during prompt rendering", async () => {
     const fixture = createCharacterDiscoveryContractFixture({
       userPrompt: "文本：\n{{segment_text}}\n\n记忆：\n{{character_memory_summary}}",
@@ -249,6 +274,53 @@ describe("character discovery stage", () => {
     expect(call.prompt.length).toBeLessThan(3200);
     expect(call.prompt).toContain("开头-");
     expect(call.prompt).toContain("尾标记");
+  });
+
+  it("trims character memory summary before trimming current segment evidence", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+    const fixture = createCharacterDiscoveryContractFixture({
+      agentInstructions: "A".repeat(180),
+      skillInstructions: "B".repeat(180),
+      systemPrompt: "C".repeat(360),
+      userPrompt: "文本：\n{{segment_text}}\n\n记忆：\n{{character_memory_summary}}",
+    });
+    const segmentText = `片段开头-${"甲".repeat(1700)}-片段结尾`;
+
+    await runCharacterDiscoveryStage({
+      workflowRunId: "wf-character-memory-trim-priority",
+      segmentText,
+      skillDir: fixture.skillDir,
+      characterMemory: {
+        canonicalIdentities: Array.from({ length: 8 }, (_, index) => ({
+          id: `char-${index + 1}`,
+          name: `角色${index + 1}${"乙".repeat(120)}`,
+        })),
+        aliasEvidence: [],
+        assertedFacts: Object.fromEntries(
+          Array.from({ length: 8 }, (_, index) => [
+            `char-${index + 1}`,
+            {
+              description: `描述${index + 1}${"丙".repeat(180)}`,
+            },
+          ])
+        ),
+        inferredHints: {},
+      },
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("片段开头-");
+    expect(call.prompt).toContain("-片段结尾");
   });
 
   it("fails fast when the full runtime prompt exceeds budget", async () => {
@@ -754,6 +826,67 @@ describe("character discovery stage", () => {
     });
   });
 
+  it("keeps incremental facts and aliases when response only references existing memory", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [
+          {
+            alias: "宁生",
+            canonicalName: "宁采臣",
+            source: "segment-9",
+          },
+        ],
+        assertedFacts: {
+          宁采臣: {
+            role: "main",
+          },
+        },
+        inferredHints: {
+          "char-1": {
+            tone: "温和",
+          },
+        },
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-character-incremental-memory",
+      segmentText: "宁采臣轻轻点头。",
+      skillDir,
+      adapter,
+      characterMemory: {
+        canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      },
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.characterMemoryDraft).toEqual({
+      canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
+      aliasEvidence: [
+        {
+          alias: "宁生",
+          canonicalId: "char-1",
+          source: "segment-9",
+        },
+      ],
+      assertedFacts: {
+        "char-1": {
+          role: "main",
+        },
+      },
+      inferredHints: {
+        "char-1": {
+          tone: "温和",
+        },
+      },
+    });
+  });
+
   it("does not require any db dependency and only returns runtime artifact", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -793,21 +926,42 @@ describe("character discovery stage", () => {
     expect("artifact" in result).toBe(false);
   });
 
-  it("fails stage when llm returns non-json payload", async () => {
+  it("returns retrying with failedArtifact when llm returns non-json payload", async () => {
     const adapter = createMockAdapter("not-json");
+    const appendTrace = jest.fn().mockResolvedValue(undefined);
 
     const result = await runCharacterDiscoveryStage({
       workflowRunId: "wf-6",
       segmentText: "宁采臣抬头。",
       skillDir,
       adapter,
+      appendTrace,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("retrying");
     expect("artifact" in result).toBe(false);
+    expect("failedArtifact" in result ? result.failedArtifact : undefined).toEqual({
+      kind: "character-discovery-failure",
+      rawResponse: "not-json",
+      provider: "mock-provider",
+      model: "mock-model",
+      message: "Invalid character discovery payload: expected JSON object",
+    });
+    const retryingEvent = (appendTrace as jest.Mock).mock.calls
+      .map((call) => call[0] as { kind?: string; payload?: Record<string, unknown> })
+      .find((event) => event.kind === "agent.retrying");
+    expect(retryingEvent?.payload?.output).toEqual({
+      failedArtifact: {
+        kind: "character-discovery-failure",
+        rawResponse: "not-json",
+        provider: "mock-provider",
+        model: "mock-model",
+        message: "Invalid character discovery payload: expected JSON object",
+      },
+    });
   });
 
-  it("fails stage when llm returns malformed empty object payload", async () => {
+  it("returns retrying when llm returns malformed empty object payload", async () => {
     const adapter = createMockAdapter("{}");
 
     const result = await runCharacterDiscoveryStage({
@@ -817,11 +971,11 @@ describe("character discovery stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("retrying");
     expect("artifact" in result).toBe(false);
   });
 
-  it("fails stage when llm returns malformed canonical identity entry", async () => {
+  it("returns retrying when llm returns malformed canonical identity entry", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         canonicalIdentities: [{}],
@@ -838,7 +992,35 @@ describe("character discovery stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("retrying");
+    expect("artifact" in result).toBe(false);
+  });
+
+  it("returns retrying when llm returns scalar fact buckets that violate the runtime contract", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [
+          {
+            id: "char-1",
+            name: "宁采臣",
+          },
+        ],
+        aliasEvidence: [],
+        assertedFacts: {
+          "char-1": "主角",
+        },
+        inferredHints: {},
+      })
+    );
+
+    const result = await runCharacterDiscoveryStage({
+      workflowRunId: "wf-invalid-character-facts",
+      segmentText: "宁采臣抱拳行礼。",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("retrying");
     expect("artifact" in result).toBe(false);
   });
 
