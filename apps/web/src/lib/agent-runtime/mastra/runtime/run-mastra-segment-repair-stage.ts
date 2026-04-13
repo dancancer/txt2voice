@@ -137,6 +137,15 @@ const createManualReviewDecision = (segmentId: string): RepairDecision => ({
   retryable: false,
 });
 
+const createTrimmedFailedArtifactDecision = (
+  segmentId: string
+): RepairDecision => ({
+  segmentId,
+  action: "manual_review",
+  reason: "repair_failed_artifact_trimmed",
+  retryable: false,
+});
+
 const createInputRefinementDecision = (segmentId: string): RepairDecision => ({
   segmentId,
   action: "refine",
@@ -210,6 +219,7 @@ export const runMastraSegmentRepairStage = async (
               "character_memory_summary",
               "character_resolution_hints",
             ],
+            expectedInputSchemaRef: "failed-segment-artifact",
             expectedOutputSchemaRef: "segment-script-draft",
           });
 
@@ -284,6 +294,17 @@ export const runMastraSegmentRepairStage = async (
               status: "completed",
               output: {
                 decision: createInputRefinementDecision(input.segmentId),
+              },
+            };
+          }
+          if (
+            input.failureKind !== "semantic_retry" &&
+            promptBudgetResult.trimmedKeys.includes("failed_artifact_json")
+          ) {
+            return {
+              status: "completed",
+              output: {
+                decision: createTrimmedFailedArtifactDecision(input.segmentId),
               },
             };
           }

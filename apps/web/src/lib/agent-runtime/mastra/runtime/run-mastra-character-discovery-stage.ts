@@ -350,6 +350,7 @@ export const runMastraCharacterDiscoveryStage = async (
             skill: skill.definition,
             agentId: runtimeAgentId,
             expectedContextRequirements: ["segment", "character_memory_summary"],
+            expectedInputSchemaRef: "character-input",
             expectedOutputSchemaRef: "character-output",
           });
           const context = buildAgentContext({
@@ -375,7 +376,7 @@ export const runMastraCharacterDiscoveryStage = async (
               character_memory_summary:
                 context.referenceMemory.characterMemorySummary,
             },
-            trimOrder: ["segment_text", "character_memory_summary"],
+            trimOrder: ["character_memory_summary", "segment_text"],
             renderPrompt: (variables) =>
               renderCharacterDiscoveryUserPrompt(skill.userPrompt, {
                 segmentText: variables.segment_text,

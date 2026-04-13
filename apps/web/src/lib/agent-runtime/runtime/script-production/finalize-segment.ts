@@ -4,6 +4,7 @@ import {
   type SegmentScriptDraft,
   type ValidationReport,
 } from "../../context";
+import type { QualitySignals } from "../agents/quality-judge-agent";
 import {
   createFailureDetail,
   createStageSummary,
@@ -29,6 +30,8 @@ export const finalizeSegment = async (params: {
   draft: SegmentScriptDraft;
   validationReport: ValidationReport;
   counters: SegmentRuntimeCounters;
+  failedArtifact?: unknown;
+  qualitySignals?: QualitySignals;
 }): Promise<FinalizeSegmentResult> => {
   if (params.context.deferPersist) {
     // 细分叶子只是为了拼回父段草案，不应在叶子层独立触发质量闸门。
@@ -76,6 +79,8 @@ export const finalizeSegment = async (params: {
     validationReport: params.validationReport,
     characterMemory,
     characterResolutionEvidence: canonicalized.evidence,
+    failedArtifact: params.failedArtifact,
+    qualitySignals: params.qualitySignals,
     adapter: params.context.adapter,
     createId: params.context.createId,
     now: params.context.now,

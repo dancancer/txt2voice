@@ -16,10 +16,16 @@ export const validateSkillContract = (params: {
   skill: SkillDefinition;
   agentId: string;
   expectedContextRequirements: string[];
+  expectedInputSchemaRef?: string;
   expectedOutputSchemaRef?: string;
 }) => {
-  const { skill, agentId, expectedContextRequirements, expectedOutputSchemaRef } =
-    params;
+  const {
+    skill,
+    agentId,
+    expectedContextRequirements,
+    expectedInputSchemaRef,
+    expectedOutputSchemaRef,
+  } = params;
 
   if (!skill.compatibleAgents.includes(agentId)) {
     throw new Error(`Skill ${skill.id} is not compatible with ${agentId}`);
@@ -30,6 +36,12 @@ export const validateSkillContract = (params: {
       `Skill ${skill.id} has unsupported contextRequirements: expected [${expectedContextRequirements
         .map((item) => `"${item}"`)
         .join(", ")}]`
+    );
+  }
+
+  if (expectedInputSchemaRef && skill.inputSchemaRef !== expectedInputSchemaRef) {
+    throw new Error(
+      `Skill ${skill.id} has unsupported inputSchemaRef: expected "${expectedInputSchemaRef}"`
     );
   }
 

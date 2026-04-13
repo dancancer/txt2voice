@@ -346,6 +346,7 @@ export const runMastraQualityStage = async (
               "character_memory_summary",
               "character_resolution_evidence",
             ],
+            expectedInputSchemaRef: "quality-stage-input",
             expectedOutputSchemaRef: "quality-verdict",
           });
           const failedArtifactSummary = summarizePromptArtifact(input.failedArtifact);

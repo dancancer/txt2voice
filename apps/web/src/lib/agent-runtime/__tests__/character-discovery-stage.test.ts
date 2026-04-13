@@ -323,6 +323,60 @@ describe("character discovery stage", () => {
     expect(call.prompt).toContain("-片段结尾");
   });
 
+  it("keeps the full sampled segment before sacrificing current-text evidence to budget trimming", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        canonicalIdentities: [],
+        aliasEvidence: [],
+        assertedFacts: {},
+        inferredHints: {},
+      })
+    );
+    const fixture = createCharacterDiscoveryContractFixture({
+      agentInstructions: "A".repeat(180),
+      skillInstructions: "B".repeat(180),
+      systemPrompt: "C".repeat(360),
+      userPrompt: "文本：\n{{segment_text}}\n\n记忆：\n{{character_memory_summary}}",
+    });
+    const segmentText = [
+      "片段开头",
+      "甲".repeat(900),
+      "片段中标记",
+      "乙".repeat(900),
+      "片段结尾",
+    ].join("-");
+
+    await runCharacterDiscoveryStage({
+      workflowRunId: "wf-character-segment-preserved-first",
+      segmentText,
+      skillDir: fixture.skillDir,
+      characterMemory: {
+        canonicalIdentities: Array.from({ length: 8 }, (_, index) => ({
+          id: `char-${index + 1}`,
+          name: `角色${index + 1}${"丙".repeat(120)}`,
+        })),
+        aliasEvidence: [],
+        assertedFacts: Object.fromEntries(
+          Array.from({ length: 8 }, (_, index) => [
+            `char-${index + 1}`,
+            {
+              description: `描述${index + 1}${"丁".repeat(220)}`,
+            },
+          ])
+        ),
+        inferredHints: {},
+      },
+      adapter,
+    });
+
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("片段开头");
+    expect(call.prompt).toContain("片段中标记");
+    expect(call.prompt).toContain("片段结尾");
+  });
+
   it("fails fast when the full runtime prompt exceeds budget", async () => {
     const fixture = createCharacterDiscoveryContractFixture({
       agentInstructions: "A".repeat(4500),

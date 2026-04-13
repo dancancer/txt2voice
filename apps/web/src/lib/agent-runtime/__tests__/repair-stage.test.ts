@@ -836,6 +836,64 @@ describe("segment repair stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
+  it("escalates to manual_review when failed artifact evidence must be trimmed to fit prompt budget", async () => {
+    const fixtureSkillDir = createRepairSkillFixture({
+      agentInstructions: "A".repeat(800),
+      skillInstructions: "B".repeat(800),
+      systemPrompt: "C".repeat(800),
+      userPrompt: "{{segment_text}} {{failed_artifact_json}}",
+    });
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "宁采臣抬头。",
+            text: "宁采臣抬头。",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+    const failedArtifact = {
+      kind: "validation-failure",
+      rawResponse: "X".repeat(2400),
+      structuredResult: {
+        lines: Array.from({ length: 3 }, (_, index) => ({
+          id: `line-${index + 1}`,
+          sourceText: `第${index + 1}句原文${"甲".repeat(160)}`,
+          text: `第${index + 1}句输出${"乙".repeat(160)}`,
+          speaker: "旁白",
+          orderInSegment: index,
+        })),
+      },
+    };
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-trimmed-failed-artifact",
+      segmentId: "segment-repair-trimmed-failed-artifact",
+      segmentText: "宁采臣抬头。",
+      failureKind: "format_repair",
+      failedArtifact,
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir: fixtureSkillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toEqual({
+      segmentId: "segment-repair-trimmed-failed-artifact",
+      action: "manual_review",
+      reason: "repair_failed_artifact_trimmed",
+      retryable: false,
+    });
+    expect(completed.artifact).toBeUndefined();
+    expect(adapter.call).toHaveBeenCalledTimes(0);
+  });
+
   it("uses the configured Mastra repair implementation", async () => {
     const adapter = createMockAdapter("{}");
     const runMastraSegmentRepairStage = jest.fn().mockResolvedValue({

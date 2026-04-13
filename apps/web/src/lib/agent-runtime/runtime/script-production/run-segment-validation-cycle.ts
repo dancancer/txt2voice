@@ -1,5 +1,6 @@
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
 import { buildCharacterMemoryFromProfiles } from "../../context";
+import type { QualitySignals } from "../agents/quality-judge-agent";
 import type { SegmentFailureDetail } from "./types";
 import {
   buildInputRefinementSegments,
@@ -24,7 +25,14 @@ const MAX_SEMANTIC_RETRY_DEPTH = 1;
 const MAX_INPUT_REFINEMENT_DEPTH = 2;
 
 type ValidationCycleResult =
-  | { status: "success"; draft: SegmentScriptDraft; validationReport: ValidationReport; counters: SegmentRuntimeCounters }
+  | {
+      status: "success";
+      draft: SegmentScriptDraft;
+      validationReport: ValidationReport;
+      counters: SegmentRuntimeCounters;
+      failedArtifact?: unknown;
+      qualitySignals?: QualitySignals;
+    }
   | { status: "terminal"; result: SegmentRunResult }
   | { status: "failed"; failure: SegmentFailureDetail; counters: SegmentRuntimeCounters };
 
@@ -41,6 +49,13 @@ const toDraftFailureContext = (draft: SegmentScriptDraft) => ({
       : undefined,
   structuredResult: toDraftStructuredResult(draft),
 });
+
+const createRecoverySignals = (
+  warnings: string[]
+): QualitySignals | undefined => {
+  const upstreamWarnings = [...new Set(warnings.filter((item) => item.length > 0))];
+  return upstreamWarnings.length > 0 ? { upstreamWarnings } : undefined;
+};
 
 export const runSegmentValidationCycle = async (
   params: RunSingleSegmentParams,
@@ -77,6 +92,13 @@ export const runSegmentValidationCycle = async (
     };
   }
 
+  const validationFailureArtifact = {
+    kind: "validation-failure",
+    segmentId: params.segment.id,
+    validationReport,
+    ...toDraftFailureContext(currentDraft),
+  };
+
   counters = {
     ...counters,
     semanticRetryCount: counters.semanticRetryCount + 1,
@@ -98,12 +120,7 @@ export const runSegmentValidationCycle = async (
     segmentText: params.segment.content,
     characterMemory,
     failureKind: "semantic_retry",
-    failedArtifact: {
-      kind: "validation-failure",
-      segmentId: params.segment.id,
-      validationReport,
-      ...toDraftFailureContext(currentDraft),
-    },
+    failedArtifact: validationFailureArtifact,
     validationReport,
     repairDepth: 0,
     adapter: params.adapter,
@@ -224,6 +241,8 @@ export const runSegmentValidationCycle = async (
           draft: currentDraft,
           validationReport,
           counters,
+          failedArtifact: validationFailureArtifact,
+          qualitySignals: createRecoverySignals(["semantic_retry_recovered"]),
         };
       }
     }
@@ -433,6 +452,11 @@ export const runSegmentValidationCycle = async (
             draft: mergedDraft,
             validationReport: mergedValidationReport,
             counters: mergedCounters,
+            failedArtifact: validationFailureArtifact,
+            qualitySignals: createRecoverySignals([
+              "semantic_retry_attempted",
+              "input_refinement_recovered",
+            ]),
           };
         }
 

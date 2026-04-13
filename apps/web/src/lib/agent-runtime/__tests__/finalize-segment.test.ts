@@ -198,4 +198,55 @@ describe("finalize segment", () => {
     expect(returnedDraft).toEqual(persistedDraft);
     expect(storedDraft).toEqual(persistedDraft);
   });
+
+  it("forwards upstream failed artifact and quality signals into quality stage", async () => {
+    const { runtimeStore } = createRuntimeStore();
+    const runQualityStage = jest.fn().mockResolvedValue({
+      stageRunId: "quality-stage-2",
+      status: "completed",
+      decision: "auto_pass",
+      verdict: {
+        segmentId: "segment-1",
+        verdict: "pass",
+        score: 0.92,
+        reasons: ["repair history reviewed"],
+      },
+    });
+
+    await finalizeSegment({
+      context: createContext({
+        runtimeStore,
+        runQualityStage,
+      }),
+      draft: createDraft(),
+      validationReport: createValidationReport(),
+      counters: {
+        persistedSentenceCount: 0,
+        persistedCharacterCount: 0,
+        formatRepairCount: 1,
+        semanticRetryCount: 1,
+      },
+      failedArtifact: {
+        kind: "validation-failure",
+        rawResponse: "{\"broken\":true}",
+      },
+      qualitySignals: {
+        upstreamWarnings: ["semantic_retry_recovered"],
+        forceManualReview: true,
+      },
+    });
+
+    expect(runQualityStage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        failedArtifact: {
+          kind: "validation-failure",
+          rawResponse: "{\"broken\":true}",
+        },
+        qualitySignals: {
+          upstreamWarnings: ["semantic_retry_recovered"],
+          forceManualReview: true,
+        },
+      })
+    );
+  });
 });
