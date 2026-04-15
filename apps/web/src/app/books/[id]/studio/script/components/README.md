@@ -12,7 +12,6 @@
 - IncrementalProcessingModal.tsx | 地位: 页面内组件 | 功能: 提供 Incremental Processing Modal 相关展示与交互
 - README.md | 地位: 目录说明 | 功能: 记录目录职责与文件清单
 - RegenerateSegmentsModal.tsx | 地位: 页面内组件 | 功能: 提供 Regenerate Segments Modal 相关展示与交互
-- ScriptGenerationCard.tsx | 地位: 页面内组件 | 功能: 提供 Script Generation Card 相关展示与交互
 - ScriptHeader.tsx | 地位: 页面内组件 | 功能: 提供 Script Header 相关展示与交互
 - ScriptPreviewModal.tsx | 地位: 页面内组件 | 功能: 提供 Script Preview Modal 相关展示与交互
 - ScriptSentenceCard.tsx | 地位: 页面内组件 | 功能: 提供 Script Sentence Card 相关展示与交互

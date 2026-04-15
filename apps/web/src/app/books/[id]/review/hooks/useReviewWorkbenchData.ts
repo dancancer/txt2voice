@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
 // input: 书籍 ID
-// output: 复核工作台状态与动作
+// output: 复核工作台状态与动作（含任务排序能力）
 // pos: 质检复核页面数据钩子
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -33,6 +33,29 @@ import {
   DEFAULT_SUMMARY,
   toRegenerateTask,
 } from "./useReviewWorkbenchData-helpers";
+
+const toTimestamp = (value: string): number => {
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+export const sortReviewRegenerateTasks = (
+  tasks: ReviewRegenerateTask[]
+): ReviewRegenerateTask[] => {
+  return [...tasks].sort((left, right) => {
+    const updatedDiff = toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt);
+    if (updatedDiff !== 0) {
+      return updatedDiff;
+    }
+
+    const createdDiff = toTimestamp(right.createdAt) - toTimestamp(left.createdAt);
+    if (createdDiff !== 0) {
+      return createdDiff;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+};
 
 export function useReviewWorkbenchData(bookId: string) {
   const [bookTitle, setBookTitle] = useState("质检复核工作台");
@@ -242,10 +265,11 @@ export function useReviewWorkbenchData(bookId: string) {
           throw new Error(payload.error?.message || "加载重生任务失败");
         }
 
-        const tasks = (payload.data || [])
-          .map((task) => toRegenerateTask(task))
-          .filter((task): task is ReviewRegenerateTask => Boolean(task))
-          .slice(0, 6);
+        const tasks = sortReviewRegenerateTasks(
+          (payload.data || [])
+            .map((task) => toRegenerateTask(task))
+            .filter((task): task is ReviewRegenerateTask => Boolean(task))
+        ).slice(0, 6);
 
         setRecentRegenerateTasks(tasks);
       } catch (loadError) {

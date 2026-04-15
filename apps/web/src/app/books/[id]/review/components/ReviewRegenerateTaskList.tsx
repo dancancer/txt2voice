@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
 // input: review 重生任务列表 props
-// output: 最近重生任务卡片
+// output: 最近台本失败与重生任务卡片
 // pos: 质检复核页面子组件
 
 import { Badge } from "@/components/ui/badge";
@@ -41,14 +41,63 @@ const formatDateTime = (value: string | null): string => {
   });
 };
 
+type NonNullReviewRegenerateTaskSource = Exclude<
+  ReviewRegenerateTask["source"],
+  null
+>;
+
+export const REVIEW_REGENERATE_SOURCE_LABELS: Record<
+  NonNullReviewRegenerateTaskSource,
+  string
+> = {
+  manual_review: "单条重生",
+  manual_review_batch: "批量重生",
+  manual_review_bulk_pending: "全量待复核重生",
+};
+
+export const REVIEW_REGENERATE_CATEGORY_LABELS: Record<
+  ReviewRegenerateTask["category"],
+  string
+> = {
+  manual_review_regenerate: "重生任务",
+  script_failure: "失败任务",
+};
+
 const toSourceLabel = (source: ReviewRegenerateTask["source"]): string => {
-  if (source === "manual_review_batch") {
-    return "批量重生";
+  if (source === null) {
+    return "系统记录";
   }
-  if (source === "manual_review_bulk_pending") {
-    return "全量待复核重生";
+  return REVIEW_REGENERATE_SOURCE_LABELS[source];
+};
+
+const toCategoryLabel = (category: ReviewRegenerateTask["category"]): string => {
+  return REVIEW_REGENERATE_CATEGORY_LABELS[category];
+};
+
+const toFailureSummaryLine = (
+  summary: ReviewRegenerateTask["failureSummary"]
+): string | null => {
+  if (!summary) {
+    return null;
   }
-  return "单条重生";
+
+  const parts: string[] = [];
+  if (summary.orderIndex !== null) {
+    parts.push(`段落 ${summary.orderIndex + 1}`);
+  } else if (summary.segmentId) {
+    parts.push(`段落ID ${summary.segmentId}`);
+  }
+  if (summary.stage) {
+    parts.push(summary.stage);
+  }
+  if (summary.errorCode) {
+    parts.push(summary.errorCode);
+  }
+  if (summary.message) {
+    parts.push(summary.message);
+  }
+
+  return parts.length > 0 ? parts.join(" · ") : null;
 };
 
 const toStatusIcon = (status: ReviewRegenerateTask["status"]) => {
@@ -73,10 +122,10 @@ export function ReviewRegenerateTaskList({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg text-foreground">
           <RotateCcw className="h-5 w-5 text-primary" />
-          最近重生任务
+          最近台本失败与重生任务
         </CardTitle>
         <p className="text-sm leading-6 text-muted-foreground">
-          展示当前书籍由人工复核触发的单条/批量重生任务；有运行中任务时，页面会自动刷新。
+          展示当前书籍最近的台本失败任务与人工复核重生任务；有运行中任务时，页面会自动刷新。
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -89,7 +138,7 @@ export function ReviewRegenerateTaskList({
 
         {!loading && tasks.length === 0 ? (
           <div className="rounded-md border border-dashed border-border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
-            当前还没有人工复核触发的重生任务。
+            当前还没有台本失败或重生任务。
           </div>
         ) : null}
 
@@ -97,15 +146,18 @@ export function ReviewRegenerateTaskList({
           ? tasks.map((task) => {
               const statusMeta = getTaskStatusMeta(task.status);
               const isProcessing = task.status === "processing";
+              const failureSummaryLine = toFailureSummaryLine(task.failureSummary);
 
               return (
                 <div
                   key={task.id}
+                  id={`task-${task.id}`}
                   className="rounded-lg border border-border bg-card p-4"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{getTaskTypeLabel(task.taskType)}</Badge>
                     <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
+                    <Badge variant="outline">{toCategoryLabel(task.category)}</Badge>
                     <Badge variant="outline">{toSourceLabel(task.source)}</Badge>
                     <Badge variant="outline">目标 {task.targetCount} 条</Badge>
                   </div>
@@ -129,6 +181,12 @@ export function ReviewRegenerateTaskList({
                     <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                       <AlertCircle className="mt-0.5 h-4 w-4" />
                       <p className="leading-6">{task.errorMessage}</p>
+                    </div>
+                  ) : null}
+
+                  {task.failureSummary && failureSummaryLine ? (
+                    <div className="mt-3 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-700">
+                      <p className="leading-6">{failureSummaryLine}</p>
                     </div>
                   ) : null}
 

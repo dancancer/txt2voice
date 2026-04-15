@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { FileText, Play, Eye } from "lucide-react";
+import type { SegmentFailedReviewTaskLink } from "./types";
 
 interface SegmentData {
   id: string;
@@ -29,6 +30,7 @@ interface SegmentData {
 interface ChapterSegmentsTableProps {
   chapterTitle: string;
   segments: SegmentData[];
+  failedReviewTaskBySegment?: Map<string, SegmentFailedReviewTaskLink>;
   titleAction: ReactNode;
   onSegmentClick: (segmentId: string) => void;
   onGenerateScript?: (segmentId: string) => void;
@@ -39,6 +41,7 @@ export function ChapterSegmentsTable({
   chapterTitle,
   titleAction,
   segments,
+  failedReviewTaskBySegment,
   onSegmentClick,
   onGenerateScript,
   onGenerateAudio,
@@ -93,6 +96,8 @@ export function ChapterSegmentsTable({
             ) : (
               segments.map((segment, index) => {
                 const isExpanded = expandedSegments.has(segment.id);
+                const failedReviewTask =
+                  failedReviewTaskBySegment?.get(segment.id) || null;
                 return (
                   <TableRow key={segment.id} className="hover:bg-muted/60">
                     <TableCell className="font-medium align-top">
@@ -172,6 +177,15 @@ export function ChapterSegmentsTable({
                             查看音频
                           </Button>
                         )}
+
+                        {failedReviewTask ? (
+                          <a
+                            href={failedReviewTask.reviewUrl}
+                            className="text-sm text-primary underline-offset-4 hover:underline"
+                          >
+                            查看质检失败
+                          </a>
+                        ) : null}
                       </div>
                     </TableCell>
                   </TableRow>

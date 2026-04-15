@@ -1,6 +1,9 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { ScriptStudioPageContainer } from "@/app/books/[id]/studio/script/page-container";
+const { buildSegmentFailedReviewTaskLinks } = jest.requireActual(
+  "@/app/books/[id]/studio/script/page-container/hooks/useScriptStudioData"
+);
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -40,9 +43,84 @@ jest.mock("lucide-react", () => ({
   FileText: () => <span>FileText</span>,
 }));
 
+const mockSegment = {
+  id: "segment-1",
+  content: "这是当前段落的正文",
+  wordCount: 12,
+  segmentIndex: 0,
+  orderIndex: 0,
+};
+
+const mockSegmentWithoutFailure = {
+  id: "segment-2",
+  content: "这是没有失败记录的段落",
+  wordCount: 10,
+  segmentIndex: 1,
+  orderIndex: 1,
+};
+
+const mockSegmentMeta = {
+  chapterTitle: "第一章",
+  label: "段落 #1",
+};
+
+const mockSegmentWithoutFailureMeta = {
+  chapterTitle: "第一章",
+  label: "段落 #2",
+};
+
+const mockFailedReviewTaskLink = {
+  taskId: "task-failed-1",
+  reviewUrl: "/books/book-1/review#task-task-failed-1",
+  updatedAt: "2026-04-15T06:42:45.000Z",
+};
+
 jest.mock("@/app/books/[id]/studio/script/components", () => ({
-  DocumentTree: () => <div>DocumentTree</div>,
-  ChapterSegmentsTable: () => <div>ChapterSegmentsTable</div>,
+  DocumentTree: ({
+    onSelect,
+  }: {
+    onSelect: (node: { type: "book" | "chapter" | "segment"; id: string }) => void;
+  }) => (
+    <div>
+      <button type="button" onClick={() => onSelect({ type: "book", id: "book-1" })}>
+        选择整书
+      </button>
+      <button
+        type="button"
+        onClick={() => onSelect({ type: "chapter", id: "chapter-1" })}
+      >
+        选择章节
+      </button>
+      <button
+        type="button"
+        onClick={() => onSelect({ type: "segment", id: "segment-1" })}
+      >
+        选择段落
+      </button>
+    </div>
+  ),
+  ChapterSegmentsTable: ({
+    segments,
+    failedReviewTaskBySegment,
+  }: {
+    segments: Array<{ id: string }>;
+    failedReviewTaskBySegment?: Map<
+      string,
+      { taskId: string; reviewUrl: string; updatedAt: string }
+    >;
+  }) => (
+    <div>
+      {segments.map((segment) => {
+        const taskLink = failedReviewTaskBySegment?.get(segment.id);
+        return (
+          <div key={segment.id} data-testid={`segment-row-${segment.id}`}>
+            <span>{segment.id}</span>
+            {taskLink ? <a href={taskLink.reviewUrl}>查看质检失败</a> : null}
+          </div>
+        );
+      })}
+    </div>
+  ),
   EditSentenceModal: () => null,
   GenerationProgress: ({
     generationStatus,
@@ -103,7 +181,7 @@ jest.mock(
   () => ({
     useScriptStudioData: () => ({
       book: { id: "book-1", title: "测试书籍" },
-      segments: [{ id: "segment-1" }],
+      segments: [mockSegment, mockSegmentWithoutFailure],
       characters: [],
       scriptSentences: [],
       loading: false,
@@ -113,16 +191,90 @@ jest.mock(
       hasTextSegments: true,
       hasScriptSentences: false,
       sentencesBySegment: new Map(),
-      chapterNodes: [],
+      chapterNodes: [
+        {
+          id: "chapter-1",
+          title: "第一章",
+          totalSegments: 2,
+          scriptSegments: 0,
+          audioSegments: 0,
+          segments: [
+            {
+              id: "segment-1",
+              label: "段落 #1",
+              hasScript: false,
+              hasAudio: false,
+              preview: "这是当前段落的正文",
+            },
+            {
+              id: "segment-2",
+              label: "段落 #2",
+              hasScript: false,
+              hasAudio: false,
+              preview: "这是没有失败记录的段落",
+            },
+          ],
+        },
+      ],
       chapterSegmentIds: new Map(),
-      segmentMetaMap: new Map(),
-      bookStats: {},
-      getSelectedState: () => ({
-        selectedChapterNode: null,
-        selectedSegment: null,
-        selectedSegmentSentences: [],
-        selectedSegmentMeta: null,
-      }),
+      segmentMetaMap: new Map([
+        ["segment-1", mockSegmentMeta],
+        ["segment-2", mockSegmentWithoutFailureMeta],
+      ]),
+      latestFailedReviewTaskBySegment: new Map([
+        [mockSegment.id, mockFailedReviewTaskLink],
+      ]),
+      bookStats: {
+        totalChapters: 1,
+        totalSegments: 2,
+        scriptSegments: 0,
+        audioSegments: 0,
+      },
+      getSelectedState: (
+        node: { type: "book" | "chapter" | "segment"; id: string }
+      ) =>
+        node.type === "segment"
+          ? {
+              selectedChapterNode: null,
+              selectedSegment: mockSegment,
+              selectedSegmentSentences: [],
+              selectedSegmentMeta: mockSegmentMeta,
+            }
+          : node.type === "chapter"
+            ? {
+                selectedChapterNode: {
+                  id: "chapter-1",
+                  title: "第一章",
+                  totalSegments: 2,
+                  scriptSegments: 0,
+                  audioSegments: 0,
+                  segments: [
+                    {
+                      id: "segment-1",
+                      label: "段落 #1",
+                      hasScript: false,
+                      hasAudio: false,
+                      preview: "这是当前段落的正文",
+                    },
+                    {
+                      id: "segment-2",
+                      label: "段落 #2",
+                      hasScript: false,
+                      hasAudio: false,
+                      preview: "这是没有失败记录的段落",
+                    },
+                  ],
+                },
+                selectedSegment: null,
+                selectedSegmentSentences: [],
+                selectedSegmentMeta: null,
+              }
+          : {
+              selectedChapterNode: null,
+              selectedSegment: null,
+              selectedSegmentSentences: [],
+              selectedSegmentMeta: null,
+            },
     }),
   })
 );
@@ -132,12 +284,23 @@ jest.mock(
   () => ({
     useScriptScopeActions: ({
       generateScript,
+      handleSegmentRegeneration,
     }: {
       generateScript: () => Promise<void>;
+      handleSegmentRegeneration: (
+        segmentIds: string[],
+        contextLabel?: string
+      ) => Promise<void>;
     }) => ({
-      handleScopeScriptGeneration: async (scope: "book") => {
+      handleScopeScriptGeneration: async (
+        scope: "book" | "segment",
+        targetId?: string
+      ) => {
         if (scope === "book") {
           await generateScript();
+        }
+        if (scope === "segment" && targetId) {
+          await handleSegmentRegeneration([targetId], "当前段落台本生成");
         }
       },
       handleScopeAudioGeneration: jest.fn(),
@@ -352,5 +515,238 @@ describe("script studio model switching", () => {
     );
 
     await unmount(root, container);
+  });
+
+  it("triggers single-segment regeneration from the current segment entry", async () => {
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            defaultModelId: "deepseek-cloud",
+            models: [
+              {
+                id: "deepseek-cloud",
+                label: "DeepSeek Cloud",
+                provider: "custom",
+                model: "deepseek-chat",
+              },
+            ],
+          },
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            taskId: "script-task-segment-1",
+          },
+        }),
+      } as Response);
+
+    const { container, root } = await mount(<ScriptStudioPageContainer />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const selectSegmentButton = Array.from(container.querySelectorAll("button")).find(
+      (item) => item.textContent === "选择段落"
+    ) as HTMLButtonElement | undefined;
+    expect(selectSegmentButton).toBeDefined();
+
+    await act(async () => {
+      selectSegmentButton!.click();
+      await Promise.resolve();
+    });
+
+    const regenerateCurrentSegmentButton = Array.from(
+      container.querySelectorAll("button")
+    ).find((item) => item.textContent === "重生当前段落") as
+      | HTMLButtonElement
+      | undefined;
+
+    expect(regenerateCurrentSegmentButton).toBeDefined();
+
+    await act(async () => {
+      regenerateCurrentSegmentButton!.click();
+      await Promise.resolve();
+    });
+
+    expect(global.fetch).toHaveBeenNthCalledWith(1, "/api/llm/models");
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      "/api/books/book-1/script/generate",
+      expect.objectContaining({
+        method: "PATCH",
+        body: expect.any(String),
+      })
+    );
+
+    const secondCall = (global.fetch as jest.Mock).mock.calls[1];
+    const requestBody = JSON.parse(secondCall[1].body as string);
+
+    expect(requestBody.segmentIds).toEqual(["segment-1"]);
+    expect(requestBody.options.llmModelId).toBe("deepseek-cloud");
+
+    await unmount(root, container);
+  });
+
+  it("renders review failure links for chapter rows and current segment header", async () => {
+    const { container, root } = await mount(<ScriptStudioPageContainer />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const selectChapterButton = Array.from(container.querySelectorAll("button")).find(
+      (item) => item.textContent === "选择章节"
+    ) as HTMLButtonElement | undefined;
+    expect(selectChapterButton).toBeDefined();
+
+    await act(async () => {
+      selectChapterButton!.click();
+      await Promise.resolve();
+    });
+
+    const chapterFailureLinks = Array.from(container.querySelectorAll("a")).filter(
+      (item) => item.textContent === "查看质检失败"
+    );
+    expect(chapterFailureLinks).toHaveLength(1);
+    expect(chapterFailureLinks[0].getAttribute("href")).toBe(
+      "/books/book-1/review#task-task-failed-1"
+    );
+
+    const selectSegmentButton = Array.from(container.querySelectorAll("button")).find(
+      (item) => item.textContent === "选择段落"
+    ) as HTMLButtonElement | undefined;
+    expect(selectSegmentButton).toBeDefined();
+
+    await act(async () => {
+      selectSegmentButton!.click();
+      await Promise.resolve();
+    });
+
+    const segmentHeaderFailureLink = Array.from(container.querySelectorAll("a")).find(
+      (item) => item.textContent === "查看质检失败"
+    );
+    expect(segmentHeaderFailureLink).toBeDefined();
+    expect(segmentHeaderFailureLink?.getAttribute("href")).toBe(
+      "/books/book-1/review#task-task-failed-1"
+    );
+
+    await unmount(root, container);
+  });
+});
+
+describe("buildSegmentFailedReviewTaskLinks", () => {
+  it("prefers metadata.segmentIds when mapping the latest failed task to a segment", () => {
+    const links = buildSegmentFailedReviewTaskLinks({
+      bookId: "book-1",
+      tasks: [
+        {
+          id: "task-1",
+          taskType: "SCRIPT_GENERATION",
+          status: "failed",
+          createdAt: "2026-04-15T06:40:00.000Z",
+          updatedAt: "2026-04-15T06:42:45.000Z",
+          metadata: {
+            segmentIds: ["segment-from-segment-ids"],
+            failedSegmentDetails: [
+              {
+                segmentId: "segment-from-details",
+              },
+            ],
+            failedSegmentIds: ["segment-from-failed-ids"],
+          },
+        },
+      ],
+    });
+
+    expect(links.get("segment-from-segment-ids")).toEqual({
+      taskId: "task-1",
+      reviewUrl: "/books/book-1/review#task-task-1",
+      updatedAt: "2026-04-15T06:42:45.000Z",
+    });
+    expect(links.has("segment-from-details")).toBe(false);
+    expect(links.has("segment-from-failed-ids")).toBe(false);
+  });
+
+  it("uses failed segment details for multi-segment failures to avoid tagging successful segments", () => {
+    const links = buildSegmentFailedReviewTaskLinks({
+      bookId: "book-1",
+      tasks: [
+        {
+          id: "task-batch-failure",
+          taskType: "SCRIPT_GENERATION",
+          status: "failed",
+          createdAt: "2026-04-15T06:40:00.000Z",
+          updatedAt: "2026-04-15T06:42:45.000Z",
+          metadata: {
+            segmentIds: ["segment-success", "segment-failed"],
+            failedSegmentDetails: [
+              {
+                segmentId: "segment-failed",
+              },
+            ],
+            failedSegmentIds: ["segment-failed"],
+          },
+        },
+      ],
+    });
+
+    expect(links.has("segment-success")).toBe(false);
+    expect(links.get("segment-failed")).toEqual({
+      taskId: "task-batch-failure",
+      reviewUrl: "/books/book-1/review#task-task-batch-failure",
+      updatedAt: "2026-04-15T06:42:45.000Z",
+    });
+  });
+
+  it("keeps the latest failed task when multiple failures target the same segment", () => {
+    const links = buildSegmentFailedReviewTaskLinks({
+      bookId: "book-1",
+      tasks: [
+        {
+          id: "task-older",
+          taskType: "SCRIPT_GENERATION",
+          status: "failed",
+          createdAt: "2026-04-15T06:00:00.000Z",
+          updatedAt: "2026-04-15T06:10:00.000Z",
+          metadata: {
+            segmentIds: ["segment-1"],
+          },
+        },
+        {
+          id: "task-latest",
+          taskType: "SCRIPT_GENERATION",
+          status: "failed",
+          createdAt: "2026-04-15T07:00:00.000Z",
+          updatedAt: "2026-04-15T07:10:00.000Z",
+          metadata: {
+            segmentIds: ["segment-1"],
+          },
+        },
+        {
+          id: "task-non-failed",
+          taskType: "SCRIPT_GENERATION",
+          status: "completed",
+          createdAt: "2026-04-15T08:00:00.000Z",
+          updatedAt: "2026-04-15T08:10:00.000Z",
+          metadata: {
+            segmentIds: ["segment-1"],
+          },
+        },
+      ],
+    });
+
+    expect(links.get("segment-1")).toEqual({
+      taskId: "task-latest",
+      reviewUrl: "/books/book-1/review#task-task-latest",
+      updatedAt: "2026-04-15T07:10:00.000Z",
+    });
   });
 });

@@ -68,3 +68,9 @@ export interface ChapterTreeNode {
     preview: string;
   }>;
 }
+
+export interface SegmentFailedReviewTaskLink {
+  taskId: string;
+  reviewUrl: string;
+  updatedAt: string;
+}

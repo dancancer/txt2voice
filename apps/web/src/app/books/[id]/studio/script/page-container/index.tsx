@@ -21,6 +21,7 @@ import {
   ScriptSentencesTable,
   type ScriptNavigationNode,
 } from "../components";
+import { ScriptStudioAdvancedActionsPanel } from "./components/AdvancedActionsPanel";
 import { ScriptStudioErrorState, ScriptStudioLoadingState } from "./components/PageStates";
 import { useConfirmDialog } from "./hooks/useConfirmDialog";
 import { useScriptStudioData } from "./hooks/useScriptStudioData";
@@ -57,6 +58,7 @@ export function ScriptStudioPageContainer() {
     chapterNodes,
     chapterSegmentIds,
     segmentMetaMap,
+    latestFailedReviewTaskBySegment,
     bookStats,
     getSelectedState,
   } = useScriptStudioData(bookId);
@@ -152,6 +154,9 @@ export function ScriptStudioPageContainer() {
     selectedSegmentSentences,
     selectedSegmentMeta,
   } = getSelectedState(safeSelectedNode);
+  const selectedSegmentFailedReviewTask = selectedSegment
+    ? latestFailedReviewTaskBySegment.get(selectedSegment.id) || null
+    : null;
 
   if (loading) {
     return <ScriptStudioLoadingState />;
@@ -184,6 +189,22 @@ export function ScriptStudioPageContainer() {
     </div>
   );
 
+  const currentSegmentLabel = selectedSegmentMeta
+    ? `${selectedSegmentMeta.chapterTitle} · ${selectedSegmentMeta.label}`
+    : selectedSegment
+      ? `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`
+      : null;
+
+  const handleOpenIncrementalOptions = async () => {
+    setShowIncrementalOptions(true);
+    await loadSegmentStatus();
+  };
+
+  const handleOpenRegenerateOptions = async () => {
+    setShowRegenerateOptions(true);
+    await loadSegmentStatus();
+  };
+
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
       {(isGenerating || generationStatus || generationEvents.length > 0) && (
@@ -212,10 +233,26 @@ export function ScriptStudioPageContainer() {
 
           <div className="h-full overflow-auto">
             <div className="h-full space-y-4">
+              <ScriptStudioAdvancedActionsPanel
+                hasTextSegments={hasTextSegments}
+                isGenerating={isGenerating}
+                canGenerateScript={canGenerateScript}
+                currentSegmentLabel={currentSegmentLabel}
+                onOpenIncrementalOptions={handleOpenIncrementalOptions}
+                onOpenRegenerateOptions={handleOpenRegenerateOptions}
+                onRegenerateCurrentSegment={
+                  selectedSegment
+                    ? () =>
+                        handleScopeScriptGeneration("segment", selectedSegment.id)
+                    : undefined
+                }
+              />
+
               {safeSelectedNode.type === "chapter" && selectedChapterNode && (
                 <ChapterSegmentsTable
                   chapterTitle={selectedChapterNode.title}
                   titleAction={titleAction}
+                  failedReviewTaskBySegment={latestFailedReviewTaskBySegment}
                   segments={selectedChapterNode.segments.map((seg) => {
                     const fullSegment = segments.find((s) => s.id === seg.id);
                     return {
@@ -254,6 +291,14 @@ export function ScriptStudioPageContainer() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {selectedSegmentFailedReviewTask ? (
+                        <a
+                          href={selectedSegmentFailedReviewTask.reviewUrl}
+                          className="text-sm text-primary underline-offset-4 hover:underline"
+                        >
+                          查看质检失败
+                        </a>
+                      ) : null}
                       <Button
                         onClick={() =>
                           handleScopeScriptGeneration("segment", selectedSegment.id)
