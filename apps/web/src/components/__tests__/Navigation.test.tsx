@@ -70,4 +70,18 @@ describe("Navigation", () => {
 
     await unmount(root, container);
   });
+
+  it("routes the Mastra Studio entry through the local discovery page", async () => {
+    const { container, root } = await mount(<Navigation />);
+
+    const links = Array.from(container.querySelectorAll("a"));
+    const studioLink = links.find(
+      (link) => link.textContent?.trim() === "Mastra Studio"
+    );
+
+    expect(studioLink).toBeDefined();
+    expect(studioLink?.getAttribute("href")).toBe("/mastra/studio");
+
+    await unmount(root, container);
+  });
 });

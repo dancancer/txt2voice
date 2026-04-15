@@ -33,6 +33,7 @@ const characterDiscoveryAgent = compileAgent(rootDir, "character-discovery");
 const scriptGenerationAgent = compileAgent(rootDir, "script-generation");
 const repairAgent = compileAgent(rootDir, "repair");
 const qualityJudgeAgent = compileAgent(rootDir, "quality-judge");
+const coordinatorAgent = compileAgent(rootDir, "coordinator");
 const scriptProductionWorkflow = compileWorkflow(rootDir, "script-production");
 
 const runtime = createMastraRuntime({
@@ -41,6 +42,7 @@ const runtime = createMastraRuntime({
     [scriptGenerationAgent.definition.id]: scriptGenerationAgent.agent,
     [repairAgent.definition.id]: repairAgent.agent,
     [qualityJudgeAgent.definition.id]: qualityJudgeAgent.agent,
+    [coordinatorAgent.definition.id]: coordinatorAgent.agent,
   },
   workflows: {
     [scriptProductionWorkflow.definition.id]: scriptProductionWorkflow.workflow,
@@ -60,6 +62,7 @@ export const compiledAgents = {
   scriptGenerationAgent,
   repairAgent,
   qualityJudgeAgent,
+  coordinatorAgent,
 };
 
 export const compiledWorkflows = {

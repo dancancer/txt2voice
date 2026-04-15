@@ -349,14 +349,26 @@ describe("manual-review-service", () => {
       include: {
         stageRuns: {
           where: {
-            stageId: "segment_scripting",
+            stageId: {
+              in: ["segment_scripting", "segment_repair"],
+            },
           },
           orderBy: [{ startedAt: "desc" }, { id: "desc" }],
           include: {
             agentRuns: {
               where: {
-                agentId: "script-generation-agent",
-                status: "completed",
+                OR: [
+                  {
+                    agentId: "script-generation-agent",
+                    status: "completed",
+                  },
+                  {
+                    agentId: "repair-agent",
+                    status: {
+                      in: ["completed", "failed"],
+                    },
+                  },
+                ],
               },
               orderBy: [
                 { completedAt: "desc" },
@@ -366,6 +378,189 @@ describe("manual-review-service", () => {
             },
           },
         },
+      },
+    });
+  });
+
+  it("should recover repair failed artifact payload from segment repair runtime output", async () => {
+    mockCount
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({
+        issueType: SCRIPT_VALIDATION_ISSUE_TYPE,
+        sentenceId: null,
+        audioFileId: null,
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+        issueDetail: {
+          taskId: "task-script-2",
+          stage: "segment_repair",
+          errorCode: "SEGMENT_MANUAL_REVIEW_REQUIRED",
+          segmentContent: "这一段完整原文。",
+          segmentPreview: "这一段完整原文。",
+          rawResponse: null,
+          structuredResult: null,
+          issueMessages: ["repair_failed_artifact_trimmed"],
+        },
+      }),
+    ]);
+    mockFindWorkflowRuns.mockResolvedValueOnce([
+      {
+        id: "workflow-2",
+        processingTaskId: "task-script-2",
+        stageRuns: [
+          {
+            id: "stage-repair-1",
+            stageId: "segment_repair",
+            agentRuns: [
+              {
+                id: "agent-repair-1",
+                inputSummary: {
+                  segmentId: "segment-1",
+                },
+                outputSummary: {
+                  failedArtifact: {
+                    rawResponse: "{\"lines\":[{\"id\":\"line-1\"}]}",
+                    structuredResult: {
+                      segmentId: "segment-1",
+                      createdAt: "2026-03-29T13:20:00.000Z",
+                      lines: [
+                        {
+                          id: "line-1",
+                          sourceText: "这一段完整原文。",
+                          text: "修复失败时保留下来的台词",
+                          speaker: "旁白",
+                          orderInSegment: 0,
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const result = await listManualReviewItems("book-1", {
+      page: 1,
+      limit: 20,
+      offset: 0,
+      status: "pending",
+    });
+
+    expect(result.data[0]?.issueDetail).toMatchObject({
+      taskId: "task-script-2",
+      rawResponse: "{\"lines\":[{\"id\":\"line-1\"}]}",
+      structuredResult: {
+        segmentId: "segment-1",
+        createdAt: "2026-03-29T13:20:00.000Z",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "这一段完整原文。",
+            text: "修复失败时保留下来的台词",
+            speaker: "旁白",
+            orderInSegment: 0,
+          },
+        ],
+      },
+    });
+  });
+
+  it("should recover repaired draft payload from segment repair runtime output", async () => {
+    mockCount
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    mockFindMany.mockResolvedValueOnce([
+      baseItem({
+        issueType: SCRIPT_VALIDATION_ISSUE_TYPE,
+        sentenceId: null,
+        audioFileId: null,
+        scriptSentence: null,
+        audioFile: null,
+        qualityCheckResult: null,
+        issueDetail: {
+          taskId: "task-script-3",
+          stage: "quality_judgement",
+          errorCode: "QUALITY_MANUAL_REVIEW_REQUIRED",
+          segmentContent: "这一段完整原文。",
+          segmentPreview: "这一段完整原文。",
+          rawResponse: null,
+          structuredResult: null,
+          issueMessages: ["unresolved_speakers_present"],
+        },
+      }),
+    ]);
+    mockFindWorkflowRuns.mockResolvedValueOnce([
+      {
+        id: "workflow-3",
+        processingTaskId: "task-script-3",
+        stageRuns: [
+          {
+            id: "stage-repair-2",
+            stageId: "segment_repair",
+            agentRuns: [
+              {
+                id: "agent-repair-2",
+                inputSummary: {
+                  segmentId: "segment-1",
+                },
+                outputSummary: {
+                  repairedDraft: {
+                    segmentId: "segment-1",
+                    createdAt: "2026-03-29T13:21:00.000Z",
+                    rawResponse:
+                      "{\"lines\":[{\"id\":\"line-2\",\"speaker\":\"关玮\"}]}",
+                    lines: [
+                      {
+                        id: "line-2",
+                        sourceText: "这一段完整原文。",
+                        text: "修复后保留下来的台词",
+                        speaker: "关玮",
+                        orderInSegment: 0,
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+
+    const result = await listManualReviewItems("book-1", {
+      page: 1,
+      limit: 20,
+      offset: 0,
+      status: "pending",
+    });
+
+    expect(result.data[0]?.issueDetail).toMatchObject({
+      taskId: "task-script-3",
+      rawResponse: "{\"lines\":[{\"id\":\"line-2\",\"speaker\":\"关玮\"}]}",
+      structuredResult: {
+        segmentId: "segment-1",
+        createdAt: "2026-03-29T13:21:00.000Z",
+        lines: [
+          {
+            id: "line-2",
+            sourceText: "这一段完整原文。",
+            text: "修复后保留下来的台词",
+            speaker: "关玮",
+            orderInSegment: 0,
+          },
+        ],
       },
     });
   });

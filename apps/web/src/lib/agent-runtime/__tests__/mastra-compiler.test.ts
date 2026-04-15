@@ -7,9 +7,24 @@ jest.mock("@mastra/core/agent", () => ({
 }));
 
 jest.mock("@mastra/core/workflows", () => ({
+  createStep: jest.fn().mockImplementation((config) => ({
+    id: config.id,
+    description: config.description,
+    config,
+  })),
   createWorkflow: jest.fn().mockImplementation((config) => ({
     id: config.id,
     config,
+    stepGraph: [],
+    committed: false,
+    then(step: { id: string }) {
+      this.stepGraph.push(step);
+      return this;
+    },
+    commit() {
+      this.committed = true;
+      return this;
+    },
   })),
 }));
 
@@ -76,6 +91,23 @@ describe("mastra compiler", () => {
     });
   });
 
+  it("compiles agents without skills by falling back to the default model provider", () => {
+    const compiled = compileAgent(workspaceRoot, "coordinator");
+
+    expect(compiled.definition.id).toBe("coordinator-agent");
+    expect(compiled.skill).toBeUndefined();
+    expect(
+      (compiled.agent as unknown as { instructions: string }).instructions
+    ).toContain("Coordinator");
+    expect(
+      (compiled.agent as unknown as { model: Record<string, unknown> }).model
+    ).toEqual({
+      id: "openai/gpt-4.1-mini",
+      apiKey: "test-key",
+      url: "https://api.openai.com/v1",
+    });
+  });
+
   it("loads prompt bundles into system and user instructions", () => {
     const bundle = loadPromptBundle(workspaceRoot, "script-generation");
 
@@ -101,5 +133,25 @@ describe("mastra compiler", () => {
       segment_scripting: ["validation"],
     });
     expect(compiled.workflow.id).toBe("script-production");
+    expect(
+      (
+        compiled.workflow as unknown as {
+          stepGraph: Array<{ id: string }>;
+          committed: boolean;
+        }
+      ).stepGraph.map((step) => step.id)
+    ).toEqual([
+      "prepare",
+      "character_discovery",
+      "segment_scripting",
+      "segment_repair",
+      "quality_judgement",
+      "persist",
+      "manual_review_handoff",
+      "complete",
+    ]);
+    expect(
+      (compiled.workflow as unknown as { committed: boolean }).committed
+    ).toBe(true);
   });
 });

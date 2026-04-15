@@ -47,8 +47,7 @@ const navItems = [
   },
 ];
 
-const studioHref =
-  process.env.NEXT_PUBLIC_MASTRA_STUDIO_URL || "http://localhost:4111";
+const studioHref = "/mastra/studio";
 
 export function Navigation({ className }: NavigationProps) {
   const pathname = usePathname();

@@ -20,8 +20,8 @@ importers:
         specifier: ^1.19.6
         version: 1.19.6(hono@4.10.4)
       '@mastra/core':
-        specifier: ^1.20.0
-        version: 1.23.0(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
+        specifier: ^1.24.1
+        version: 1.24.1(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
       '@paralleldrive/cuid2':
         specifier: ^3.0.4
         version: 3.3.0
@@ -150,8 +150,8 @@ importers:
         specifier: ^29.7.0
         version: 29.7.0
       mastra:
-        specifier: ^1.4.0
-        version: 1.4.0(@hono/node-server@1.19.6)(@mastra/core@1.23.0)(typescript@5.9.3)(zod@4.1.12)
+        specifier: ^1.5.0
+        version: 1.5.0(@hono/node-server@1.19.6)(@mastra/core@1.24.1)(typescript@5.9.3)(zod@4.1.12)
       postcss:
         specifier: ^8.5.6
         version: 8.5.6
@@ -379,7 +379,7 @@ packages:
     resolution: {integrity: sha512-fXSwMQqitTGeHLBC08Eq5yXz2m37E4pJX1qAU1+2cNedz/ifv/bVXft90VeSav5nFO61EcNgwr0aJxbyPaWBPg==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/types': 7.28.5
+      '@babel/types': 7.29.0
     dev: true
 
   /@babel/helper-compilation-targets@7.27.2:
@@ -430,7 +430,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/traverse': 7.29.0
-      '@babel/types': 7.28.5
+      '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -485,7 +485,7 @@ packages:
     resolution: {integrity: sha512-URMGH08NzYFhubNSGJrpUEphGKQwMQYBySzat5cAByY1/YgIRkULnIy3tAMeszlL/so2HbeilYloUmSpd7GdVw==}
     engines: {node: '>=6.9.0'}
     dependencies:
-      '@babel/types': 7.28.5
+      '@babel/types': 7.29.0
     dev: true
 
   /@babel/helper-plugin-utils@7.27.1:
@@ -517,7 +517,7 @@ packages:
     engines: {node: '>=6.9.0'}
     dependencies:
       '@babel/traverse': 7.29.0
-      '@babel/types': 7.28.5
+      '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
     dev: true
@@ -779,7 +779,7 @@ packages:
       '@babel/core': ^7.0.0-0
     dependencies:
       '@babel/core': 7.29.0
-      '@babel/helper-plugin-utils': 7.27.1
+      '@babel/helper-plugin-utils': 7.28.6
       '@babel/helper-validator-option': 7.27.1
       '@babel/plugin-syntax-jsx': 7.27.1(@babel/core@7.29.0)
       '@babel/plugin-transform-modules-commonjs': 7.28.6(@babel/core@7.29.0)
@@ -1831,8 +1831,8 @@ packages:
     dependencies:
       '@lukeed/csprng': 1.1.0
 
-  /@mastra/core@1.23.0(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12):
-    resolution: {integrity: sha512-H5MoIT1k21fdRegxJEMv1YcqIuUATkB998htVD3XAyVcnuEg5XrYrOrSChfjU5HxETpcZ4EtQHecK/zksLilqA==}
+  /@mastra/core@1.24.1(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12):
+    resolution: {integrity: sha512-Y0a0HZl7AMsuqrKM1OLePTJRaCr71w0RcUbCuaTgGN527jUTpfKmj9KJoNKqx9OTYUgZQ5ssNJMM6oDxsj2gxQ==}
     engines: {node: '>=22.13.0'}
     peerDependencies:
       zod: ^3.25.0 || ^4.0.0
@@ -1879,8 +1879,8 @@ packages:
       - supports-color
       - utf-8-validate
 
-  /@mastra/deployer@1.23.0(@hono/node-server@1.19.6)(@mastra/core@1.23.0)(typescript@5.9.3)(zod@4.1.12):
-    resolution: {integrity: sha512-alLY6gJ5JJieCENWIOIsmrcvefMZq1lBwcNEGIbNUDnSmiu7JNOyVT2otxLX7VGcClSCTbVcx1xMcucXgja2qA==}
+  /@mastra/deployer@1.24.1(@hono/node-server@1.19.6)(@mastra/core@1.24.1)(typescript@5.9.3)(zod@4.1.12):
+    resolution: {integrity: sha512-cyepN5XOKaz5xW9fOepiUS6+WmMwx2x7yT4UJgavpc8nn9iHpNynG+bPM9hpXA1w8ezuqMazf9noTqIoXQ+S9Q==}
     engines: {node: '>=22.13.0'}
     peerDependencies:
       '@mastra/core': '>=1.0.0-0 <2.0.0-0'
@@ -1890,8 +1890,8 @@ packages:
       '@babel/preset-typescript': 7.28.5(@babel/core@7.29.0)
       '@babel/traverse': 7.29.0
       '@hono/node-ws': 1.3.0(@hono/node-server@1.19.6)(hono@4.12.11)
-      '@mastra/core': 1.23.0(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
-      '@mastra/server': 1.23.0(@mastra/core@1.23.0)(zod@4.1.12)
+      '@mastra/core': 1.24.1(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
+      '@mastra/server': 1.24.1(@mastra/core@1.24.1)(zod@4.1.12)
       '@optimize-lodash/rollup-plugin': 5.1.0(rollup@4.60.1)
       '@rollup/plugin-alias': 6.0.0(rollup@4.60.1)
       '@rollup/plugin-commonjs': 29.0.2(rollup@4.60.1)
@@ -1924,13 +1924,13 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@mastra/loggers@1.1.0(@mastra/core@1.23.0):
-    resolution: {integrity: sha512-SwEsBsckP3/00th4iV80k5/rj2OjaArIR8fedPq4MMnWS1a6HurXjnFF4ISGHuiTVvsx15a+3sRVy0IfSFp+QQ==}
+  /@mastra/loggers@1.1.1(@mastra/core@1.24.1):
+    resolution: {integrity: sha512-zszCHjYlnADYeFLaOIvQH/c86Wdn+tX0WTboc6K6NvPXa5dIq9TI4qzdy5IdhQn1auSzrgbCYRKdJnZKKoJSpw==}
     engines: {node: '>=22.13.0'}
     peerDependencies:
       '@mastra/core': '>=1.0.0-0 <2.0.0-0'
     dependencies:
-      '@mastra/core': 1.23.0(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
+      '@mastra/core': 1.24.1(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
       pino: 10.3.1
       pino-pretty: 13.1.3
     dev: true
@@ -1947,14 +1947,14 @@ packages:
       zod-from-json-schema-v3: /zod-from-json-schema@0.0.5
       zod-to-json-schema: 3.25.2(zod@4.1.12)
 
-  /@mastra/server@1.23.0(@mastra/core@1.23.0)(zod@4.1.12):
-    resolution: {integrity: sha512-EliY2vvEMTxelOOSC6oKG4WMjV70C4wHYi2d9cMTq38IvmaIKrhJ4KEsOirB8jGAyqb4MtjXgcjUxYFq2fD7wg==}
+  /@mastra/server@1.24.1(@mastra/core@1.24.1)(zod@4.1.12):
+    resolution: {integrity: sha512-gSNVzJ62THcmInWnxEdwzzDDgjFjTr2aQ7ImFNKnBzSFQ7kNuV1kS6M/xwHOZk0esEYfpkhpk6S/znx9L1/iLg==}
     engines: {node: '>=22.13.0'}
     peerDependencies:
       '@mastra/core': '>=1.13.2-0 <2.0.0-0'
       zod: ^3.25.0 || ^4.0.0
     dependencies:
-      '@mastra/core': 1.23.0(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
+      '@mastra/core': 1.24.1(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
       hono: 4.12.11
       zod: 4.1.12
     dev: true
@@ -8011,8 +8011,8 @@ packages:
   /markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
-  /mastra@1.4.0(@hono/node-server@1.19.6)(@mastra/core@1.23.0)(typescript@5.9.3)(zod@4.1.12):
-    resolution: {integrity: sha512-/QTCEiC0NuSkPDbLQmiuFjR3NGs6OsBXN2faecNSYPpKaNmM2qlbzdvczYXVpNbp3NlwRwhPjIWIf6VI1ABQ9Q==}
+  /mastra@1.5.0(@hono/node-server@1.19.6)(@mastra/core@1.24.1)(typescript@5.9.3)(zod@4.1.12):
+    resolution: {integrity: sha512-sEZy1XK1CY/VncdbODN3lzjtSkIdQmmO2dSoxuN97Op4jVbCzyydsqiTCwC9bGJsaTJaU1dT79su2ovrOsHfdw==}
     engines: {node: '>=22.13.0'}
     hasBin: true
     peerDependencies:
@@ -8021,9 +8021,9 @@ packages:
     dependencies:
       '@clack/prompts': 1.2.0
       '@expo/devcert': 1.2.1
-      '@mastra/core': 1.23.0(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
-      '@mastra/deployer': 1.23.0(@hono/node-server@1.19.6)(@mastra/core@1.23.0)(typescript@5.9.3)(zod@4.1.12)
-      '@mastra/loggers': 1.1.0(@mastra/core@1.23.0)
+      '@mastra/core': 1.24.1(@standard-community/standard-json@0.3.5)(@standard-community/standard-openapi@0.2.9)(@types/json-schema@7.0.15)(openapi-types@12.1.3)(zod@4.1.12)
+      '@mastra/deployer': 1.24.1(@hono/node-server@1.19.6)(@mastra/core@1.24.1)(typescript@5.9.3)(zod@4.1.12)
+      '@mastra/loggers': 1.1.1(@mastra/core@1.24.1)
       archiver: 7.0.1
       commander: 14.0.3
       dotenv: 17.4.1

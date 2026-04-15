@@ -16,7 +16,7 @@ const requireModule = createRequire(import.meta.url);
 export interface CompiledMastraAgent {
   definition: AgentDefinition;
   instructions: string;
-  skill: CompiledMastraSkill;
+  skill?: CompiledMastraSkill;
   agent: MastraAgentInstance;
 }
 
@@ -36,9 +36,12 @@ export const compileAgent = (
 ): CompiledMastraAgent => {
   const loadedAgent = loadAgentDefinition(rootDir, agentId);
   const primarySkillId = loadedAgent.definition.allowedSkills[0];
-  const skill = compileSkill(rootDir, primarySkillId);
-  const policy = resolveLLMExecutionPolicy(skill.definition.modelPolicy);
-  const provider = getConfiguredLLMProvider(policy.modelId);
+  const skill = primarySkillId ? compileSkill(rootDir, primarySkillId) : undefined;
+  const provider = skill
+    ? getConfiguredLLMProvider(
+        resolveLLMExecutionPolicy(skill.definition.modelPolicy).modelId
+      )
+    : getConfiguredLLMProvider();
   ensureMastraWebGlobals();
   const { Agent } = requireModule("@mastra/core/agent") as typeof import("@mastra/core/agent");
 
@@ -49,7 +52,7 @@ export const compileAgent = (
     agent: new Agent({
       id: loadedAgent.definition.id,
       name: loadedAgent.definition.id,
-      instructions: [loadedAgent.instructions, skill.mastraInstructions]
+      instructions: [loadedAgent.instructions, skill?.mastraInstructions || ""]
         .filter((entry) => entry.trim().length > 0)
         .join("\n\n"),
       model: toMastraModelConfig(provider),
