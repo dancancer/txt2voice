@@ -6,13 +6,18 @@ import {
   buildInputRefinementSegments,
   buildValidationReport,
   createFailureDetail,
-  createStageSummary,
   extractFailureArtifactContext,
   mergeRefinedSegmentDrafts,
   remapFailureToParentSegment,
 } from "../script-production-runtime-helpers";
 import { normalizeSegmentScriptDraft } from "./helpers/script-draft-normalizer";
 import { runSegmentRepairStage } from "../stages/run-segment-repair-stage";
+import {
+  createRecoverySignals,
+  recordRepairStageOutcome,
+  toDraftFailureContext,
+  toTerminalResult,
+} from "./run-segment-validation-cycle-helpers";
 import {
   mergeSegmentCounters,
   type SegmentRunResult,
@@ -36,26 +41,6 @@ type ValidationCycleResult =
   | { status: "terminal"; result: SegmentRunResult }
   | { status: "failed"; failure: SegmentFailureDetail; counters: SegmentRuntimeCounters };
 
-const toDraftStructuredResult = (draft: SegmentScriptDraft) => ({
-  segmentId: draft.segmentId,
-  createdAt: draft.createdAt,
-  lines: draft.lines.map((line) => ({ ...line })),
-});
-
-const toDraftFailureContext = (draft: SegmentScriptDraft) => ({
-  rawResponse:
-    typeof draft.rawResponse === "string" && draft.rawResponse.trim().length > 0
-      ? draft.rawResponse
-      : undefined,
-  structuredResult: toDraftStructuredResult(draft),
-});
-
-const createRecoverySignals = (
-  warnings: string[]
-): QualitySignals | undefined => {
-  const upstreamWarnings = [...new Set(warnings.filter((item) => item.length > 0))];
-  return upstreamWarnings.length > 0 ? { upstreamWarnings } : undefined;
-};
 
 export const runSegmentValidationCycle = async (
   params: RunSingleSegmentParams,
@@ -135,65 +120,11 @@ export const runSegmentValidationCycle = async (
     appendTrace: params.appendTrace,
   });
 
-  await params.runtimeStore.updateStageRun({
-    id: repairStage.stageRunId,
-    workflowRunId: params.workflowRunId,
-    stageId: "segment_repair",
-    status: repairStage.status,
-    summary: createStageSummary({
-      segment: params.segment,
-      stageId: "segment_repair",
-      summary: {
-        failureKind: "semantic_retry",
-        decisionAction:
-          repairStage.status === "completed"
-            ? repairStage.decision.action
-            : "failed",
-        decisionReason:
-          repairStage.status === "completed"
-            ? repairStage.decision.reason
-            : repairStage.error || "segment_repair_failed",
-        retryable:
-          repairStage.status === "completed"
-            ? repairStage.decision.retryable
-            : repairStage.status === "retrying",
-      },
-    }),
-    completedAt: (params.now ?? (() => new Date()))(),
+  await recordRepairStageOutcome({
+    context: params,
+    repairStage,
+    failureKind: "semantic_retry",
   });
-  params.onStageResult?.({
-    id: repairStage.stageRunId,
-    stageId: "segment_repair",
-    status: repairStage.status,
-    agent: {
-      runId: repairStage.agentRunId,
-      agentId: "repair-agent",
-      status: repairStage.status,
-      output:
-        repairStage.status === "completed"
-          ? {
-              decision: repairStage.decision,
-            }
-          : undefined,
-      error: repairStage.status === "completed" ? undefined : repairStage.error,
-    },
-  });
-  if (repairStage.status === "completed") {
-    await params.runtimeStore.createRuntimeArtifact({
-      id: params.createId(),
-      workflowRunId: params.workflowRunId,
-      stageRunId: repairStage.stageRunId,
-      agentRunId: repairStage.agentRunId ?? null,
-      segmentId: params.segment.id,
-      artifactKind: "repair-decision",
-      artifactVersion: "v1",
-      payload: {
-        failureKind: "semantic_retry",
-        decision: repairStage.decision,
-      },
-      createdAt: (params.now ?? (() => new Date()))(),
-    });
-  }
 
   if (repairStage.status !== "completed") {
     const repairFailureContext = extractFailureArtifactContext(
@@ -255,22 +186,16 @@ export const runSegmentValidationCycle = async (
     });
 
     if (retriedResult.status === "success") {
-      return {
-        status: "terminal",
-        result: {
-          ...retriedResult,
-          counters: mergeSegmentCounters(counters, retriedResult.counters),
-        },
-      };
+      return toTerminalResult(
+        retriedResult,
+        mergeSegmentCounters(counters, retriedResult.counters)
+      );
     }
 
-    return {
-      status: "terminal",
-      result: {
-        ...retriedResult,
-        counters: mergeSegmentCounters(counters, retriedResult.counters),
-      },
-    };
+    return toTerminalResult(
+      retriedResult,
+      mergeSegmentCounters(counters, retriedResult.counters)
+    );
   }
 
   const canAttemptInputRefinement =
@@ -303,68 +228,11 @@ export const runSegmentValidationCycle = async (
       appendTrace: params.appendTrace,
     });
 
-    await params.runtimeStore.updateStageRun({
-      id: refinementStage.stageRunId,
-      workflowRunId: params.workflowRunId,
-      stageId: "segment_repair",
-      status: refinementStage.status,
-      summary: createStageSummary({
-        segment: params.segment,
-        stageId: "segment_repair",
-        summary: {
-          failureKind: "input_refinement",
-          decisionAction:
-            refinementStage.status === "completed"
-              ? refinementStage.decision.action
-              : "failed",
-          decisionReason:
-            refinementStage.status === "completed"
-              ? refinementStage.decision.reason
-              : refinementStage.error || "segment_repair_failed",
-          retryable:
-            refinementStage.status === "completed"
-              ? refinementStage.decision.retryable
-              : refinementStage.status === "retrying",
-        },
-      }),
-      completedAt: (params.now ?? (() => new Date()))(),
+    await recordRepairStageOutcome({
+      context: params,
+      repairStage: refinementStage,
+      failureKind: "input_refinement",
     });
-    params.onStageResult?.({
-      id: refinementStage.stageRunId,
-      stageId: "segment_repair",
-      status: refinementStage.status,
-      agent: {
-        runId: refinementStage.agentRunId,
-        agentId: "repair-agent",
-        status: refinementStage.status,
-        output:
-          refinementStage.status === "completed"
-            ? {
-                decision: refinementStage.decision,
-              }
-            : undefined,
-        error:
-          refinementStage.status === "completed"
-            ? undefined
-            : refinementStage.error,
-      },
-    });
-    if (refinementStage.status === "completed") {
-      await params.runtimeStore.createRuntimeArtifact({
-        id: params.createId(),
-        workflowRunId: params.workflowRunId,
-        stageRunId: refinementStage.stageRunId,
-        agentRunId: refinementStage.agentRunId ?? null,
-        segmentId: params.segment.id,
-        artifactKind: "repair-decision",
-        artifactVersion: "v1",
-        payload: {
-          failureKind: "input_refinement",
-          decision: refinementStage.decision,
-        },
-        createdAt: (params.now ?? (() => new Date()))(),
-      });
-    }
 
     if (
       refinementStage.status === "completed" &&

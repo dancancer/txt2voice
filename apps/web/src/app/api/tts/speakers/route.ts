@@ -5,7 +5,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/error-handler";
 import { indexTTSService } from "@/lib/indextts-service";
-import { PrismaClient } from "@/generated/prisma";
 import prisma from "@/lib/prisma";
 
 // GET /api/tts/speakers - 获取说话人列表

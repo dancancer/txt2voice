@@ -4,7 +4,8 @@
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from 'next/server'
 import { withErrorHandler, ValidationError } from '@/lib/error-handler'
-import prisma, { Prisma } from '@/lib/prisma'
+import prisma, { Decimal } from '@/lib/prisma'
+import type { Prisma } from '@/lib/prisma'
 import { indexTTSService, EmotionVector } from '@/lib/indextts-service'
 import { mkdir, writeFile, stat } from 'fs/promises'
 import { join, extname } from 'path'
@@ -192,7 +193,7 @@ export const POST = withErrorHandler(async (
       format: extension.replace('.', '') || 'mp3',
       fileSize: BigInt(fileStats.size),
       duration: typeof synthesizeResult.duration === 'number'
-        ? new Prisma.Decimal(synthesizeResult.duration.toFixed(2))
+        ? new Decimal(synthesizeResult.duration.toFixed(2))
         : null,
       status: 'completed',
       provider: 'indextts'

@@ -2,9 +2,9 @@
 // input: function args/external deps
 // output: utility/service exports
 // pos: shared library
-import * as PrismaGenerated from '@/generated/prisma'
+const PrismaGenerated = require('@/generated/prisma') as typeof import('@/generated/prisma')
 
-type PrismaClientInstance = InstanceType<typeof PrismaGenerated.PrismaClient>
+type PrismaClientInstance = import('@/generated/prisma').PrismaClient
 
 declare global {
   var __prisma: PrismaClientInstance | undefined
@@ -22,5 +22,5 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 export default prisma
-
-export * from '@/generated/prisma'
+export const Decimal = PrismaGenerated.Prisma.Decimal
+export type { Prisma, ProcessingTask } from '@/generated/prisma'

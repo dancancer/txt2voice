@@ -3,89 +3,15 @@
 // output: 工具/服务导出
 // pos: 共享业务库
 import { TTSError } from "./error-handler";
-
-// IndexTTS API 相关类型定义
-export interface ReferenceAudio {
-  filename: string;
-  originalName: string;
-  filePath: string;
-  fileSize: number;
-  duration: number;
-  sampleRate: number;
-  format: string;
-  audioType: "example" | "uploaded" | "emotion";
-  description?: string;
-  speakerId?: string;
-  url: string;
-}
-
-export interface AudioAnalysis {
-  filename: string;
-  duration: number;
-  sampleRate: number;
-  fileSize: number;
-  format: string;
-  speakerId: string;
-  confidence: number;
-  embeddingShape: number;
-  embedding?: number[];
-  metadata?: Record<string, any>;
-}
-
-export interface SpeakerComparison {
-  audioFile1: string;
-  audioFile2: string;
-  cosineSimilarity: number;
-  euclideanDistance: number;
-  sameSpeakerProbability: number;
-  isSameSpeaker: boolean;
-}
-
-export interface EmotionVector {
-  happy: number;
-  angry: number;
-  sad: number;
-  afraid: number;
-  disgusted: number;
-  melancholic: number;
-  surprised: number;
-  calm: number;
-}
-
-export interface SynthesizeRequest {
-  text: string;
-  referenceAudio: string;
-  emoControlMethod:
-    | "Same as the voice reference"
-    | "Use separate emotion reference"
-    | "Use emotion vectors";
-  emotionReference?: string;
-  emotionVector?: EmotionVector;
-  emotionWeight?: number;
-  sample?: number;
-  temperature?: number;
-  beamSearch?: boolean;
-  topK?: number;
-  topP?: number;
-}
-
-export interface SynthesizeResult {
-  taskId: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  audioUrl?: string;
-  duration?: number;
-  errorMessage?: string;
-  metadata?: Record<string, any>;
-}
-
-export interface UploadResult {
-  filename: string;
-  originalName: string;
-  url: string;
-  fileSize: number;
-  duration?: number;
-  format: string;
-}
+import { validateIndexTtsAudioFile } from "./indextts/helpers";
+import type {
+  AudioAnalysis,
+  ReferenceAudio,
+  SpeakerComparison,
+  SynthesizeRequest,
+  SynthesizeResult,
+  UploadResult,
+} from "./indextts/types";
 
 /**
  * IndexTTS API 客户端服务
@@ -431,45 +357,7 @@ export class IndexTTSService {
    * 验证音频文件格式
    */
   static validateAudioFile(file: File): { valid: boolean; error?: string } {
-    const allowedTypes = [
-      "audio/wav",
-      "audio/mp3",
-      "audio/mpeg",
-      "audio/flac",
-      "audio/m4a",
-      "audio/x-m4a",
-      "audio/ogg",
-    ];
-
-    // 后端支持的文件扩展名
-    const allowedExtensions = [".wav", ".mp3", ".flac", ".m4a", ".ogg"];
-    const maxSize = parseInt(process.env.INDEXTTS_MAX_FILE_SIZE || "104857600"); // 100MB
-
-    // 获取文件扩展名
-    const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
-
-    if (!allowedExtensions.includes(fileExtension)) {
-      return {
-        valid: false,
-        error: `不支持的文件格式: ${fileExtension}。支持的格式: ${allowedExtensions.join(", ")}`,
-      };
-    }
-
-    // 同时检查MIME类型（某些浏览器可能无法正确识别所有音频类型的MIME）
-    if (file.type && !allowedTypes.includes(file.type)) {
-      console.warn(`MIME type ${file.type} may not be recognized, but file extension ${fileExtension} is supported`);
-    }
-
-    if (file.size > maxSize) {
-      return {
-        valid: false,
-        error: `文件大小超过限制: ${(file.size / 1024 / 1024).toFixed(
-          2
-        )}MB > ${(maxSize / 1024 / 1024).toFixed(2)}MB`,
-      };
-    }
-
-    return { valid: true };
+    return validateIndexTtsAudioFile(file);
   }
 
   private normalizeSynthesisResult(response: any): SynthesizeResult {
@@ -515,3 +403,12 @@ export class IndexTTSService {
 
 // 全局 IndexTTS 服务实例
 export const indexTTSService = new IndexTTSService();
+export type {
+  AudioAnalysis,
+  EmotionVector,
+  ReferenceAudio,
+  SpeakerComparison,
+  SynthesizeRequest,
+  SynthesizeResult,
+  UploadResult,
+} from "./indextts/types";

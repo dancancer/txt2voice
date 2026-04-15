@@ -13,6 +13,7 @@ import {
   SCRIPT_PRODUCTION_RUNTIME_SUBSTAGES,
   loadScriptProductionWorkflowDefinition,
 } from "../runtime/script-production-workflow-definition";
+import { resolveAgentRuntimeWorkspaceRoot } from "../runtime/resolve-agent-runtime-workspace-root";
 import { runWorkflow } from "../runtime/run-workflow";
 
 type JsonMap = Record<string, unknown>;
@@ -73,6 +74,23 @@ describe("workflow runtime skeleton", () => {
     expect(SCRIPT_PRODUCTION_RUNTIME_SUBSTAGES).toEqual({
       segment_scripting: ["validation"],
     });
+  });
+
+  it("rescues nested workspace roots before loading script-production authoring", () => {
+    const repoRoot = path.resolve(__dirname, "../../../../../..");
+    const nestedRoot = path.join(repoRoot, "apps", "web");
+
+    expect(resolveAgentRuntimeWorkspaceRoot(nestedRoot)).toBe(repoRoot);
+    expect(loadScriptProductionWorkflowDefinition(nestedRoot).stages).toEqual([
+      "prepare",
+      "character_discovery",
+      "segment_scripting",
+      "segment_repair",
+      "quality_judgement",
+      "persist",
+      "manual_review_handoff",
+      "complete",
+    ]);
   });
 
   it("supports coordinator mode while keeping a single workflow run", async () => {

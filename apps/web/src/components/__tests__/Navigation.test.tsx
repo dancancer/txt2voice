@@ -27,6 +27,7 @@ jest.mock("lucide-react", () => {
 
   return {
     BookOpen: Icon,
+    Blocks: Icon,
     Menu: Icon,
     Mic: Icon,
     ListTodo: Icon,
