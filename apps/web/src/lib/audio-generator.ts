@@ -9,6 +9,7 @@ import { executeSingleAudioSynthesis } from "./audio-generation/execution/single
 import { generateBatchAudioWithReliability as runBatchAudioWithReliability } from "./audio-generation/execution/batch-audio-runtime";
 import type {
   AudioBatchGenerationSummary,
+  AudioBatchGenerationHooks,
   AudioGenerationOptions,
   AudioGenerationRequest,
   AudioGenerationResult,
@@ -17,6 +18,7 @@ import type {
 
 export type {
   AudioBatchGenerationSummary,
+  AudioBatchGenerationHooks,
   AudioGenerationOptions,
   AudioGenerationRequest,
   AudioGenerationResult,
@@ -64,20 +66,27 @@ export class AudioGenerator {
 
   async generateBatchAudio(
     requests: AudioGenerationRequest[],
-    options: AudioGenerationOptions = {}
+    options: AudioGenerationOptions = {},
+    hooks?: AudioBatchGenerationHooks
   ): Promise<AudioGenerationResult[]> {
-    const summary = await this.generateBatchAudioWithReliability(requests, options);
+    const summary = await this.generateBatchAudioWithReliability(
+      requests,
+      options,
+      hooks
+    );
     return summary.results;
   }
 
   async generateBatchAudioWithReliability(
     requests: AudioGenerationRequest[],
-    options: AudioGenerationOptions = {}
+    options: AudioGenerationOptions = {},
+    hooks?: AudioBatchGenerationHooks
   ): Promise<AudioBatchGenerationSummary> {
     return runBatchAudioWithReliability({
       requests,
       options,
       defaultOptions: this.defaultOptions,
+      hooks,
       generateSingleAudio: (request, mergedOptions) =>
         this.generateSingleAudio(request, mergedOptions),
     });
@@ -86,7 +95,8 @@ export class AudioGenerator {
   async generateChapterAudio(
     bookId: string,
     chapterId: string,
-    options: AudioGenerationOptions = {}
+    options: AudioGenerationOptions = {},
+    hooks?: AudioBatchGenerationHooks
   ): Promise<{
     total: number;
     success: number;
@@ -132,7 +142,8 @@ export class AudioGenerator {
         scriptSentenceId: sentence.id,
         outputFormat: "mp3",
       })),
-      options
+      options,
+      hooks
     );
 
     return {
@@ -146,7 +157,8 @@ export class AudioGenerator {
 
   async generateBookAudio(
     bookId: string,
-    options: AudioGenerationOptions = {}
+    options: AudioGenerationOptions = {},
+    hooks?: AudioBatchGenerationHooks
   ): Promise<{
     total: number;
     success: number;
@@ -188,7 +200,8 @@ export class AudioGenerator {
         scriptSentenceId: sentence.id,
         outputFormat: "mp3",
       })),
-      options
+      options,
+      hooks
     );
 
     return {

@@ -1,4 +1,5 @@
 import type {
+  AudioBatchGenerationHooks,
   AudioGenerationRequest,
   AudioGenerationOptions,
 } from "@/lib/audio-generator";
@@ -15,6 +16,7 @@ export const executeAudioGeneration = async ({
   scriptSentenceIds,
   voiceProfileId,
   options,
+  hooks,
 }: {
   audioGenerator: ReturnType<typeof import("@/lib/audio-generator").getAudioGenerator>;
   bookId: string;
@@ -23,13 +25,14 @@ export const executeAudioGeneration = async ({
   scriptSentenceIds?: string[];
   voiceProfileId?: string;
   options: AudioGenerationOptions;
+  hooks?: AudioBatchGenerationHooks;
 }): Promise<GeneratedAudioSummary> => {
   let results: any[] = [];
   let totalSentences = 0;
   let audioReliability: Record<string, unknown> | null = null;
 
   if (type === "book") {
-    const result = await audioGenerator.generateBookAudio(bookId, options);
+    const result = await audioGenerator.generateBookAudio(bookId, options, hooks);
     results = result.results;
     totalSentences = result.total;
     audioReliability =
@@ -37,7 +40,12 @@ export const executeAudioGeneration = async ({
         | Record<string, unknown>
         | undefined) || null;
   } else if (type === "chapter" && chapterId) {
-    const result = await audioGenerator.generateChapterAudio(bookId, chapterId, options);
+    const result = await audioGenerator.generateChapterAudio(
+      bookId,
+      chapterId,
+      options,
+      hooks
+    );
     results = result.results;
     totalSentences = result.total;
     audioReliability =
@@ -54,7 +62,8 @@ export const executeAudioGeneration = async ({
     if (typeof (audioGenerator as any).generateBatchAudioWithReliability === "function") {
       const summary = await (audioGenerator as any).generateBatchAudioWithReliability(
         requests,
-        options
+        options,
+        hooks
       );
       results = Array.isArray(summary?.results) ? summary.results : [];
       audioReliability =
@@ -62,7 +71,7 @@ export const executeAudioGeneration = async ({
           ? summary.reliability
           : null;
     } else {
-      results = await audioGenerator.generateBatchAudio(requests, options);
+      results = await audioGenerator.generateBatchAudio(requests, options, hooks);
     }
     totalSentences = requests.length;
   } else if (type === "single" && scriptSentenceIds && scriptSentenceIds.length > 0) {

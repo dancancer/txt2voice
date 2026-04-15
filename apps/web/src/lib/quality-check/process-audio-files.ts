@@ -111,6 +111,7 @@ export const processQualityCheckAudioFiles = async ({
   modelRuntime,
   modelRuntimeSource,
   isCalibrationEval,
+  onProgress,
 }: {
   taskId: string;
   audioFiles: Array<{
@@ -144,6 +145,15 @@ export const processQualityCheckAudioFiles = async ({
   };
   modelRuntimeSource: string;
   isCalibrationEval: boolean;
+  onProgress?: (payload: {
+    checked: number;
+    total: number;
+    progress: number;
+    verdict: string;
+    issueType: string;
+    sentenceId?: string | null;
+    audioFileId?: string | null;
+  }) => Promise<void> | void;
 }): Promise<QualityCheckProcessingState> => {
   const state = createProcessingState();
   const candidateReviewItemIds =
@@ -355,6 +365,15 @@ export const processQualityCheckAudioFiles = async ({
         ? `Deep Gate 校准回放进度 ${index + 1}/${audioFiles.length}`
         : `Fast/Deep Gate 质检进度 ${index + 1}/${audioFiles.length}`
     );
+    await onProgress?.({
+      checked: index + 1,
+      total: audioFiles.length,
+      progress,
+      verdict: decision.verdict,
+      issueType: decision.issueType,
+      sentenceId: audioFile.sentenceId,
+      audioFileId: audioFile.id,
+    });
   }
 
   return state;

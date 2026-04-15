@@ -69,6 +69,10 @@ export interface AudioBatchGenerationSummary {
   reliability: AudioReliabilitySummary;
 }
 
+export interface AudioBatchGenerationHooks {
+  onPassComplete?: (summary: AudioReliabilityPassSummary) => void | Promise<void>;
+}
+
 export interface VoiceRouteResolution {
   selectedCandidate: RankedAudioRouteCandidate | null;
   rankedCandidates: RankedAudioRouteCandidate[];

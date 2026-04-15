@@ -38,6 +38,27 @@ export interface ScriptGenerationLLMMetrics {
   providers: ScriptGenerationLLMProviderMetrics[];
 }
 
+export interface ScriptGenerationRuntimeEvent {
+  seq: number;
+  kind: string;
+  title: string;
+  detail?: string;
+  status: "info" | "success" | "warning" | "error";
+  progress: number;
+  createdAt: string;
+  stage?: string;
+  stageLabel?: string;
+  source?: string;
+  provider?: string;
+  model?: string;
+  segmentId?: string;
+  attempt?: number;
+  retriesUsed?: number;
+  retryable?: boolean;
+  latencyMs?: number;
+  waitMs?: number;
+}
+
 export interface AgentRuntimeMetadata {
   workflowRunId: string;
   workflowId?: string;

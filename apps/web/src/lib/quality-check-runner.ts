@@ -4,9 +4,7 @@
 // pos: 任务执行器
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@/lib/prisma";
-import {
-  updateProcessingTaskProgress as updateTaskProgress,
-} from "@/lib/processing-task-utils";
+import { jsonObject } from "@/lib/processing-task-utils";
 import {
   extractQ0Q3RawSignals,
   resolveQ0Q3SignalSources,
@@ -32,6 +30,7 @@ import {
   evaluateFastGate,
   resolveReprocessingStatusFromVerdict,
 } from "@/lib/quality-check/fast-gate";
+import { createQualityTaskRuntimeUpdater } from "@/lib/quality-check/runtime-progress";
 import type {
   FastGateInput,
   FastGateVerdict,
@@ -86,12 +85,22 @@ export async function runQualityCheckTask({
   });
   const taskContext = extractQualityCheckTaskContext(taskSnapshot?.taskData);
   const isCalibrationEval = taskContext.calibrationEval.enabled;
-
-  await updateTaskProgress(
+  const runtimeUpdater = createQualityTaskRuntimeUpdater({
     taskId,
-    10,
-    isCalibrationEval ? "准备执行 Deep Gate 校准回放" : "准备执行 Fast/Deep Gate 质检"
-  );
+    metadata: jsonObject(
+      ((taskSnapshot?.taskData as Record<string, unknown> | null)?.metadata as any) || {}
+    ),
+  });
+
+  await runtimeUpdater.setStage({
+    progress: 10,
+    message:
+      isCalibrationEval ? "准备执行 Deep Gate 校准回放" : "准备执行 Fast/Deep Gate 质检",
+    title:
+      isCalibrationEval ? "准备执行 Deep Gate 校准回放" : "准备执行 Fast/Deep Gate 质检",
+    detail: "初始化质检任务上下文",
+    stage: "prepare",
+  });
 
   const where = buildQualityWhere({
     bookId,
@@ -167,7 +176,13 @@ export async function runQualityCheckTask({
     taskMetadata: taskContext.taskMetadata,
     bookMetadata: book?.metadata,
   });
-  await updateTaskProgress(taskId, 20, "开始逐句执行 Fast/Deep Gate 质检");
+  await runtimeUpdater.setStage({
+    progress: 20,
+    message: "开始逐句执行 Fast/Deep Gate 质检",
+    title: "开始逐句执行 Fast/Deep Gate 质检",
+    detail: signalSyncTaskId ? "已完成前置信号同步" : "直接进入质检阶段",
+    stage: "quality_check",
+  });
   const processingState: QualityCheckProcessingState =
     await processQualityCheckAudioFiles({
       taskId,
@@ -179,6 +194,9 @@ export async function runQualityCheckTask({
       modelRuntime: modelRuntimeResolution.runtime,
       modelRuntimeSource: modelRuntimeResolution.source,
       isCalibrationEval,
+      onProgress: async (payload) => {
+        await runtimeUpdater.recordProcessedItem(payload);
+      },
     });
 
   if (processingState.checked === 0) {
@@ -190,11 +208,13 @@ export async function runQualityCheckTask({
     template: thresholdResolution.template,
   });
 
-  await updateTaskProgress(
-    taskId,
-    92,
-    isCalibrationEval ? "整理校准回放结果" : "写入章节一致性审计"
-  );
+  await runtimeUpdater.setStage({
+    progress: 92,
+    message: isCalibrationEval ? "整理校准回放结果" : "写入章节一致性审计",
+    title: isCalibrationEval ? "整理校准回放结果" : "写入章节一致性审计",
+    detail: isCalibrationEval ? "准备输出校准回放摘要" : "准备写回章节质检审计",
+    stage: "finalize",
+  });
 
   const {
     chapterAuditCount,
@@ -241,5 +261,6 @@ export async function runQualityCheckTask({
       continuityModelUsedCount: processingState.continuityModelUsedCount,
       fallbackCount: processingState.deepGateModelFallbackCount,
     },
+    runtimeMetadata: runtimeUpdater.getMetadata(),
   });
 }

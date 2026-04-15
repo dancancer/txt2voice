@@ -44,7 +44,26 @@ jest.mock("@/app/books/[id]/studio/script/components", () => ({
   DocumentTree: () => <div>DocumentTree</div>,
   ChapterSegmentsTable: () => <div>ChapterSegmentsTable</div>,
   EditSentenceModal: () => null,
-  GenerationProgress: () => null,
+  GenerationProgress: ({
+    generationStatus,
+    generationProgress,
+    generationEvents,
+  }: {
+    generationStatus: string;
+    generationProgress: number;
+    generationEvents?: Array<{ title: string; detail?: string }>;
+  }) => (
+    <div data-testid="generation-progress">
+      <span>{generationStatus}</span>
+      <span>{generationProgress}</span>
+      <span>{(generationEvents || []).map((event) => event.title).join("|")}</span>
+      <span>
+        {(generationEvents || [])
+          .map((event) => event.detail || "")
+          .join("|")}
+      </span>
+    </div>
+  ),
   IncrementalProcessingModal: () => null,
   RegenerateSegmentsModal: () => null,
   ScriptPreviewModal: () => null,
@@ -138,14 +157,35 @@ jest.mock(
 );
 
 class MockEventSource {
+  static instances: MockEventSource[] = [];
   url: string;
   onmessage: ((event: MessageEvent) => void) | null = null;
+  listeners = new Map<string, Array<(event: MessageEvent) => void>>();
 
   constructor(url: string) {
     this.url = url;
+    MockEventSource.instances.push(this);
   }
 
-  addEventListener() {}
+  addEventListener(type: string, listener: (event: MessageEvent) => void) {
+    const queue = this.listeners.get(type) || [];
+    queue.push(listener);
+    this.listeners.set(type, queue);
+  }
+
+  emit(type: string, data: Record<string, unknown>) {
+    const event = {
+      data: JSON.stringify(data),
+    } as MessageEvent;
+
+    if (type === "message" && this.onmessage) {
+      this.onmessage(event);
+    }
+
+    for (const listener of this.listeners.get(type) || []) {
+      listener(event);
+    }
+  }
 
   close() {}
 }
@@ -174,6 +214,7 @@ describe("script studio model switching", () => {
   const originalEventSource = global.EventSource;
 
   beforeEach(() => {
+    MockEventSource.instances = [];
     global.EventSource = MockEventSource as any;
     global.fetch = jest
       .fn()
@@ -261,6 +302,54 @@ describe("script studio model switching", () => {
     const requestBody = JSON.parse(secondCall[1].body as string);
 
     expect(requestBody.options.llmModelId).toBe("qwen-local");
+
+    await unmount(root, container);
+  });
+
+  it("renders runtime events pushed from the script generation stream", async () => {
+    const { container, root } = await mount(<ScriptStudioPageContainer />);
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    const button = Array.from(container.querySelectorAll("button")).find(
+      (item) => item.textContent === "全书台本生成"
+    ) as HTMLButtonElement | undefined;
+    expect(button).toBeDefined();
+
+    await act(async () => {
+      button!.click();
+      await Promise.resolve();
+    });
+
+    const stream = MockEventSource.instances[0];
+    expect(stream).toBeDefined();
+
+    await act(async () => {
+      stream.emit("runtime_event", {
+        seq: 1,
+        kind: "llm_completed",
+        title: "LLM 调用完成",
+        detail: "segment_scripting · custom/deepseek-chat · 120ms",
+        status: "success",
+        createdAt: "2026-03-22T10:00:30.000Z",
+        progress: 46,
+      });
+      stream.emit("task_snapshot", {
+        status: "processing",
+        progress: 46,
+        message: "第 1/1 段台本生成中",
+      });
+      await Promise.resolve();
+    });
+
+    expect(container.textContent).toContain("第 1/1 段台本生成中");
+    expect(container.textContent).toContain("46");
+    expect(container.textContent).toContain("LLM 调用完成");
+    expect(container.textContent).toContain(
+      "segment_scripting · custom/deepseek-chat · 120ms"
+    );
 
     await unmount(root, container);
   });

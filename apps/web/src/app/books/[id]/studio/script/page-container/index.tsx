@@ -68,6 +68,7 @@ export function ScriptStudioPageContainer() {
     isGenerating,
     generationProgress,
     generationStatus,
+    generationEvents,
     showIncrementalOptions,
     setShowIncrementalOptions,
     llmModels,
@@ -185,12 +186,13 @@ export function ScriptStudioPageContainer() {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-background">
-      {isGenerating && (
+      {(isGenerating || generationStatus || generationEvents.length > 0) && (
         <div className="flex-shrink-0">
           <GenerationProgress
             isGenerating={isGenerating}
             generationStatus={generationStatus}
             generationProgress={generationProgress}
+            generationEvents={generationEvents}
             onShowPreview={() => setShowScriptPreview(true)}
           />
         </div>

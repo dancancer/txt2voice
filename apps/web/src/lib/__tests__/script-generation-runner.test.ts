@@ -191,7 +191,9 @@ describe("script-generation-runner", () => {
         provider: "openai",
         model: "gpt-4.1-mini",
         status: "submitted",
-        prompt: "prompt",
+        stageId: "segment_scripting",
+        source: "agent_runtime.segment_scripting",
+        segmentId: input.segmentIds?.[0] || "seg-1",
         attempt: 1,
       });
       const result =
@@ -235,7 +237,9 @@ describe("script-generation-runner", () => {
         provider: "openai",
         model: "gpt-4.1-mini",
         status: "completed",
-        prompt: "prompt",
+        stageId: "segment_scripting",
+        source: "agent_runtime.segment_scripting",
+        segmentId: input.segmentIds?.[0] || "seg-1",
         latencyMs: 120,
         waitMs: 30,
         attempt: 2,
@@ -1058,5 +1062,74 @@ describe("script-generation-runner", () => {
         }),
       })
     );
+  });
+
+  it("should persist recent runtime events and last runtime event into task metadata", async () => {
+    mockRunScriptProductionWorkflow.mockImplementationOnce(async (input: any) => {
+      input.onExecutionEvent?.({
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        status: "submitted",
+        stageId: "segment_scripting",
+        source: "agent_runtime.segment_scripting",
+        segmentId: "seg-1",
+        attempt: 1,
+      });
+      input.onExecutionEvent?.({
+        provider: "openai",
+        model: "gpt-4.1-mini",
+        status: "completed",
+        stageId: "segment_scripting",
+        source: "agent_runtime.segment_scripting",
+        segmentId: "seg-1",
+        latencyMs: 120,
+        waitMs: 30,
+        attempt: 1,
+        retriesUsed: 0,
+        content: "{\"lines\":[]}",
+      });
+      return {
+        ...createSuccessfulScript(),
+        runtimeMetadata: createRuntimeMetadata(),
+      } as any;
+    });
+
+    await runScriptGenerationTask({
+      taskId: "task-runtime-events",
+      bookId: "book-1",
+      options: {},
+    });
+
+    expect(mockPrisma.processingTask.update).toHaveBeenCalledWith({
+      where: { id: "task-runtime-events" },
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            currentStage: "completed",
+            lastRuntimeEvent: expect.objectContaining({
+              kind: "task_stage",
+              title: "台本生成完成",
+              progress: 100,
+            }),
+            recentRuntimeEvents: expect.arrayContaining([
+              expect.objectContaining({
+                kind: "llm_submitted",
+                stage: "segment_scripting",
+                provider: "openai",
+                model: "gpt-4.1-mini",
+                segmentId: "seg-1",
+              }),
+              expect.objectContaining({
+                kind: "llm_completed",
+                stage: "segment_scripting",
+                provider: "openai",
+                model: "gpt-4.1-mini",
+                segmentId: "seg-1",
+              }),
+            ]),
+          }),
+        }),
+      }),
+    });
   });
 });

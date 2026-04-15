@@ -178,4 +178,49 @@ describe("quality-check-runner signal sync integration", () => {
     expect(mockCreateTask).not.toHaveBeenCalled();
     expect(mockSignalSyncRunner).not.toHaveBeenCalled();
   });
+
+  it("should persist recent runtime events for quality check task metadata", async () => {
+    mockFindTask.mockResolvedValueOnce({
+      taskData: {
+        metadata: {
+          type: "batch",
+          source: "upload_api",
+          audioFileIds: ["audio-1"],
+          syncSignalsBeforeRun: false,
+        },
+      },
+    });
+
+    await runQualityCheckTask({
+      taskId: "qc-task-runtime-events",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-1"],
+    });
+
+    const taskUpdateCalls = ((prisma as any).processingTask.update as jest.Mock).mock.calls;
+    const lastCall = taskUpdateCalls[taskUpdateCalls.length - 1];
+    expect(lastCall).toBeDefined();
+    expect(lastCall?.[0]).toMatchObject({
+      where: { id: "qc-task-runtime-events" },
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            currentStage: "completed",
+            lastRuntimeEvent: expect.objectContaining({
+              kind: "task_stage",
+              title: expect.stringContaining("质检完成"),
+              progress: 100,
+            }),
+            recentRuntimeEvents: expect.arrayContaining([
+              expect.objectContaining({
+                kind: "quality_item_processed",
+                title: "质检条目完成",
+              }),
+            ]),
+          }),
+        }),
+      }),
+    });
+  });
 });

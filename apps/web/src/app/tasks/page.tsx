@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   getTaskChildJobSummaries,
+  getTaskRecentRuntimeEvents,
   getTaskStatusMeta,
   getTaskTypeLabel,
   type ProcessingTaskStatus,
@@ -256,6 +257,9 @@ export default function TasksPage() {
               const canRetry = task.status === "failed";
               const statusMeta = getTaskStatusMeta(task.status);
               const childJobSummaries = getTaskChildJobSummaries(task.metadata);
+              const recentRuntimeEvents = getTaskRecentRuntimeEvents(task.metadata)
+                .slice()
+                .reverse();
               return (
                 <Card key={task.id} className="shadow-sm">
                   <CardContent className="space-y-4 p-4 !pt-4 sm:p-5 sm:!pt-5">
@@ -327,6 +331,27 @@ export default function TasksPage() {
                     {childJobSummaries.length > 0 ? (
                       <div className="space-y-2">
                         {childJobSummaries.map((summary) => renderChildJobSummary(summary))}
+                      </div>
+                    ) : null}
+
+                    {recentRuntimeEvents.length > 0 ? (
+                      <div className="rounded-md border border-border bg-muted/40 px-3 py-3">
+                        <p className="text-sm font-medium text-foreground">最近进展</p>
+                        <div className="mt-2 space-y-2">
+                          {recentRuntimeEvents.map((event) => (
+                            <div
+                              key={`${task.id}-${event.seq}`}
+                              className="rounded-md border border-border/60 bg-background/80 px-3 py-2"
+                            >
+                              <p className="text-sm text-foreground">{event.title}</p>
+                              {event.detail ? (
+                                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                                  {event.detail}
+                                </p>
+                              ) : null}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ) : null}
 

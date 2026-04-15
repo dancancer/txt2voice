@@ -6,6 +6,7 @@ import {
 
 import {
   type AudioBatchGenerationSummary,
+  type AudioBatchGenerationHooks,
   type AudioGenerationOptions,
   type AudioGenerationRequest,
   type AudioGenerationResult,
@@ -120,6 +121,7 @@ export async function generateBatchAudioWithReliability(params: {
   requests: AudioGenerationRequest[];
   options: AudioGenerationOptions;
   defaultOptions: AudioGenerationOptions;
+  hooks?: AudioBatchGenerationHooks;
   generateSingleAudio: (
     request: AudioGenerationRequest,
     options: AudioGenerationOptions
@@ -189,6 +191,11 @@ export async function generateBatchAudioWithReliability(params: {
       concurrency: pass.concurrency,
       durationMs: Date.now() - passStartedAt,
     });
+
+    const latestPassSummary = passSummaries[passSummaries.length - 1];
+    if (latestPassSummary) {
+      await params.hooks?.onPassComplete?.(latestPassSummary);
+    }
 
     pass = buildNextAudioRetryPass({
       provider: finalOptions.provider,

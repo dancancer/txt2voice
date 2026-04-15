@@ -2,6 +2,11 @@
 // input: 函数参数/外部依赖
 // output: 任务视图模型
 // pos: 共享业务库
+import {
+  normalizeScriptGenerationRuntimeEvents,
+  type ScriptGenerationRuntimeEvent,
+} from "@/lib/script-generation/runner/runtime-events";
+
 export type ProcessingTaskStatus = "pending" | "processing" | "completed" | "failed";
 
 export type TaskStatusMeta = {
@@ -205,4 +210,15 @@ export const getTaskChildJobSummaries = (
   ].filter((entry): entry is TaskChildJobSummary => Boolean(entry));
 
   return summaries;
+};
+
+export const getTaskRecentRuntimeEvents = (
+  metadata: unknown
+): ScriptGenerationRuntimeEvent[] => {
+  const record = asRecord(metadata);
+  if (!record) {
+    return [];
+  }
+
+  return normalizeScriptGenerationRuntimeEvents(record.recentRuntimeEvents).slice(-5);
 };

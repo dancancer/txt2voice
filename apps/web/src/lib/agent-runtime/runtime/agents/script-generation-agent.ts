@@ -237,6 +237,7 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
       metadata: {
         source: "agent_runtime.segment_scripting",
         stageId: "segment_scripting",
+        segmentId: input.segmentId,
       },
     });
 

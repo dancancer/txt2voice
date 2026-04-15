@@ -57,6 +57,14 @@ export const createObservedAdapter = (params: {
       status: "submitted",
       provider: input.provider?.name || "unknown",
       model: input.provider?.model || "unknown",
+      source:
+        typeof input.metadata?.source === "string" ? input.metadata.source : undefined,
+      stageId:
+        typeof input.metadata?.stageId === "string" ? input.metadata.stageId : undefined,
+      segmentId:
+        typeof input.metadata?.segmentId === "string"
+          ? input.metadata.segmentId
+          : undefined,
     });
     await appendAdapterTrace({
       trace: params.trace,
@@ -77,6 +85,14 @@ export const createObservedAdapter = (params: {
         content: result.content,
         provider: result.provider,
         model: result.model,
+        source:
+          typeof input.metadata?.source === "string" ? input.metadata.source : undefined,
+        stageId:
+          typeof input.metadata?.stageId === "string" ? input.metadata.stageId : undefined,
+        segmentId:
+          typeof input.metadata?.segmentId === "string"
+            ? input.metadata.segmentId
+            : undefined,
         latencyMs: result.latencyMs,
         attempt: result.attempt,
         usage: result.usage,
@@ -118,10 +134,19 @@ export const createObservedAdapter = (params: {
           error instanceof TTSError
             ? error.provider
             : input.provider?.name || "unknown",
+        model: input.provider?.model || "unknown",
         retryable: error instanceof TTSError ? error.retryable : true,
         attempt,
         retriesUsed,
         message: asErrorMessage(error),
+        source:
+          typeof input.metadata?.source === "string" ? input.metadata.source : undefined,
+        stageId:
+          typeof input.metadata?.stageId === "string" ? input.metadata.stageId : undefined,
+        segmentId:
+          typeof input.metadata?.segmentId === "string"
+            ? input.metadata.segmentId
+            : undefined,
       });
       throw error;
     }

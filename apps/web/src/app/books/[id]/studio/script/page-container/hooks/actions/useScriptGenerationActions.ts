@@ -6,6 +6,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  normalizeScriptGenerationRuntimeEvent,
+  type ScriptGenerationRuntimeEvent,
+} from "@/lib/script-generation/runner/runtime-events";
 import type { SegmentStatus } from "../../../components";
 import type { ConfirmDialogConfig } from "../useConfirmDialog";
 
@@ -35,6 +39,9 @@ export function useScriptGenerationActions({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStatus, setGenerationStatus] = useState("");
+  const [generationEvents, setGenerationEvents] = useState<
+    ScriptGenerationRuntimeEvent[]
+  >([]);
 
   const [showIncrementalOptions, setShowIncrementalOptions] = useState(false);
   const [selectedStartSegment, setSelectedStartSegment] = useState<string | null>(null);
@@ -129,6 +136,7 @@ export function useScriptGenerationActions({
     ) => {
       closeProgressStream();
       setGenerationProgress(0);
+      setGenerationEvents([]);
 
       let finished = false;
       const stream = new EventSource(
@@ -170,7 +178,7 @@ export function useScriptGenerationActions({
         toast.error(errorMessage || fallbackFailure);
       };
 
-      stream.onmessage = (event) => {
+      const handleTaskSnapshot = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
 
@@ -191,6 +199,37 @@ export function useScriptGenerationActions({
           console.error("Failed to parse script progress event:", error);
         }
       };
+
+      const handleRuntimeEvent = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          const runtimeEvent = normalizeScriptGenerationRuntimeEvent(data);
+          if (!runtimeEvent) {
+            return;
+          }
+
+          setGenerationEvents((current) => {
+            if (current.some((item) => item.seq === runtimeEvent.seq)) {
+              return current;
+            }
+
+            return [...current, runtimeEvent].slice(-20);
+          });
+
+          if (runtimeEvent.progress > 0) {
+            setGenerationProgress(runtimeEvent.progress);
+          }
+          if (runtimeEvent.title) {
+            setGenerationStatus(runtimeEvent.title);
+          }
+        } catch (error) {
+          console.error("Failed to parse script runtime event:", error);
+        }
+      };
+
+      stream.onmessage = handleTaskSnapshot;
+      stream.addEventListener("task_snapshot", handleTaskSnapshot as EventListener);
+      stream.addEventListener("runtime_event", handleRuntimeEvent as EventListener);
 
       stream.addEventListener("error", () => {
         if (finished) {
@@ -416,6 +455,7 @@ export function useScriptGenerationActions({
     isGenerating,
     generationProgress,
     generationStatus,
+    generationEvents,
     showIncrementalOptions,
     setShowIncrementalOptions,
     llmModels,

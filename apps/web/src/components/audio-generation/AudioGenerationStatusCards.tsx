@@ -30,6 +30,7 @@ export function GenerationStatusCard({
   isGenerating,
   onGoPlay,
 }: GenerationStatusProps) {
+  const recentRuntimeEvents = (state.recentRuntimeEvents || []).slice().reverse();
   const icon = isGenerating ? (
     <Loader2 className="h-6 w-6 animate-spin text-primary" />
   ) : state.status === "failed" ? (
@@ -43,22 +44,48 @@ export function GenerationStatusCard({
   return (
     <Card className="mb-6">
       <CardContent className="p-6 !pt-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-          <div className="shrink-0">{icon}</div>
-          <div className="flex-1 w-full">
-            <p className="font-medium text-foreground">{state.message || "音频生成状态"}</p>
-            {(isGenerating ||
-              state.status === "processing" ||
-              state.status === "in_progress") && (
-              <Progress value={state.progress} className="mt-2" />
+        <div className="space-y-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="shrink-0">{icon}</div>
+            <div className="flex-1 w-full">
+              <p className="font-medium text-foreground">{state.message || "音频生成状态"}</p>
+              {(isGenerating ||
+                state.status === "processing" ||
+                state.status === "in_progress") && (
+                <Progress value={state.progress} className="mt-2" />
+              )}
+            </div>
+            {!isGenerating && state.status === "completed" && onGoPlay && (
+              <Button onClick={onGoPlay} size="sm" className="min-h-11 sm:w-auto">
+                <Play className="mr-2 h-4 w-4" />
+                立即播放
+              </Button>
             )}
           </div>
-          {!isGenerating && state.status === "completed" && onGoPlay && (
-            <Button onClick={onGoPlay} size="sm" className="min-h-11 sm:w-auto">
-              <Play className="mr-2 h-4 w-4" />
-              立即播放
-            </Button>
-          )}
+
+          {recentRuntimeEvents.length > 0 ? (
+            <div className="rounded-lg border border-border bg-muted/40 p-3">
+              <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                <span>最近进展</span>
+                <span>{recentRuntimeEvents.length} 条事件</span>
+              </div>
+              <div className="space-y-2">
+                {recentRuntimeEvents.map((event) => (
+                  <div
+                    key={event.seq}
+                    className="rounded-md border border-border/60 bg-background/80 px-3 py-2"
+                  >
+                    <p className="text-sm text-foreground">{event.title}</p>
+                    {event.detail ? (
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {event.detail}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>

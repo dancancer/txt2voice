@@ -224,6 +224,7 @@ export const createQualityJudgeAgent = (deps: QualityJudgeAgentDeps) => ({
       metadata: {
         source: "agent_runtime.quality_judgement",
         stageId: "quality_judgement",
+        segmentId: input.segmentId,
       },
     });
 

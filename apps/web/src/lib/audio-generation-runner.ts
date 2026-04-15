@@ -4,33 +4,24 @@
 // pos: 任务执行入口
 import { getAudioGenerator } from "@/lib/audio-generator";
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
+import type { AudioReliabilityPassSummary } from "@/lib/audio-generation/types";
 import prisma from "@/lib/prisma";
 import {
   jsonObject,
   mergeTaskData,
-  updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
-import {
-  enqueueManualReviewBatchFollowupQualityCheck,
-  enqueueManualReviewFollowupQualityCheck,
-  enqueueQcRetryFollowupQualityCheck,
-} from "@/lib/audio-generation/runner/followup-quality-check";
-import {
-  collectFailedBatchSentenceIds,
-  rejectManualReviewReprocessingItem,
-  rejectQcRetryReprocessingItems,
-  rejectQcRetryReprocessingItemsBySentenceIds,
-} from "@/lib/audio-generation/runner/reprocessing";
 import {
   extractManualReviewBatchTaskContext,
   extractManualReviewTaskContext,
   extractQcRetryTaskContext,
 } from "@/lib/audio-generation/runner/task-context";
+import { finalizeAudioGenerationTask } from "@/lib/audio-generation/runner/finalize-task";
 import {
   extractRouterDecisionField,
   summarizeAudioChildJobs,
   summarizeRouterDecisions,
 } from "@/lib/audio-generation/runner/summaries";
+import { createAudioTaskRuntimeUpdater } from "@/lib/audio-generation/runner/runtime-progress";
 import { executeAudioGeneration } from "@/lib/audio-generation/runner/execute";
 import type {
   AudioGenerationRunParams,
@@ -65,8 +56,20 @@ export async function runAudioGenerationTask({
     taskSnapshot?.taskData
   );
   const qcRetryContext = extractQcRetryTaskContext(taskSnapshot?.taskData);
+  const runtimeUpdater = createAudioTaskRuntimeUpdater({
+    taskId,
+    metadata: jsonObject(
+      ((taskSnapshot?.taskData as Record<string, unknown> | null)?.metadata as any) || {}
+    ),
+  });
 
-  await updateTaskProgress(taskId, 10, "准备生成音频");
+  await runtimeUpdater.setStage({
+    progress: 10,
+    message: "准备生成音频",
+    title: "准备生成音频",
+    detail: "初始化音频生成上下文",
+    stage: "prepare",
+  });
 
   const startMessage =
     type === "book"
@@ -76,7 +79,13 @@ export async function runAudioGenerationTask({
         : type === "batch"
           ? "开始批量生成音频"
           : "开始生成单个音频";
-  await updateTaskProgress(taskId, 20, startMessage);
+  await runtimeUpdater.setStage({
+    progress: 20,
+    message: startMessage,
+    title: startMessage,
+    detail: "开始执行批量音频生成",
+    stage: "audio_generation",
+  });
 
   const { results, totalSentences, audioReliability } = await executeAudioGeneration({
     audioGenerator,
@@ -86,9 +95,32 @@ export async function runAudioGenerationTask({
     scriptSentenceIds,
     voiceProfileId,
     options,
+    hooks: {
+      onPassComplete: async (summary: AudioReliabilityPassSummary) => {
+        const progress = Math.min(
+          75,
+          25 +
+            Math.round(
+              ((summary.successCount + summary.failedCount) /
+                Math.max(summary.requestCount, 1)) *
+                45
+            )
+        );
+        await runtimeUpdater.recordBatchPass({
+          ...summary,
+          progress,
+        });
+      },
+    },
   });
 
-  await updateTaskProgress(taskId, 80, "统计生成结果");
+  await runtimeUpdater.setStage({
+    progress: 80,
+    message: "统计生成结果",
+    title: "统计生成结果",
+    detail: `成功 ${results.filter((r) => r.success).length} · 失败 ${results.filter((r) => !r.success).length}`,
+    stage: "finalize",
+  });
 
   const successCount = results.filter((r) => r.success).length;
   const failedCount = results.filter((r) => !r.success).length;
@@ -100,7 +132,13 @@ export async function runAudioGenerationTask({
 
   let mergeResult = null;
   if (autoMerge && successCount > 0) {
-    await updateTaskProgress(taskId, 85, "正在合并音频文件");
+    await runtimeUpdater.setStage({
+      progress: 85,
+      message: "正在合并音频文件",
+      title: "正在合并音频文件",
+      detail: "批量音频生成完成，进入合并阶段",
+      stage: "audio_merge",
+    });
 
     const { getAudioMerger } = await import("@/lib/audio-merger");
     const audioMerger = getAudioMerger();
@@ -128,13 +166,21 @@ export async function runAudioGenerationTask({
     }),
   ]);
 
-  await updateTaskProgress(taskId, 100, "音频生成完成");
+  await runtimeUpdater.setStage({
+    progress: 100,
+    message: "音频生成完成",
+    title: "音频生成完成",
+    detail: `成功 ${successCount} · 失败 ${failedCount}`,
+    stage: "completed",
+    status: failedCount > 0 ? "warning" : "success",
+  });
 
   const message = `音频生成完成，成功 ${successCount} 个，失败 ${failedCount} 个${mergeResult?.success ? "，已合并音频" : ""}`;
 
   const taskData = await mergeTaskData(taskId, {
     message,
     metadata: {
+      ...runtimeUpdater.getMetadata(),
       type,
       chapterId,
       voiceProfileId,
@@ -171,230 +217,21 @@ export async function runAudioGenerationTask({
     results.reduce((sum, result) => sum + (result.duration || 0), 0).toFixed(2)
   );
 
-  if (successCount === 0) {
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        status: "failed",
-        completedAt: new Date(),
-        errorMessage: "音频生成失败：全部句子生成失败",
-        taskData,
-      },
-    });
-
-    await prisma.book.update({
-      where: { id: bookId },
-      data: {
-        status: "script_generated",
-        metadata: {
-          ...jsonObject(book?.metadata),
-          audioGenerationFailedAt: new Date().toISOString(),
-          audioGenerationFailedCount: failedCount,
-        },
-      },
-    });
-
-    if (manualReviewContext) {
-      await rejectManualReviewReprocessingItem({
-        bookId,
-        manualReviewItemId: manualReviewContext.manualReviewItemId,
-        resolutionType: "regenerate_failed",
-        note: `auto_reject:音频重生失败:task=${taskId}`,
-      });
-    }
-
-    if (qcRetryContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: qcRetryContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:qc_retry音频返工失败:task=${taskId}`,
-      });
-    }
-
-    if (manualReviewBatchContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:manual_review_batch音频重生失败:task=${taskId}`,
-      });
-    }
-    return;
-  }
-
-  const bookStatus = failedCount === 0 ? "completed" : "completed_with_errors";
-
-  await prisma.processingTask.update({
-    where: { id: taskId },
-    data: {
-      status: "completed",
-      completedAt: new Date(),
-      taskData,
-    },
-  });
-
-  await prisma.book.update({
-    where: { id: bookId },
-    data: {
-      status: bookStatus,
-      metadata: {
-        ...jsonObject(book?.metadata),
-        audioGenerationCompletedAt: new Date().toISOString(),
-        audioGenerationStatus: bookStatus,
-        totalAudioFiles,
-        totalAudioDuration: generatedDuration,
-        lastAudioFailureCount: failedCount,
-      },
-    },
-  });
-
-  if (!manualReviewContext && !manualReviewBatchContext && !qcRetryContext) {
-    return;
-  }
-
-  const failedBatchSentenceIds = collectFailedBatchSentenceIds({
+  await finalizeAudioGenerationTask({
+    bookId,
+    taskId,
     type,
+    chapterId,
     scriptSentenceIds,
     results,
+    successCount,
+    failedCount,
+    totalAudioFiles,
+    generatedDuration,
+    taskData,
+    bookMetadata: book?.metadata,
+    manualReviewContext,
+    manualReviewBatchContext,
+    qcRetryContext,
   });
-
-  if (failedBatchSentenceIds.length > 0) {
-    if (qcRetryContext) {
-      await rejectQcRetryReprocessingItemsBySentenceIds({
-        bookId,
-        reviewItemIds: qcRetryContext.selectedReviewItemIds,
-        sentenceIds: failedBatchSentenceIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:qc_retry部分返工失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
-      });
-    }
-
-    if (manualReviewBatchContext) {
-      await rejectQcRetryReprocessingItemsBySentenceIds({
-        bookId,
-        reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-        sentenceIds: failedBatchSentenceIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:manual_review_batch部分重生失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
-      });
-    }
-  }
-
-  const generatedAudioFileIds = Array.from(
-    new Set(
-      results
-        .filter((result) => result.success && typeof result.audioFileId === "string")
-      .map((result) => result.audioFileId as string)
-    )
-  );
-
-  if (generatedAudioFileIds.length === 0) {
-    if (manualReviewContext) {
-      await rejectManualReviewReprocessingItem({
-        bookId,
-        manualReviewItemId: manualReviewContext.manualReviewItemId,
-        resolutionType: "regenerate_missing_audio_ref",
-        note: `auto_reject:重生无有效音频引用:task=${taskId}`,
-      });
-    }
-    if (qcRetryContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: qcRetryContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_missing_audio_ref",
-        note: `auto_reject:qc_retry重生无有效音频引用:task=${taskId}`,
-      });
-    }
-    if (manualReviewBatchContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_missing_audio_ref",
-        note: `auto_reject:manual_review_batch重生无有效音频引用:task=${taskId}`,
-      });
-    }
-    return;
-  }
-
-  if (manualReviewContext) {
-    const followupQc = await enqueueManualReviewFollowupQualityCheck({
-      bookId,
-      audioTaskId: taskId,
-      manualReviewItemId: manualReviewContext.manualReviewItemId,
-      audioFileIds: generatedAudioFileIds,
-    });
-
-    const taskDataWithFollowup = await mergeTaskData(taskId, {
-      metadata: {
-        manualReviewFollowup: {
-          qualityTaskId: followupQc.taskId,
-          qualityTaskStatus: followupQc.status,
-          qualityTaskError: followupQc.error || null,
-        },
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        taskData: taskDataWithFollowup,
-      },
-    });
-  }
-
-  if (qcRetryContext) {
-    const followupQc = await enqueueQcRetryFollowupQualityCheck({
-      bookId,
-      audioTaskId: taskId,
-      reviewItemIds: qcRetryContext.selectedReviewItemIds,
-      audioFileIds: generatedAudioFileIds,
-      dispatchPolicy: qcRetryContext.dispatchPolicy,
-    });
-
-    const taskDataWithFollowup = await mergeTaskData(taskId, {
-      metadata: {
-        qcRetryFollowup: {
-          qualityTaskId: followupQc.taskId,
-          qualityTaskStatus: followupQc.status,
-          qualityTaskError: followupQc.error || null,
-          targetReviewItemCount: qcRetryContext.selectedReviewItemIds.length,
-        },
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        taskData: taskDataWithFollowup,
-      },
-    });
-  }
-
-  if (manualReviewBatchContext) {
-    const followupQc = await enqueueManualReviewBatchFollowupQualityCheck({
-      bookId,
-      audioTaskId: taskId,
-      reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-      audioFileIds: generatedAudioFileIds,
-    });
-
-    const taskDataWithFollowup = await mergeTaskData(taskId, {
-      metadata: {
-        manualReviewBatchFollowup: {
-          qualityTaskId: followupQc.taskId,
-          qualityTaskStatus: followupQc.status,
-          qualityTaskError: followupQc.error || null,
-          targetReviewItemCount: manualReviewBatchContext.selectedReviewItemIds.length,
-        },
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        taskData: taskDataWithFollowup,
-      },
-    });
-  }
 }

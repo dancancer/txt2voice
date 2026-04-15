@@ -275,6 +275,7 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
       metadata: {
         source: "agent_runtime.segment_repair",
         stageId: "segment_repair",
+        segmentId: input.segmentId,
         failureCategory: input.failureKind ?? "format_repair",
       },
     });

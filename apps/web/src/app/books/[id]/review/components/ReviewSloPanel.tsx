@@ -232,6 +232,22 @@ export function SloPanel({
                   <p className="mt-1">
                     checked {sloMetrics.latestQualityTask?.checked ?? 0}
                   </p>
+                  {sloMetrics.latestQualityTask?.recentRuntimeEvents?.length ? (
+                    <div className="mt-2 space-y-1">
+                      {sloMetrics.latestQualityTask.recentRuntimeEvents
+                        .slice()
+                        .reverse()
+                        .map((event) => (
+                          <div
+                            key={`${sloMetrics.latestQualityTask?.taskId}-${event.seq}`}
+                            className="rounded border border-border/60 bg-background/80 px-2 py-1 text-[11px] leading-5 text-muted-foreground"
+                          >
+                            <span className="text-foreground">{event.title}</span>
+                            {event.detail ? ` · ${event.detail}` : ""}
+                          </div>
+                        ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
 

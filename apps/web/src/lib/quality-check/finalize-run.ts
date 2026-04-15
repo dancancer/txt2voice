@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@/lib/prisma";
 import { jsonObject, mergeTaskData } from "@/lib/processing-task-utils";
+import { buildTaskStageRuntimeEvent } from "@/lib/script-generation/runner/runtime-events";
 import { readGovernanceState } from "@/lib/deep-gate-calibration-governance/parsers";
 import type { QualityCheckTaskContext } from "@/lib/quality-check/task-context";
 import type { QualityCheckTaskType } from "@/lib/quality-check/shared-types";
@@ -89,6 +90,7 @@ export const finalizeQualityCheckRun = async ({
   chapterAuditRepairCount,
   chapterAuditManualReviewCount,
   deepGateModelRuntime,
+  runtimeMetadata,
 }: {
   taskId: string;
   bookId: string;
@@ -110,6 +112,7 @@ export const finalizeQualityCheckRun = async ({
   chapterAuditRepairCount: number;
   chapterAuditManualReviewCount: number;
   deepGateModelRuntime: Record<string, unknown>;
+  runtimeMetadata?: Record<string, unknown>;
 }): Promise<void> => {
   const isCalibrationEval = taskContext.calibrationEval.enabled;
   const checked = processingState.checked;
@@ -225,9 +228,24 @@ export const finalizeQualityCheckRun = async ({
   const message = isCalibrationEval
     ? `校准回放完成：检查 ${checked} 条，精确匹配 ${processingState.calibrationEvalExactMatchCount}/${processingState.calibrationEvalLabeledCount}`
     : `质检完成：通过 ${processingState.passCount}，返工 ${processingState.repairCount}，人工复核 ${processingState.manualReviewCount}，章节审计 ${chapterAuditCount}`;
+  const completedRuntimeMetadata = runtimeMetadata
+    ? buildTaskStageRuntimeEvent({
+        metadata: runtimeMetadata,
+        title: message,
+        detail: "质检任务完成并已写回结果",
+        progress: 100,
+        stage: "completed",
+        status:
+          processingState.manualReviewCount > 0 || processingState.hardFailCount > 0
+            ? "warning"
+            : "success",
+      }).metadata
+    : undefined;
+
   const taskData = await mergeTaskData(taskId, {
     message,
     metadata: {
+      ...(completedRuntimeMetadata || runtimeMetadata || {}),
       ...summary,
       stage: "completed",
       completedAt: new Date().toISOString(),
