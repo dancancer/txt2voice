@@ -374,14 +374,15 @@ describe("runScriptProductionWorkflow", () => {
         segmentText: "第三段原文。",
       })
     );
-    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(2);
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(3);
     expect(onProgress).toHaveBeenNthCalledWith(1, 1, 3);
     expect(onProgress).toHaveBeenNthCalledWith(2, 2, 3);
+    expect(onProgress).toHaveBeenNthCalledWith(3, 3, 3);
     expect(result.summary).toMatchObject({
       totalSegments: 3,
-      processedSegments: 2,
-      failedSegments: 1,
-      failedSegmentIds: ["seg-2"],
+      processedSegments: 3,
+      failedSegments: 0,
+      failedSegmentIds: [],
       failedSegmentDetails: [
         expect.objectContaining({
           segmentId: "seg-2",
@@ -394,6 +395,11 @@ describe("runScriptProductionWorkflow", () => {
     expect(result.segments).toEqual([
       {
         segmentId: "seg-1",
+        lineCount: 1,
+        characters: ["旁白"],
+      },
+      {
+        segmentId: "seg-2",
         lineCount: 1,
         characters: ["旁白"],
       },
@@ -451,6 +457,7 @@ describe("runScriptProductionWorkflow", () => {
       mode: "full",
     });
 
+    expect(countPersistCallsByArtifactKind("segment-script-draft")).toBe(1);
     expect(mockPrisma.manualReviewItem.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         bookId: "book-1",
@@ -474,6 +481,8 @@ describe("runScriptProductionWorkflow", () => {
     );
     expect((result as any).runtimeMetadata?.summary).toEqual(
       expect.objectContaining({
+        processedSegments: 1,
+        failedSegments: 0,
         manualReviewSync: expect.objectContaining({
           issueType: "SCRIPT_VALIDATION",
           created: 1,

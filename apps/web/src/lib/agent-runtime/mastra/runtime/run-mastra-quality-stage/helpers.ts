@@ -46,6 +46,10 @@ export const defaultQualitySkillId = "quality-judgement";
 const DETERMINISTIC_HARD_FAIL_COVERAGE_THRESHOLD = 0.5;
 const AUTO_REVIEW_SCORE_THRESHOLD = 0.8;
 const AUTO_REVIEW_CONFIDENCE_THRESHOLD = 0.75;
+export const QUALITY_STAGE_PROMPT_BUDGET = {
+  maxContextChars: 10000,
+  reservedOutputChars: 1000,
+} as const;
 const CORE_QUALITY_EVIDENCE_KEYS = new Set([
   "segment_script_draft_json",
   "validation_report_json",

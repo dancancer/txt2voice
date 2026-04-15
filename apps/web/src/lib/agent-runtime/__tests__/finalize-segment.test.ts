@@ -249,4 +249,71 @@ describe("finalize segment", () => {
       })
     );
   });
+
+  it("persists the canonicalized draft when quality stage requires manual review", async () => {
+    const { runtimeStore } = createRuntimeStore();
+    const runQualityStage = jest.fn().mockResolvedValue({
+      stageRunId: "quality-stage-review-1",
+      status: "completed",
+      decision: "manual_review_required",
+      verdict: {
+        segmentId: "segment-1",
+        verdict: "manual_review",
+        score: 0.62,
+        reasons: ["需要人工复核"],
+      },
+      handoff: {
+        segmentId: "segment-1",
+        summary: "需要人工复核",
+        reasons: ["需要人工复核"],
+        evidence: {
+          score: 0.62,
+          confidence: 0.48,
+          validation: {
+            coverageRatio: 1,
+            issues: [],
+          },
+        },
+      },
+    });
+    const runPersistStage = jest.fn().mockResolvedValue({
+      stageRunId: "persist-stage-review-1",
+      status: "completed",
+      artifact: {
+        kind: "persisted-business-facts",
+        persistedCharacterCount: 0,
+        persistedSentenceCount: 1,
+      },
+    });
+
+    const result = await finalizeSegment({
+      context: createContext({
+        runtimeStore,
+        runQualityStage,
+        runPersistStage,
+      }),
+      draft: createDraft(),
+      validationReport: createValidationReport(),
+      counters: {
+        persistedSentenceCount: 0,
+        persistedCharacterCount: 0,
+        formatRepairCount: 0,
+        semanticRetryCount: 0,
+      },
+    });
+
+    expect(result.status).toBe("success");
+    if (result.status !== "success") {
+      throw new Error("expected success result");
+    }
+    expect(runPersistStage).toHaveBeenCalledTimes(1);
+    expect(result.manualReviewFailure).toMatchObject({
+      segmentId: "segment-1",
+      stage: "quality_judgement",
+      errorCode: "QUALITY_MANUAL_REVIEW_REQUIRED",
+      message: "需要人工复核",
+      issueCodes: ["QUALITY_MANUAL_REVIEW_REQUIRED"],
+      issueMessages: ["需要人工复核"],
+    });
+  });
 });

@@ -531,7 +531,7 @@ describe("quality stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
-  it("forces manual review when core quality evidence is trimmed for budget", async () => {
+  it("preserves core quality evidence after increasing the quality prompt budget", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         score: 0.91,
@@ -543,10 +543,10 @@ describe("quality stage", () => {
     const longDraft: SegmentScriptDraft = {
       segmentId: "segment-quality-large-draft",
       createdAt: "2026-03-24T00:00:00.000Z",
-      lines: Array.from({ length: 18 }, (_, index) => ({
+      lines: Array.from({ length: 10 }, (_, index) => ({
         id: `segment-quality-large-draft-line-${index + 1}`,
-        sourceText: `第${index + 1}句${"甲".repeat(360)}`,
-        text: `第${index + 1}句${"甲".repeat(360)}`,
+        sourceText: `第${index + 1}句${"甲".repeat(220)}`,
+        text: `第${index + 1}句${"甲".repeat(220)}`,
         speaker: "旁白",
         orderInSegment: index,
       })),
@@ -562,10 +562,12 @@ describe("quality stage", () => {
 
     expect(result.status).toBe("completed");
     const completed = asCompletedResult(result);
-    expect(completed.decision).toBe("manual_review_required");
-    expect(completed.verdict.verdict).toBe("manual_review");
-    expect(completed.verdict.reasons).toContain("quality_prompt_core_evidence_trimmed");
-    expect(adapter.call).toHaveBeenCalledTimes(0);
+    expect(completed.decision).toBe("auto_pass");
+    expect(completed.verdict.verdict).toBe("pass");
+    expect(completed.verdict.reasons).not.toContain(
+      "quality_prompt_core_evidence_trimmed"
+    );
+    expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
   it("does not upgrade to manual review when only missing character evidence placeholder gets trimmed", async () => {

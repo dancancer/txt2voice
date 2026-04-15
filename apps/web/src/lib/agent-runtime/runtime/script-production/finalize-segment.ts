@@ -212,27 +212,20 @@ export const finalizeSegment = async (params: {
     };
   }
 
-  if (qualityStage.decision !== "auto_pass") {
+  if (qualityStage.decision === "auto_fail") {
     return {
       status: "failed",
       failure: createFailureDetail({
         segment: params.context.segment,
         stage: "quality_judgement",
-        errorCode:
-          qualityStage.decision === "manual_review_required"
-            ? "QUALITY_MANUAL_REVIEW_REQUIRED"
-            : "QUALITY_AUTO_FAIL",
+        errorCode: "QUALITY_AUTO_FAIL",
         message:
           qualityStage.handoff?.summary ||
           qualityStage.verdict.reasons[0] ||
           "quality_check_not_passed",
         retryable: false,
         coverageRatio: params.validationReport.coverageRatio,
-        issueCodes: [
-          qualityStage.decision === "manual_review_required"
-            ? "QUALITY_MANUAL_REVIEW_REQUIRED"
-            : "QUALITY_AUTO_FAIL",
-        ],
+        issueCodes: ["QUALITY_AUTO_FAIL"],
         issueMessages: qualityStage.verdict.reasons,
       }),
       counters: params.counters,
@@ -318,6 +311,23 @@ export const finalizeSegment = async (params: {
     };
   }
 
+  const manualReviewFailure =
+    qualityStage.decision === "manual_review_required"
+      ? createFailureDetail({
+          segment: params.context.segment,
+          stage: "quality_judgement",
+          errorCode: "QUALITY_MANUAL_REVIEW_REQUIRED",
+          message:
+            qualityStage.handoff?.summary ||
+            qualityStage.verdict.reasons[0] ||
+            "quality_manual_review_required",
+          retryable: false,
+          coverageRatio: params.validationReport.coverageRatio,
+          issueCodes: ["QUALITY_MANUAL_REVIEW_REQUIRED"],
+          issueMessages: qualityStage.verdict.reasons,
+        })
+      : undefined;
+
   await params.context.appendTrace({
     id: params.context.createId(),
     kind: "artifact_committed",
@@ -385,5 +395,6 @@ export const finalizeSegment = async (params: {
     ),
     counters,
     draft: canonicalized.draft,
+    manualReviewFailure,
   };
 };

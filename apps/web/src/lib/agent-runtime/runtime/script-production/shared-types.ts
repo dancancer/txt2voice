@@ -22,6 +22,8 @@ export interface RunScriptProductionWorkflowInput {
   onExecutionEvent?: (event: LLMExecutionEvent) => void;
 }
 
+export type SegmentFinalStatus = "success" | "failed" | "manual_review";
+
 export interface ScriptProductionBookSegment {
   id: string;
   chapterId?: string | null;
@@ -31,7 +33,7 @@ export interface ScriptProductionBookSegment {
 
 export interface SegmentOutcomeIndexItem {
   segmentId: string;
-  finalStatus: "success" | "failed";
+  finalStatus: SegmentFinalStatus;
   terminalStage: string;
   errorCode?: string;
 }
@@ -78,6 +80,7 @@ export interface SegmentSuccessResult {
   summary: SegmentSummary;
   counters: SegmentRuntimeCounters;
   draft: SegmentScriptDraft;
+  manualReviewFailure?: SegmentFailureDetail;
 }
 
 export interface SegmentFailureResult {

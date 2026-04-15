@@ -9,6 +9,7 @@ import type {
 } from "../types";
 import type {
   RunScriptProductionWorkflowInput,
+  SegmentFinalStatus,
   ScriptProductionBook,
 } from "../shared-types";
 import type { loadBookForGeneration, resolvePartialSegments } from "../workflow-source";
@@ -51,7 +52,7 @@ export interface ScriptProductionExecutionState {
   failedSegmentDetails: SegmentFailureDetail[];
   segmentOutcomeIndex: Array<{
     segmentId: string;
-    finalStatus: "success" | "failed";
+    finalStatus: SegmentFinalStatus;
     terminalStage: string;
     errorCode?: string;
   }>;

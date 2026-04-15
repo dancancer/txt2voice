@@ -26,6 +26,7 @@ import { validateSkillContract } from "../../../runtime/skill-contract";
 import type { RunQualityStageInput } from "../../../runtime/stages/run-quality-stage";
 import {
   createManualReviewHandoff,
+  QUALITY_STAGE_PROMPT_BUDGET,
   resolveAdapter,
   resolveDeterministicDecision,
   resolveQualitySkillSource,
@@ -41,10 +42,6 @@ interface ExecuteQualityAgentResult {
 }
 
 const runtimeAgentId = "quality-judge-agent";
-const promptBudget = {
-  maxContextChars: 5000,
-  reservedOutputChars: 1200,
-} as const;
 
 export const executeMastraQualityAgent = async (params: {
   input: RunQualityStageInput;
@@ -105,7 +102,7 @@ export const executeMastraQualityAgent = async (params: {
   });
   const promptBudgetResult = fitPromptToBudget({
     systemPrompt: runtimeSystemPrompt,
-    maxPromptChars: resolvePromptBudgetLimit(promptBudget),
+    maxPromptChars: resolvePromptBudgetLimit(QUALITY_STAGE_PROMPT_BUDGET),
     variables: {
       segment_script_draft_json: JSON.stringify(input.segmentScriptDraft, null, 2),
       validation_report_json: JSON.stringify(input.validationReport, null, 2),
@@ -119,19 +116,14 @@ export const executeMastraQualityAgent = async (params: {
       ),
     },
     trimOrder: [
+      // ---------- 先裁剪辅助证据，核心判断材料不能被预算器裁掉 ----------
       "failed_artifact_json",
-      "character_resolution_evidence_json",
       "character_memory_summary",
       "quality_signals_json",
-      "validation_report_json",
-      "segment_script_draft_json",
     ],
     variableStrategies: {
       failed_artifact_json: "json_summary",
-      character_resolution_evidence_json: "json_summary",
       quality_signals_json: "json_summary",
-      validation_report_json: "json_summary",
-      segment_script_draft_json: "json_summary",
     },
     renderPrompt: (variables: Record<string, string>) =>
       renderQualityJudgeUserPromptFromVariables(skill.userPrompt, {

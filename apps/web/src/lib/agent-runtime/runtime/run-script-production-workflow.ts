@@ -265,14 +265,25 @@ export const runScriptProductionWorkflow = async (
           continue;
         }
 
+        const manualReviewFailure = result.manualReviewFailure;
         state.dialogueLines.push(...result.dialogueLines);
         state.segmentSummaries.push(result.summary);
         state.persistedSegments += 1;
         state.segmentOutcomeIndex.push({
           segmentId: segment.id,
-          finalStatus: "success",
-          terminalStage: "persist",
+          finalStatus: manualReviewFailure ? "manual_review" : "success",
+          terminalStage: manualReviewFailure ? manualReviewFailure.stage : "persist",
+          errorCode: manualReviewFailure?.errorCode,
         });
+        if (manualReviewFailure) {
+          state.failedSegmentDetails.push(manualReviewFailure);
+          if (manualReviewFailure.stage === "quality_judgement") {
+            state.qualityRejectedCount += 1;
+            if (manualReviewFailure.errorCode === "QUALITY_MANUAL_REVIEW_REQUIRED") {
+              state.manualReviewRequiredCount += 1;
+            }
+          }
+        }
 
         if (input.onProgress) {
           await input.onProgress(state.persistedSegments, segments.length);
