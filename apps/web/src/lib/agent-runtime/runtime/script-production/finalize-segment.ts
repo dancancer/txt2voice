@@ -1,6 +1,7 @@
-import { mapSegmentScriptDraftToDialogueLines } from "@/lib/script-generator/storage/persistence";
+import { mapSegmentScriptDraftToDialogueLines } from "./storage/persistence";
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
 import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
+import type { QualitySignals } from "../agents/quality-judge-agent";
 import {
   createFailureDetail,
   createStageSummary,
@@ -21,6 +22,8 @@ export const finalizeSegment = async (params: {
   draft: SegmentScriptDraft;
   validationReport: ValidationReport;
   counters: SegmentRuntimeCounters;
+  failedArtifact?: unknown;
+  qualitySignals?: QualitySignals;
 }): Promise<FinalizeSegmentResult> => {
   if (params.context.deferPersist) {
     // 细分叶子只是为了拼回父段草案，不应在叶子层独立触发质量闸门。
@@ -37,7 +40,9 @@ export const finalizeSegment = async (params: {
         deferredDialogueLines.length,
         [
           ...new Set(
-            deferredDialogueLines.map((line) => line.characterName || "未知")
+            deferredDialogueLines.map(
+              (line): string => line.characterName || "未知"
+            )
           ),
         ]
       ),
@@ -57,6 +62,8 @@ export const finalizeSegment = async (params: {
     segmentId: params.context.segment.id,
     segmentScriptDraft: params.draft,
     validationReport: params.validationReport,
+    qualitySignals: params.qualitySignals,
+    failedArtifact: params.failedArtifact,
     adapter: params.context.adapter,
     executor: params.context.executorPolicy?.qualityJudgement,
     shadowMode: params.context.executorPolicy?.shadowModeEnabled,
@@ -343,7 +350,11 @@ export const finalizeSegment = async (params: {
     summary: toSegmentSummary(
       params.context.segment.id,
       dialogueLines.length,
-      [...new Set(dialogueLines.map((line) => line.characterName || "未知"))]
+      [
+        ...new Set(
+          dialogueLines.map((line): string => line.characterName || "未知")
+        ),
+      ]
     ),
     counters,
     draft: params.draft,

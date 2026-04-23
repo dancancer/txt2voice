@@ -21,7 +21,7 @@ export interface QualityJudgeAgentInput {
   failedArtifact?: unknown;
   characterMemorySummary?: string;
   characterResolutionEvidence?: unknown;
-  modelPolicy: string;
+  modelPolicy?: string;
   prompts: QualityJudgePrompts;
   renderedUserPrompt?: string;
 }
@@ -220,7 +220,7 @@ export const createQualityJudgeAgent = (deps: QualityJudgeAgentDeps) => ({
           characterMemorySummary: input.characterMemorySummary,
           characterResolutionEvidence: input.characterResolutionEvidence,
         }),
-      modelPolicy: input.modelPolicy,
+      modelPolicy: input.modelPolicy ?? "default",
       metadata: {
         source: "agent_runtime.quality_judgement",
         stageId: "quality_judgement",

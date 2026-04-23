@@ -2,7 +2,15 @@ import fs from "fs";
 import path from "path";
 
 import type { LLMAdapter } from "../../adapters/llm-adapter";
-import type { QualityVerdict, SegmentScriptDraft, ValidationReport } from "../../context";
+import type {
+  CharacterMemory,
+  QualityVerdict,
+  SegmentScriptDraft,
+  ValidationReport,
+} from "../../context";
+import type {
+  CharacterResolutionEvidence,
+} from "../character-memory/types";
 import type { StageExecutor } from "../executor-policy";
 import { loadSkillDefinition } from "../../registry";
 import {
@@ -36,6 +44,8 @@ export interface RunQualityStageInput extends QualityStageRuntimeDeps {
   validationReport: ValidationReport;
   qualitySignals?: QualitySignals;
   failedArtifact?: unknown;
+  characterMemory?: CharacterMemory;
+  characterResolutionEvidence?: CharacterResolutionEvidence;
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;

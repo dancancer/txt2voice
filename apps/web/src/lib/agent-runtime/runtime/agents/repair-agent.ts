@@ -23,7 +23,7 @@ export interface RepairAgentInput {
   segmentText: string;
   failedArtifact: unknown;
   failureKind?: "format_repair" | "semantic_retry";
-  modelPolicy: string;
+  modelPolicy?: string;
   prompts: RepairAgentPrompts;
   renderedUserPrompt?: string;
 }
@@ -281,7 +281,7 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
           segmentText: input.segmentText,
           failedArtifact: input.failedArtifact,
         }),
-      modelPolicy: input.modelPolicy,
+      modelPolicy: input.modelPolicy ?? "default",
       metadata: {
         source: "agent_runtime.segment_repair",
         stageId: "segment_repair",

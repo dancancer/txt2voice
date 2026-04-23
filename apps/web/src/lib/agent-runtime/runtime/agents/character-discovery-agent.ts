@@ -15,7 +15,7 @@ export interface CharacterDiscoveryAgentInput {
   segmentText: string;
   characterMemorySummary: string;
   existingCharacterMemory?: CharacterMemory;
-  modelPolicy: string;
+  modelPolicy?: string;
   prompts: CharacterDiscoveryPrompts;
   renderedUserPrompt?: string;
 }
@@ -109,7 +109,7 @@ export const createCharacterDiscoveryAgent = (
           segmentText: input.segmentText,
           characterMemorySummary: input.characterMemorySummary,
         }),
-      modelPolicy: input.modelPolicy,
+      modelPolicy: input.modelPolicy ?? "default",
       metadata: {
         source: "agent_runtime.character_discovery",
         stageId: "character_discovery",

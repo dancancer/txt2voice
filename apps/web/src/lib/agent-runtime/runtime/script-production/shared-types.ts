@@ -1,5 +1,6 @@
 import type { LLMExecutionEvent } from "@/lib/llm/events";
 import type { SegmentScriptDraft } from "../../context";
+import type { QualitySignals } from "../agents/quality-judge-agent";
 import type {
   ScriptGenerationOptions,
   DialogueLine,

@@ -19,7 +19,7 @@ export interface ScriptGenerationAgentInput {
   segmentId: string;
   segmentText: string;
   characterMemorySummary?: string;
-  modelPolicy: string;
+  modelPolicy?: string;
   prompts: ScriptGenerationPrompts;
   renderedUserPrompt?: string;
 }
@@ -243,7 +243,7 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
           segmentText: input.segmentText,
           characterMemorySummary: input.characterMemorySummary,
         }),
-      modelPolicy: input.modelPolicy,
+      modelPolicy: input.modelPolicy ?? "default",
       metadata: {
         source: "agent_runtime.segment_scripting",
         stageId: "segment_scripting",

@@ -5,6 +5,7 @@ import {
 } from "@/lib/audio-retry-plan";
 
 import {
+  type AudioBatchGenerationHooks,
   type AudioBatchGenerationSummary,
   type AudioGenerationOptions,
   type AudioGenerationRequest,
@@ -21,12 +22,14 @@ async function runBatchPass(params: {
     request: AudioGenerationRequest,
     options: AudioGenerationOptions
   ) => Promise<AudioGenerationResult>;
+  hooks?: AudioBatchGenerationHooks;
 }): Promise<AudioGenerationResult[]> {
   const finalOptions = { ...params.defaultOptions, ...params.options };
   const results: AudioGenerationResult[] = [];
   const batchSize = finalOptions.batchSize || 5;
 
   for (let index = 0; index < params.requests.length; index += batchSize) {
+    await params.hooks?.assertContinue?.();
     const batch = params.requests.slice(index, index + batchSize);
     const batchResults = await Promise.allSettled(
       batch.map((request) => params.generateSingleAudio(request, finalOptions))
@@ -124,8 +127,10 @@ export async function generateBatchAudioWithReliability(params: {
     request: AudioGenerationRequest,
     options: AudioGenerationOptions
   ) => Promise<AudioGenerationResult>;
+  hooks?: AudioBatchGenerationHooks;
 }): Promise<AudioBatchGenerationSummary> {
-  const { requests, options, defaultOptions, generateSingleAudio } = params;
+  const { requests, options, defaultOptions, generateSingleAudio, hooks } =
+    params;
   const getRequestId = (request: AudioGenerationRequest) => request.scriptSentenceId;
   const finalOptions = { ...defaultOptions, ...options };
   const finalResults = new Map<string, AudioGenerationResult>();
@@ -167,6 +172,7 @@ export async function generateBatchAudioWithReliability(params: {
       },
       defaultOptions,
       generateSingleAudio,
+      hooks,
     });
 
     attemptedResults.push(...passResults);
@@ -189,6 +195,7 @@ export async function generateBatchAudioWithReliability(params: {
       concurrency: pass.concurrency,
       durationMs: Date.now() - passStartedAt,
     });
+    await hooks?.onPassComplete?.(passSummaries[passSummaries.length - 1]!);
 
     pass = buildNextAudioRetryPass({
       provider: finalOptions.provider,

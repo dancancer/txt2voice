@@ -2,12 +2,17 @@ import fs from "fs";
 import path from "path";
 
 import type { LLMAdapter } from "../../adapters/llm-adapter";
-import { buildAgentContext, type SegmentScriptDraft } from "../../context";
+import {
+  buildAgentContext,
+  type CharacterMemory,
+  type SegmentScriptDraft,
+} from "../../context";
 import type { StageExecutor } from "../executor-policy";
 import { loadSkillDefinition } from "../../registry";
 import { createScriptGenerationAgent } from "../agents/script-generation-agent";
 import type { AgentRunRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
+import type { SkillMetadataSnapshot } from "../script-production-runtime-helpers";
 import type { TraceDependencies } from "../write-trace";
 
 interface SegmentScriptingRuntimeDeps {
@@ -28,6 +33,7 @@ export interface RunSegmentScriptingStageInput
   segmentId: string;
   segmentText: string;
   fullBookText?: string;
+  characterMemory?: CharacterMemory;
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;
@@ -45,6 +51,8 @@ export interface SegmentScriptingArtifact {
   kind: "segment-script-draft";
   skillId: string;
   segmentScriptDraft: SegmentScriptDraft;
+  memoryVersion?: number;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunSegmentScriptingStageCompletedResult {

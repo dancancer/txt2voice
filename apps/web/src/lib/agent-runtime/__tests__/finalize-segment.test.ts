@@ -45,6 +45,7 @@ const createRuntimeStore = () => {
         payload: record.payload,
       });
     },
+    createShadowDiffArtifact: async () => undefined,
     appendTrace: async () => undefined,
   };
 

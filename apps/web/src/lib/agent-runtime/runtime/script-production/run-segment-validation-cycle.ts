@@ -1,6 +1,7 @@
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type { SegmentFailureDetail } from "./types";
 import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
+import type { QualitySignals } from "../agents/quality-judge-agent";
 import {
   buildInputRefinementSegments,
   buildValidationReport,
@@ -27,7 +28,14 @@ const MAX_SEMANTIC_RETRY_DEPTH = 1;
 const MAX_INPUT_REFINEMENT_DEPTH = 2;
 
 type ValidationCycleResult =
-  | { status: "success"; draft: SegmentScriptDraft; validationReport: ValidationReport; counters: SegmentRuntimeCounters }
+  | {
+      status: "success";
+      draft: SegmentScriptDraft;
+      validationReport: ValidationReport;
+      counters: SegmentRuntimeCounters;
+      failedArtifact?: unknown;
+      qualitySignals?: QualitySignals;
+    }
   | { status: "terminal"; result: SegmentRunResult }
   | { status: "failed"; failure: SegmentFailureDetail; counters: SegmentRuntimeCounters };
 

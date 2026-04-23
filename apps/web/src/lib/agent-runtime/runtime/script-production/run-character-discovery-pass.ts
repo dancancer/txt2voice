@@ -14,6 +14,7 @@ import type {
   CharacterProfileSnapshot,
   ScriptProductionBookSegment,
 } from "./shared-types";
+import type { SegmentFailureDetail } from "./types";
 
 export const CHARACTER_DISCOVERY_SAMPLE_SEGMENT_LIMIT = 3;
 
@@ -37,6 +38,36 @@ export const hasCharacterMemoryDraftContent = (draft: {
   (Array.isArray(draft.aliasEvidence) && draft.aliasEvidence.length > 0) ||
   Object.keys(draft.assertedFacts || {}).length > 0 ||
   Object.keys(draft.inferredHints || {}).length > 0;
+
+const createCharacterDiscoveryFailure = (params: {
+  segments: ScriptProductionBookSegment[];
+  stage: string;
+  errorCode: string;
+  message: string;
+  retryable: boolean;
+}): SegmentFailureDetail => {
+  const firstSegment = params.segments[0];
+  const content = firstSegment?.content || "";
+
+  return {
+    segmentId: firstSegment?.id || "character-discovery",
+    chapterId: firstSegment?.chapterId ?? null,
+    orderIndex: firstSegment?.orderIndex ?? 0,
+    stage: params.stage,
+    errorCode: params.errorCode,
+    message: params.message,
+    provider: null,
+    retryable: params.retryable,
+    coverageRatio: null,
+    issueCodes: [params.errorCode],
+    issueMessages: [params.message],
+    issuePreviews: [],
+    segmentPreview: content.slice(0, 80),
+    segmentContent: content || undefined,
+    rawResponse: null,
+    structuredResult: null,
+  };
+};
 
 interface RunCharacterDiscoveryPassParams {
   workflowRunId: string;
@@ -70,7 +101,10 @@ interface RunCharacterDiscoveryPassParams {
 
 export const runCharacterDiscoveryPass = async (
   params: RunCharacterDiscoveryPassParams
-): Promise<{ persistedCharacterCount: number }> => {
+): Promise<{
+  persistedCharacterCount: number;
+  failure?: SegmentFailureDetail;
+}> => {
   const sampleText = buildCharacterDiscoverySampleText(params.segments);
   const now = params.now ?? (() => new Date());
   const runDiscoveryStage =
@@ -186,6 +220,19 @@ export const runCharacterDiscoveryPass = async (
     discoveryStage.status !== "completed" ||
     !hasCharacterMemoryDraftContent(discoveryStage.artifact.characterMemoryDraft)
   ) {
+    if (discoveryStage.status !== "completed") {
+      return {
+        persistedCharacterCount: 0,
+        failure: createCharacterDiscoveryFailure({
+          segments: params.segments,
+          stage: "character_discovery",
+          errorCode: "CHARACTER_DISCOVERY_FAILED",
+          message: discoveryStage.error || "character_discovery_failed",
+          retryable: discoveryStage.status === "retrying",
+        }),
+      };
+    }
+
     return { persistedCharacterCount: 0 };
   }
 
@@ -255,7 +302,17 @@ export const runCharacterDiscoveryPass = async (
   });
 
   if (persistCharacterMemoryStage.status !== "completed") {
-    return { persistedCharacterCount: 0 };
+    return {
+      persistedCharacterCount: 0,
+      failure: createCharacterDiscoveryFailure({
+        segments: params.segments,
+        stage: "persist",
+        errorCode: "CHARACTER_DISCOVERY_PERSIST_FAILED",
+        message:
+          persistCharacterMemoryStage.error || "character_discovery_persist_failed",
+        retryable: false,
+      }),
+    };
   }
 
   await params.appendTrace({

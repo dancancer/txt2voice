@@ -4,6 +4,7 @@ import path from "path";
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import {
   buildAgentContext,
+  type CharacterMemory,
   type RepairDecision,
   type SegmentScriptDraft,
   type ValidationReport,
@@ -13,6 +14,7 @@ import { loadSkillDefinition } from "../../registry";
 import { createRepairAgent } from "../agents/repair-agent";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
+import type { SkillMetadataSnapshot } from "../script-production-runtime-helpers";
 import type { TraceDependencies } from "../write-trace";
 
 interface SegmentRepairRuntimeDeps {
@@ -45,6 +47,7 @@ export interface RunSegmentRepairStageInput extends SegmentRepairRuntimeDeps {
   validationReport?: ValidationReport;
   repairDepth: number;
   maxRepairDepth?: number;
+  characterMemory?: CharacterMemory;
   adapter?: LLMAdapter;
   workspaceRoot?: string;
   skillDir?: string;
@@ -62,6 +65,8 @@ export interface SegmentRepairArtifact {
   kind: "segment-script-draft";
   skillId: string;
   segmentScriptDraft: SegmentScriptDraft;
+  memoryVersion?: number;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunSegmentRepairStageCompletedResult {
@@ -69,6 +74,7 @@ interface RunSegmentRepairStageCompletedResult {
   agentRunId?: string;
   status: "completed";
   decision: RepairDecision;
+  skillMetadata?: SkillMetadataSnapshot;
   artifact?: SegmentRepairArtifact;
 }
 

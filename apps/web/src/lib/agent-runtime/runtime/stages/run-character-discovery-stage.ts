@@ -7,6 +7,7 @@ import type { StageExecutor } from "../executor-policy";
 import { loadSkillDefinition } from "../../registry";
 import { createCharacterDiscoveryAgent } from "../agents/character-discovery-agent";
 import { runStage, type StageRunRecord } from "../run-stage";
+import type { SkillMetadataSnapshot } from "../script-production-runtime-helpers";
 import type { TraceDependencies } from "../write-trace";
 
 interface CharacterDiscoveryRuntimeDeps {
@@ -40,6 +41,7 @@ export interface CharacterDiscoveryArtifact {
   kind: "character-memory-draft";
   skillId: "character-extraction";
   characterMemoryDraft: MemoryPatch;
+  skillMetadata?: SkillMetadataSnapshot;
 }
 
 interface RunCharacterDiscoveryStageCompletedResult {
@@ -52,6 +54,7 @@ interface RunCharacterDiscoveryStageNonCompletedResult {
   stageRunId: string;
   status: "failed" | "retrying" | "repairing";
   error?: string;
+  failedArtifact?: unknown;
 }
 
 export type RunCharacterDiscoveryStageResult =

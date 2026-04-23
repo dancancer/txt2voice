@@ -1,15 +1,15 @@
 import { TTSError } from "@/lib/error-handler";
-import { calculateScriptSummary } from "@/lib/script-generator/pipeline/summary";
+import { calculateScriptSummary } from "./script-production/summary";
 import {
   loadBookForGeneration,
   resolvePartialSegments,
-} from "@/lib/script-generator/pipeline/workflow";
-import { buildCharacterMap } from "@/lib/script-generator/storage/character-utils";
+} from "./script-production/workflow-source";
+import { buildCharacterMap } from "./script-production/storage/character-utils";
 import type {
   DialogueLine,
   SegmentFailureDetail,
   SegmentSummary,
-} from "@/lib/script-generator/types";
+} from "./script-production/types";
 import type { LLMAdapter } from "../adapters/llm-adapter";
 import type { ExecutionEvent } from "../protocol/events";
 import {
