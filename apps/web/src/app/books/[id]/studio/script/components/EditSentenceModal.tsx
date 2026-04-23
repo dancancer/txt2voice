@@ -12,6 +12,7 @@ import { ScriptSentence } from "./types";
 import type { CharacterProfileSummary } from "@/types/book";
 
 interface EditSentenceModalProps {
+  bookId?: string;
   sentence: ScriptSentence;
   characters: CharacterProfileSummary[];
   onClose: () => void;
@@ -51,6 +52,7 @@ const normalizeOptionalNumber = (value: string): number | undefined => {
 };
 
 export function EditSentenceModal({
+  bookId,
   sentence,
   characters,
   onClose,
@@ -195,6 +197,26 @@ export function EditSentenceModal({
                 </option>
               ))}
             </select>
+            {availableCharacters.length === 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">
+                当前没有可用角色，建议先前往角色配置页创建或同步角色。
+              </p>
+            ) : null}
+            {bookId ? (
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={`/books/${bookId}/characters`}
+                  className="inline-flex min-h-9 items-center justify-center rounded-md border border-border px-3 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  前往角色配置
+                </a>
+                {!sentence.characterId && sentence.rawSpeaker ? (
+                  <span className="inline-flex min-h-9 items-center rounded-md border border-orange-300 bg-orange-50 px-3 text-xs text-orange-800">
+                    当前句原始说话人：{sentence.rawSpeaker}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
           </div>
           <div>
             <Label className="mb-2 block text-card-foreground">语气</Label>

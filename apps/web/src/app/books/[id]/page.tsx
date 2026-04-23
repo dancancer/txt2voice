@@ -26,6 +26,7 @@ import {
   ChevronRight,
   ClipboardCheck,
 } from "lucide-react";
+import { buildScriptStudioHref } from "./studio/script/page-container/node-query";
 
 type ChapterSummary = {
   id: string;
@@ -195,7 +196,7 @@ export default function BookDetailPage() {
             <Button
               variant="outline"
               className="min-h-11"
-              onClick={() => router.push(`/books/${bookId}/studio/script`)}
+              onClick={() => router.push(buildScriptStudioHref(bookId))}
             >
               <Sparkles className="w-4 h-4 mr-2" />
               高级台本
@@ -243,7 +244,7 @@ export default function BookDetailPage() {
             </div>
             <Progress value={chapterCompletion} />
             <p className="text-sm text-muted-foreground leading-6">
-              建议先在章节详情中检查台本，再按章节批量生成音频。
+              建议先进入高级台本工作台检查章节与段落状态，再按章节批量生成音频。
             </p>
           </CardContent>
         </Card>
@@ -268,7 +269,14 @@ export default function BookDetailPage() {
                   <button
                     key={chapter.id}
                     type="button"
-                    onClick={() => router.push(`/books/${bookId}/chapters/${chapter.id}`)}
+                    onClick={() =>
+                      router.push(
+                        buildScriptStudioHref(bookId, {
+                          type: "chapter",
+                          id: chapter.id,
+                        })
+                      )
+                    }
                     className="cursor-pointer rounded-lg border border-border bg-card p-4 text-left transition-colors duration-200 hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <div className="flex items-start justify-between gap-3">

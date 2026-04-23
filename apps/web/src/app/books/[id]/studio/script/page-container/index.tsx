@@ -5,20 +5,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { FileText } from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScriptSentence } from "@/lib/types";
 import {
-  ChapterSegmentsTable,
+  BookWorkbench,
+  ChapterWorkbench,
   DocumentTree,
   EditSentenceModal,
   GenerationProgress,
   IncrementalProcessingModal,
   RegenerateSegmentsModal,
+  SegmentWorkbench,
   ScriptPreviewModal,
-  ScriptSentencesTable,
   type ScriptNavigationNode,
 } from "../components";
 import { ScriptStudioAdvancedActionsPanel } from "./components/AdvancedActionsPanel";
@@ -28,20 +28,25 @@ import { useScriptStudioData } from "./hooks/useScriptStudioData";
 import { useScriptGenerationActions } from "./hooks/actions/useScriptGenerationActions";
 import { useScriptScopeActions } from "./hooks/actions/useScriptScopeActions";
 import { useScriptSentenceActions } from "./hooks/actions/useScriptSentenceActions";
+import {
+  buildScriptStudioHref,
+  isSameScriptStudioNode,
+  parseScriptStudioNodeQuery,
+} from "./node-query";
 
 export function ScriptStudioPageContainer() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const bookId = params.id as string;
 
   const [editingSentence, setEditingSentence] = useState<ScriptSentence | null>(
     null
   );
   const [showScriptPreview, setShowScriptPreview] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<ScriptNavigationNode>({
-    type: "book",
-    id: bookId,
-  });
+  const [selectedNode, setSelectedNode] = useState<ScriptNavigationNode>(() =>
+    parseScriptStudioNodeQuery(bookId, searchParams.get("node"))
+  );
 
   const {
     book,
@@ -128,6 +133,18 @@ export function ScriptStudioPageContainer() {
     void loadBookAndData(controller.signal);
     return () => controller.abort();
   }, [loadBookAndData]);
+
+  useEffect(() => {
+    const nextNode = parseScriptStudioNodeQuery(bookId, searchParams.get("node"));
+    setSelectedNode((currentNode) =>
+      isSameScriptStudioNode(currentNode, nextNode) ? currentNode : nextNode
+    );
+  }, [bookId, searchParams]);
+
+  const handleSelectNode = (node: ScriptNavigationNode) => {
+    setSelectedNode(node);
+    router.replace(buildScriptStudioHref(bookId, node), { scroll: false });
+  };
 
   const safeSelectedNode = useMemo(() => {
     if (selectedNode.type === "book" && selectedNode.id !== bookId) {
@@ -227,7 +244,7 @@ export function ScriptStudioPageContainer() {
               bookStats={bookStats}
               chapters={chapterNodes}
               selectedNode={safeSelectedNode}
-              onSelect={setSelectedNode}
+              onSelect={handleSelectNode}
             />
           </div>
 
@@ -249,8 +266,9 @@ export function ScriptStudioPageContainer() {
               />
 
               {safeSelectedNode.type === "chapter" && selectedChapterNode && (
-                <ChapterSegmentsTable
-                  chapterTitle={selectedChapterNode.title}
+                <ChapterWorkbench
+                  bookId={bookId}
+                  chapter={selectedChapterNode}
                   titleAction={titleAction}
                   failedReviewTaskBySegment={latestFailedReviewTaskBySegment}
                   segments={selectedChapterNode.segments.map((seg) => {
@@ -265,130 +283,66 @@ export function ScriptStudioPageContainer() {
                       hasAudio: seg.hasAudio,
                     };
                   })}
-                  onSegmentClick={(segmentId) =>
-                    setSelectedNode({ type: "segment", id: segmentId })
+                  onSelectSegment={(segmentId) =>
+                    handleSelectNode({ type: "segment", id: segmentId })
                   }
-                  onGenerateScript={(segmentId) =>
+                  onGenerateSegmentScript={(segmentId) =>
                     handleScopeScriptGeneration("segment", segmentId)
                   }
-                  onGenerateAudio={(segmentId) =>
+                  onGenerateSegmentAudio={(segmentId) =>
                     handleScopeAudioGeneration("segment", segmentId)
+                  }
+                  onGenerateChapterScript={() =>
+                    handleScopeScriptGeneration("chapter", selectedChapterNode.id)
+                  }
+                  onGenerateChapterAudio={() =>
+                    handleScopeAudioGeneration("chapter", selectedChapterNode.id)
                   }
                 />
               )}
 
               {safeSelectedNode.type === "segment" && selectedSegment && (
-                <>
-                  <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border border-border bg-card px-6 py-4">
-                    <div>
-                      <h2 className="text-xl font-semibold">
-                        {selectedSegmentMeta
-                          ? `${selectedSegmentMeta.chapterTitle} · ${selectedSegmentMeta.label}`
-                          : `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`}
-                      </h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        字数 {selectedSegment.wordCount ?? selectedSegment.content?.length ?? 0}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {selectedSegmentFailedReviewTask ? (
-                        <a
-                          href={selectedSegmentFailedReviewTask.reviewUrl}
-                          className="text-sm text-primary underline-offset-4 hover:underline"
-                        >
-                          查看质检失败
-                        </a>
-                      ) : null}
-                      <Button
-                        onClick={() =>
-                          handleScopeScriptGeneration("segment", selectedSegment.id)
-                        }
-                        disabled={isGenerating || !canGenerateScript}
-                      >
-                        重生成台本
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          handleScopeAudioGeneration("segment", selectedSegment.id)
-                        }
-                        disabled={isGenerating || selectedSegmentSentences.length === 0}
-                      >
-                        生成语音
-                      </Button>
-                    </div>
-                  </div>
-                  <ScriptSentencesTable
-                    segmentTitle={
-                      selectedSegmentMeta?.label ||
-                      `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`
-                    }
-                    sentences={selectedSegmentSentences}
-                    onEdit={setEditingSentence}
-                    onDelete={handleSentenceDelete}
-                    onGenerateAudio={handleSentenceAudioGeneration}
-                  />
-                </>
+                <SegmentWorkbench
+                  bookId={bookId}
+                  title={
+                    selectedSegmentMeta?.label ||
+                    `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`
+                  }
+                  segment={selectedSegment}
+                  sentences={selectedSegmentSentences}
+                  characters={characters}
+                  failedReviewTask={selectedSegmentFailedReviewTask}
+                  onRegenerateScript={() =>
+                    handleScopeScriptGeneration("segment", selectedSegment.id)
+                  }
+                  onGenerateAudio={() =>
+                    handleScopeAudioGeneration("segment", selectedSegment.id)
+                  }
+                  onEditSentence={setEditingSentence}
+                  onDeleteSentence={handleSentenceDelete}
+                  onGenerateSentenceAudio={handleSentenceAudioGeneration}
+                />
               )}
 
               {safeSelectedNode.type === "book" && (
-                <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
-                  <div className="mx-auto max-w-md">
-                    <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                    <h3 className="mb-2 text-lg font-semibold text-foreground">
-                      章节管理 & 台本生成
-                    </h3>
-                    <p className="mb-6 text-sm text-muted-foreground">
-                      请在左侧选择一个章节查看段落列表，或选择段落查看台词详情。
-                    </p>
-                    <div className="mb-4 text-left">
-                      <label
-                        className="mb-2 block text-sm font-medium text-gray-700"
-                        htmlFor="script-llm-model"
-                      >
-                        台本模型
-                      </label>
-                      <select
-                        id="script-llm-model"
-                        aria-label="台本模型"
-                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
-                        value={selectedLLMModelId}
-                        onChange={(event) => setSelectedLLMModelId(event.target.value)}
-                        disabled={llmModelsLoading || llmModels.length === 0}
-                      >
-                        {llmModels.map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.label} ({model.model})
-                          </option>
-                        ))}
-                      </select>
-                      {llmModelsError ? (
-                        <p className="mt-2 text-sm text-red-600">{llmModelsError}</p>
-                      ) : (
-                        <p className="mt-2 text-sm text-gray-500">
-                          当前选择会用于全书、章节、段落与增量重生成。
-                        </p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Button
-                        className="w-full"
-                        onClick={() => handleScopeScriptGeneration("book")}
-                        disabled={isGenerating || !hasTextSegments || !canGenerateScript}
-                      >
-                        全书台本生成
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => handleScopeAudioGeneration("book")}
-                        disabled={isGenerating || !hasScriptSentences}
-                      >
-                        全书音频生成
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <BookWorkbench
+                  bookTitle={book.title}
+                  bookStats={bookStats}
+                  chapters={chapterNodes}
+                  failedReviewTaskBySegment={latestFailedReviewTaskBySegment}
+                  llmModels={llmModels}
+                  selectedLLMModelId={selectedLLMModelId}
+                  llmModelsLoading={llmModelsLoading}
+                  llmModelsError={llmModelsError}
+                  isGenerating={isGenerating}
+                  hasTextSegments={hasTextSegments}
+                  hasScriptSentences={hasScriptSentences}
+                  canGenerateScript={canGenerateScript}
+                  onSelectNode={handleSelectNode}
+                  onSelectLLMModelId={setSelectedLLMModelId}
+                  onGenerateBookScript={() => handleScopeScriptGeneration("book")}
+                  onGenerateBookAudio={() => handleScopeAudioGeneration("book")}
+                />
               )}
             </div>
           </div>
@@ -405,6 +359,7 @@ export function ScriptStudioPageContainer() {
       {editingSentence && (
         <EditSentenceModal
           key={editingSentence.id}
+          bookId={bookId}
           sentence={editingSentence}
           characters={characters}
           onClose={() => setEditingSentence(null)}

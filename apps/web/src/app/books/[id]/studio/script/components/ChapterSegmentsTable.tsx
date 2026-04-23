@@ -17,7 +17,7 @@ import {
 import { FileText, Play, Eye } from "lucide-react";
 import type { SegmentFailedReviewTaskLink } from "./types";
 
-interface SegmentData {
+export interface ChapterSegmentRow {
   id: string;
   orderIndex: number;
   chapterOrderIndex?: number;
@@ -27,11 +27,13 @@ interface SegmentData {
   hasAudio: boolean;
 }
 
+export type ChapterSegmentsTableTitleAction = ReactNode;
+
 interface ChapterSegmentsTableProps {
   chapterTitle: string;
-  segments: SegmentData[];
+  segments: ChapterSegmentRow[];
   failedReviewTaskBySegment?: Map<string, SegmentFailedReviewTaskLink>;
-  titleAction: ReactNode;
+  titleAction: ChapterSegmentsTableTitleAction;
   onSegmentClick: (segmentId: string) => void;
   onGenerateScript?: (segmentId: string) => void;
   onGenerateAudio?: (segmentId: string) => void;
