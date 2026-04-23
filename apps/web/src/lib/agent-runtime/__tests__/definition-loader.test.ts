@@ -8,6 +8,7 @@ import {
   loadSkillDefinition,
   loadWorkflowDefinition,
 } from "../registry";
+import { loadSkillRuntimeBundle } from "../runtime/load-skill-runtime-bundle";
 
 const writeFile = (filePath: string, content: string) => {
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
@@ -44,6 +45,7 @@ const createFixtureRoot = () => {
       'outputSchemaRef = "character-output"',
       'contextRequirements = ["segment"]',
       'toolAllowlist = ["load-book-context"]',
+      'promptBundle = ["prompts/system.md", "prompts/user.md"]',
     ].join("\n")
   );
   writeFile(
@@ -154,6 +156,51 @@ describe("definition loader", () => {
     );
   });
 
+  it("loads the real workflow definition without runtime-owned validation in authoring stages", () => {
+    const workspaceRoot = path.resolve(__dirname, "../../../../../..");
+    const workflow = loadWorkflowDefinition(workspaceRoot, "script-production");
+
+    expect(workflow.definition.stages).toEqual([
+      "prepare",
+      "character_discovery",
+      "segment_scripting",
+      "segment_repair",
+      "quality_judgement",
+      "persist",
+      "manual_review_handoff",
+      "complete",
+    ]);
+    expect(workflow.definition.stages).not.toContain("validation");
+  });
+
+  it("rejects promptBundle entries that escape the skill directory", () => {
+    const rootDir = createFixtureRoot();
+
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        'kind = "analysis"',
+        'compatibleAgents = ["character-discovery"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+        'promptBundle = ["../shared/system.md", "prompts/user.md"]',
+      ].join("\n")
+    );
+    writeFile(path.join(rootDir, "skills/shared/system.md"), "escaped");
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/prompts/user.md"),
+      "{{segment_text}}"
+    );
+
+    expect(() =>
+      loadSkillRuntimeBundle(rootDir, "character-extraction")
+    ).toThrow(DefinitionRegistryError);
+  });
+
   it("raises a structured validation error when required toml fields are missing", () => {
     const rootDir = createFixtureRoot();
 
@@ -209,6 +256,91 @@ describe("definition loader", () => {
         ],
       });
     }
+  });
+
+  it("raises a validation error when a runtime skill omits promptBundle", () => {
+    const rootDir = createFixtureRoot();
+
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        'kind = "analysis"',
+        'compatibleAgents = ["character-discovery-agent"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+      ].join("\n")
+    );
+
+    expect(() => loadSkillDefinition(rootDir, "character-extraction")).toThrow(
+      DefinitionRegistryError
+    );
+
+    try {
+      loadSkillDefinition(rootDir, "character-extraction");
+    } catch (error) {
+      expect(error).toBeInstanceOf(DefinitionRegistryError);
+      expect((error as DefinitionRegistryError).code).toBe("VALIDATION_ERROR");
+      expect((error as DefinitionRegistryError).details).toMatchObject({
+        definitionType: "skill",
+        definitionId: "character-extraction",
+        missingFields: ["promptBundle"],
+      });
+    }
+  });
+
+  it("loads runtime prompt bundle strictly from promptBundle paths", () => {
+    const rootDir = createFixtureRoot();
+    const bundleDir = path.join(rootDir, "skills/character-extraction/bundle");
+
+    fs.mkdirSync(bundleDir, { recursive: true });
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        'kind = "analysis"',
+        'compatibleAgents = ["character-discovery-agent"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+        'promptBundle = ["bundle/system.md", "bundle/user.md"]',
+      ].join("\n")
+    );
+    writeFile(path.join(bundleDir, "system.md"), "bundle system");
+    writeFile(path.join(bundleDir, "user.md"), "bundle user");
+
+    const bundle = loadSkillRuntimeBundle(rootDir, "character-extraction");
+
+    expect(bundle.systemPrompt).toBe("bundle system");
+    expect(bundle.userPrompt).toBe("bundle user");
+  });
+
+  it("fails fast when promptBundle references a missing file", () => {
+    const rootDir = createFixtureRoot();
+
+    writeFile(
+      path.join(rootDir, "skills/character-extraction/skill.toml"),
+      [
+        'id = "character-extraction"',
+        'version = "1"',
+        'kind = "analysis"',
+        'compatibleAgents = ["character-discovery-agent"]',
+        'inputSchemaRef = "character-input"',
+        'outputSchemaRef = "character-output"',
+        'contextRequirements = ["segment"]',
+        'toolAllowlist = ["load-book-context"]',
+        'promptBundle = ["bundle/system.md", "bundle/user.md"]',
+      ].join("\n")
+    );
+
+    expect(() =>
+      loadSkillRuntimeBundle(rootDir, "character-extraction")
+    ).toThrow(/Missing required file/);
   });
 
   it("raises an authoring error when required markdown files are missing", () => {

@@ -103,6 +103,12 @@ export interface ScriptSentence {
   tone?: string;
   strength?: number;
   pauseAfter?: number;
+  prosody?: {
+    pace?: number;
+    pitch?: number;
+    energy?: number;
+    pauseMsAfter?: number;
+  };
   ttsParameters?: any;
   orderInSegment: number;
   chapterId?: string | null;
@@ -337,6 +343,12 @@ export async function createScriptSentence(
     rawSpeaker?: string | null;
     tone?: string;
     roleType?: string;
+    prosody?: {
+      pace?: number;
+      pitch?: number;
+      energy?: number;
+      pauseMsAfter?: number;
+    };
     strength?: number;
     pauseAfter?: number;
     ttsParameters?: any;

@@ -2,6 +2,8 @@
 
 本文档描述 txt2voice 当前（LLM-only）版本的 Agent 协作方式。
 
+> 当前主链说明：LLM 相关执行链路已经迁移到 `apps/web/src/lib/agent-runtime`，运行时由 `runtime/` + `mastra/runtime/` 协同驱动，prompt 资产来自 `skills/*/prompts`。本文以下实现路径均以这条主链为准。
+
 ## Agent 架构
 
 系统由五类 Agent 协同完成：
@@ -43,7 +45,14 @@
 
 ## 3) 角色分析 Agent（LLM）
 
-实现：`apps/web/src/lib/script-generator.ts` + `apps/web/src/lib/llm-service.ts`
+实现：
+
+- `apps/web/src/lib/agent-runtime/runtime/script-production/run-character-discovery-pass.ts`
+- `apps/web/src/lib/agent-runtime/runtime/stages/run-character-discovery-stage.ts`
+- `apps/web/src/lib/agent-runtime/mastra/runtime/run-mastra-character-discovery-stage.ts`
+- `apps/web/src/lib/agent-runtime/runtime/agents/character-discovery-agent.ts`
+- `skills/character-extraction/prompts/system.md`
+- `skills/character-extraction/prompts/user.md`
 
 流程：
 
@@ -58,7 +67,14 @@
 
 ## 4) 台本生成 Agent
 
-实现：`apps/web/src/lib/script-generator.ts`
+实现：
+
+- `apps/web/src/lib/agent-runtime/runtime/script-production/resolve-segment-draft.ts`
+- `apps/web/src/lib/agent-runtime/runtime/stages/run-segment-scripting-stage.ts`
+- `apps/web/src/lib/agent-runtime/mastra/runtime/run-mastra-segment-scripting-stage.ts`
+- `apps/web/src/lib/agent-runtime/runtime/agents/script-generation-agent.ts`
+- `skills/script-generation/prompts/system.md`
+- `skills/script-generation/prompts/user.md`
 
 流程：
 
@@ -67,8 +83,8 @@
 能力：
 
 - 对话/旁白识别
-- 情绪与语气标注
-- 三级 JSON 修复（直接解析 / 本地修复 / LLM 修复）
+- JSON 修复链路通过 `repair-agent` 承接
+- 质量判定通过 `quality-judge-agent` 承接
 - 书籍/章节/段落粒度进度统计
 
 ## 5) 音频生成 Agent

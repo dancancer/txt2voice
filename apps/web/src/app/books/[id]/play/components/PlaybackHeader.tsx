@@ -24,7 +24,7 @@ export function PlaybackHeader({
   onTogglePlaylist,
 }: PlaybackHeaderProps) {
   return (
-    <div className="border-b bg-white shadow-sm">
+    <div className="border-b border-border bg-background shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
           <div className="flex w-full min-w-0 items-center">
@@ -33,8 +33,8 @@ export function PlaybackHeader({
               返回
             </Button>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">音频播放</h1>
-              <p className="text-sm text-gray-500 truncate">{bookTitle}</p>
+              <h1 className="text-lg sm:text-xl font-semibold text-foreground">音频播放</h1>
+              <p className="truncate text-sm text-muted-foreground">{bookTitle}</p>
             </div>
           </div>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">

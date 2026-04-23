@@ -35,9 +35,8 @@ export async function requestSynthesisPreview(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text,
-      provider: "indextts",
-      referenceAudio: speaker.referenceAudio,
-      emotionControlMethod: "Same as voice reference",
+      provider: "qwen3voice",
+      speakerId: speaker.speakerId || speaker.id,
       outputFormat: "mp3",
     }),
   });

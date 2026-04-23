@@ -3,414 +3,49 @@
 // output: 台本任务执行结果
 // pos: 任务执行器
 import prisma from "@/lib/prisma";
-import type { LLMExecutionEvent } from "@/lib/llm-service";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type { LLMExecutionEvent } from "@/lib/llm/events";
 import { runScriptProductionWorkflow } from "@/lib/agent-runtime/runtime/run-script-production-workflow";
+import type { ScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/types";
 import {
   jsonObject,
   mergeTaskData,
-  updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import {
+  CANCELED_TASK_STATUS,
+  throwIfTaskCanceled,
+} from "@/lib/task-cancellation";
+import {
+  asAgentRuntimeMetadata,
+  asRecord,
+  asRuntimeManualReviewSync,
+  asString,
+  asStringList,
+  buildBookRuntimePointers,
+  isPartialScriptGenerationRun,
+  isSampleScriptGenerationRun,
+  mergeOutstandingFailedSegmentIds,
+  resolveBookStatusAfterPartialRun,
+  resolveFailureDetails,
+} from "@/lib/script-generation/runner/runtime-metadata";
+import { createLLMMetricsCollector } from "@/lib/script-generation/runner/llm-metrics";
+import {
+  buildLLMRuntimeEvent,
+  buildSegmentProgressRuntimeEvent,
+  buildTaskStageRuntimeEvent,
+} from "@/lib/script-generation/runner/runtime-events";
+import type {
+  AgentRuntimeMetadata,
+  RuntimeManualReviewSync,
+  ScriptGenerationExtraParams,
+  ScriptGenerationRunParams,
+} from "@/lib/script-generation/runner/types";
 
-export interface ScriptGenerationExtraParams {
-  startFromSegmentId?: string | null;
-  startFromOrderIndex?: number | null;
-  regenerateSegments?: boolean;
-  segmentIds?: string[];
-  limitToSegments?: number;
-}
-
-export interface ScriptGenerationRunParams {
-  bookId: string;
-  taskId: string;
-  options: Partial<ScriptGenerationOptions>;
-  extraParams?: ScriptGenerationExtraParams;
-}
+export type {
+  ScriptGenerationExtraParams,
+  ScriptGenerationRunParams,
+} from "@/lib/script-generation/runner/types";
 
 const MANUAL_REVIEW_ISSUE_TYPE = "SCRIPT_VALIDATION";
-
-interface ScriptGenerationLLMProviderMetrics {
-  provider: string;
-  submitted: number;
-  completed: number;
-  failed: number;
-  retried: number;
-  averageLatencyMs: number;
-  averageWaitMs: number;
-}
-
-interface ScriptGenerationLLMMetrics {
-  submitted: number;
-  completed: number;
-  failed: number;
-  retried: number;
-  averageLatencyMs: number;
-  averageWaitMs: number;
-  providers: ScriptGenerationLLMProviderMetrics[];
-}
-
-interface AgentRuntimeMetadata {
-  workflowRunId: string;
-  workflowId?: string;
-  status: string;
-  mode?: string;
-  startedAt?: string;
-  completedAt?: string;
-  durationMs?: number;
-  traceEventCount?: number;
-  stageRunCount?: number;
-  summary?: Record<string, unknown>;
-}
-
-interface RuntimeManualReviewSync {
-  issueType: string;
-  created: number;
-  updated: number;
-  pending: number;
-  resolved: number;
-}
-
-const asRecord = (value: unknown): Record<string, unknown> | null =>
-  value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-
-const asString = (value: unknown): string => {
-  if (typeof value !== "string") {
-    return "";
-  }
-  return value.trim();
-};
-
-const asNumber = (value: unknown): number | null => {
-  if (typeof value !== "number" || Number.isNaN(value)) {
-    return null;
-  }
-  return value;
-};
-
-const asBoolean = (value: unknown): boolean => value === true;
-
-const asStringList = (value: unknown): string[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value
-    .map((entry) => asString(entry))
-    .filter((entry) => entry.length > 0);
-};
-
-const asAgentRuntimeMetadata = (
-  value: unknown
-): AgentRuntimeMetadata | null => {
-  const record = asRecord(value);
-  if (!record) {
-    return null;
-  }
-
-  const workflowRunId = asString(record.workflowRunId);
-  const status = asString(record.status);
-
-  if (!workflowRunId || !status) {
-    return null;
-  }
-
-  const summary = asRecord(record.summary) || undefined;
-
-  return {
-    workflowRunId,
-    workflowId: asString(record.workflowId) || undefined,
-    status,
-    mode: asString(record.mode) || undefined,
-    startedAt: asString(record.startedAt) || undefined,
-    completedAt: asString(record.completedAt) || undefined,
-    durationMs: asNumber(record.durationMs) ?? undefined,
-    traceEventCount: asNumber(record.traceEventCount) ?? undefined,
-    stageRunCount: asNumber(record.stageRunCount) ?? undefined,
-    summary: summary ? JSON.parse(JSON.stringify(summary)) : undefined,
-  };
-};
-
-const asRuntimeManualReviewSync = (
-  runtimeMetadata: AgentRuntimeMetadata | null
-): RuntimeManualReviewSync | null => {
-  const summary = asRecord(runtimeMetadata?.summary);
-  const reviewSync = asRecord(summary?.manualReviewSync);
-  if (!reviewSync) {
-    return null;
-  }
-
-  const issueType = asString(reviewSync.issueType);
-  if (!issueType) {
-    return null;
-  }
-
-  return {
-    issueType,
-    created: asNumber(reviewSync.created) ?? 0,
-    updated: asNumber(reviewSync.updated) ?? 0,
-    pending: asNumber(reviewSync.pending) ?? 0,
-    resolved: asNumber(reviewSync.resolved) ?? 0,
-  };
-};
-
-const buildBookRuntimePointers = (params: {
-  runtimeMetadata: AgentRuntimeMetadata | null;
-  isFailure: boolean;
-}): Record<string, unknown> => {
-  const { runtimeMetadata, isFailure } = params;
-  if (!runtimeMetadata) {
-    return {};
-  }
-
-  return {
-    lastScriptWorkflowRunId: runtimeMetadata.workflowRunId,
-    lastScriptRuntimeStatus: runtimeMetadata.status,
-    ...(runtimeMetadata.completedAt
-      ? {
-          lastScriptRuntimeCompletedAt: runtimeMetadata.completedAt,
-        }
-      : {}),
-    ...(isFailure
-      ? {
-          lastFailedScriptWorkflowRunId: runtimeMetadata.workflowRunId,
-        }
-      : {}),
-  };
-};
-
-const createLLMMetricsCollector = () => {
-  const providerBuckets = new Map<
-    string,
-    {
-      submitted: number;
-      completed: number;
-      failed: number;
-      retried: number;
-      totalLatencyMs: number;
-      totalWaitMs: number;
-    }
-  >();
-  let submitted = 0;
-  let completed = 0;
-  let failed = 0;
-  let retried = 0;
-  let totalLatencyMs = 0;
-  let totalWaitMs = 0;
-
-  const getBucket = (provider: string) => {
-    const key = provider.trim() || "unknown";
-    const existing = providerBuckets.get(key);
-    if (existing) {
-      return existing;
-    }
-
-    const created = {
-      submitted: 0,
-      completed: 0,
-      failed: 0,
-      retried: 0,
-      totalLatencyMs: 0,
-      totalWaitMs: 0,
-    };
-    providerBuckets.set(key, created);
-    return created;
-  };
-
-  return {
-    observe(event: LLMExecutionEvent) {
-      const bucket = getBucket(event.provider);
-      if (event.status === "submitted") {
-        submitted += 1;
-        bucket.submitted += 1;
-        return;
-      }
-
-      const retriesUsed =
-        typeof event.retriesUsed === "number"
-          ? Math.max(event.retriesUsed, 0)
-          : typeof event.attempt === "number"
-            ? Math.max(event.attempt - 1, 0)
-            : 0;
-
-      retried += retriesUsed;
-      bucket.retried += retriesUsed;
-
-      if (event.status === "completed") {
-        completed += 1;
-        bucket.completed += 1;
-        totalLatencyMs += event.latencyMs;
-        bucket.totalLatencyMs += event.latencyMs;
-        totalWaitMs += event.waitMs || 0;
-        bucket.totalWaitMs += event.waitMs || 0;
-        return;
-      }
-
-      failed += 1;
-      bucket.failed += 1;
-    },
-
-    snapshot(): ScriptGenerationLLMMetrics {
-      return {
-        submitted,
-        completed,
-        failed,
-        retried,
-        averageLatencyMs: completed > 0 ? Math.round(totalLatencyMs / completed) : 0,
-        averageWaitMs: completed > 0 ? Math.round(totalWaitMs / completed) : 0,
-        providers: Array.from(providerBuckets.entries())
-          .map(([provider, bucket]) => ({
-            provider,
-            submitted: bucket.submitted,
-            completed: bucket.completed,
-            failed: bucket.failed,
-            retried: bucket.retried,
-            averageLatencyMs:
-              bucket.completed > 0
-                ? Math.round(bucket.totalLatencyMs / bucket.completed)
-                : 0,
-            averageWaitMs:
-              bucket.completed > 0
-                ? Math.round(bucket.totalWaitMs / bucket.completed)
-                : 0,
-          }))
-          .sort((left, right) => left.provider.localeCompare(right.provider)),
-      };
-    },
-  };
-};
-
-const normalizeSegmentFailureDetail = (value: unknown): SegmentFailureDetail | null => {
-  const record = asRecord(value);
-  if (!record) {
-    return null;
-  }
-
-  const segmentId = asString(record.segmentId);
-  if (!segmentId) {
-    return null;
-  }
-
-  return {
-    segmentId,
-    chapterId: asString(record.chapterId) || null,
-    orderIndex:
-      asNumber(record.orderIndex) !== null ? Number(record.orderIndex) : -1,
-    stage: asString(record.stage) || "unknown",
-    errorCode: asString(record.errorCode) || "UNKNOWN_ERROR",
-    message: asString(record.message) || "未知错误",
-    provider: asString(record.provider) || null,
-    retryable: asBoolean(record.retryable),
-    coverageRatio: asNumber(record.coverageRatio),
-    issueCodes: asStringList(record.issueCodes),
-    issueMessages: asStringList(record.issueMessages),
-    issuePreviews: asStringList(record.issuePreviews),
-    segmentPreview: asString(record.segmentPreview),
-    segmentContent: asString(record.segmentContent),
-    rawResponse: asString(record.rawResponse) || null,
-    structuredResult:
-      record.structuredResult &&
-      typeof record.structuredResult === "object" &&
-      !Array.isArray(record.structuredResult)
-        ? (JSON.parse(
-            JSON.stringify(record.structuredResult)
-          ) as Record<string, unknown>)
-        : null,
-  };
-};
-
-const resolveFailureDetails = (rawValue: unknown): SegmentFailureDetail[] => {
-  if (!Array.isArray(rawValue)) {
-    return [];
-  }
-
-  return rawValue
-    .map((entry) => normalizeSegmentFailureDetail(entry))
-    .filter((entry): entry is SegmentFailureDetail => Boolean(entry));
-};
-
-const isSampleScriptGenerationRun = (
-  extraParams: ScriptGenerationExtraParams
-): boolean =>
-  typeof extraParams.limitToSegments === "number" &&
-  extraParams.limitToSegments > 0 &&
-  !extraParams.regenerateSegments &&
-  !extraParams.startFromSegmentId &&
-  (extraParams.startFromOrderIndex === null ||
-    extraParams.startFromOrderIndex === undefined);
-
-const isPartialScriptGenerationRun = (
-  extraParams: ScriptGenerationExtraParams
-): boolean =>
-  Boolean(extraParams.regenerateSegments) ||
-  Boolean(extraParams.startFromSegmentId) ||
-  (extraParams.startFromOrderIndex !== null &&
-    extraParams.startFromOrderIndex !== undefined) ||
-  isSampleScriptGenerationRun(extraParams);
-
-const mergeOutstandingFailedSegmentIds = (params: {
-  bookMetadata: Record<string, unknown>;
-  processedSegmentIds: string[];
-  failedSegmentIds: string[];
-  isPartialRun: boolean;
-}): string[] => {
-  const { bookMetadata, processedSegmentIds, failedSegmentIds, isPartialRun } = params;
-
-  if (!isPartialRun) {
-    return failedSegmentIds;
-  }
-
-  const processedSegmentIdSet = new Set(processedSegmentIds);
-  const previousFailedSegmentIds = asStringList(bookMetadata.failedSegmentIds);
-
-  return Array.from(
-    new Set([
-      ...previousFailedSegmentIds.filter((segmentId) => !processedSegmentIdSet.has(segmentId)),
-      ...failedSegmentIds,
-    ])
-  );
-};
-
-const resolveBookStatusAfterSampleRun = (
-  previousStatus: string,
-  outstandingFailedSegments: number
-): string => {
-  if (outstandingFailedSegments > 0) {
-    return "manual_review_pending";
-  }
-
-  if (previousStatus === "manual_review_pending" || previousStatus === "script_generated") {
-    return "script_generated";
-  }
-
-  return previousStatus || "script_generated";
-};
-
-const resolveBookStatusAfterPartialRun = (params: {
-  previousStatus: string;
-  outstandingFailedSegments: number;
-  isSampleRun: boolean;
-}): string => {
-  const { previousStatus, outstandingFailedSegments, isSampleRun } = params;
-
-  if (isSampleRun) {
-    return resolveBookStatusAfterSampleRun(
-      previousStatus,
-      outstandingFailedSegments
-    );
-  }
-
-  if (outstandingFailedSegments > 0) {
-    return "manual_review_pending";
-  }
-
-  if (previousStatus === "processed") {
-    return "processed";
-  }
-
-  return "script_generated";
-};
 
 /**
  * 执行台本生成任务。
@@ -422,6 +57,8 @@ export async function runScriptGenerationTask({
   options,
   extraParams = {},
 }: ScriptGenerationRunParams): Promise<void> {
+  await throwIfTaskCanceled(taskId);
+
   const isSampleRun = isSampleScriptGenerationRun(extraParams);
   const isPartialRun = isPartialScriptGenerationRun(extraParams);
   const taskSnapshot = await prisma.processingTask.findUnique({
@@ -430,22 +67,134 @@ export async function runScriptGenerationTask({
       taskData: true,
     },
   });
-  const taskMetadata = asRecord(asRecord(taskSnapshot?.taskData)?.metadata);
+  let taskMetadata = {
+    ...(asRecord(asRecord(taskSnapshot?.taskData)?.metadata) || {}),
+  };
   const previousBookStatusFromTask = asString(taskMetadata?.previousBookStatus);
 
-  await updateTaskProgress(taskId, 10, "准备生成台本");
+  let currentProgress = 0;
+  let currentMessage = "";
+  const persistTaskRuntimeUpdate = async (params: {
+    progress: number;
+    message: string;
+    event?: LLMExecutionEvent;
+    stageEvent?: {
+      title: string;
+      detail?: string;
+      stage: string;
+      status?: "info" | "success" | "warning" | "error";
+    };
+    segmentProgress?: {
+      done: number;
+      total: number;
+      segmentId?: string;
+    };
+  }) => {
+    const task = await prisma.processingTask.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+
+    if (task?.status === CANCELED_TASK_STATUS) {
+      return;
+    }
+
+    currentProgress = params.progress;
+    currentMessage = params.message;
+
+    if (params.event) {
+      taskMetadata = buildLLMRuntimeEvent({
+        metadata: taskMetadata,
+        event: params.event,
+        progress: currentProgress,
+      }).metadata;
+    } else if (params.segmentProgress) {
+      taskMetadata = buildSegmentProgressRuntimeEvent({
+        metadata: taskMetadata,
+        done: params.segmentProgress.done,
+        total: params.segmentProgress.total,
+        progress: currentProgress,
+        segmentId: params.segmentProgress.segmentId,
+      }).metadata;
+    } else if (params.stageEvent) {
+      taskMetadata = buildTaskStageRuntimeEvent({
+        metadata: taskMetadata,
+        title: params.stageEvent.title,
+        detail: params.stageEvent.detail,
+        progress: currentProgress,
+        stage: params.stageEvent.stage,
+        status: params.stageEvent.status,
+      }).metadata;
+    }
+
+    const taskData = await mergeTaskData(taskId, {
+      message: currentMessage,
+      metadata: taskMetadata,
+    });
+
+    await prisma.processingTask.update({
+      where: { id: taskId },
+      data: {
+        progress: currentProgress,
+        taskData,
+      },
+    });
+  };
+  let runtimeUpdateQueue = Promise.resolve();
+  const enqueueRuntimeUpdate = (
+    params: Parameters<typeof persistTaskRuntimeUpdate>[0]
+  ) => {
+    runtimeUpdateQueue = runtimeUpdateQueue
+      .catch(() => undefined)
+      .then(() => persistTaskRuntimeUpdate(params));
+    return runtimeUpdateQueue;
+  };
+
+  await enqueueRuntimeUpdate({
+    progress: 10,
+    message: "准备生成台本",
+    stageEvent: {
+      title: "准备生成台本",
+      detail: "初始化任务与运行时上下文",
+      stage: "prepare",
+    },
+  });
 
   const llmMetricsCollector = createLLMMetricsCollector();
   let script: any;
 
-  await updateTaskProgress(taskId, 30, "开始分析文本");
+  await enqueueRuntimeUpdate({
+    progress: 30,
+    message: "开始分析文本",
+    stageEvent: {
+      title: "开始分析文本",
+      detail: "正在准备角色发现与文本理解",
+      stage: "character_discovery",
+    },
+  });
 
   const segmentProgress = (done: number, total: number) => {
     if (!total) return;
     const base = 30;
     const span = 40;
     const next = Math.min(base + Math.floor((done / total) * span), 69);
-    return updateTaskProgress(taskId, next, `生成台本 ${done}/${total}`);
+    return enqueueRuntimeUpdate({
+      progress: next,
+      message: `生成台本 ${done}/${total}`,
+      segmentProgress: {
+        done,
+        total,
+      },
+    });
+  };
+
+  const observeExecutionEvent = (event: LLMExecutionEvent) => {
+    llmMetricsCollector.observe(event);
+    void enqueueRuntimeUpdate({
+      progress: currentProgress || 30,
+      message: currentMessage || "生成中",
+      event,
+    });
   };
 
   if (extraParams.regenerateSegments && extraParams.segmentIds) {
@@ -456,11 +205,20 @@ export async function runScriptGenerationTask({
       mode: "regenerate",
       segmentIds: extraParams.segmentIds,
       onProgress: segmentProgress,
-      onExecutionEvent: (event: LLMExecutionEvent) => {
-        llmMetricsCollector.observe(event);
+      onExecutionEvent: observeExecutionEvent,
+      assertContinue: () => throwIfTaskCanceled(taskId),
+    });
+    await throwIfTaskCanceled(taskId);
+    await enqueueRuntimeUpdate({
+      progress: 70,
+      message: "段落台本生成完成",
+      stageEvent: {
+        title: "段落台本生成完成",
+        detail: "已完成本次重生段落的台本生成",
+        stage: "finalize",
+        status: "success",
       },
     });
-    await updateTaskProgress(taskId, 70, "段落台本生成完成");
   } else if (
     extraParams.limitToSegments ||
     extraParams.startFromSegmentId ||
@@ -477,16 +235,21 @@ export async function runScriptGenerationTask({
         startFromOrderIndex: extraParams.startFromOrderIndex,
         limitToSegments: extraParams.limitToSegments,
         onProgress: segmentProgress,
-        onExecutionEvent: (event: LLMExecutionEvent) => {
-          llmMetricsCollector.observe(event);
+        onExecutionEvent: observeExecutionEvent,
+        assertContinue: () => throwIfTaskCanceled(taskId),
+      });
+      await throwIfTaskCanceled(taskId);
+      script.segments = script.segments.slice(0, extraParams.limitToSegments);
+      await enqueueRuntimeUpdate({
+        progress: 70,
+        message: `完成前${extraParams.limitToSegments}个段落的台本生成`,
+        stageEvent: {
+          title: `完成前${extraParams.limitToSegments}个段落的台本生成`,
+          detail: "增量生成阶段已完成",
+          stage: "finalize",
+          status: "success",
         },
       });
-      script.segments = script.segments.slice(0, extraParams.limitToSegments);
-      await updateTaskProgress(
-        taskId,
-        70,
-        `完成前${extraParams.limitToSegments}个段落的台本生成`
-      );
     } else {
       script = await runScriptProductionWorkflow({
         taskId,
@@ -496,30 +259,57 @@ export async function runScriptGenerationTask({
         startFromSegmentId: extraParams.startFromSegmentId,
         startFromOrderIndex: extraParams.startFromOrderIndex,
         onProgress: segmentProgress,
-        onExecutionEvent: (event: LLMExecutionEvent) => {
-          llmMetricsCollector.observe(event);
+        onExecutionEvent: observeExecutionEvent,
+        assertContinue: () => throwIfTaskCanceled(taskId),
+      });
+      await throwIfTaskCanceled(taskId);
+      await enqueueRuntimeUpdate({
+        progress: 70,
+        message: "增量台本生成完成",
+        stageEvent: {
+          title: "增量台本生成完成",
+          detail: "已完成增量段落的台本生成",
+          stage: "finalize",
+          status: "success",
         },
       });
-      await updateTaskProgress(taskId, 70, "增量台本生成完成");
     }
   } else {
     await prisma.scriptSentence.deleteMany({
       where: { bookId },
     });
+    await throwIfTaskCanceled(taskId);
     script = await runScriptProductionWorkflow({
       taskId,
       bookId,
       options,
       mode: "full",
       onProgress: segmentProgress,
-      onExecutionEvent: (event: LLMExecutionEvent) => {
-        llmMetricsCollector.observe(event);
+      onExecutionEvent: observeExecutionEvent,
+      assertContinue: () => throwIfTaskCanceled(taskId),
+    });
+    await throwIfTaskCanceled(taskId);
+    await enqueueRuntimeUpdate({
+      progress: 70,
+      message: "台本生成完成",
+      stageEvent: {
+        title: "台本生成完成",
+        detail: "台本主生成阶段已完成，准备更新书籍状态",
+        stage: "finalize",
+        status: "success",
       },
     });
-    await updateTaskProgress(taskId, 70, "台本生成完成");
   }
 
-  await updateTaskProgress(taskId, 90, "更新书籍状态");
+  await enqueueRuntimeUpdate({
+    progress: 90,
+    message: "更新书籍状态",
+    stageEvent: {
+      title: "更新书籍状态",
+      detail: "正在写回任务摘要与书籍状态",
+      stage: "finalize",
+    },
+  });
 
   const book = await prisma.book.findUnique({
     where: { id: bookId },
@@ -562,6 +352,8 @@ export async function runScriptGenerationTask({
   };
   const llmMetrics = llmMetricsCollector.snapshot();
 
+  await throwIfTaskCanceled(taskId);
+
   if (hasSegmentFailures) {
     const failureMessage = `台本生成部分失败：${failedSegments}/${totalSegments} 个段落未生成成功`;
     const maxFailureDetailCount = 200;
@@ -569,6 +361,14 @@ export async function runScriptGenerationTask({
     const failedTaskData = await mergeTaskData(taskId, {
       message: failureMessage,
       metadata: {
+        ...buildTaskStageRuntimeEvent({
+          metadata: taskMetadata,
+          title: failureMessage,
+          detail: "任务已进入失败收口阶段",
+          progress: 90,
+          stage: "failed",
+          status: "error",
+        }).metadata,
         totalLines: script.summary.totalLines,
         dialogueCount: script.summary.dialogueCount,
         narrationCount: script.summary.narrationCount,
@@ -642,7 +442,16 @@ export async function runScriptGenerationTask({
     return;
   }
 
-  await updateTaskProgress(taskId, 100, "台本生成完成");
+  await enqueueRuntimeUpdate({
+    progress: 100,
+    message: "台本生成完成",
+    stageEvent: {
+      title: "台本生成完成",
+      detail: "所有段落处理完成",
+      stage: "completed",
+      status: "success",
+    },
+  });
 
   const taskData = await mergeTaskData(taskId, {
     message: extraParams.regenerateSegments
@@ -651,6 +460,7 @@ export async function runScriptGenerationTask({
       ? "增量台本生成完成"
       : "台本生成完成",
     metadata: {
+      ...taskMetadata,
       totalLines: script.summary.totalLines,
       dialogueCount: script.summary.dialogueCount,
       narrationCount: script.summary.narrationCount,

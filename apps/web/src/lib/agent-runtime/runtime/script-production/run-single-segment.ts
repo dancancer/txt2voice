@@ -58,5 +58,7 @@ export const runSingleSegment = async (
     draft: validationCycle.draft,
     validationReport: validationCycle.validationReport,
     counters: validationCycle.counters,
+    failedArtifact: validationCycle.failedArtifact,
+    qualitySignals: validationCycle.qualitySignals,
   });
 };

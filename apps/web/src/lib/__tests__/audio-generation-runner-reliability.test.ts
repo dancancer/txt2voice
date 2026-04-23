@@ -163,4 +163,111 @@ describe("audio-generation-runner reliability metadata", () => {
       })
     );
   });
+
+  it("should persist recent runtime events for audio generation task metadata", async () => {
+    mockGetAudioGenerator.mockReturnValue({
+      generateBatchAudioWithReliability: jest.fn().mockImplementation(
+        async (_requests, _options, hooks) => {
+          await hooks?.onPassComplete?.({
+            passName: "pass-1",
+            requestCount: 2,
+            successCount: 1,
+            failedCount: 1,
+            concurrency: 3,
+            durationMs: 20,
+          });
+          await hooks?.onPassComplete?.({
+            passName: "pass-2",
+            requestCount: 1,
+            successCount: 1,
+            failedCount: 0,
+            concurrency: 2,
+            durationMs: 10,
+          });
+          return {
+            results: [
+              {
+                success: true,
+                audioFileId: "audio-1",
+                duration: 1,
+                provider: "indextts",
+              },
+              {
+                success: false,
+                error: "provider timeout",
+                provider: "indextts",
+              },
+            ],
+            reliability: {
+              policyProvider: "indextts",
+              firstPassSuccessRate: 0.5,
+              retryRounds: 1,
+              averageDurationMs: 1000,
+              providerFailures: [
+                {
+                  provider: "indextts",
+                  failed: 1,
+                },
+              ],
+              passSummaries: [
+                {
+                  passName: "pass-1",
+                  requestCount: 2,
+                  successCount: 1,
+                  failedCount: 1,
+                  concurrency: 3,
+                  durationMs: 20,
+                },
+                {
+                  passName: "pass-2",
+                  requestCount: 1,
+                  successCount: 1,
+                  failedCount: 0,
+                  concurrency: 2,
+                  durationMs: 10,
+                },
+              ],
+            },
+          };
+        }
+      ),
+    } as any);
+
+    await runAudioGenerationTask({
+      bookId: "book-1",
+      taskId: "task-audio-runtime-events",
+      type: "batch",
+      scriptSentenceIds: ["sentence-1", "sentence-2"],
+      options: {
+        provider: "indextts",
+      },
+    });
+
+    const lastCall =
+      mockProcessingTaskUpdate.mock.calls[
+        mockProcessingTaskUpdate.mock.calls.length - 1
+      ];
+    expect(lastCall).toBeDefined();
+    expect(lastCall?.[0]).toMatchObject({
+      where: { id: "task-audio-runtime-events" },
+      data: expect.objectContaining({
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            currentStage: "completed",
+            lastRuntimeEvent: expect.objectContaining({
+              kind: "task_stage",
+              title: "音频生成完成",
+              progress: 100,
+            }),
+            recentRuntimeEvents: expect.arrayContaining([
+              expect.objectContaining({
+                kind: "audio_batch_pass",
+                title: "音频批次完成",
+              }),
+            ]),
+          }),
+        }),
+      }),
+    });
+  });
 });

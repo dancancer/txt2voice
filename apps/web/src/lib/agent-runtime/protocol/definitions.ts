@@ -7,11 +7,28 @@ const hasText = (value: unknown): value is string =>
 const isTextList = (value: unknown): value is string[] =>
   Array.isArray(value) && value.every((entry) => hasText(entry));
 
+const isNonEmptyTextList = (value: unknown): value is string[] =>
+  isTextList(value) && value.length > 0;
+
 const isOptionalText = (value: unknown): boolean =>
   value === undefined || hasText(value);
 
 const isOptionalTextList = (value: unknown): boolean =>
   value === undefined || isTextList(value);
+
+export const FRAMEWORK_OWNED_RUNTIME_SUBSTAGES = ["validation"] as const;
+
+export type FrameworkOwnedRuntimeSubstageId =
+  (typeof FRAMEWORK_OWNED_RUNTIME_SUBSTAGES)[number];
+
+export const RUNTIME_SKILL_KINDS = [
+  "analysis",
+  "generation",
+  "repair",
+  "quality",
+] as const;
+
+export type RuntimeSkillKind = (typeof RUNTIME_SKILL_KINDS)[number];
 
 export interface AgentDefinition {
   id: string;
@@ -51,6 +68,29 @@ export interface ToolContract {
   sideEffect: boolean;
 }
 
+export interface RuntimeSubstageDefinition {
+  id: FrameworkOwnedRuntimeSubstageId;
+  owner: "framework";
+  parentStage: string;
+}
+
+export const isFrameworkOwnedRuntimeSubstageId = (
+  value: unknown
+): value is FrameworkOwnedRuntimeSubstageId =>
+  hasText(value) &&
+  FRAMEWORK_OWNED_RUNTIME_SUBSTAGES.includes(
+    value as FrameworkOwnedRuntimeSubstageId
+  );
+
+export const requiresPromptBundle = (kind: unknown): kind is RuntimeSkillKind =>
+  hasText(kind) && RUNTIME_SKILL_KINDS.includes(kind as RuntimeSkillKind);
+
+const hasReservedWorkflowStage = (value: unknown): boolean =>
+  isFrameworkOwnedRuntimeSubstageId(value);
+
+const isWorkflowStageList = (value: unknown): value is string[] =>
+  isTextList(value) && !value.some((stageId) => hasReservedWorkflowStage(stageId));
+
 export const isAgentDefinition = (value: unknown): value is AgentDefinition => {
   if (!isRecord(value)) {
     return false;
@@ -71,6 +111,10 @@ export const isSkillDefinition = (value: unknown): value is SkillDefinition => {
     return false;
   }
 
+  const promptBundleValid = requiresPromptBundle(value.kind)
+    ? isNonEmptyTextList(value.promptBundle)
+    : isOptionalTextList(value.promptBundle);
+
   return (
     hasText(value.id) &&
     hasText(value.version) &&
@@ -80,7 +124,7 @@ export const isSkillDefinition = (value: unknown): value is SkillDefinition => {
     hasText(value.outputSchemaRef) &&
     isTextList(value.contextRequirements) &&
     isTextList(value.toolAllowlist) &&
-    isOptionalTextList(value.promptBundle) &&
+    promptBundleValid &&
     isOptionalText(value.modelPolicy) &&
     isOptionalText(value.repairPolicy) &&
     isOptionalTextList(value.successCriteria) &&
@@ -99,7 +143,21 @@ export const isWorkflowDefinition = (
     hasText(value.id) &&
     hasText(value.version) &&
     value.kind === "workflow" &&
-    isTextList(value.stages)
+    isWorkflowStageList(value.stages)
+  );
+};
+
+export const isRuntimeSubstageDefinition = (
+  value: unknown
+): value is RuntimeSubstageDefinition => {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isFrameworkOwnedRuntimeSubstageId(value.id) &&
+    value.owner === "framework" &&
+    hasText(value.parentStage)
   );
 };
 
@@ -112,5 +170,18 @@ export const isToolContract = (value: unknown): value is ToolContract => {
     hasText(value.name) &&
     hasText(value.kind) &&
     typeof value.sideEffect === "boolean"
+  );
+};
+
+export const resolveAllowedTools = (
+  agent: AgentDefinition,
+  skill: SkillDefinition,
+  runtimeRegisteredTools: string[]
+): string[] => {
+  const skillTools = new Set(skill.toolAllowlist);
+  const runtimeTools = new Set(runtimeRegisteredTools);
+
+  return agent.allowedTools.filter(
+    (toolName) => skillTools.has(toolName) && runtimeTools.has(toolName)
   );
 };

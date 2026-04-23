@@ -145,7 +145,7 @@ export function AudioPreviewUpload({
               onChange={handleFileSelect}
               disabled={isUploading}
             />
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-muted-foreground">
               支持格式: {acceptedFormats.join(", ")} | 最大大小: {Math.round(maxFileSize / 1024 / 1024)}MB
             </p>
           </div>
@@ -192,7 +192,7 @@ export function AudioPreviewUpload({
                 <div className="space-y-2">
                   <Label>上传进度</Label>
                   <Progress value={uploadProgress} className="w-full" />
-                  <p className="text-sm text-gray-600">{uploadProgress.toFixed(1)}%</p>
+                  <p className="text-sm text-muted-foreground">{uploadProgress.toFixed(1)}%</p>
                 </div>
               )}
 
@@ -219,7 +219,7 @@ export function AudioPreviewUpload({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-muted-foreground">
               上传完成后，音频将显示在这里。您可以在说话人管理页面查看所有音频。
             </div>
           </CardContent>

@@ -38,6 +38,14 @@ export function useScriptSentenceActions({
         characterId?: string | null;
         rawSpeaker?: string | null;
         roleType?: string;
+        strength?: number;
+        pauseAfter?: number;
+        prosody?: {
+          pace?: number;
+          pitch?: number;
+          energy?: number;
+          pauseMsAfter?: number;
+        };
       }
     ) => {
       try {
@@ -48,6 +56,9 @@ export function useScriptSentenceActions({
           characterId: updates.characterId ?? null,
           rawSpeaker: updates.rawSpeaker,
           roleType: updates.roleType,
+          strength: updates.strength,
+          pauseAfter: updates.pauseAfter,
+          prosody: updates.prosody,
         };
 
         await updateScriptSentences(bookId, [payload]);
@@ -72,6 +83,9 @@ export function useScriptSentenceActions({
                   characterId: payload.characterId ?? null,
                   rawSpeaker: payload.rawSpeaker ?? undefined,
                   roleType: payload.roleType ?? sentence.roleType,
+                  strength: payload.strength ?? undefined,
+                  pauseAfter: payload.pauseAfter ?? undefined,
+                  prosody: payload.prosody ?? undefined,
                   character: nextCharacter,
                 }
               : sentence

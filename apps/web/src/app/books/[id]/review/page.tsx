@@ -92,29 +92,29 @@ export default function ReviewWorkbenchPage() {
 
   if (isInitialLoading) {
     return (
-      <div className="flex h-full items-center justify-center bg-slate-50">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-indigo-600" />
-          <p className="text-slate-600">正在加载复核工作台...</p>
+          <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">正在加载复核工作台...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-full bg-slate-50">
+    <div className="min-h-full bg-background">
       <section className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <Button
               variant="ghost"
-              className="min-h-11 min-w-11 px-2 text-slate-600"
+              className="min-h-11 min-w-11 px-2 text-muted-foreground"
               onClick={() => router.push(`/books/${bookId}`)}
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               返回书籍详情
             </Button>
-            <h1 className="text-2xl font-semibold text-slate-900 sm:text-3xl">{bookTitle}</h1>
+            <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">{bookTitle}</h1>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">backlog {backlog}</Badge>
               <Badge variant="outline">pending {summary.pendingCount}</Badge>
@@ -140,8 +140,8 @@ export default function ReviewWorkbenchPage() {
         </div>
 
         {error ? (
-          <Card className="border-rose-200 bg-rose-50 shadow-sm">
-            <CardContent className="flex items-center gap-2 p-4 !pt-4 text-sm text-rose-700">
+          <Card className="border-destructive/20 bg-destructive/10 shadow-sm">
+            <CardContent className="flex items-center gap-2 p-4 !pt-4 text-sm text-destructive">
               <AlertCircle className="h-4 w-4" />
               {error}
             </CardContent>
@@ -207,11 +207,11 @@ export default function ReviewWorkbenchPage() {
 
           <TabsContent value="slo" className="mt-4 space-y-4">
             <SloCardSection sloMetrics={sloMetrics} />
-            <Card className="border-slate-200 shadow-sm">
+            <Card className="shadow-sm">
               <CardContent className="p-4 !pt-4">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                   <Select value={String(windowDays)} onValueChange={(value) => setWindowDays(Number(value))}>
-                    <SelectTrigger className="min-h-11 bg-white">
+                    <SelectTrigger className="min-h-11">
                       <SelectValue placeholder="SLO 窗口" />
                     </SelectTrigger>
                     <SelectContent>
@@ -224,7 +224,7 @@ export default function ReviewWorkbenchPage() {
                   </Select>
 
                   <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                    <SelectTrigger className="min-h-11 bg-white">
+                    <SelectTrigger className="min-h-11">
                       <SelectValue placeholder="来源过滤" />
                     </SelectTrigger>
                     <SelectContent>

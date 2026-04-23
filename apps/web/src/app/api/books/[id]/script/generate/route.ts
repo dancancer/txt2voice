@@ -3,18 +3,20 @@
 // output: HTTP 响应/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
-import {
-  withErrorHandler,
-  ValidationError,
-} from "@/lib/error-handler";
+import { withErrorHandler, ValidationError } from "@/lib/error-handler";
 import prisma from "@/lib/prisma";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
-import {
-  jsonObject,
-  mergeTaskData,
-} from "@/lib/processing-task-utils";
-import { SCRIPT_VALIDATION_ISSUE_TYPE } from "@/lib/script-validation-review";
+import type { Prisma } from "@/lib/prisma";
+import type { ScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/types";
+import { jsonObject, mergeTaskData } from "@/lib/processing-task-utils";
 import { enqueueScriptGenerationJob } from "@/lib/task-queue";
+import {
+  assertNoBlockingManualReview,
+  assertScriptGenerationAllowed,
+  buildScriptGenerationTaskData,
+  buildSegmentStatusPayload,
+  resolveStartSegmentOrder,
+  SCRIPT_VALIDATION_BLOCK_ISSUE_TYPE,
+} from "./route-helpers";
 
 // POST /api/books/[id]/script/generate - 生成朗读台本
 export const POST = withErrorHandler(
@@ -52,53 +54,31 @@ export const POST = withErrorHandler(
       throw new ValidationError("书籍不存在");
     }
 
-    // 允许从稳定状态重跑台本
-    const allowedStatuses = [
-      "processed",
-      "manual_review_pending",
-      "script_generated",
-      "completed",
-      "completed_with_errors",
-    ];
-    if (!allowedStatuses.includes(book.status)) {
-      console.log("=====book.status", book.status);
-      throw new ValidationError("请先完成文本处理");
-    }
-
-    if (book.status === "manual_review_pending") {
-      const blockingReviewItem = await prisma.manualReviewItem.findFirst({
-        where: {
-          bookId,
-          status: {
-            in: ["pending", "reprocessing"],
+    assertScriptGenerationAllowed(book.status);
+    await assertNoBlockingManualReview({
+      status: book.status,
+      findBlockingReview: async () =>
+        prisma.manualReviewItem.findFirst({
+          where: {
+            bookId,
+            status: {
+              in: ["pending", "reprocessing"],
+            },
+            issueType: {
+              not: SCRIPT_VALIDATION_BLOCK_ISSUE_TYPE,
+            },
           },
-          issueType: {
-            not: SCRIPT_VALIDATION_ISSUE_TYPE,
+          select: {
+            id: true,
           },
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (blockingReviewItem) {
-        throw new ValidationError(
-          "当前仍存在非台本校验复核项，请先完成相关复核后再重跑台本"
-        );
-      }
-    }
+        }),
+    });
 
     // 如果指定了起始段落，验证它是否存在
-    let startFromOrderIndex = null;
-    if (startFromSegmentId) {
-      const startSegment = book.textSegments.find(
-        (seg) => seg.id === startFromSegmentId
-      );
-      if (!startSegment) {
-        throw new ValidationError("指定的起始段落不存在");
-      }
-      startFromOrderIndex = startSegment.orderIndex;
-    }
+    const startFromOrderIndex = resolveStartSegmentOrder({
+      startFromSegmentId,
+      textSegments: book.textSegments,
+    });
 
     if (!book.textSegments || book.textSegments.length === 0) {
       throw new ValidationError("没有可处理的文本段落");
@@ -119,21 +99,13 @@ export const POST = withErrorHandler(
 
     try {
       // 创建处理任务
-      const taskData: any = {
-        message: startFromSegmentId
-          ? "从指定段落开始生成台本"
-          : "开始生成朗读台本",
+      const taskData = buildScriptGenerationTaskData({
+        startFromSegmentId,
+        startFromOrderIndex,
         regenerateSegments,
-        limitToSegments: typeof limitToSegments === "number" ? limitToSegments : null,
-        metadata: {
-          previousBookStatus: book.status,
-        },
-      };
-
-      if (startFromSegmentId) {
-        taskData.startFromSegmentId = startFromSegmentId;
-        taskData.startFromOrderIndex = startFromOrderIndex;
-      }
+        limitToSegments,
+        previousBookStatus: book.status,
+      });
 
       const task = await prisma.processingTask.create({
         data: {
@@ -141,7 +113,7 @@ export const POST = withErrorHandler(
           taskType: "SCRIPT_GENERATION",
           status: "processing",
           progress: 0,
-          taskData,
+          taskData: taskData as Prisma.InputJsonValue,
         },
       });
 
@@ -279,57 +251,10 @@ export const GET = withErrorHandler(
 
     if (includeSegmentStatus && book.textSegments.length > 0) {
       // 分析每个段落的处理状态
-      const segmentStatus = book.textSegments.map((segment) => {
-        const segmentSentences = book.scriptSentences.filter(
-          (sentence) => sentence.segmentId === segment.id
-        );
-
-        return {
-          id: segment.id,
-          orderIndex: segment.orderIndex,
-          content: segment.content.substring(0, 100) + "...",
-          wordCount: segment.content.length,
-          processed: segmentSentences.length > 0,
-          lineCount: segmentSentences.length,
-          firstGeneratedAt:
-            segmentSentences.length > 0
-              ? new Date(
-                  Math.min(
-                    ...segmentSentences.map((s) =>
-                      new Date(s.createdAt).getTime()
-                    )
-                  )
-                )
-              : null,
-          lastGeneratedAt:
-            segmentSentences.length > 0
-              ? new Date(
-                  Math.max(
-                    ...segmentSentences.map((s) =>
-                      new Date(s.createdAt).getTime()
-                    )
-                  )
-                )
-              : null,
-        };
+      response.data.segments = buildSegmentStatusPayload({
+        textSegments: book.textSegments,
+        scriptSentences: book.scriptSentences,
       });
-
-      const processedSegments = segmentStatus.filter(
-        (seg) => seg.processed
-      ).length;
-      const unprocessedSegments = book.textSegments.length - processedSegments;
-
-      response.data.segments = {
-        items: segmentStatus,
-        summary: {
-          total: book.textSegments.length,
-          processed: processedSegments,
-          unprocessed: unprocessedSegments,
-          processedPercentage: Math.round(
-            (processedSegments / book.textSegments.length) * 100
-          ),
-        },
-      };
     }
 
     return NextResponse.json(response);
@@ -344,7 +269,13 @@ export const PATCH = withErrorHandler(
   ) => {
     const { id: bookId } = await params;
     const body = await request.json();
-    const { segmentIds = [] }: { segmentIds: string[] } = body;
+    const {
+      segmentIds = [],
+      options = {},
+    }: {
+      segmentIds: string[];
+      options?: Partial<ScriptGenerationOptions>;
+    } = body;
 
     if (!Array.isArray(segmentIds) || segmentIds.length === 0) {
       throw new ValidationError("请提供要重新生成的段落ID列表");
@@ -414,7 +345,7 @@ export const PATCH = withErrorHandler(
       await enqueueScriptGenerationJob({
         taskId: task.id,
         bookId,
-        options: {},
+        options,
         extraParams: {
           segmentIds,
           regenerateSegments: true,

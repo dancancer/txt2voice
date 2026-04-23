@@ -2,14 +2,18 @@ import {
   type AgentDefinition,
   type ArtifactEnvelope,
   type ExecutionEvent,
+  type RuntimeSubstageDefinition,
   type SkillDefinition,
   type ToolContract,
   type WorkflowDefinition,
+  FRAMEWORK_OWNED_RUNTIME_SUBSTAGES,
   isAgentDefinition,
   isExecutionEvent,
+  isRuntimeSubstageDefinition,
   isSkillDefinition,
   isToolContract,
   isWorkflowDefinition,
+  resolveAllowedTools,
 } from "../protocol";
 
 describe("agent runtime protocol definitions", () => {
@@ -31,6 +35,7 @@ describe("agent runtime protocol definitions", () => {
       outputSchemaRef: "segment-script-output",
       contextRequirements: ["segment", "character_memory"],
       toolAllowlist: ["validate-structured-output"],
+      promptBundle: ["prompts/system.md", "prompts/user.md"],
     };
     const workflow: WorkflowDefinition = {
       id: "script-production",
@@ -48,6 +53,69 @@ describe("agent runtime protocol definitions", () => {
     expect(isSkillDefinition(skill)).toBe(true);
     expect(isWorkflowDefinition(workflow)).toBe(true);
     expect(isToolContract(tool)).toBe(true);
+  });
+
+  it("treats validation as a framework-owned runtime substage instead of a workflow stage", () => {
+    const validationSubstage: RuntimeSubstageDefinition = {
+      id: "validation",
+      owner: "framework",
+      parentStage: "segment_scripting",
+    };
+
+    expect(FRAMEWORK_OWNED_RUNTIME_SUBSTAGES).toContain("validation");
+    expect(isRuntimeSubstageDefinition(validationSubstage)).toBe(true);
+    expect(
+      isWorkflowDefinition({
+        id: "script-production",
+        version: "1",
+        kind: "workflow",
+        stages: ["prepare", "validation", "persist"],
+      })
+    ).toBe(false);
+  });
+
+  it("requires prompt bundles for runtime skills", () => {
+    expect(
+      isSkillDefinition({
+        id: "script-generation",
+        version: "1",
+        kind: "generation",
+        compatibleAgents: ["script-generation-agent"],
+        inputSchemaRef: "segment-script-input",
+        outputSchemaRef: "segment-script-output",
+        contextRequirements: ["segment"],
+        toolAllowlist: [],
+      })
+    ).toBe(false);
+  });
+
+  it("resolves tool access as the intersection of agent, skill, and runtime registrations", () => {
+    const agent: AgentDefinition = {
+      id: "character-discovery-agent",
+      version: "1",
+      role: "discover_character_identities",
+      compatibleWorkflowStages: ["character_discovery"],
+      allowedSkills: ["character-extraction"],
+      allowedTools: ["load-book-context", "update-task-progress"],
+    };
+    const skill: SkillDefinition = {
+      id: "character-extraction",
+      version: "1",
+      kind: "analysis",
+      compatibleAgents: ["character-discovery-agent"],
+      inputSchemaRef: "character-input",
+      outputSchemaRef: "character-output",
+      contextRequirements: ["segment", "character_memory_summary"],
+      toolAllowlist: ["load-book-context", "non-existent-tool"],
+      promptBundle: ["prompts/system.md", "prompts/user.md"],
+    };
+
+    expect(
+      resolveAllowedTools(agent, skill, [
+        "load-book-context",
+        "check-script-coverage",
+      ])
+    ).toEqual(["load-book-context"]);
   });
 
   it("rejects definitions with missing required fields", () => {

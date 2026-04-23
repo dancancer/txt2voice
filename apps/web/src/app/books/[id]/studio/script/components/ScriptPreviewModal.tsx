@@ -2,10 +2,11 @@
 // input: props/hooks/组件依赖
 // output: 局部 UI
 // pos: 页面组件
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScriptSentence } from "./types";
+import { ScriptProsodyDisplay } from "./prosody-display";
 
 interface ScriptPreviewModalProps {
   scriptSentences: ScriptSentence[];
@@ -17,25 +18,25 @@ export function ScriptPreviewModal({
   onClose,
 }: ScriptPreviewModalProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-4xl max-h-[80vh] overflow-hidden">
-        <CardHeader>
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-h-[80vh] max-w-4xl overflow-hidden">
+        <DialogHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>台本预览</CardTitle>
+            <DialogTitle>台本预览</DialogTitle>
             <Button variant="ghost" size="sm" onClick={onClose}>
               ✕
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="overflow-y-auto max-h-[60vh]">
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto">
           <div className="space-y-4">
             {scriptSentences.map((sentence, index) => (
               <div
                 key={sentence.id}
-                className="border-l-4 border-blue-500 pl-4"
+                className="border-l-4 border-border pl-4"
               >
-                <div className="flex items-center space-x-2 mb-1">
-                  <span className="text-sm font-medium text-gray-500">
+                <div className="mb-1 flex items-center space-x-2">
+                  <span className="text-sm font-medium text-muted-foreground">
                     #{index + 1}
                   </span>
                   {sentence.character ? (
@@ -47,19 +48,26 @@ export function ScriptPreviewModal({
                   )}
                   {sentence.tone && (
                     <Badge
-                      variant="secondary"
-                      className="bg-purple-100 text-purple-700 border-purple-300"
+                      variant="outline"
+                      className="border-border bg-accent/60 text-accent-foreground"
                     >
                       {sentence.tone}
                     </Badge>
                   )}
                 </div>
-                <p className="text-gray-900">{sentence.text}</p>
+                <p className="text-foreground">{sentence.text}</p>
+                <ScriptProsodyDisplay
+                  strength={sentence.strength}
+                  pauseAfter={sentence.pauseAfter}
+                  prosody={sentence.prosody}
+                  compact
+                  className="mt-2"
+                />
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

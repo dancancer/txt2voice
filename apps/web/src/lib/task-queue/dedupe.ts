@@ -4,10 +4,12 @@ import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { AudioGenerationTaskType } from "@/lib/audio-generation-runner";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
 import type { QualitySignalSyncTaskType } from "@/lib/quality-signal-sync-runner";
+import type { ScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/types";
 import type { ScriptGenerationExtraParams } from "@/lib/script-generation-runner";
 
 interface ScriptDedupeInput {
   bookId: string;
+  options?: Partial<ScriptGenerationOptions>;
   extraParams?: ScriptGenerationExtraParams;
 }
 
@@ -54,6 +56,7 @@ const hashScope = (payload: unknown): string => {
 
 export const buildScriptDedupeKey = (input: ScriptDedupeInput): string => {
   const normalized = {
+    llmModelId: input.options?.llmModelId || null,
     startFromSegmentId: input.extraParams?.startFromSegmentId || null,
     startFromOrderIndex: input.extraParams?.startFromOrderIndex ?? null,
     regenerateSegments: Boolean(input.extraParams?.regenerateSegments),

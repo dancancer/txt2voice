@@ -8,6 +8,7 @@ import prisma from '@/lib/prisma'
 import { processFileContent, createChapterSegmentRecords, TextProcessingOptions } from '@/lib/text-processor'
 import { readFile } from 'fs/promises'
 import { mergeTaskData } from '@/lib/processing-task-utils'
+import { isTaskCanceledError, throwIfTaskCanceled } from '@/lib/task-cancellation'
 
 // POST /api/books/[id]/process - 处理文件内容
 export const POST = withErrorHandler(async (
@@ -63,6 +64,7 @@ export const POST = withErrorHandler(async (
       metadata?: Record<string, unknown>
     ) => {
       if (!taskId) return
+      await throwIfTaskCanceled(taskId)
       const taskData = await mergeTaskData(taskId, {
         message,
         metadata
@@ -81,10 +83,12 @@ export const POST = withErrorHandler(async (
       where: { id: bookId },
       data: { status: 'processing' }
     })
+    await throwIfTaskCanceled(taskId)
     await updateTaskProgress(10, '读取原始文件', { stage: 'read_file' })
 
     // 读取文件内容
     const fileBuffer = await readFile(book.uploadedFilePath!)
+    await throwIfTaskCanceled(taskId)
     await updateTaskProgress(30, '文本清洗与编码识别', { stage: 'text_cleaning' })
 
     // 处理文件内容
@@ -103,6 +107,7 @@ export const POST = withErrorHandler(async (
       segmentRecords,
       statistics: segmentationStats
     } = createChapterSegmentRecords(bookId, processedText.content, options)
+    await throwIfTaskCanceled(taskId)
     await updateTaskProgress(60, '写入章节与段落', {
       stage: 'persist_records',
       totalChapters: chapterRecords.length,
@@ -134,6 +139,7 @@ export const POST = withErrorHandler(async (
         }
       })
     })
+    await throwIfTaskCanceled(taskId)
     await updateTaskProgress(90, '汇总处理结果', { stage: 'summary' })
 
     // 获取处理结果
@@ -174,6 +180,7 @@ export const POST = withErrorHandler(async (
     })
 
     if (taskId) {
+      await throwIfTaskCanceled(taskId)
       const completedTaskData = await mergeTaskData(taskId, {
         message: '文本处理完成',
         metadata: {
@@ -225,6 +232,16 @@ export const POST = withErrorHandler(async (
     })
 
   } catch (error) {
+    if (isTaskCanceledError(error)) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          taskId,
+          canceled: true
+        }
+      })
+    }
+
     // 处理失败，重置状态
     await prisma.book.update({
       where: { id: bookId },

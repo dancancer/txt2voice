@@ -74,10 +74,10 @@ export function PlaybackMain({
       <Card>
         <CardContent className="p-4 !pt-4 sm:p-6 sm:!pt-6 lg:p-8 lg:!pt-8">
           <div className="mb-6">
-            <h2 className="mb-2 text-xl font-bold leading-8 text-gray-900 sm:text-2xl">
+            <h2 className="mb-2 text-xl font-bold leading-8 text-foreground sm:text-2xl">
               {currentTrack?.scriptSentence?.text || `音频文件 ${currentTrackIndex + 1}`}
             </h2>
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
               {currentTrack?.character && (
                 <div className="flex items-center">
                   <User className="mr-1 h-4 w-4" />
@@ -100,15 +100,19 @@ export function PlaybackMain({
           <div className="mb-6">
             <div
               ref={progressBarRef}
-              className="relative h-2 cursor-pointer rounded-full bg-gray-200"
+              className="relative h-2 cursor-pointer overflow-hidden rounded-full bg-muted"
               onClick={onProgressClick}
             >
               <div
-                className="absolute left-0 top-0 h-full rounded-full bg-blue-600 transition-all duration-100"
-                style={{ width: duration > 0 ? `${(currentTime / duration) * 100}%` : "0%" }}
+                className="absolute inset-0 rounded-full bg-primary transition-transform duration-100"
+                style={{
+                  transform: `translateX(-${
+                    100 - (duration > 0 ? (currentTime / duration) * 100 : 0)
+                  }%)`,
+                }}
               />
             </div>
-            <div className="mt-2 flex justify-between text-sm text-gray-600">
+            <div className="mt-2 flex justify-between text-sm text-muted-foreground">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
@@ -168,14 +172,14 @@ export function PlaybackMain({
                   className="flex-1"
                   aria-label="音量调节"
                 />
-                <span className="w-10 text-sm text-gray-600">
+                <span className="w-10 text-sm text-muted-foreground">
                   {Math.round((isMuted ? 0 : volume) * 100)}%
                 </span>
               </div>
             </div>
             <div>
               <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
-                <span className="text-sm text-gray-600">播放速度:</span>
+                <span className="text-sm text-muted-foreground">播放速度:</span>
                 <div className="flex flex-wrap gap-1">
                   {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
                     <Button
@@ -200,7 +204,7 @@ export function PlaybackMain({
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>播放列表</CardTitle>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>{audioFiles.length} 个文件</span>
                 <span>•</span>
                 <span>{totalDuration > 0 ? formatTime(totalDuration) : "--:--"}</span>
@@ -214,10 +218,10 @@ export function PlaybackMain({
                   key={file.id}
                   role="button"
                   tabIndex={0}
-                  className={`w-full rounded-lg p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                  className={`w-full rounded-lg p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                     index === currentTrackIndex
-                      ? "border border-blue-200 bg-blue-50"
-                      : "bg-gray-50 hover:bg-gray-100"
+                      ? "border border-border bg-accent"
+                      : "bg-muted/60 hover:bg-accent/70"
                   }`}
                   onClick={() => onTrackSelect(index)}
                   onKeyDown={(event) => {
@@ -232,8 +236,8 @@ export function PlaybackMain({
                       <div
                         className={`flex h-8 w-8 items-center justify-center rounded-full ${
                           index === currentTrackIndex
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-200 text-gray-600"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground"
                         }`}
                       >
                         {index === currentTrackIndex && isPlaying ? (
@@ -243,10 +247,10 @@ export function PlaybackMain({
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="line-clamp-2 font-medium text-gray-900">
+                        <h4 className="line-clamp-2 font-medium text-foreground">
                           {file.scriptSentence?.text || `音频文件 ${index + 1}`}
                         </h4>
-                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                           {file.character && <span>{file.character.canonicalName}</span>}
                           <span>{formatTime(file.duration)}</span>
                         </div>

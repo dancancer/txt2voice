@@ -6,9 +6,10 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { FileText, Plus, Sparkles, Workflow } from "lucide-react";
 import { BookList } from "@/components/BookList";
 import { BookUpload } from "@/components/BookUpload";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -40,17 +41,31 @@ function HomePageContent() {
   };
 
   return (
-    <div className="min-h-full bg-slate-50">
+    <div className="min-h-full bg-background">
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-        <Card className="border-slate-200 shadow-sm">
-          <CardContent className="p-6 !pt-6 sm:p-8 sm:!pt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-2">
-              <h2 className="text-2xl sm:text-3xl font-semibold text-slate-900 leading-tight">
+        <Card className="shadow-sm">
+          <CardContent className="flex flex-col gap-5 p-6 !pt-6 sm:p-8 sm:!pt-8 lg:flex-row lg:items-start lg:justify-between">
+            <div className="space-y-3">
+              <h2 className="text-2xl sm:text-3xl font-semibold text-foreground leading-tight">
                 书籍管理
               </h2>
-              <p className="text-base text-slate-600 leading-7">
+              <p className="text-base text-muted-foreground leading-7">
                 上传文本后系统会自动处理章节与段落，随后可进入章节详情生成台本和音频。
               </p>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1 text-[0.72rem] font-medium text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5" />
+                  支持 txt / md
+                </Badge>
+                <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1 text-[0.72rem] font-medium text-muted-foreground">
+                  <Workflow className="h-3.5 w-3.5" />
+                  上传后自动文本处理
+                </Badge>
+                <Badge variant="outline" className="gap-1.5 rounded-full px-3 py-1 text-[0.72rem] font-medium text-muted-foreground">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  可继续生成台本与音频
+                </Badge>
+              </div>
             </div>
             <Dialog
               open={isUploadDialogOpen}
@@ -65,7 +80,7 @@ function HomePageContent() {
             >
               <Button
                 type="button"
-                className="min-h-11 min-w-11 bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500"
+                className="min-h-11 min-w-11 self-start"
                 onClick={() => setUploadDialogOpen(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -74,7 +89,7 @@ function HomePageContent() {
               <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>创建新书籍</DialogTitle>
-                  <p className="text-sm text-slate-600 leading-6">
+                  <p className="text-sm text-muted-foreground leading-6">
                     上传 txt 或 md 文件，系统会自动执行文本处理。
                   </p>
                 </DialogHeader>
@@ -87,7 +102,7 @@ function HomePageContent() {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="shadow-sm">
           <CardContent className="p-6 !pt-6">
             <BookList
               key={refreshKey}

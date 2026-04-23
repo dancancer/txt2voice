@@ -4,6 +4,7 @@
 
 文件清单:
 - README.md | 地位: 目录说明 | 功能: 记录目录职责与文件清单
+- agent-runtime | 地位: 领域目录 | 功能: 提供 LLM workflow 定义加载、runtime stage 执行、script-production 真相源与相关测试
 - api-utils.ts | 地位: 功能模块 | 功能: 提供 api utils 相关能力
 - api.ts | 地位: 功能模块 | 功能: 提供 api 相关能力
 - audio-generation-runner.ts | 地位: 功能模块 | 功能: 提供音频任务执行 runner
@@ -16,14 +17,14 @@
 - constants.ts | 地位: 功能模块 | 功能: 提供 constants 相关能力
 - error-handler.ts | 地位: 功能模块 | 功能: 提供 error handler 相关能力
 - indextts-service.ts | 地位: 功能模块 | 功能: 提供 indextts service 相关能力
-- llm-service.ts | 地位: 功能模块 | 功能: 提供 llm service 相关能力
+- llm | 地位: 领域目录 | 功能: 提供 LLM provider 解析、客户端调用与执行事件定义
 - logger.ts | 地位: 功能模块 | 功能: 提供 logger 相关能力
+- manual-review-service.ts | 地位: 功能模块 | 功能: 提供人工复核查询、保存修订与重跑编排
 - pagination.ts | 地位: 功能模块 | 功能: 提供 pagination 相关能力
 - prisma.ts | 地位: 功能模块 | 功能: 提供 prisma 相关能力
 - processing-task-utils.ts | 地位: 功能模块 | 功能: 提供 processing task utils 相关能力
 - rate-limiter.ts | 地位: 功能模块 | 功能: 提供 rate limiter 相关能力
 - redis.ts | 地位: 功能模块 | 功能: 提供 redis 相关能力
-- script-generator.ts | 地位: 功能模块 | 功能: 提供 script generator 相关能力
 - script-generation-runner.ts | 地位: 功能模块 | 功能: 提供台本任务执行 runner
 - script-sentence-contract.ts | 地位: 功能模块 | 功能: 提供 script/scripts 协议归一与查询/更新参数校验
 - script-sentence-service.ts | 地位: 功能模块 | 功能: 提供台词 CRUD 与排序服务

@@ -2,6 +2,13 @@ import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type { SegmentScriptDraft, SegmentScriptDraftLine } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
 import { normalizeSegmentScriptDraft } from "../script-production/helpers/script-draft-normalizer";
+import { renderPromptTemplate } from "../prompt-template";
+import {
+  parseOptionalPauseAfter,
+  parseOptionalProsody,
+  parseOptionalStrength,
+  parseOptionalTone,
+} from "./script-draft-line-metadata";
 
 export interface ScriptGenerationPrompts {
   systemPrompt: string;
@@ -11,7 +18,10 @@ export interface ScriptGenerationPrompts {
 export interface ScriptGenerationAgentInput {
   segmentId: string;
   segmentText: string;
+  characterMemorySummary?: string;
+  modelPolicy: string;
   prompts: ScriptGenerationPrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface ScriptGenerationAgentResult {
@@ -114,10 +124,10 @@ const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
   const id = asText(value.id);
   const sourceText = asText(value.sourceText);
   const text = asText(value.text);
-  const speaker = asText(value.speaker) ?? "未知";
+  const speaker = asText(value.speaker);
   const orderInSegment = asOrderInSegment(value.orderInSegment);
 
-  if (!id || !sourceText || !text || orderInSegment === null) {
+  if (!id || !sourceText || !text || !speaker || orderInSegment === null) {
     throw new Error("Invalid script line: required fields are empty or invalid");
   }
 
@@ -127,6 +137,10 @@ const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
     text,
     speaker,
     orderInSegment,
+    tone: parseOptionalTone(value.tone),
+    prosody: parseOptionalProsody(value.prosody),
+    strength: parseOptionalStrength(value.strength),
+    pauseAfter: parseOptionalPauseAfter(value.pauseAfter),
   };
 };
 
@@ -178,10 +192,14 @@ const toSegmentScriptDraft = (params: {
   return normalizedDraft;
 };
 
-const renderUserPrompt = (
+export const renderScriptGenerationUserPrompt = (
   template: string,
-  params: { segmentText: string }
-) => template.split("{{segment_text}}").join(params.segmentText);
+  params: { segmentText: string; characterMemorySummary?: string }
+) =>
+  renderPromptTemplate(template, {
+    segment_text: params.segmentText,
+    character_memory_summary: params.characterMemorySummary || "无",
+  });
 
 const asErrorMessage = (value: unknown): string => {
   if (value instanceof Error) {
@@ -219,12 +237,17 @@ export const createScriptGenerationAgent = (deps: ScriptGenerationAgentDeps) => 
   ): Promise<ScriptGenerationAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
-        segmentText: input.segmentText,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderScriptGenerationUserPrompt(input.prompts.userPrompt, {
+          segmentText: input.segmentText,
+          characterMemorySummary: input.characterMemorySummary,
+        }),
+      modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.segment_scripting",
         stageId: "segment_scripting",
+        segmentId: input.segmentId,
       },
     });
 

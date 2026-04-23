@@ -32,12 +32,12 @@ export function ChapterDetailPanel({
           <CardTitle className="text-lg">
             {chapter.title}
             {chapter.chapterIndex !== undefined && (
-              <span className="text-sm text-gray-500 ml-2">
+              <span className="ml-2 text-sm text-muted-foreground">
                 #{chapter.chapterIndex}
               </span>
             )}
           </CardTitle>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="mt-1 text-sm text-muted-foreground">
             段落 {chapter.totalSegments} · 台本 {chapter.scriptSegments} · 音频{" "}
             {chapter.audioSegments}
           </p>
@@ -69,7 +69,7 @@ export function ChapterDetailPanel({
       </CardHeader>
       <CardContent>
         {chapter.segments.length === 0 ? (
-          <div className="flex items-center space-x-2 text-sm text-gray-500 py-6">
+          <div className="flex items-center space-x-2 py-6 text-sm text-muted-foreground">
             <Layers className="w-4 h-4" />
             <span>该章节暂无段落，请先完成章节分段。</span>
           </div>
@@ -79,12 +79,12 @@ export function ChapterDetailPanel({
               <button
                 key={segment.id}
                 onClick={() => onSelectSegment(segment.id)}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-left hover:border-blue-300 hover:bg-blue-50/50 transition"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-left transition hover:bg-accent/60"
               >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium">{segment.label}</p>
-                    <p className="text-xs text-gray-500 line-clamp-2">
+                    <p className="line-clamp-2 text-xs text-muted-foreground">
                       {segment.preview}
                     </p>
                   </div>

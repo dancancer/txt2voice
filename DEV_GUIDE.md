@@ -8,7 +8,7 @@ pnpm install
 
 # 2) 配置环境变量（仓库根目录）
 cp .env.local.example .env.local
-# 填入 LLM_API_KEY 等必要配置
+# LLM 环境变量现在只作为兜底；主配置入口是页面里的 /settings/llm
 
 # 3) 启动依赖服务（PostgreSQL + Redis）
 pnpm docker:services
@@ -45,6 +45,14 @@ pnpm docker:up
 ```
 
 访问： [http://localhost:3001](http://localhost:3001)
+
+LLM 配置建议：
+
+- 主配置入口是页面 `/settings/llm`，会把模型配置持久化到数据库
+- 环境变量里的 `LLM_DEFAULT_MODEL_ID` / `LLM_MODELS_JSON` 只用于数据库为空时的兜底
+- 旧的 `LLM_PROVIDER` 单模型变量仍兼容，适合迁移或临时回退
+- 当前 `192.168.88.9:8028` 返回的实际模型名是 `Qwen3.5-9B-GGUF-Q4_K_M`
+- 如果后续切到 4B，只改配置中的 `model` 字段即可
 
 常用操作：
 

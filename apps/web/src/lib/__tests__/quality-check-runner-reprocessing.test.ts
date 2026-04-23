@@ -4,6 +4,17 @@
 // pos: 任务执行器测试
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
+  Decimal: class Decimal {
+    private readonly raw: number;
+
+    constructor(value: string | number) {
+      this.raw = Number(value);
+    }
+
+    toNumber(): number {
+      return this.raw;
+    }
+  },
   Prisma: {
     Decimal: class Decimal {
       private readonly raw: number;

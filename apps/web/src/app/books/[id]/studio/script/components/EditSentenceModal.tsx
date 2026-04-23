@@ -3,9 +3,11 @@
 // output: 局部 UI
 // pos: 页面组件
 import { useMemo, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { ScriptSentence } from "./types";
 import type { CharacterProfileSummary } from "@/types/book";
 
@@ -21,9 +23,32 @@ interface EditSentenceModalProps {
       characterId?: string | null;
       rawSpeaker?: string | null;
       roleType?: string;
+      strength?: number;
+      pauseAfter?: number;
+      prosody?: {
+        pace?: number;
+        pitch?: number;
+        energy?: number;
+        pauseMsAfter?: number;
+      };
     }
   ) => void;
 }
+
+const normalizeOptionalText = (value: string): string | undefined => {
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeOptionalNumber = (value: string): number | undefined => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
 
 export function EditSentenceModal({
   sentence,
@@ -43,6 +68,28 @@ export function EditSentenceModal({
   const narrationValue = narrationCharacter?.id || "__narration__";
   const [text, setText] = useState(sentence.text);
   const [tone, setTone] = useState(sentence.tone ?? "");
+  const [strength, setStrength] = useState(
+    typeof sentence.strength === "number" ? `${sentence.strength}` : ""
+  );
+  const [pauseAfter, setPauseAfter] = useState(
+    typeof sentence.pauseAfter === "number" ? `${sentence.pauseAfter}` : ""
+  );
+  const [pace, setPace] = useState(
+    typeof sentence.prosody?.pace === "number" ? `${sentence.prosody.pace}` : ""
+  );
+  const [pitch, setPitch] = useState(
+    typeof sentence.prosody?.pitch === "number" ? `${sentence.prosody.pitch}` : ""
+  );
+  const [energy, setEnergy] = useState(
+    typeof sentence.prosody?.energy === "number"
+      ? `${sentence.prosody.energy}`
+      : ""
+  );
+  const [pauseMsAfter, setPauseMsAfter] = useState(
+    typeof sentence.prosody?.pauseMsAfter === "number"
+      ? `${sentence.prosody.pauseMsAfter}`
+      : ""
+  );
   const [characterId, setCharacterId] = useState(
     sentence.characterId ??
       (sentence.rawSpeaker === "旁白" || sentence.roleType === "narration"
@@ -81,7 +128,27 @@ export function EditSentenceModal({
       return;
     }
 
-    const normalizedTone = tone.trim();
+    const normalizedTone = normalizeOptionalText(tone);
+    const normalizedStrength = normalizeOptionalNumber(strength);
+    const normalizedPauseAfter = normalizeOptionalNumber(pauseAfter);
+    const normalizedPace = normalizeOptionalNumber(pace);
+    const normalizedPitch = normalizeOptionalNumber(pitch);
+    const normalizedEnergy = normalizeOptionalNumber(energy);
+    const normalizedPauseMsAfter = normalizeOptionalNumber(pauseMsAfter);
+    const normalizedProsody =
+      normalizedPace !== undefined ||
+      normalizedPitch !== undefined ||
+      normalizedEnergy !== undefined ||
+      normalizedPauseMsAfter !== undefined
+        ? {
+            ...(normalizedPace !== undefined ? { pace: normalizedPace } : {}),
+            ...(normalizedPitch !== undefined ? { pitch: normalizedPitch } : {}),
+            ...(normalizedEnergy !== undefined ? { energy: normalizedEnergy } : {}),
+            ...(normalizedPauseMsAfter !== undefined
+              ? { pauseMsAfter: normalizedPauseMsAfter }
+              : {}),
+          }
+        : undefined;
     const isNarration = characterId === narrationValue;
     const resolvedCharacterId = isNarration
       ? narrationCharacter?.id ?? null
@@ -93,66 +160,128 @@ export function EditSentenceModal({
       characterId: resolvedCharacterId,
       rawSpeaker: isNarration ? "旁白" : undefined,
       roleType: isNarration ? "narration" : "dialogue",
+      strength: normalizedStrength,
+      pauseAfter: normalizedPauseAfter,
+      prosody: normalizedProsody,
     });
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl">
-        <CardHeader>
-          <CardTitle>编辑台词</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                台词内容
-              </label>
-              <textarea
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-              />
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>编辑台词</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label className="mb-2 block text-card-foreground">台词内容</Label>
+            <Textarea
+              rows={4}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="mb-2 block text-card-foreground">角色</Label>
+            <select
+              className="h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              value={characterId}
+              onChange={(event) => setCharacterId(event.target.value)}
+            >
+              <option value={narrationValue}>旁白</option>
+              {availableCharacters.map((character) => (
+                <option key={character.id} value={character.id}>
+                  {character.canonicalName}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label className="mb-2 block text-card-foreground">语气</Label>
+            <Input
+              value={tone}
+              onChange={(event) => setTone(event.target.value)}
+              placeholder="例如：平静、激动、严肃"
+            />
+          </div>
+          <div className="space-y-3 rounded-lg border border-border/80 bg-muted/30 p-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-foreground">朗读参数</h3>
+              <p className="text-xs text-muted-foreground">
+                控制语音强弱、停顿和语调节奏。留空表示沿用自动推断。
+              </p>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                角色
-              </label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                value={characterId}
-                onChange={(event) => setCharacterId(event.target.value)}
-              >
-                <option value={narrationValue}>旁白</option>
-                {availableCharacters.map((character) => (
-                  <option key={character.id} value={character.id}>
-                    {character.canonicalName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                语气
-              </label>
-              <Input
-                value={tone}
-                onChange={(event) => setTone(event.target.value)}
-                placeholder="例如：平静、激动、严肃"
-              />
-            </div>
-            <div className="flex space-x-3">
-              <Button variant="outline" onClick={onClose} className="flex-1">
-                取消
-              </Button>
-              <Button onClick={handleSave} className="flex-1" disabled={!text.trim()}>
-                保存
-              </Button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="mb-2 block text-card-foreground">强度</Label>
+                <Input
+                  value={strength}
+                  onChange={(event) => setStrength(event.target.value)}
+                  placeholder="0-100"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">
+                  句末停顿（秒）
+                </Label>
+                <Input
+                  value={pauseAfter}
+                  onChange={(event) => setPauseAfter(event.target.value)}
+                  placeholder="例如：1.5"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">语速</Label>
+                <Input
+                  value={pace}
+                  onChange={(event) => setPace(event.target.value)}
+                  placeholder="例如：0.95"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">音高</Label>
+                <Input
+                  value={pitch}
+                  onChange={(event) => setPitch(event.target.value)}
+                  placeholder="例如：-0.10"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">能量</Label>
+                <Input
+                  value={energy}
+                  onChange={(event) => setEnergy(event.target.value)}
+                  placeholder="例如：0.42"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">
+                  额外尾停（毫秒）
+                </Label>
+                <Input
+                  value={pauseMsAfter}
+                  onChange={(event) => setPauseMsAfter(event.target.value)}
+                  placeholder="例如：1000"
+                  inputMode="numeric"
+                />
+              </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          <div className="flex space-x-3">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              取消
+            </Button>
+            <Button onClick={handleSave} className="flex-1" disabled={!text.trim()}>
+              保存
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

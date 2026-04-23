@@ -128,6 +128,7 @@ export interface ReviewRegenerateAllPendingResult {
     taskType: "AUDIO_GENERATION";
     status: string;
   } | null;
+  warnings?: string[];
 }
 
 export interface ReviewRegenerateAllPendingResponse {
@@ -154,6 +155,18 @@ export type ReviewRegenerateTaskSource =
   | "manual_review_batch"
   | "manual_review_bulk_pending";
 
+export type ReviewRegenerateTaskCategory =
+  | "manual_review_regenerate"
+  | "script_failure";
+
+export interface ReviewRegenerateTaskFailureSummary {
+  segmentId: string | null;
+  orderIndex: number | null;
+  stage: string | null;
+  errorCode: string | null;
+  message: string | null;
+}
+
 export interface ReviewRegenerateTask {
   id: string;
   taskType: string;
@@ -164,8 +177,11 @@ export interface ReviewRegenerateTask {
   createdAt: string;
   updatedAt: string;
   completedAt: string | null;
-  source: ReviewRegenerateTaskSource;
+  source: ReviewRegenerateTaskSource | null;
+  category: ReviewRegenerateTaskCategory;
   targetCount: number;
+  segmentIds: string[];
+  failureSummary: ReviewRegenerateTaskFailureSummary | null;
 }
 
 export interface ReviewTaskListResponse {

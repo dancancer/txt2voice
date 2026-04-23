@@ -2,95 +2,22 @@
 // input: 函数参数/外部依赖
 // output: 工具/服务导出
 // pos: 共享业务库
-import { exec } from 'child_process'
-import { promisify } from 'util'
-import { writeFile, unlink, mkdir } from 'fs/promises'
-import { join } from 'path'
-import { existsSync } from 'fs'
 import prisma from './prisma'
 import {
-  getBookMergedAudioDir,
-  getUploadTempDir,
-  resolveExistingAudioFilePath
-} from './storage-path'
-
-const execAsync = promisify(exec)
-
-export interface AudioMergeOptions {
-  /**
-   * 输出格式
-   */
-  format?: 'mp3' | 'wav' | 'ogg'
-  /**
-   * 音频质量（比特率）
-   */
-  bitrate?: string
-  /**
-   * 台词之间的静音间隔（秒）
-   */
-  silenceDuration?: number
-  /**
-   * 是否归一化音量
-   */
-  normalizeVolume?: boolean
-}
-
-export interface AudioMergeResult {
-  success: boolean
-  outputPath?: string
-  fileName?: string
-  fileSize?: number
-  duration?: number
-  error?: string
-  metadata?: {
-    audioFileCount: number
-    totalDuration: number
-    format: string
-  }
-}
+  AudioMergeOptions,
+  AudioMergeResult,
+  checkFFmpegAvailable,
+  defaultAudioMergeOptions,
+  resolveReadableAudioPath,
+} from './audio-merger-helpers'
+import { mergeAudioFilesWithFFmpeg } from './audio-merger-ffmpeg'
+import { getBookMergedAudioDir } from './storage-path'
 
 /**
  * 音频合并工具类
  */
 export class AudioMerger {
-  private readonly defaultOptions: AudioMergeOptions = {
-    format: 'mp3',
-    bitrate: '128k',
-    silenceDuration: 0.5,
-    normalizeVolume: false
-  }
-
-  private resolveReadableAudioPath(audioFile: {
-    filePath: string
-    fileName?: string | null
-    bookId: string
-    provider?: string | null
-  }): string | null {
-    const directPath = audioFile.filePath
-    if (existsSync(directPath)) {
-      return directPath
-    }
-
-    return resolveExistingAudioFilePath({
-      filePath: audioFile.filePath,
-      fileName: audioFile.fileName,
-      bookId: audioFile.bookId,
-      provider: audioFile.provider
-    })
-  }
-
-  /**
-   * 检查 ffmpeg 是否可用
-   */
-  async checkFFmpegAvailable(): Promise<boolean> {
-    try {
-      await execAsync('ffmpeg -version')
-      return true
-    } catch (error) {
-      console.error('FFmpeg not available:', error)
-      return false
-    }
-  }
+  private readonly defaultOptions: AudioMergeOptions = defaultAudioMergeOptions
 
   /**
    * 合并章节的所有音频文件
@@ -104,7 +31,7 @@ export class AudioMerger {
 
     try {
       // 检查 ffmpeg
-      const ffmpegAvailable = await this.checkFFmpegAvailable()
+      const ffmpegAvailable = await checkFFmpegAvailable()
       if (!ffmpegAvailable) {
         return {
           success: false,
@@ -161,7 +88,7 @@ export class AudioMerger {
 
       const resolvedAudioFiles = audioFiles.map((audioFile) => ({
         ...audioFile,
-        resolvedPath: this.resolveReadableAudioPath(audioFile)
+        resolvedPath: resolveReadableAudioPath(audioFile)
       }))
 
       // 验证所有音频文件是否存在
@@ -182,13 +109,13 @@ export class AudioMerger {
       }
 
       // 使用 ffmpeg 合并音频
-      const result = await this.mergeAudioFilesWithFFmpeg(
+      const result = await mergeAudioFilesWithFFmpeg({
         bookId,
         chapterId,
-        chapter.title,
-        validAudioFiles.map(af => af.resolvedPath),
-        finalOptions
-      )
+        title: chapter.title,
+        audioPaths: validAudioFiles.map(af => af.resolvedPath),
+        options: finalOptions
+      })
 
       if (result.success && result.outputPath) {
         // 创建合并后的音频记录
@@ -230,7 +157,7 @@ export class AudioMerger {
 
     try {
       // 检查 ffmpeg
-      const ffmpegAvailable = await this.checkFFmpegAvailable()
+      const ffmpegAvailable = await checkFFmpegAvailable()
       if (!ffmpegAvailable) {
         return {
           success: false,
@@ -291,7 +218,7 @@ export class AudioMerger {
       const validAudioFiles = audioFiles
         .map((audioFile) => ({
           ...audioFile,
-          resolvedPath: this.resolveReadableAudioPath(audioFile)
+          resolvedPath: resolveReadableAudioPath(audioFile)
         }))
         .filter((audioFile): audioFile is typeof audioFile & { resolvedPath: string } =>
           Boolean(audioFile.resolvedPath)
@@ -304,13 +231,13 @@ export class AudioMerger {
       }
 
       // 使用 ffmpeg 合并音频
-      const result = await this.mergeAudioFilesWithFFmpeg(
+      const result = await mergeAudioFilesWithFFmpeg({
         bookId,
-        null,
-        book.title,
-        validAudioFiles.map(af => af.resolvedPath),
-        finalOptions
-      )
+        chapterId: null,
+        title: book.title,
+        audioPaths: validAudioFiles.map(af => af.resolvedPath),
+        options: finalOptions
+      })
 
       if (result.success && result.outputPath) {
         // 创建合并后的音频记录
@@ -336,102 +263,6 @@ export class AudioMerger {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
-      }
-    }
-  }
-
-  /**
-   * 使用 ffmpeg 合并音频文件
-   */
-  private async mergeAudioFilesWithFFmpeg(
-    bookId: string,
-    chapterId: string | null,
-    title: string,
-    audioPaths: string[],
-    options: AudioMergeOptions
-  ): Promise<AudioMergeResult> {
-    const timestamp = Date.now()
-    const tempDir = getUploadTempDir()
-    const outputDir = getBookMergedAudioDir(bookId)
-
-    try {
-      // 确保目录存在
-      await mkdir(tempDir, { recursive: true })
-      await mkdir(outputDir, { recursive: true })
-
-      // 创建临时文件列表
-      const listFilePath = join(tempDir, `filelist_${timestamp}.txt`)
-      const fileListContent = audioPaths
-        .map(path => `file '${path.replace(/'/g, "'\\''")}'`)
-        .join('\n')
-
-      await writeFile(listFilePath, fileListContent, 'utf-8')
-
-      // 生成输出文件名
-      const sanitizedTitle = title.replace(/[^a-zA-Z0-9\u4e00-\u9fa5_-]/g, '_')
-      const chapterSuffix = chapterId ? `_chapter_${timestamp}` : `_full_${timestamp}`
-      const fileName = `${sanitizedTitle}${chapterSuffix}.${options.format}`
-      const outputPath = join(outputDir, fileName)
-
-      // 构建 ffmpeg 命令
-      let ffmpegCommand = `ffmpeg -f concat -safe 0 -i "${listFilePath}"`
-
-      // 添加静音间隔（如果需要）
-      if (options.silenceDuration && options.silenceDuration > 0) {
-        // 注意：为音频间添加静音需要更复杂的处理
-        // 这里我们先使用简单的拼接
-        ffmpegCommand += ` -c copy`
-      } else {
-        ffmpegCommand += ` -c copy`
-      }
-
-      // 添加音频参数
-      if (options.bitrate && options.format === 'mp3') {
-        ffmpegCommand = ffmpegCommand.replace('-c copy', `-c:a libmp3lame -b:a ${options.bitrate}`)
-      }
-
-      ffmpegCommand += ` "${outputPath}"`
-
-      console.log(`执行 ffmpeg 命令: ${ffmpegCommand}`)
-
-      // 执行合并
-      const { stdout, stderr } = await execAsync(ffmpegCommand, {
-        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
-      })
-
-      if (stderr) {
-        console.log('FFmpeg stderr:', stderr)
-      }
-
-      // 清理临时文件
-      try {
-        await unlink(listFilePath)
-      } catch (error) {
-        console.warn('清理临时文件失败:', error)
-      }
-
-      // 获取输出文件信息
-      const stats = await import('fs').then(fs => fs.statSync(outputPath))
-      const totalDuration = audioPaths.length * 5 // 简单估算，实际应该解析音频文件
-
-      return {
-        success: true,
-        outputPath,
-        fileName,
-        fileSize: stats.size,
-        duration: totalDuration,
-        metadata: {
-          audioFileCount: audioPaths.length,
-          totalDuration,
-          format: options.format || 'mp3'
-        }
-      }
-
-    } catch (error) {
-      console.error('FFmpeg 合并失败:', error)
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'FFmpeg execution failed'
       }
     }
   }
@@ -482,7 +313,7 @@ export class AudioMerger {
       const validAudioFiles = audioFiles
         .map((audioFile) => ({
           ...audioFile,
-          resolvedPath: this.resolveReadableAudioPath(audioFile)
+          resolvedPath: resolveReadableAudioPath(audioFile)
         }))
         .filter((audioFile): audioFile is typeof audioFile & { resolvedPath: string } =>
           Boolean(audioFile.resolvedPath)
@@ -497,13 +328,13 @@ export class AudioMerger {
       const bookId = audioFiles[0].segment!.bookId
       const chapterId = audioFiles[0].segment!.chapterId
 
-      return await this.mergeAudioFilesWithFFmpeg(
+      return await mergeAudioFilesWithFFmpeg({
         bookId,
         chapterId,
-        `segment_${segmentId}`,
-        validAudioFiles.map(af => af.resolvedPath),
-        finalOptions
-      )
+        title: `segment_${segmentId}`,
+        audioPaths: validAudioFiles.map(af => af.resolvedPath),
+        options: finalOptions
+      })
 
     } catch (error) {
       console.error('合并段落音频失败:', error)
@@ -521,3 +352,4 @@ export class AudioMerger {
 export function getAudioMerger(): AudioMerger {
   return new AudioMerger()
 }
+export type { AudioMergeOptions, AudioMergeResult } from './audio-merger-helpers'

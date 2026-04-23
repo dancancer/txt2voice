@@ -46,13 +46,7 @@ export const TextProcessingOptionsSchema = z.object({
 // 音频生成选项验证
 export const AudioGenerationOptionsSchema = z.object({
   provider: z
-    .enum([
-      'azure',
-      'openai',
-      'indextts',
-      'cosyvoice',
-      'voxcpm',
-    ])
+    .enum(['qwen3voice'])
     .optional(),
   outputFormat: z.enum(['mp3', 'wav', 'ogg']).optional().default('mp3'),
   speed: z.number().min(0.5).max(2.0).optional().default(1.0),

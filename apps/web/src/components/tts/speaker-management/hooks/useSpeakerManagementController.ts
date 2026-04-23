@@ -1,25 +1,32 @@
+// 一旦我被更新，请更新我的开头注释
+// input: speaker/reference-audio/provider 接口
+// output: SpeakerManagement 统一控制器
+// pos: TTS speaker management
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { IndexTTSService } from "@/lib/indextts-service";
 import type {
-  NewSpeakerForm,
   ProviderServiceStatus,
   ReferenceAudio,
   Speaker,
   TTSReferenceProvider,
-  UploadAudioPreview,
 } from "../types";
-import { AUDIO_PAGE_SIZE, DEFAULT_NEW_SPEAKER_FORM } from "../utils";
-
-const PROVIDER_STORAGE_KEY = "tts.speaker-management.provider";
-const SUPPORTED_PROVIDER_LIST: readonly TTSReferenceProvider[] = [
-  "indextts",
-  "cosyvoice",
-  "voxcpm",
-];
-
-const isTTSReferenceProvider = (value: unknown): value is TTSReferenceProvider =>
-  SUPPORTED_PROVIDER_LIST.includes(value as TTSReferenceProvider);
+import { fetchProviderStatusesRequest } from "./use-speaker-management-controller/provider-requests";
+import {
+  deleteReferenceAudioRequest,
+  fetchReferenceAudiosRequest,
+  removeDeletedAudioSelections,
+  setAudioSelectionState,
+  toggleSelectedAudioFilename,
+  uploadReferenceAudioRequest,
+} from "./use-speaker-management-controller/reference-audio-requests";
+import {
+  createSpeakerRequest,
+  deleteSpeakerRequest,
+  fetchSpeakersRequest,
+  updateSpeakerRequest,
+} from "./use-speaker-management-controller/speaker-requests";
+import { useSpeakerManagementViewState } from "./useSpeakerManagementViewState";
 
 export function useSpeakerManagementController() {
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
@@ -27,65 +34,22 @@ export function useSpeakerManagementController() {
   const [loading, setLoading] = useState(true);
   const [providerStatuses, setProviderStatuses] = useState<ProviderServiceStatus[]>([]);
   const [providerStatusLoading, setProviderStatusLoading] = useState(true);
+  const viewState = useSpeakerManagementViewState(referenceAudios);
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterGender, setFilterGender] = useState("");
-  const [filterAgeGroup, setFilterAgeGroup] = useState("");
-  const [filterActive, setFilterActive] = useState("");
-
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [audioPage, setAudioPage] = useState(1);
-
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-
-  const [newSpeaker, setNewSpeaker] = useState<NewSpeakerForm>({
-    ...DEFAULT_NEW_SPEAKER_FORM,
-  });
-  const [editingSpeaker, setEditingSpeaker] = useState<Speaker | null>(null);
-
-  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
-  const [selectedUploadPreview, setSelectedUploadPreview] =
-    useState<UploadAudioPreview | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [selectedAudioFilenames, setSelectedAudioFilenames] = useState<string[]>(
-    []
-  );
-
-  const [isPlaying, setIsPlaying] = useState<string | null>(null);
-  const [selectedProvider, setSelectedProvider] = useState<TTSReferenceProvider>(
-    () => {
-      if (typeof window === "undefined") {
-        return "indextts";
-      }
-      const storedProvider = window.localStorage.getItem(PROVIDER_STORAGE_KEY);
-      return isTTSReferenceProvider(storedProvider) ? storedProvider : "indextts";
-    }
-  );
-
-  const supportsSpeakerManagement = selectedProvider === "indextts";
+  const supportsSpeakerManagement = false;
   const selectedProviderStatus = useMemo(
     () =>
-      providerStatuses.find((status) => status.provider === selectedProvider) ||
-      null,
-    [providerStatuses, selectedProvider]
+      providerStatuses.find(
+        (status) => status.provider === viewState.selectedProvider
+      ) || null,
+    [providerStatuses, viewState.selectedProvider]
   );
 
   const fetchProviderStatuses = useCallback(async () => {
     setProviderStatusLoading(true);
     try {
-      const response = await fetch("/api/tts/providers/status", {
-        cache: "no-store",
-      });
-      const data = await response.json();
-
-      if (data.success && Array.isArray(data.data?.providers)) {
-        setProviderStatuses(data.data.providers as ProviderServiceStatus[]);
-        return;
-      }
+      setProviderStatuses(await fetchProviderStatusesRequest());
+      return;
     } catch (error) {
       console.error("Failed to fetch TTS provider statuses:", error);
     } finally {
@@ -95,111 +59,53 @@ export function useSpeakerManagementController() {
     setProviderStatuses([]);
   }, []);
 
-  const changeProvider = useCallback((provider: TTSReferenceProvider) => {
-    if (provider === selectedProvider) {
-      return;
-    }
-    setSelectedProvider(provider);
-    setCurrentPage(1);
-    setAudioPage(1);
-    setSelectedAudioFilenames([]);
-  }, [selectedProvider]);
+  const changeProvider = useCallback(
+    (provider: TTSReferenceProvider) => {
+      if (provider === viewState.selectedProvider) {
+        return;
+      }
 
-  const audioTotalPages = Math.max(
-    1,
-    Math.ceil(referenceAudios.length / AUDIO_PAGE_SIZE)
+      viewState.setSelectedProvider(provider);
+      viewState.setCurrentPage(1);
+      viewState.setAudioPage(1);
+      viewState.setSelectedAudioFilenames([]);
+    },
+    [viewState]
   );
-  const clampedAudioPage = Math.min(audioPage, audioTotalPages);
-
-  const paginatedReferenceAudios = useMemo(() => {
-    const startIndex = (clampedAudioPage - 1) * AUDIO_PAGE_SIZE;
-    return referenceAudios.slice(startIndex, startIndex + AUDIO_PAGE_SIZE);
-  }, [referenceAudios, clampedAudioPage]);
 
   const fetchSpeakers = useCallback(async () => {
     if (!supportsSpeakerManagement) {
       setSpeakers([]);
-      setTotalPages(1);
+      viewState.setTotalPages(1);
       return;
     }
 
     try {
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: "20",
-        ...(searchTerm && { search: searchTerm }),
-        ...(filterGender && { gender: filterGender }),
-        ...(filterAgeGroup && { ageGroup: filterAgeGroup }),
-        ...(filterActive && { isActive: filterActive }),
+      const result = await fetchSpeakersRequest({
+        page: viewState.currentPage,
+        searchTerm: viewState.searchTerm,
+        filterGender: viewState.filterGender,
+        filterAgeGroup: viewState.filterAgeGroup,
+        filterActive: viewState.filterActive,
       });
-
-      const response = await fetch(`/api/tts/speakers?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setSpeakers(data.data.speakers);
-        setTotalPages(data.data.pagination.totalPages);
-      }
+      setSpeakers(result.speakers);
+      viewState.setTotalPages(result.totalPages);
     } catch (error) {
       console.error("Failed to fetch speakers:", error);
       toast.error("获取说话人列表失败");
     }
-  }, [
-    currentPage,
-    filterActive,
-    filterAgeGroup,
-    filterGender,
-    searchTerm,
-    supportsSpeakerManagement,
-  ]);
+  }, [supportsSpeakerManagement, viewState]);
 
   const fetchReferenceAudios = useCallback(async () => {
     try {
-      const allAudios: ReferenceAudio[] = [];
-      const limit = 20;
-      let page = 1;
-      let hasNext = true;
-
-      while (hasNext) {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: limit.toString(),
-          provider: selectedProvider,
-        });
-
-        const response = await fetch(`/api/tts/reference-audio?${params}`);
-        const data = await response.json();
-
-        if (!data.success) {
-          break;
-        }
-
-        allAudios.push(...data.data.audios);
-        hasNext = data.data.pagination?.hasNext ?? false;
-        page += 1;
-      }
-
-      setReferenceAudios(allAudios);
+      setReferenceAudios(
+        await fetchReferenceAudiosRequest(viewState.selectedProvider)
+      );
     } catch (error) {
       console.error("Failed to fetch reference audios:", error);
       toast.error("获取参考音频列表失败");
     }
-  }, [selectedProvider]);
-
-  useEffect(() => {
-    setSelectedAudioFilenames((previous) => {
-      const available = new Set(
-        referenceAudios
-          .filter((audio) => audio.audioType !== "example")
-          .map((audio) => audio.filename)
-      );
-      return previous.filter((filename) => available.has(filename));
-    });
-  }, [referenceAudios]);
-
-  const resetNewSpeaker = useCallback(() => {
-    setNewSpeaker({ ...DEFAULT_NEW_SPEAKER_FORM });
-  }, []);
+  }, [viewState.selectedProvider]);
 
   const createSpeaker = useCallback(async () => {
     if (!supportsSpeakerManagement) {
@@ -208,28 +114,16 @@ export function useSpeakerManagementController() {
     }
 
     try {
-      const response = await fetch("/api/tts/speakers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newSpeaker),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        toast.error(data.error || "创建说话人失败");
-        return;
-      }
-
+      await createSpeakerRequest(viewState.newSpeaker);
       toast.success("说话人创建成功");
-      setIsCreateDialogOpen(false);
-      resetNewSpeaker();
+      viewState.setIsCreateDialogOpen(false);
+      viewState.resetNewSpeaker();
       await fetchSpeakers();
     } catch (error) {
       console.error("Failed to create speaker:", error);
       toast.error("创建说话人失败");
     }
-  }, [fetchSpeakers, newSpeaker, resetNewSpeaker, supportsSpeakerManagement]);
+  }, [fetchSpeakers, supportsSpeakerManagement, viewState]);
 
   const updateSpeaker = useCallback(async () => {
     if (!supportsSpeakerManagement) {
@@ -237,41 +131,21 @@ export function useSpeakerManagementController() {
       return;
     }
 
-    if (!editingSpeaker) {
+    if (!viewState.editingSpeaker) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/tts/speakers/${editingSpeaker.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editingSpeaker.name,
-          gender: editingSpeaker.gender,
-          ageGroup: editingSpeaker.ageGroup,
-          toneStyle: editingSpeaker.toneStyle,
-          description: editingSpeaker.description,
-          referenceAudio: editingSpeaker.referenceAudio,
-          isActive: editingSpeaker.isActive,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        toast.error(data.error || "更新说话人失败");
-        return;
-      }
-
+      await updateSpeakerRequest(viewState.editingSpeaker);
       toast.success("说话人更新成功");
-      setIsEditDialogOpen(false);
-      setEditingSpeaker(null);
+      viewState.setIsEditDialogOpen(false);
+      viewState.setEditingSpeaker(null);
       await fetchSpeakers();
     } catch (error) {
       console.error("Failed to update speaker:", error);
       toast.error("更新说话人失败");
     }
-  }, [editingSpeaker, fetchSpeakers, supportsSpeakerManagement]);
+  }, [fetchSpeakers, supportsSpeakerManagement, viewState]);
 
   const deleteSpeaker = useCallback(
     async (speakerId: string, speakerName: string) => {
@@ -285,17 +159,7 @@ export function useSpeakerManagementController() {
       }
 
       try {
-        const response = await fetch(`/api/tts/speakers/${speakerId}`, {
-          method: "DELETE",
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          toast.error(data.error || "删除说话人失败");
-          return;
-        }
-
+        await deleteSpeakerRequest(speakerId);
         toast.success("说话人删除成功");
         await fetchSpeakers();
       } catch (error) {
@@ -306,121 +170,60 @@ export function useSpeakerManagementController() {
     [fetchSpeakers, supportsSpeakerManagement]
   );
 
-  const openEditDialog = useCallback((speaker: Speaker) => {
-    setEditingSpeaker(speaker);
-    setIsEditDialogOpen(true);
-  }, []);
-
-  const selectUploadFile = useCallback((file: File | null) => {
-    setSelectedUploadFile(file);
-
-    if (!file) {
-      setSelectedUploadPreview(null);
-      return;
-    }
-
-    setSelectedUploadPreview({
-      originalName: file.name,
-      fileSize: file.size,
-      format: file.type,
-    });
-  }, []);
-
   const uploadReferenceAudio = useCallback(
     async (file: File, description?: string) => {
-      setIsUploading(true);
-      setUploadProgress(0);
+      viewState.setIsUploading(true);
+      viewState.setUploadProgress(0);
 
-      await new Promise<void>((resolve) => {
-        const formData = new FormData();
-        formData.append("file", file);
-        if (description) {
-          formData.append("description", description);
-        }
-
-        const xhr = new XMLHttpRequest();
-
-        xhr.upload.addEventListener("progress", (event) => {
-          if (event.lengthComputable) {
-            setUploadProgress((event.loaded / event.total) * 100);
-          }
+      try {
+        await uploadReferenceAudioRequest({
+          file,
+          provider: viewState.selectedProvider,
+          description,
+          onProgress: viewState.setUploadProgress,
         });
-
-        xhr.addEventListener("load", async () => {
-          if (xhr.status === 200) {
-            const data = JSON.parse(xhr.responseText);
-            if (data.success) {
-              toast.success("音频上传成功");
-              setIsUploadDialogOpen(false);
-              setSelectedUploadFile(null);
-              setSelectedUploadPreview(null);
-              setUploadProgress(0);
-              await Promise.all([fetchReferenceAudios(), fetchSpeakers()]);
-            } else {
-              toast.error(data.error || "音频上传失败");
-            }
-          } else {
-            toast.error("音频上传失败");
-          }
-
-          setIsUploading(false);
-          resolve();
-        });
-
-        xhr.addEventListener("error", () => {
-          toast.error("音频上传失败");
-          setIsUploading(false);
-          setUploadProgress(0);
-          resolve();
-        });
-
-        xhr.open(
-          "POST",
-          `/api/tts/reference-audio?provider=${encodeURIComponent(selectedProvider)}`
-        );
-        xhr.send(formData);
-      });
+        toast.success("音频上传成功");
+        viewState.setIsUploadDialogOpen(false);
+        viewState.setSelectedUploadFile(null);
+        viewState.setSelectedUploadPreview(null);
+        viewState.setUploadProgress(0);
+        await Promise.all([fetchReferenceAudios(), fetchSpeakers()]);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "音频上传失败");
+        viewState.setUploadProgress(0);
+      } finally {
+        viewState.setIsUploading(false);
+      }
     },
-    [fetchReferenceAudios, fetchSpeakers, selectedProvider]
+    [fetchReferenceAudios, fetchSpeakers, viewState]
   );
 
   const submitSelectedAudio = useCallback(async () => {
-    if (!selectedUploadFile) {
+    if (!viewState.selectedUploadFile) {
       return;
     }
 
-    const validation = IndexTTSService.validateAudioFile(selectedUploadFile);
+    const validation = IndexTTSService.validateAudioFile(
+      viewState.selectedUploadFile
+    );
     if (!validation.valid) {
       toast.error(validation.error);
       return;
     }
 
     await uploadReferenceAudio(
-      selectedUploadFile,
-      selectedUploadPreview?.originalName
+      viewState.selectedUploadFile,
+      viewState.selectedUploadPreview?.originalName
     );
-  }, [selectedUploadFile, selectedUploadPreview?.originalName, uploadReferenceAudio]);
+  }, [uploadReferenceAudio, viewState.selectedUploadFile, viewState.selectedUploadPreview]);
 
   const requestDeleteReferenceAudio = useCallback(
     async (filename: string): Promise<{ ok: boolean; error?: string }> => {
       try {
-        const response = await fetch(
-          `/api/tts/reference-audio?provider=${encodeURIComponent(
-            selectedProvider
-          )}&filename=${encodeURIComponent(filename)}`,
-          {
-            method: "DELETE",
-          }
-        );
-
-        const data = await response.json();
-
-        if (!data.success) {
-          return {
-            ok: false,
-            error: data.error || "音频删除失败",
-          };
-        }
+        await deleteReferenceAudioRequest({
+          provider: viewState.selectedProvider,
+          filename,
+        });
         return { ok: true };
       } catch (error) {
         console.error("Failed to delete audio:", error);
@@ -430,7 +233,7 @@ export function useSpeakerManagementController() {
         };
       }
     },
-    [selectedProvider]
+    [viewState.selectedProvider]
   );
 
   const deleteReferenceAudio = useCallback(
@@ -446,48 +249,28 @@ export function useSpeakerManagementController() {
       }
 
       toast.success("音频删除成功");
-      setSelectedAudioFilenames((previous) =>
+      viewState.setSelectedAudioFilenames((previous) =>
         previous.filter((item) => item !== filename)
       );
       await Promise.all([fetchReferenceAudios(), fetchSpeakers()]);
     },
-    [fetchReferenceAudios, fetchSpeakers, requestDeleteReferenceAudio]
+    [fetchReferenceAudios, fetchSpeakers, requestDeleteReferenceAudio, viewState]
   );
 
   const toggleAudioSelection = useCallback((filename: string, checked: boolean) => {
-    setSelectedAudioFilenames((previous) => {
-      if (checked) {
-        if (previous.includes(filename)) {
-          return previous;
-        }
-        return [...previous, filename];
-      }
-      return previous.filter((item) => item !== filename);
-    });
-  }, []);
+    viewState.setSelectedAudioFilenames((previous) =>
+      toggleSelectedAudioFilename(previous, filename, checked)
+    );
+  }, [viewState]);
 
   const setAudioSelectionForMany = useCallback(
     (filenames: string[], checked: boolean) => {
-      const targets = filenames.filter(Boolean);
-      if (targets.length === 0) {
-        return;
-      }
-
-      setSelectedAudioFilenames((previous) => {
-        if (checked) {
-          const merged = new Set([...previous, ...targets]);
-          return Array.from(merged);
-        }
-        const blocked = new Set(targets);
-        return previous.filter((item) => !blocked.has(item));
-      });
+      viewState.setSelectedAudioFilenames((previous) =>
+        setAudioSelectionState(previous, filenames, checked)
+      );
     },
-    []
+    [viewState]
   );
-
-  const clearSelectedAudios = useCallback(() => {
-    setSelectedAudioFilenames([]);
-  }, []);
 
   const deleteSelectedReferenceAudios = useCallback(
     async (filenames: string[]) => {
@@ -519,31 +302,12 @@ export function useSpeakerManagementController() {
         toast.error(`删除失败 ${failedCount} 个音频`);
       }
 
-      setSelectedAudioFilenames((previous) =>
-        previous.filter((item) => !targets.includes(item))
+      viewState.setSelectedAudioFilenames((previous) =>
+        removeDeletedAudioSelections(previous, targets)
       );
       await Promise.all([fetchReferenceAudios(), fetchSpeakers()]);
     },
-    [fetchReferenceAudios, fetchSpeakers, requestDeleteReferenceAudio]
-  );
-
-  const togglePlay = useCallback(
-    (audioKey: string, elementId: string) => {
-      const audio = document.getElementById(elementId) as HTMLAudioElement | null;
-      if (!audio) {
-        return;
-      }
-
-      if (isPlaying === audioKey) {
-        audio.pause();
-        setIsPlaying(null);
-        return;
-      }
-
-      void audio.play();
-      setIsPlaying(audioKey);
-    },
-    [isPlaying]
+    [fetchReferenceAudios, fetchSpeakers, requestDeleteReferenceAudio, viewState]
   );
 
   useEffect(() => {
@@ -560,15 +324,8 @@ export function useSpeakerManagementController() {
     void fetchProviderStatuses();
   }, [fetchProviderStatuses]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.localStorage.setItem(PROVIDER_STORAGE_KEY, selectedProvider);
-  }, [selectedProvider]);
-
   return {
-    selectedProvider,
+    selectedProvider: viewState.selectedProvider,
     selectedProviderStatus,
     providerStatuses,
     providerStatusLoading,
@@ -577,49 +334,49 @@ export function useSpeakerManagementController() {
     supportsSpeakerManagement,
     speakers,
     referenceAudios,
-    selectedAudioFilenames,
+    selectedAudioFilenames: viewState.selectedAudioFilenames,
     loading,
-    searchTerm,
-    filterGender,
-    filterAgeGroup,
-    filterActive,
-    currentPage,
-    totalPages,
-    audioPage: clampedAudioPage,
-    audioTotalPages,
-    paginatedReferenceAudios,
-    isCreateDialogOpen,
-    isUploadDialogOpen,
-    isEditDialogOpen,
-    newSpeaker,
-    editingSpeaker,
-    selectedUploadPreview,
-    isPlaying,
-    uploadProgress,
-    isUploading,
-    setSearchTerm,
-    setFilterGender,
-    setFilterAgeGroup,
-    setFilterActive,
-    setCurrentPage,
-    setAudioPage,
-    setIsCreateDialogOpen,
-    setIsUploadDialogOpen,
-    setIsEditDialogOpen,
-    setNewSpeaker,
-    setEditingSpeaker,
-    setIsPlaying,
+    searchTerm: viewState.searchTerm,
+    filterGender: viewState.filterGender,
+    filterAgeGroup: viewState.filterAgeGroup,
+    filterActive: viewState.filterActive,
+    currentPage: viewState.currentPage,
+    totalPages: viewState.totalPages,
+    audioPage: viewState.clampedAudioPage,
+    audioTotalPages: viewState.audioTotalPages,
+    paginatedReferenceAudios: viewState.paginatedReferenceAudios,
+    isCreateDialogOpen: viewState.isCreateDialogOpen,
+    isUploadDialogOpen: viewState.isUploadDialogOpen,
+    isEditDialogOpen: viewState.isEditDialogOpen,
+    newSpeaker: viewState.newSpeaker,
+    editingSpeaker: viewState.editingSpeaker,
+    selectedUploadPreview: viewState.selectedUploadPreview,
+    isPlaying: viewState.isPlaying,
+    uploadProgress: viewState.uploadProgress,
+    isUploading: viewState.isUploading,
+    setSearchTerm: viewState.setSearchTerm,
+    setFilterGender: viewState.setFilterGender,
+    setFilterAgeGroup: viewState.setFilterAgeGroup,
+    setFilterActive: viewState.setFilterActive,
+    setCurrentPage: viewState.setCurrentPage,
+    setAudioPage: viewState.setAudioPage,
+    setIsCreateDialogOpen: viewState.setIsCreateDialogOpen,
+    setIsUploadDialogOpen: viewState.setIsUploadDialogOpen,
+    setIsEditDialogOpen: viewState.setIsEditDialogOpen,
+    setNewSpeaker: viewState.setNewSpeaker,
+    setEditingSpeaker: viewState.setEditingSpeaker,
+    setIsPlaying: viewState.setIsPlaying,
     createSpeaker,
     updateSpeaker,
     deleteSpeaker,
-    openEditDialog,
-    selectUploadFile,
+    openEditDialog: viewState.openEditDialog,
+    selectUploadFile: viewState.selectUploadFile,
     submitSelectedAudio,
     deleteReferenceAudio,
     toggleAudioSelection,
     setAudioSelectionForMany,
-    clearSelectedAudios,
+    clearSelectedAudios: viewState.clearSelectedAudios,
     deleteSelectedReferenceAudios,
-    togglePlay,
+    togglePlay: viewState.togglePlay,
   };
 }

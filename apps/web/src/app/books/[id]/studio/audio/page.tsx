@@ -59,10 +59,10 @@ export default function AudioGenerationPage() {
 
   if (loading) {
     return (
-      <div className="h-full bg-gray-50 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">加载中...</p>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-muted-foreground">加载中...</p>
         </div>
       </div>
     )
@@ -70,10 +70,10 @@ export default function AudioGenerationPage() {
 
   if (error || !book) {
     return (
-      <div className="h-full bg-gray-50 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <Volume2 className="w-8 h-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">{error || '书籍不存在'}</p>
+          <Volume2 className="mx-auto mb-4 h-8 w-8 text-destructive" />
+          <p className="mb-4 text-destructive">{error || '书籍不存在'}</p>
           <Button onClick={() => router.back()}>返回</Button>
         </div>
       </div>
@@ -97,8 +97,8 @@ export default function AudioGenerationPage() {
   const canGenerate = !isGenerating && providers.some(p => p.isAvailable) && totalSegments > 0
 
   return (
-    <div className="min-h-full bg-gray-50">
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-full bg-background">
+      <div className="border-b border-border bg-background shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-3 py-3 sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="flex w-full min-w-0 items-center">
@@ -112,8 +112,8 @@ export default function AudioGenerationPage() {
                 返回
               </Button>
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-semibold text-gray-900">音频生成</h1>
-                <p className="text-sm text-gray-500 truncate">{book.title}</p>
+                <h1 className="text-lg sm:text-xl font-semibold text-foreground">音频生成</h1>
+                <p className="truncate text-sm text-muted-foreground">{book.title}</p>
               </div>
             </div>
             <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">

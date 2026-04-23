@@ -1,14 +1,17 @@
 import {
-  getConfiguredLLMProvider,
+  resolveConfiguredLLMProvider,
   type LLMProvider,
-} from "@/lib/llm-service";
+} from "@/lib/llm/provider";
 import { runLLMRequest, type LLMRuntimeRequest } from "@/lib/llm-runtime";
 import type { LLMExecutionRequestOptions } from "@/lib/task-queue";
+import { resolveLLMExecutionPolicy } from "../runtime/model-policy";
 
 export interface LLMAdapterRequest {
   prompt: string;
   systemPrompt?: string;
   provider?: LLMProvider;
+  modelId?: string;
+  modelPolicy?: string;
   metadata?: Record<string, unknown>;
   requestOptions?: LLMExecutionRequestOptions;
   requestId?: string;
@@ -34,7 +37,7 @@ interface LLMAdapterDeps {
   runRequest: (
     request: LLMRuntimeRequest
   ) => Promise<Awaited<ReturnType<typeof runLLMRequest>>>;
-  getProvider: () => LLMProvider;
+  getProvider: (modelId?: string) => Promise<LLMProvider> | LLMProvider;
 }
 
 const toAdapterResponse = (
@@ -59,17 +62,26 @@ export function createDefaultLLMAdapter(
   deps: Partial<LLMAdapterDeps> = {}
 ): LLMAdapter {
   const runRequest = deps.runRequest ?? runLLMRequest;
-  const getProvider = deps.getProvider ?? getConfiguredLLMProvider;
+  const getProvider = deps.getProvider ?? resolveConfiguredLLMProvider;
 
   return {
     async call(input: LLMAdapterRequest): Promise<LLMAdapterResponse> {
+      const resolvedPolicy = input.modelPolicy
+        ? resolveLLMExecutionPolicy(input.modelPolicy)
+        : null;
+      const provider =
+        input.provider ??
+        (await getProvider(input.modelId ?? resolvedPolicy?.modelId));
       const result = await runRequest({
         requestId: input.requestId,
-        provider: input.provider ?? getProvider(),
+        provider,
         prompt: input.prompt,
         systemPrompt: input.systemPrompt,
         metadata: input.metadata,
-        requestOptions: input.requestOptions,
+        requestOptions: {
+          ...(resolvedPolicy?.requestOptions ?? {}),
+          ...(input.requestOptions ?? {}),
+        },
       });
 
       return toAdapterResponse(result);

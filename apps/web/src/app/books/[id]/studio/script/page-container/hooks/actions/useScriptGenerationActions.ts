@@ -6,8 +6,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import {
+  normalizeScriptGenerationRuntimeEvent,
+  type ScriptGenerationRuntimeEvent,
+} from "@/lib/script-generation/runner/runtime-events";
 import type { SegmentStatus } from "../../../components";
 import type { ConfirmDialogConfig } from "../useConfirmDialog";
+
+interface LLMModelOption {
+  id: string;
+  label: string;
+  provider: string;
+  model: string;
+  baseURL?: string;
+}
 
 type UseScriptGenerationActionsParams = {
   bookId: string;
@@ -27,6 +39,9 @@ export function useScriptGenerationActions({
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState(0);
   const [generationStatus, setGenerationStatus] = useState("");
+  const [generationEvents, setGenerationEvents] = useState<
+    ScriptGenerationRuntimeEvent[]
+  >([]);
 
   const [showIncrementalOptions, setShowIncrementalOptions] = useState(false);
   const [selectedStartSegment, setSelectedStartSegment] = useState<string | null>(null);
@@ -35,6 +50,10 @@ export function useScriptGenerationActions({
   const [showRegenerateOptions, setShowRegenerateOptions] = useState(false);
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [segmentStatusLoading, setSegmentStatusLoading] = useState(false);
+  const [llmModels, setLLMModels] = useState<LLMModelOption[]>([]);
+  const [selectedLLMModelId, setSelectedLLMModelId] = useState("");
+  const [llmModelsLoading, setLLMModelsLoading] = useState(false);
+  const [llmModelsError, setLLMModelsError] = useState("");
 
   const progressStreamRef = useRef<EventSource | null>(null);
 
@@ -51,6 +70,64 @@ export function useScriptGenerationActions({
     };
   }, [closeProgressStream]);
 
+  const loadLLMModels = useCallback(async () => {
+    try {
+      setLLMModelsLoading(true);
+      setLLMModelsError("");
+
+      const response = await fetch("/api/llm/models");
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(result.error?.message || "加载模型列表失败");
+      }
+
+      const models = Array.isArray(result.data?.models)
+        ? (result.data.models as LLMModelOption[])
+        : [];
+      const defaultModelId =
+        typeof result.data?.defaultModelId === "string"
+          ? result.data.defaultModelId
+          : "";
+
+      setLLMModels(models);
+      setSelectedLLMModelId((current) =>
+        current && models.some((model) => model.id === current)
+          ? current
+          : defaultModelId
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "加载模型列表失败";
+      setLLMModels([]);
+      setSelectedLLMModelId("");
+      setLLMModelsError(message);
+      toast.error(message);
+    } finally {
+      setLLMModelsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadLLMModels();
+  }, [loadLLMModels]);
+
+  const buildScriptGenerationOptions = useCallback(() => {
+    if (!selectedLLMModelId) {
+      throw new Error("LLM 模型尚未就绪，请先选择可用模型");
+    }
+
+    return {
+      includeNarration: true,
+      emotionDetection: true,
+      contextAnalysis: true,
+      minDialogueLength: 5,
+      maxDialogueLength: 200,
+      preserveOriginalBreaks: true,
+      llmModelId: selectedLLMModelId,
+    };
+  }, [selectedLLMModelId]);
+
   const watchScriptGeneration = useCallback(
     (
       taskId: string,
@@ -59,6 +136,7 @@ export function useScriptGenerationActions({
     ) => {
       closeProgressStream();
       setGenerationProgress(0);
+      setGenerationEvents([]);
 
       let finished = false;
       const stream = new EventSource(
@@ -78,7 +156,10 @@ export function useScriptGenerationActions({
         toast.error("生成超时，请稍后刷新页面确认任务状态");
       }, 5 * 60 * 1000);
 
-      const finalize = (status: "completed" | "failed", errorMessage?: string) => {
+      const finalize = (
+        status: "completed" | "failed" | "canceled",
+        errorMessage?: string
+      ) => {
         if (finished) {
           return;
         }
@@ -95,12 +176,20 @@ export function useScriptGenerationActions({
           return;
         }
 
+        if (status === "canceled") {
+          setGenerationStatus("任务已取消");
+          setIsGenerating(false);
+          toast.message("任务已取消");
+          void loadBookAndData();
+          return;
+        }
+
         setGenerationStatus(messages.failed);
         setIsGenerating(false);
         toast.error(errorMessage || fallbackFailure);
       };
 
-      stream.onmessage = (event) => {
+      const handleTaskSnapshot = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
 
@@ -116,11 +205,44 @@ export function useScriptGenerationActions({
             const errorMessage =
               typeof data.error === "string" ? data.error : undefined;
             finalize("failed", errorMessage);
+          } else if (data.status === "canceled") {
+            finalize("canceled");
           }
         } catch (error) {
           console.error("Failed to parse script progress event:", error);
         }
       };
+
+      const handleRuntimeEvent = (event: MessageEvent) => {
+        try {
+          const data = JSON.parse(event.data);
+          const runtimeEvent = normalizeScriptGenerationRuntimeEvent(data);
+          if (!runtimeEvent) {
+            return;
+          }
+
+          setGenerationEvents((current) => {
+            if (current.some((item) => item.seq === runtimeEvent.seq)) {
+              return current;
+            }
+
+            return [...current, runtimeEvent].slice(-20);
+          });
+
+          if (runtimeEvent.progress > 0) {
+            setGenerationProgress(runtimeEvent.progress);
+          }
+          if (runtimeEvent.title) {
+            setGenerationStatus(runtimeEvent.title);
+          }
+        } catch (error) {
+          console.error("Failed to parse script runtime event:", error);
+        }
+      };
+
+      stream.onmessage = handleTaskSnapshot;
+      stream.addEventListener("task_snapshot", handleTaskSnapshot as EventListener);
+      stream.addEventListener("runtime_event", handleRuntimeEvent as EventListener);
 
       stream.addEventListener("error", () => {
         if (finished) {
@@ -162,14 +284,7 @@ export function useScriptGenerationActions({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          options: {
-            includeNarration: true,
-            emotionDetection: true,
-            contextAnalysis: true,
-            minDialogueLength: 5,
-            maxDialogueLength: 200,
-            preserveOriginalBreaks: true,
-          },
+          options: buildScriptGenerationOptions(),
         }),
       });
 
@@ -197,7 +312,13 @@ export function useScriptGenerationActions({
       );
       setIsGenerating(false);
     }
-  }, [bookId, hasTextSegments, segments.length, watchScriptGeneration]);
+  }, [
+    bookId,
+    buildScriptGenerationOptions,
+    hasTextSegments,
+    segments.length,
+    watchScriptGeneration,
+  ]);
 
   const loadSegmentStatus = useCallback(async () => {
     try {
@@ -233,14 +354,7 @@ export function useScriptGenerationActions({
           },
           body: JSON.stringify({
             startFromSegmentId: startSegmentId,
-            options: {
-              includeNarration: true,
-              emotionDetection: true,
-              contextAnalysis: true,
-              minDialogueLength: 5,
-              maxDialogueLength: 200,
-              preserveOriginalBreaks: true,
-            },
+            options: buildScriptGenerationOptions(),
           }),
         });
 
@@ -273,7 +387,7 @@ export function useScriptGenerationActions({
         setIsGenerating(false);
       }
     },
-    [bookId, watchScriptGeneration]
+    [bookId, buildScriptGenerationOptions, watchScriptGeneration]
   );
 
   const handleSegmentRegeneration = useCallback(
@@ -292,6 +406,9 @@ export function useScriptGenerationActions({
           },
           body: JSON.stringify({
             segmentIds,
+            options: {
+              llmModelId: selectedLLMModelId,
+            },
           }),
         });
 
@@ -330,7 +447,7 @@ export function useScriptGenerationActions({
         setIsGenerating(false);
       }
     },
-    [bookId, watchScriptGeneration]
+    [bookId, selectedLLMModelId, watchScriptGeneration]
   );
 
   const regenerateScript = useCallback(async () => {
@@ -351,8 +468,15 @@ export function useScriptGenerationActions({
     isGenerating,
     generationProgress,
     generationStatus,
+    generationEvents,
     showIncrementalOptions,
     setShowIncrementalOptions,
+    llmModels,
+    selectedLLMModelId,
+    setSelectedLLMModelId,
+    llmModelsLoading,
+    llmModelsError,
+    canGenerateScript: Boolean(selectedLLMModelId),
     selectedStartSegment,
     setSelectedStartSegment,
     segmentStatus,

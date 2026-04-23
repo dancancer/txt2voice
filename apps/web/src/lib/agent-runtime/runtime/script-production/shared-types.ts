@@ -1,11 +1,11 @@
-import type { LLMExecutionEvent } from "@/lib/llm-service";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
+import type { LLMExecutionEvent } from "@/lib/llm/events";
 import type { SegmentScriptDraft } from "../../context";
 import type {
+  ScriptGenerationOptions,
   DialogueLine,
   SegmentFailureDetail,
   SegmentSummary,
-} from "@/lib/script-generator/types";
+} from "./types";
 
 export type ScriptProductionWorkflowMode = "full" | "partial" | "regenerate";
 
@@ -20,7 +20,10 @@ export interface RunScriptProductionWorkflowInput {
   segmentIds?: string[];
   onProgress?: (done: number, total: number) => Promise<void> | void;
   onExecutionEvent?: (event: LLMExecutionEvent) => void;
+  assertContinue?: () => Promise<void> | void;
 }
+
+export type SegmentFinalStatus = "success" | "failed" | "manual_review";
 
 export interface ScriptProductionBookSegment {
   id: string;
@@ -31,7 +34,7 @@ export interface ScriptProductionBookSegment {
 
 export interface SegmentOutcomeIndexItem {
   segmentId: string;
-  finalStatus: "success" | "failed";
+  finalStatus: SegmentFinalStatus;
   terminalStage: string;
   errorCode?: string;
 }
@@ -40,12 +43,29 @@ export interface CharacterProfileSnapshot {
   id?: string;
   canonicalName?: string;
   aliases?: Array<{ alias: string }>;
+  characteristics?: {
+    description?: string;
+    personality?: string[];
+    importance?: string;
+  };
+  voicePreferences?: {
+    dialogueStyle?: string;
+  };
+  genderHint?: string | null;
+  ageHint?: number | null;
 }
 
 export interface ScriptProductionBook {
   id: string;
   textSegments: ScriptProductionBookSegment[];
   characterProfiles: CharacterProfileSnapshot[];
+}
+
+export interface RuntimeSegmentState {
+  segmentId: string;
+  chapterId?: string | null;
+  orderIndex?: number;
+  sourceText: string;
 }
 
 export interface SegmentRuntimeCounters {
@@ -61,6 +81,7 @@ export interface SegmentSuccessResult {
   summary: SegmentSummary;
   counters: SegmentRuntimeCounters;
   draft: SegmentScriptDraft;
+  manualReviewFailure?: SegmentFailureDetail;
 }
 
 export interface SegmentFailureResult {

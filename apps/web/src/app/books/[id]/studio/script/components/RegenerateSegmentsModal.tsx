@@ -32,7 +32,7 @@ export function RegenerateSegmentsModal({
   onStartRegeneration,
 }: RegenerateSegmentsModalProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm">
       <Card className="w-full max-w-3xl max-h-[80vh] overflow-hidden">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -45,7 +45,7 @@ export function RegenerateSegmentsModal({
         <CardContent className="overflow-y-auto max-h-[60vh]">
           <div className="space-y-4">
             <div>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="mb-4 text-sm text-muted-foreground">
                 选择要重新生成的段落，系统将删除这些段落的现有台词并重新生成。
               </p>
               <div className="flex items-center space-x-4 mb-4">
@@ -59,7 +59,7 @@ export function RegenerateSegmentsModal({
                 <Button variant="outline" size="sm" onClick={onClearSelection}>
                   清除选择
                 </Button>
-                <span className="text-sm text-gray-600">
+                <span className="text-sm text-muted-foreground">
                   已选择 {selectedSegments.length} 个段落
                 </span>
               </div>
@@ -77,10 +77,10 @@ export function RegenerateSegmentsModal({
                     key={segment.id}
                     className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
                       selectedSegments.includes(segment.id)
-                        ? "border-blue-500 bg-blue-50"
+                        ? "border-border bg-accent"
                         : segment.processed
-                        ? "border-green-200 bg-green-50 hover:bg-green-100"
-                        : "border-gray-200 bg-gray-50 hover:bg-gray-100"
+                        ? "border-border bg-muted/60 hover:bg-accent/70"
+                        : "border-border bg-card hover:bg-muted/60"
                     }`}
                     onClick={() => {
                       if (segment.processed) {
@@ -90,38 +90,38 @@ export function RegenerateSegmentsModal({
                   >
                     <div className="flex-1">
                       <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900">
+                        <span className="text-sm font-medium text-foreground">
                           段落 {segment.orderIndex + 1}
                         </span>
                         {segment.processed && (
                           <Badge
                             variant="outline"
-                            className="text-green-600 border-green-300"
+                            className="text-primary border-border"
                           >
                             已处理
                           </Badge>
                         )}
                         {!segment.processed && (
-                          <Badge variant="secondary" className="text-gray-600">
+                          <Badge variant="secondary" className="text-muted-foreground">
                             未处理
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 line-clamp-2">
+                      <p className="line-clamp-2 text-sm text-muted-foreground">
                         {segment.content}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="mt-1 text-xs text-muted-foreground">
                         {segment.wordCount} 字符
                         {segment.processed && ` • ${segment.lineCount} 句台词`}
                       </p>
                     </div>
                     <div className="ml-4">
                       {selectedSegments.includes(segment.id) ? (
-                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                        <CheckCircle className="h-5 w-5 text-primary" />
                       ) : segment.processed ? (
-                        <div className="w-5 h-5 border-2 border-gray-300 rounded-full hover:border-blue-500" />
+                        <div className="h-5 w-5 rounded-full border-2 border-border transition-colors hover:border-primary" />
                       ) : (
-                        <div className="w-5 h-5 border-2 border-gray-200 rounded-full bg-gray-100" />
+                        <div className="h-5 w-5 rounded-full border-2 border-border bg-muted" />
                       )}
                     </div>
                   </div>
@@ -129,7 +129,7 @@ export function RegenerateSegmentsModal({
               </div>
             )}
 
-            <div className="flex space-x-3 pt-4 border-t">
+            <div className="flex space-x-3 border-t border-border pt-4">
               <Button variant="outline" onClick={onClose} className="flex-1">
                 取消
               </Button>

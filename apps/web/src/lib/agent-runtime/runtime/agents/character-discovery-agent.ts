@@ -1,9 +1,10 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type {
-  CharacterAliasEvidence,
-  CharacterCanonicalIdentity,
+  CharacterMemory,
   MemoryPatch,
 } from "../../context";
+import { renderPromptTemplate } from "../prompt-template";
+import { mapResponseToMemoryPatch } from "./character-discovery-agent-normalize";
 
 export interface CharacterDiscoveryPrompts {
   systemPrompt: string;
@@ -13,7 +14,10 @@ export interface CharacterDiscoveryPrompts {
 export interface CharacterDiscoveryAgentInput {
   segmentText: string;
   characterMemorySummary: string;
+  existingCharacterMemory?: CharacterMemory;
+  modelPolicy: string;
   prompts: CharacterDiscoveryPrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface CharacterDiscoveryAgentResult {
@@ -27,11 +31,14 @@ interface CharacterDiscoveryAgentDeps {
   adapter: LLMAdapter;
 }
 
-interface CanonicalIdentityIndex {
-  canonicalIdentities: CharacterCanonicalIdentity[];
-  canonicalIdByName: Map<string, string>;
-  canonicalIdByInputId: Map<string, string>;
-  canonicalIdSet: Set<string>;
+interface CharacterDiscoveryErrorContext {
+  rawResponse: string;
+  provider: string;
+  model: string;
+}
+
+interface CharacterDiscoveryExecutionError extends Error {
+  output?: Record<string, unknown>;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -46,280 +53,47 @@ const asText = (value: unknown): string | null => {
   return text.length > 0 ? text : null;
 };
 
-const toCanonicalId = (name: string, index: number): string => {
-  const slug = name
-    .toLowerCase()
-    .normalize("NFKC")
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "");
 
-  return slug ? `char-${slug}` : `char-${index + 1}`;
-};
-
-const buildCanonicalIdentityIndex = (value: unknown): CanonicalIdentityIndex => {
-  if (!Array.isArray(value)) {
-    return {
-      canonicalIdentities: [],
-      canonicalIdByName: new Map(),
-      canonicalIdByInputId: new Map(),
-      canonicalIdSet: new Set(),
-    };
-  }
-
-  const canonicalIdByName = new Map<string, string>();
-  const canonicalIdByInputId = new Map<string, string>();
-  const canonicalIdentities: CharacterCanonicalIdentity[] = [];
-
-  for (const [index, item] of value.entries()) {
-    if (!isRecord(item)) {
-      continue;
-    }
-
-    const name = asText(item.name) ?? asText(item.canonicalName);
-    if (!name) {
-      continue;
-    }
-
-    const existingId = canonicalIdByName.get(name);
-    const inputId = asText(item.id);
-
-    if (existingId) {
-      if (inputId) {
-        canonicalIdByInputId.set(inputId, existingId);
-      }
-      continue;
-    }
-
-    const canonicalId = inputId ?? toCanonicalId(name, index);
-    canonicalIdByName.set(name, canonicalId);
-    canonicalIdByInputId.set(canonicalId, canonicalId);
-    if (inputId) {
-      canonicalIdByInputId.set(inputId, canonicalId);
-    }
-    canonicalIdentities.push({ id: canonicalId, name });
-  }
-
-  return {
-    canonicalIdentities,
-    canonicalIdByName,
-    canonicalIdByInputId,
-    canonicalIdSet: new Set(canonicalIdentities.map((item) => item.id)),
-  };
-};
-
-const resolveCanonicalId = (
-  rawKey: string,
-  index: CanonicalIdentityIndex
-): string | null => {
-  const key = rawKey.trim();
-  if (!key) {
-    return null;
-  }
-
-  const byName = index.canonicalIdByName.get(key);
-  if (byName) {
-    return byName;
-  }
-
-  const byInputId = index.canonicalIdByInputId.get(key);
-  if (byInputId) {
-    return byInputId;
-  }
-
-  if (index.canonicalIdSet.has(key)) {
-    return key;
-  }
-
-  return null;
-};
-
-const normalizeAliasEvidence = (
-  value: unknown,
-  index: CanonicalIdentityIndex
-): CharacterAliasEvidence[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const dedupe = new Set<string>();
-  const normalized: CharacterAliasEvidence[] = [];
-
-  for (const item of value) {
-    if (!isRecord(item)) {
-      continue;
-    }
-
-    const alias = asText(item.alias);
-    if (!alias) {
-      continue;
-    }
-
-    const canonicalId =
-      resolveCanonicalId(asText(item.canonicalId) ?? "", index) ??
-      resolveCanonicalId(asText(item.canonicalName) ?? "", index);
-    if (!canonicalId) {
-      continue;
-    }
-
-    const source = asText(item.source) ?? "llm";
-    const key = `${alias}::${canonicalId}::${source}`;
-    if (dedupe.has(key)) {
-      continue;
-    }
-
-    dedupe.add(key);
-    normalized.push({ alias, canonicalId, source });
-  }
-
-  return normalized;
-};
-
-const normalizeFactBucket = (
-  value: unknown,
-  index: CanonicalIdentityIndex
-): Record<string, unknown> => {
-  if (!isRecord(value)) {
-    return {};
-  }
-
-  const normalized: Record<string, unknown> = {};
-
-  for (const [rawKey, rawValue] of Object.entries(value)) {
-    const canonicalId = resolveCanonicalId(rawKey, index);
-    if (!canonicalId) {
-      continue;
-    }
-
-    const existing = normalized[canonicalId];
-    if (isRecord(existing) && isRecord(rawValue)) {
-      normalized[canonicalId] = {
-        ...existing,
-        ...rawValue,
-      };
-      continue;
-    }
-
-    normalized[canonicalId] = rawValue;
-  }
-
-  return normalized;
-};
-
-const parseObject = (rawText: string): Record<string, unknown> | null => {
-  try {
-    const parsed = JSON.parse(rawText);
-    return isRecord(parsed) ? parsed : null;
-  } catch {
-    return null;
-  }
-};
-
-const extractJsonPayload = (content: string): Record<string, unknown> => {
-  const direct = parseObject(content);
-  if (direct) {
-    return direct;
-  }
-
-  const fencedBlock = content.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fencedBlock?.[1]) {
-    const fromFence = parseObject(fencedBlock[1]);
-    if (fromFence) {
-      return fromFence;
-    }
-  }
-
-  const start = content.indexOf("{");
-  const end = content.lastIndexOf("}");
-  if (start >= 0 && end > start) {
-    const fromBraces = parseObject(content.slice(start, end + 1));
-    if (fromBraces) {
-      return fromBraces;
-    }
-  }
-
-  throw new Error("Invalid character discovery payload: expected JSON object");
-};
-
-const validatePayloadSchema = (payload: Record<string, unknown>) => {
-  if (!Array.isArray(payload.canonicalIdentities)) {
-    throw new Error(
-      "Invalid character discovery payload: canonicalIdentities must be an array"
-    );
-  }
-
-  if (!Array.isArray(payload.aliasEvidence)) {
-    throw new Error(
-      "Invalid character discovery payload: aliasEvidence must be an array"
-    );
-  }
-
-  if (!isRecord(payload.assertedFacts)) {
-    throw new Error(
-      "Invalid character discovery payload: assertedFacts must be an object"
-    );
-  }
-
-  if (!isRecord(payload.inferredHints)) {
-    throw new Error(
-      "Invalid character discovery payload: inferredHints must be an object"
-    );
-  }
-
-  for (const identity of payload.canonicalIdentities) {
-    if (!isRecord(identity)) {
-      throw new Error(
-        "Invalid character discovery payload: canonicalIdentities entries must be objects with name/canonicalName"
-      );
-    }
-
-    const name = asText(identity.name) ?? asText(identity.canonicalName);
-    if (!name) {
-      throw new Error(
-        "Invalid character discovery payload: canonicalIdentities entries must include name/canonicalName"
-      );
-    }
-  }
-
-  for (const evidence of payload.aliasEvidence) {
-    if (!isRecord(evidence)) {
-      throw new Error(
-        "Invalid character discovery payload: aliasEvidence entries must be objects with alias and canonical pointer"
-      );
-    }
-
-    const alias = asText(evidence.alias);
-    const canonicalPointer =
-      asText(evidence.canonicalId) ?? asText(evidence.canonicalName);
-    if (!alias || !canonicalPointer) {
-      throw new Error(
-        "Invalid character discovery payload: aliasEvidence entries must include alias and canonicalId/canonicalName"
-      );
-    }
-  }
-};
-
-const mapResponseToMemoryPatch = (content: string): MemoryPatch => {
-  const payload = extractJsonPayload(content);
-  validatePayloadSchema(payload);
-  const identityIndex = buildCanonicalIdentityIndex(payload.canonicalIdentities);
-
-  return {
-    canonicalIdentities: identityIndex.canonicalIdentities,
-    aliasEvidence: normalizeAliasEvidence(payload.aliasEvidence, identityIndex),
-    assertedFacts: normalizeFactBucket(payload.assertedFacts, identityIndex),
-    inferredHints: normalizeFactBucket(payload.inferredHints, identityIndex),
-  };
-};
-
-const renderUserPrompt = (
+export const renderCharacterDiscoveryUserPrompt = (
   template: string,
   params: { segmentText: string; characterMemorySummary: string }
 ) =>
-  template
-    .split("{{segment_text}}")
-    .join(params.segmentText)
-    .split("{{character_memory_summary}}")
-    .join(params.characterMemorySummary || "none");
+  renderPromptTemplate(template, {
+    segment_text: params.segmentText,
+    character_memory_summary: params.characterMemorySummary || "none",
+  });
+
+const asErrorMessage = (value: unknown): string => {
+  if (value instanceof Error) {
+    return value.message;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return "character_discovery_parse_failed";
+};
+
+const toCharacterDiscoveryError = (params: {
+  error: unknown;
+  context: CharacterDiscoveryErrorContext;
+}): CharacterDiscoveryExecutionError => {
+  const wrapped = new Error(
+    asErrorMessage(params.error)
+  ) as CharacterDiscoveryExecutionError;
+  wrapped.output = {
+    failedArtifact: {
+      kind: "character-discovery-failure",
+      rawResponse: params.context.rawResponse,
+      provider: params.context.provider,
+      model: params.context.model,
+      message: wrapped.message,
+    },
+  };
+
+  return wrapped;
+};
 
 export const createCharacterDiscoveryAgent = (
   deps: CharacterDiscoveryAgentDeps
@@ -329,21 +103,38 @@ export const createCharacterDiscoveryAgent = (
   ): Promise<CharacterDiscoveryAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
-        segmentText: input.segmentText,
-        characterMemorySummary: input.characterMemorySummary,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderCharacterDiscoveryUserPrompt(input.prompts.userPrompt, {
+          segmentText: input.segmentText,
+          characterMemorySummary: input.characterMemorySummary,
+        }),
+      modelPolicy: input.modelPolicy,
       metadata: {
         source: "agent_runtime.character_discovery",
         stageId: "character_discovery",
       },
     });
 
-    return {
-      characterMemoryDraft: mapResponseToMemoryPatch(response.content),
-      rawResponse: response.content,
-      provider: response.provider,
-      model: response.model,
-    };
+    try {
+      return {
+        characterMemoryDraft: mapResponseToMemoryPatch({
+          content: response.content,
+          existingCharacterMemory: input.existingCharacterMemory,
+        }),
+        rawResponse: response.content,
+        provider: response.provider,
+        model: response.model,
+      };
+    } catch (error) {
+      throw toCharacterDiscoveryError({
+        error,
+        context: {
+          rawResponse: response.content,
+          provider: response.provider,
+          model: response.model,
+        },
+      });
+    }
   },
 });

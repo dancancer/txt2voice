@@ -4,6 +4,15 @@ export interface SegmentScriptDraftLine {
   text: string;
   speaker: string;
   orderInSegment: number;
+  tone?: string;
+  prosody?: {
+    pace?: number;
+    pitch?: number;
+    energy?: number;
+    pauseMsAfter?: number;
+  };
+  strength?: number;
+  pauseAfter?: number;
 }
 
 export interface SegmentScriptDraft {

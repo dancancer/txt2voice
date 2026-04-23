@@ -1,949 +1,35 @@
 // 一旦我被更新，请更新我的开头注释
-// input: 任务参数/服务依赖
-// output: 音频任务执行结果
-// pos: 任务执行器
-import {
-  getAudioGenerator,
-} from "@/lib/audio-generator";
-import type {
-  AudioGenerationRequest,
-  AudioGenerationOptions,
-} from "@/lib/audio-generator";
-import prisma, { Prisma } from "@/lib/prisma";
+// input: 音频任务参数
+// output: 音频任务执行器导出
+// pos: 任务执行入口
+import { getAudioGenerator } from "@/lib/audio-generator";
+import type { AudioGenerationOptions } from "@/lib/audio-generator";
+import type { AudioReliabilityPassSummary } from "@/lib/audio-generation/types";
+import prisma from "@/lib/prisma";
 import {
   jsonObject,
   mergeTaskData,
-  updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
-import { enqueueQualityCheckJob } from "@/lib/task-queue";
-
-export type AudioGenerationTaskType = "single" | "batch" | "book" | "chapter";
-
-export interface AudioGenerationRunParams {
-  bookId: string;
-  taskId: string;
-  type: AudioGenerationTaskType;
-  chapterId?: string;
-  scriptSentenceIds?: string[];
-  voiceProfileId?: string;
-  autoMerge?: boolean;
-  options?: AudioGenerationOptions;
-}
-
-interface ManualReviewTaskContext {
-  manualReviewItemId: string;
-}
-
-interface ManualReviewBatchTaskContext {
-  selectedReviewItemIds: string[];
-}
-
-interface QcRetryIssueTypePolicy {
-  autoCreatePendingOnReject?: boolean;
-  maxAutoRejectedCount?: number;
-}
-
-interface QcRetryDispatchPolicy {
-  autoCreatePendingOnReject: boolean;
-  maxAutoRejectedCount: number;
-  issueTypePolicies: Record<string, QcRetryIssueTypePolicy>;
-}
-
-interface QcRetryTaskContext {
-  selectedReviewItemIds: string[];
-  dispatchPolicy: QcRetryDispatchPolicy;
-}
-
-const DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT = 2;
-
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-};
-
-const asBoolean = (value: unknown): boolean | undefined => {
-  if (typeof value === "boolean") {
-    return value;
-  }
-  return undefined;
-};
-
-const asNonNegativeInteger = (value: unknown): number | undefined => {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-
-  const numeric = typeof value === "number" ? value : Number(value);
-  if (!Number.isInteger(numeric) || numeric < 0) {
-    return undefined;
-  }
-
-  return Number(numeric);
-};
-
-const extractManualReviewTaskContext = (
-  taskData: Prisma.JsonValue | null | undefined
-): ManualReviewTaskContext | null => {
-  const taskDataRecord = asRecord(taskData);
-  const metadata = asRecord(taskDataRecord?.metadata);
-
-  if (!metadata || metadata.source !== "manual_review") {
-    return null;
-  }
-
-  const manualReviewItemId =
-    typeof metadata.manualReviewItemId === "string"
-      ? metadata.manualReviewItemId
-      : null;
-
-  if (!manualReviewItemId) {
-    return null;
-  }
-
-  return {
-    manualReviewItemId,
-  };
-};
-
-const asStringArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return Array.from(
-    new Set(
-      value
-        .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-        .filter((entry) => entry.length > 0)
-    )
-  );
-};
-
-const extractManualReviewBatchTaskContext = (
-  taskData: Prisma.JsonValue | null | undefined
-): ManualReviewBatchTaskContext | null => {
-  const taskDataRecord = asRecord(taskData);
-  const metadata = asRecord(taskDataRecord?.metadata);
-
-  if (!metadata || metadata.source !== "manual_review_batch") {
-    return null;
-  }
-
-  const selectedReviewItemIds = asStringArray(metadata.selectedReviewItemIds);
-  if (selectedReviewItemIds.length === 0) {
-    return null;
-  }
-
-  return {
-    selectedReviewItemIds,
-  };
-};
-
-const parseQcRetryIssueTypePolicies = (
-  value: unknown
-): Record<string, QcRetryIssueTypePolicy> => {
-  const policyRecord = asRecord(value);
-  if (!policyRecord) {
-    return {};
-  }
-
-  const issueTypePolicies: Record<string, QcRetryIssueTypePolicy> = {};
-
-  for (const [rawIssueType, issuePolicyValue] of Object.entries(policyRecord)) {
-    const issueType = rawIssueType.trim().toUpperCase();
-    if (!issueType) {
-      continue;
-    }
-
-    const issuePolicy = asRecord(issuePolicyValue);
-    if (!issuePolicy) {
-      continue;
-    }
-
-    const autoCreatePendingOnReject = asBoolean(issuePolicy.autoCreatePendingOnReject);
-    const maxAutoRejectedCount = asNonNegativeInteger(issuePolicy.maxAutoRejectedCount);
-
-    if (
-      autoCreatePendingOnReject === undefined &&
-      maxAutoRejectedCount === undefined
-    ) {
-      continue;
-    }
-
-    issueTypePolicies[issueType] = {
-      ...(autoCreatePendingOnReject !== undefined
-        ? {
-            autoCreatePendingOnReject,
-          }
-        : {}),
-      ...(maxAutoRejectedCount !== undefined
-        ? {
-            maxAutoRejectedCount,
-          }
-        : {}),
-    };
-  }
-
-  return issueTypePolicies;
-};
-
-const toJsonQcRetryDispatchPolicy = (
-  dispatchPolicy: QcRetryDispatchPolicy
-): Prisma.InputJsonValue => {
-  const issueTypePolicies: Record<string, Prisma.InputJsonValue> = {};
-  for (const [issueType, issuePolicy] of Object.entries(dispatchPolicy.issueTypePolicies)) {
-    const issuePolicyPayload: Record<string, Prisma.InputJsonValue> = {};
-    if (issuePolicy.autoCreatePendingOnReject !== undefined) {
-      issuePolicyPayload.autoCreatePendingOnReject =
-        issuePolicy.autoCreatePendingOnReject;
-    }
-    if (issuePolicy.maxAutoRejectedCount !== undefined) {
-      issuePolicyPayload.maxAutoRejectedCount = issuePolicy.maxAutoRejectedCount;
-    }
-    if (Object.keys(issuePolicyPayload).length > 0) {
-      issueTypePolicies[issueType] = issuePolicyPayload;
-    }
-  }
-
-  return {
-    autoCreatePendingOnReject: dispatchPolicy.autoCreatePendingOnReject,
-    maxAutoRejectedCount: dispatchPolicy.maxAutoRejectedCount,
-    issueTypePolicies,
-  };
-};
-
-const extractQcRetryTaskContext = (
-  taskData: Prisma.JsonValue | null | undefined
-): QcRetryTaskContext | null => {
-  const taskDataRecord = asRecord(taskData);
-  const metadata = asRecord(taskDataRecord?.metadata);
-
-  if (!metadata || metadata.source !== "qc_retry") {
-    return null;
-  }
-
-  const selectedReviewItemIds = asStringArray(metadata.selectedReviewItemIds);
-  if (selectedReviewItemIds.length === 0) {
-    return null;
-  }
-
-  const policySource = asRecord(metadata.dispatchPolicy) || metadata;
-  const dispatchPolicy: QcRetryDispatchPolicy = {
-    autoCreatePendingOnReject:
-      asBoolean(policySource.autoCreatePendingOnReject) ?? true,
-    maxAutoRejectedCount:
-      asNonNegativeInteger(policySource.maxAutoRejectedCount) ??
-      DEFAULT_QC_RETRY_MAX_AUTO_REJECTED_COUNT,
-    issueTypePolicies: parseQcRetryIssueTypePolicies(policySource.issueTypePolicies),
-  };
-
-  return {
-    selectedReviewItemIds,
-    dispatchPolicy,
-  };
-};
-
-const appendResolutionNote = (
-  current: string | null | undefined,
-  next: string
-): string => {
-  if (!current) {
-    return next;
-  }
-  if (current.includes(next)) {
-    return current;
-  }
-  return `${current}\n${next}`;
-};
-
-interface RouterDecisionSummary {
-  totalResults: number;
-  decisionCount: number;
-  fallbackCount: number;
-  byEngine: Array<{
-    engine: string;
-    total: number;
-    success: number;
-    failed: number;
-    fallbackCount: number;
-  }>;
-  bySource: Array<{
-    source: string;
-    total: number;
-    success: number;
-    failed: number;
-  }>;
-  byPolicyVersion: Array<{
-    policyVersion: string;
-    total: number;
-  }>;
-}
-
-interface AudioChildJobProviderMetrics {
-  provider: string;
-  submitted: number;
-  completed: number;
-  failed: number;
-  retried: number;
-  averageWaitMs: number;
-  averageLatencyMs: number;
-}
-
-interface AudioChildJobMetrics {
-  submitted: number;
-  completed: number;
-  failed: number;
-  retried: number;
-  averageWaitMs: number;
-  averageLatencyMs: number;
-  providers: AudioChildJobProviderMetrics[];
-}
-
-const resolveAudioChildJobProvider = (
-  result: Record<string, unknown>,
-  fallbackProvider?: string | null
-): string => {
-  const directProvider =
-    typeof result.provider === "string" && result.provider.trim().length > 0
-      ? result.provider.trim().toLowerCase()
-      : null;
-  if (directProvider) {
-    return directProvider;
-  }
-
-  const metadataProvider = extractRouterDecisionField(result.metadata, "selectedEngine");
-  if (metadataProvider) {
-    return metadataProvider.toLowerCase();
-  }
-
-  if (typeof fallbackProvider === "string" && fallbackProvider.trim().length > 0) {
-    return fallbackProvider.trim().toLowerCase();
-  }
-
-  return "unknown";
-};
-
-const summarizeAudioChildJobs = (
-  results: any[],
-  fallbackProvider?: string | null
-): AudioChildJobMetrics => {
-  const providerMap = new Map<
-    string,
-    {
-      submitted: number;
-      completed: number;
-      failed: number;
-      retried: number;
-      totalWaitMs: number;
-      totalLatencyMs: number;
-      observedCount: number;
-    }
-  >();
-
-  let completed = 0;
-  let failed = 0;
-  let retried = 0;
-  let totalWaitMs = 0;
-  let totalLatencyMs = 0;
-  let observedCount = 0;
-
-  for (const result of results) {
-    const provider = resolveAudioChildJobProvider(result || {}, fallbackProvider);
-    const bucket = providerMap.get(provider) || {
-      submitted: 0,
-      completed: 0,
-      failed: 0,
-      retried: 0,
-      totalWaitMs: 0,
-      totalLatencyMs: 0,
-      observedCount: 0,
-    };
-
-    bucket.submitted += 1;
-    const resultRetries =
-      typeof result?.retriesUsed === "number" ? Math.max(result.retriesUsed, 0) : 0;
-    retried += resultRetries;
-    bucket.retried += resultRetries;
-
-    const waitMs = typeof result?.waitMs === "number" ? Math.max(result.waitMs, 0) : 0;
-    const latencyMs =
-      typeof result?.totalElapsedMs === "number"
-        ? Math.max(result.totalElapsedMs, 0)
-        : 0;
-
-    totalWaitMs += waitMs;
-    totalLatencyMs += latencyMs;
-    observedCount += 1;
-    bucket.totalWaitMs += waitMs;
-    bucket.totalLatencyMs += latencyMs;
-    bucket.observedCount += 1;
-
-    if (result?.success === true) {
-      completed += 1;
-      bucket.completed += 1;
-    } else {
-      failed += 1;
-      bucket.failed += 1;
-    }
-
-    providerMap.set(provider, bucket);
-  }
-
-  return {
-    submitted: results.length,
-    completed,
-    failed,
-    retried,
-    averageWaitMs: observedCount > 0 ? Math.round(totalWaitMs / observedCount) : 0,
-    averageLatencyMs:
-      observedCount > 0 ? Math.round(totalLatencyMs / observedCount) : 0,
-    providers: Array.from(providerMap.entries())
-      .map(([provider, bucket]) => ({
-        provider,
-        submitted: bucket.submitted,
-        completed: bucket.completed,
-        failed: bucket.failed,
-        retried: bucket.retried,
-        averageWaitMs:
-          bucket.observedCount > 0
-            ? Math.round(bucket.totalWaitMs / bucket.observedCount)
-            : 0,
-        averageLatencyMs:
-          bucket.observedCount > 0
-            ? Math.round(bucket.totalLatencyMs / bucket.observedCount)
-            : 0,
-      }))
-      .sort((left, right) => left.provider.localeCompare(right.provider)),
-  };
-};
-
-const summarizeRouterDecisions = (results: any[]): RouterDecisionSummary => {
-  const engineMap = new Map<
-    string,
-    {
-      engine: string;
-      total: number;
-      success: number;
-      failed: number;
-      fallbackCount: number;
-    }
-  >();
-  const sourceMap = new Map<
-    string,
-    {
-      source: string;
-      total: number;
-      success: number;
-      failed: number;
-    }
-  >();
-  const policyVersionMap = new Map<string, { policyVersion: string; total: number }>();
-
-  let decisionCount = 0;
-  let fallbackCount = 0;
-
-  for (const result of results) {
-    const metadata = asRecord(result?.metadata);
-    const decision = asRecord(metadata?.routerDecision);
-    if (!decision) {
-      continue;
-    }
-
-    decisionCount += 1;
-    const success = Boolean(result?.success);
-    const selectedEngine =
-      (typeof decision.selectedEngine === "string" &&
-        decision.selectedEngine.trim().toLowerCase()) ||
-      "unknown";
-    const selectedSource =
-      (typeof decision.selectedSource === "string" &&
-        decision.selectedSource.trim().toLowerCase()) ||
-      "unknown";
-    const fallback = decision.isFallback === true;
-    const policyVersion =
-      (typeof decision.policyVersion === "string" &&
-        decision.policyVersion.trim()) ||
-      "unknown";
-
-    if (fallback) {
-      fallbackCount += 1;
-    }
-
-    const engineBucket = engineMap.get(selectedEngine) || {
-      engine: selectedEngine,
-      total: 0,
-      success: 0,
-      failed: 0,
-      fallbackCount: 0,
-    };
-    engineBucket.total += 1;
-    if (success) {
-      engineBucket.success += 1;
-    } else {
-      engineBucket.failed += 1;
-    }
-    if (fallback) {
-      engineBucket.fallbackCount += 1;
-    }
-    engineMap.set(selectedEngine, engineBucket);
-
-    const sourceBucket = sourceMap.get(selectedSource) || {
-      source: selectedSource,
-      total: 0,
-      success: 0,
-      failed: 0,
-    };
-    sourceBucket.total += 1;
-    if (success) {
-      sourceBucket.success += 1;
-    } else {
-      sourceBucket.failed += 1;
-    }
-    sourceMap.set(selectedSource, sourceBucket);
-
-    const policyBucket = policyVersionMap.get(policyVersion) || {
-      policyVersion,
-      total: 0,
-    };
-    policyBucket.total += 1;
-    policyVersionMap.set(policyVersion, policyBucket);
-  }
-
-  return {
-    totalResults: results.length,
-    decisionCount,
-    fallbackCount,
-    byEngine: Array.from(engineMap.values()).sort((left, right) => right.total - left.total),
-    bySource: Array.from(sourceMap.values()).sort((left, right) => right.total - left.total),
-    byPolicyVersion: Array.from(policyVersionMap.values()).sort(
-      (left, right) => right.total - left.total
-    ),
-  };
-};
-
-const extractRouterDecisionField = (
-  metadata: unknown,
-  field: "selectedEngine" | "selectedSource"
-): string | null => {
-  const metadataRecord = asRecord(metadata);
-  const decision = asRecord(metadataRecord?.routerDecision);
-  const value = decision && typeof decision[field] === "string" ? decision[field].trim() : "";
-  return value.length > 0 ? value : null;
-};
-
-const rejectManualReviewReprocessingItem = async ({
-  bookId,
-  manualReviewItemId,
-  resolutionType,
-  note,
-}: {
-  bookId: string;
-  manualReviewItemId: string;
-  resolutionType: string;
-  note: string;
-}): Promise<boolean> => {
-  const reprocessingItem = await prisma.manualReviewItem.findFirst({
-    where: {
-      id: manualReviewItemId,
-      bookId,
-      status: "reprocessing",
-    },
-    select: {
-      id: true,
-      resolutionNote: true,
-    },
-  });
-
-  if (!reprocessingItem) {
-    return false;
-  }
-
-  await prisma.manualReviewItem.update({
-    where: { id: reprocessingItem.id },
-    data: {
-      status: "rejected",
-      resolutionType,
-      resolutionNote: appendResolutionNote(reprocessingItem.resolutionNote, note),
-      resolvedAt: new Date(),
-    },
-  });
-
-  return true;
-};
-
-const rejectQcRetryReprocessingItems = async ({
-  bookId,
-  reviewItemIds,
-  resolutionType,
-  note,
-}: {
-  bookId: string;
-  reviewItemIds: string[];
-  resolutionType: string;
-  note: string;
-}): Promise<number> => {
-  if (reviewItemIds.length === 0) {
-    return 0;
-  }
-
-  const reprocessingItems = await prisma.manualReviewItem.findMany({
-    where: {
-      bookId,
-      id: {
-        in: reviewItemIds,
-      },
-      status: "reprocessing",
-    },
-    select: {
-      id: true,
-      resolutionNote: true,
-    },
-  });
-
-  if (reprocessingItems.length === 0) {
-    return 0;
-  }
-
-  for (const item of reprocessingItems) {
-    await prisma.manualReviewItem.update({
-      where: { id: item.id },
-      data: {
-        status: "rejected",
-        resolutionType,
-        resolutionNote: appendResolutionNote(item.resolutionNote, note),
-        resolvedAt: new Date(),
-      },
-    });
-  }
-
-  return reprocessingItems.length;
-};
-
-const rejectQcRetryReprocessingItemsBySentenceIds = async ({
-  bookId,
-  reviewItemIds,
-  sentenceIds,
-  resolutionType,
-  note,
-}: {
-  bookId: string;
-  reviewItemIds: string[];
-  sentenceIds: string[];
-  resolutionType: string;
-  note: string;
-}): Promise<number> => {
-  if (reviewItemIds.length === 0 || sentenceIds.length === 0) {
-    return 0;
-  }
-
-  const reprocessingItems = await prisma.manualReviewItem.findMany({
-    where: {
-      bookId,
-      id: {
-        in: reviewItemIds,
-      },
-      sentenceId: {
-        in: sentenceIds,
-      },
-      status: "reprocessing",
-    },
-    select: {
-      id: true,
-      resolutionNote: true,
-    },
-  });
-
-  if (reprocessingItems.length === 0) {
-    return 0;
-  }
-
-  for (const item of reprocessingItems) {
-    await prisma.manualReviewItem.update({
-      where: { id: item.id },
-      data: {
-        status: "rejected",
-        resolutionType,
-        resolutionNote: appendResolutionNote(item.resolutionNote, note),
-        resolvedAt: new Date(),
-      },
-    });
-  }
-
-  return reprocessingItems.length;
-};
-
-const collectFailedBatchSentenceIds = ({
-  type,
-  scriptSentenceIds,
-  results,
-}: {
-  type: AudioGenerationTaskType;
-  scriptSentenceIds?: string[];
-  results: Array<{ success?: boolean }>;
-}): string[] => {
-  if (type !== "batch" || !scriptSentenceIds || scriptSentenceIds.length === 0) {
-    return [];
-  }
-
-  return Array.from(
-    new Set(
-      scriptSentenceIds.filter((sentenceId, index) => results[index]?.success !== true)
-    )
-  );
-};
-
-const enqueueManualReviewFollowupQualityCheck = async ({
-  bookId,
-  audioTaskId,
-  manualReviewItemId,
-  audioFileIds,
-}: {
-  bookId: string;
-  audioTaskId: string;
-  manualReviewItemId: string;
-  audioFileIds: string[];
-}): Promise<{ taskId: string; status: "processing" | "failed"; error?: string }> => {
-  const qcTask = await prisma.processingTask.create({
-    data: {
-      bookId,
-      taskType: "QUALITY_CHECK",
-      status: "processing",
-      progress: 0,
-      totalItems: audioFileIds.length,
-      taskData: {
-        message: "人工复核重生后自动触发 Fast/Deep Gate 质检",
-        metadata: {
-          source: "manual_review",
-          manualReviewItemId,
-          type: "batch",
-          audioFileIds,
-          triggeredByTaskId: audioTaskId,
-          totalItems: audioFileIds.length,
-        },
-      },
-    },
-  });
-
-  try {
-    await enqueueQualityCheckJob({
-      taskId: qcTask.id,
-      bookId,
-      type: "batch",
-      audioFileIds,
-    });
-
-    return {
-      taskId: qcTask.id,
-      status: "processing",
-    };
-  } catch (queueError) {
-    const message =
-      queueError instanceof Error ? queueError.message : "人工复核后置质检入队失败";
-    const failedTaskData = await mergeTaskData(qcTask.id, {
-      message: "人工复核后置质检入队失败",
-      metadata: {
-        queueError: message,
-        triggeredByTaskId: audioTaskId,
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: qcTask.id },
-      data: {
-        status: "failed",
-        completedAt: new Date(),
-        errorMessage: message,
-        taskData: failedTaskData,
-      },
-    });
-
-    await rejectManualReviewReprocessingItem({
-      bookId,
-      manualReviewItemId,
-      resolutionType: "regenerate_qc_enqueue_failed",
-      note: `auto_reject:后置质检入队失败:${message}`,
-    });
-
-    return {
-      taskId: qcTask.id,
-      status: "failed",
-      error: message,
-    };
-  }
-};
-
-const enqueueManualReviewBatchFollowupQualityCheck = async ({
-  bookId,
-  audioTaskId,
-  reviewItemIds,
-  audioFileIds,
-}: {
-  bookId: string;
-  audioTaskId: string;
-  reviewItemIds: string[];
-  audioFileIds: string[];
-}): Promise<{ taskId: string; status: "processing" | "failed"; error?: string }> => {
-  const qcTask = await prisma.processingTask.create({
-    data: {
-      bookId,
-      taskType: "QUALITY_CHECK",
-      status: "processing",
-      progress: 0,
-      totalItems: audioFileIds.length,
-      taskData: {
-        message: "人工复核批量重生后自动触发 Fast/Deep Gate 质检",
-        metadata: {
-          source: "manual_review_batch",
-          type: "batch",
-          audioFileIds,
-          retryReviewItemIds: reviewItemIds,
-          triggeredByTaskId: audioTaskId,
-          autoCreatePendingOnReject: false,
-          totalItems: audioFileIds.length,
-        },
-      },
-    },
-  });
-
-  try {
-    await enqueueQualityCheckJob({
-      taskId: qcTask.id,
-      bookId,
-      type: "batch",
-      audioFileIds,
-    });
-
-    return {
-      taskId: qcTask.id,
-      status: "processing",
-    };
-  } catch (queueError) {
-    const message =
-      queueError instanceof Error ? queueError.message : "人工复核批量后置质检入队失败";
-    const failedTaskData = await mergeTaskData(qcTask.id, {
-      message: "人工复核批量后置质检入队失败",
-      metadata: {
-        queueError: message,
-        triggeredByTaskId: audioTaskId,
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: qcTask.id },
-      data: {
-        status: "failed",
-        completedAt: new Date(),
-        errorMessage: message,
-        taskData: failedTaskData,
-      },
-    });
-
-    await rejectQcRetryReprocessingItems({
-      bookId,
-      reviewItemIds,
-      resolutionType: "batch_regenerate_qc_enqueue_failed",
-      note: `auto_reject:manual_review_batch后置质检入队失败:${message}`,
-    });
-
-    return {
-      taskId: qcTask.id,
-      status: "failed",
-      error: message,
-    };
-  }
-};
-
-const enqueueQcRetryFollowupQualityCheck = async ({
-  bookId,
-  audioTaskId,
-  reviewItemIds,
-  audioFileIds,
-  dispatchPolicy,
-}: {
-  bookId: string;
-  audioTaskId: string;
-  reviewItemIds: string[];
-  audioFileIds: string[];
-  dispatchPolicy: QcRetryDispatchPolicy;
-}): Promise<{ taskId: string; status: "processing" | "failed"; error?: string }> => {
-  const dispatchPolicyMetadata = toJsonQcRetryDispatchPolicy(dispatchPolicy) as Record<
-    string,
-    Prisma.InputJsonValue
-  >;
-
-  const qcTask = await prisma.processingTask.create({
-    data: {
-      bookId,
-      taskType: "QUALITY_CHECK",
-      status: "processing",
-      progress: 0,
-      totalItems: audioFileIds.length,
-      taskData: {
-        message: "质量返工后自动触发 Fast/Deep Gate 质检",
-        metadata: {
-          source: "qc_retry",
-          type: "batch",
-          audioFileIds,
-          retryReviewItemIds: reviewItemIds,
-          triggeredByTaskId: audioTaskId,
-          autoCreatePendingOnReject: dispatchPolicy.autoCreatePendingOnReject,
-          maxAutoRejectedCount: dispatchPolicy.maxAutoRejectedCount,
-          issueTypePolicies: dispatchPolicyMetadata.issueTypePolicies || {},
-          dispatchPolicy: dispatchPolicyMetadata,
-          totalItems: audioFileIds.length,
-        },
-      },
-    },
-  });
-
-  try {
-    await enqueueQualityCheckJob({
-      taskId: qcTask.id,
-      bookId,
-      type: "batch",
-      audioFileIds,
-    });
-
-    return {
-      taskId: qcTask.id,
-      status: "processing",
-    };
-  } catch (queueError) {
-    const message = queueError instanceof Error ? queueError.message : "质量返工后置质检入队失败";
-    const failedTaskData = await mergeTaskData(qcTask.id, {
-      message: "质量返工后置质检入队失败",
-      metadata: {
-        queueError: message,
-        triggeredByTaskId: audioTaskId,
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: qcTask.id },
-      data: {
-        status: "failed",
-        completedAt: new Date(),
-        errorMessage: message,
-        taskData: failedTaskData,
-      },
-    });
-
-    await rejectQcRetryReprocessingItems({
-      bookId,
-      reviewItemIds,
-      resolutionType: "batch_regenerate_qc_enqueue_failed",
-      note: `auto_reject:qc_retry后置质检入队失败:${message}`,
-    });
-
-    return {
-      taskId: qcTask.id,
-      status: "failed",
-      error: message,
-    };
-  }
-};
+import { throwIfTaskCanceled } from "@/lib/task-cancellation";
+import {
+  extractManualReviewBatchTaskContext,
+  extractManualReviewTaskContext,
+  extractQcRetryTaskContext,
+} from "@/lib/audio-generation/runner/task-context";
+import { finalizeAudioGenerationTask } from "@/lib/audio-generation/runner/finalize-task";
+import {
+  extractRouterDecisionField,
+  summarizeAudioChildJobs,
+  summarizeRouterDecisions,
+} from "@/lib/audio-generation/runner/summaries";
+import { createAudioTaskRuntimeUpdater } from "@/lib/audio-generation/runner/runtime-progress";
+import { executeAudioGeneration } from "@/lib/audio-generation/runner/execute";
+import type {
+  AudioGenerationRunParams,
+  AudioGenerationTaskType,
+} from "@/lib/audio-generation/runner/types";
+
+export type { AudioGenerationTaskType } from "@/lib/audio-generation/runner/types";
 
 /**
  * 执行音频生成任务。
@@ -959,6 +45,8 @@ export async function runAudioGenerationTask({
   autoMerge = false,
   options = {},
 }: AudioGenerationRunParams): Promise<void> {
+  await throwIfTaskCanceled(taskId);
+
   const audioGenerator = getAudioGenerator();
   const taskSnapshot = await prisma.processingTask.findUnique({
     where: { id: taskId },
@@ -971,62 +59,76 @@ export async function runAudioGenerationTask({
     taskSnapshot?.taskData
   );
   const qcRetryContext = extractQcRetryTaskContext(taskSnapshot?.taskData);
+  const runtimeUpdater = createAudioTaskRuntimeUpdater({
+    taskId,
+    metadata: jsonObject(
+      ((taskSnapshot?.taskData as Record<string, unknown> | null)?.metadata as any) || {}
+    ),
+  });
 
-  await updateTaskProgress(taskId, 10, "准备生成音频");
+  await runtimeUpdater.setStage({
+    progress: 10,
+    message: "准备生成音频",
+    title: "准备生成音频",
+    detail: "初始化音频生成上下文",
+    stage: "prepare",
+  });
 
-  let results: any[] = [];
-  let totalSentences = 0;
-  let audioReliability: Record<string, unknown> | null = null;
+  const startMessage =
+    type === "book"
+      ? "开始生成整书音频"
+      : type === "chapter"
+        ? "开始生成章节音频"
+        : type === "batch"
+          ? "开始批量生成音频"
+          : "开始生成单个音频";
+  await runtimeUpdater.setStage({
+    progress: 20,
+    message: startMessage,
+    title: startMessage,
+    detail: "开始执行批量音频生成",
+    stage: "audio_generation",
+  });
 
-  if (type === "book") {
-    await updateTaskProgress(taskId, 20, "开始生成整书音频");
-    const result = await audioGenerator.generateBookAudio(bookId, options);
-    results = result.results;
-    totalSentences = result.total;
-    audioReliability = asRecord((result as { reliability?: unknown }).reliability);
-  } else if (type === "chapter" && chapterId) {
-    await updateTaskProgress(taskId, 20, "开始生成章节音频");
-    const result = await audioGenerator.generateChapterAudio(
-      bookId,
-      chapterId,
-      options
-    );
-    results = result.results;
-    totalSentences = result.total;
-    audioReliability = asRecord((result as { reliability?: unknown }).reliability);
-  } else if (type === "batch" && scriptSentenceIds) {
-    await updateTaskProgress(taskId, 20, "开始批量生成音频");
-    const requests: AudioGenerationRequest[] = scriptSentenceIds.map((id) => ({
-      scriptSentenceId: id,
-      voiceProfileId,
-      outputFormat: "mp3",
-    }));
-    if (typeof (audioGenerator as any).generateBatchAudioWithReliability === "function") {
-      const summary = await (audioGenerator as any).generateBatchAudioWithReliability(
-        requests,
-        options
-      );
-      results = Array.isArray(summary?.results) ? summary.results : [];
-      audioReliability = asRecord(summary?.reliability);
-    } else {
-      results = await audioGenerator.generateBatchAudio(requests, options);
-    }
-    totalSentences = requests.length;
-  } else if (type === "single" && scriptSentenceIds && scriptSentenceIds.length > 0) {
-    await updateTaskProgress(taskId, 20, "开始生成单个音频");
-    const request: AudioGenerationRequest = {
-      scriptSentenceId: scriptSentenceIds[0],
-      voiceProfileId,
-      outputFormat: "mp3",
-    };
-    const result = await audioGenerator.generateSingleAudio(request, options);
-    results = [result];
-    totalSentences = 1;
-  } else {
-    throw new Error("无效的生成类型");
-  }
+  const { results, totalSentences, audioReliability } = await executeAudioGeneration({
+    audioGenerator,
+    bookId,
+    type,
+    chapterId,
+    scriptSentenceIds,
+    voiceProfileId,
+    options,
+    hooks: {
+      assertContinue: async () => {
+        await throwIfTaskCanceled(taskId);
+      },
+      onPassComplete: async (summary: AudioReliabilityPassSummary) => {
+        const progress = Math.min(
+          75,
+          25 +
+            Math.round(
+              ((summary.successCount + summary.failedCount) /
+                Math.max(summary.requestCount, 1)) *
+                45
+            )
+        );
+        await runtimeUpdater.recordBatchPass({
+          ...summary,
+          progress,
+        });
+      },
+    },
+  });
 
-  await updateTaskProgress(taskId, 80, "统计生成结果");
+  await throwIfTaskCanceled(taskId);
+
+  await runtimeUpdater.setStage({
+    progress: 80,
+    message: "统计生成结果",
+    title: "统计生成结果",
+    detail: `成功 ${results.filter((r) => r.success).length} · 失败 ${results.filter((r) => !r.success).length}`,
+    stage: "finalize",
+  });
 
   const successCount = results.filter((r) => r.success).length;
   const failedCount = results.filter((r) => !r.success).length;
@@ -1038,7 +140,14 @@ export async function runAudioGenerationTask({
 
   let mergeResult = null;
   if (autoMerge && successCount > 0) {
-    await updateTaskProgress(taskId, 85, "正在合并音频文件");
+    await throwIfTaskCanceled(taskId);
+    await runtimeUpdater.setStage({
+      progress: 85,
+      message: "正在合并音频文件",
+      title: "正在合并音频文件",
+      detail: "批量音频生成完成，进入合并阶段",
+      stage: "audio_merge",
+    });
 
     const { getAudioMerger } = await import("@/lib/audio-merger");
     const audioMerger = getAudioMerger();
@@ -1066,13 +175,23 @@ export async function runAudioGenerationTask({
     }),
   ]);
 
-  await updateTaskProgress(taskId, 100, "音频生成完成");
+  await runtimeUpdater.setStage({
+    progress: 100,
+    message: "音频生成完成",
+    title: "音频生成完成",
+    detail: `成功 ${successCount} · 失败 ${failedCount}`,
+    stage: "completed",
+    status: failedCount > 0 ? "warning" : "success",
+  });
 
   const message = `音频生成完成，成功 ${successCount} 个，失败 ${failedCount} 个${mergeResult?.success ? "，已合并音频" : ""}`;
+
+  await throwIfTaskCanceled(taskId);
 
   const taskData = await mergeTaskData(taskId, {
     message,
     metadata: {
+      ...runtimeUpdater.getMetadata(),
       type,
       chapterId,
       voiceProfileId,
@@ -1109,230 +228,21 @@ export async function runAudioGenerationTask({
     results.reduce((sum, result) => sum + (result.duration || 0), 0).toFixed(2)
   );
 
-  if (successCount === 0) {
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        status: "failed",
-        completedAt: new Date(),
-        errorMessage: "音频生成失败：全部句子生成失败",
-        taskData,
-      },
-    });
-
-    await prisma.book.update({
-      where: { id: bookId },
-      data: {
-        status: "script_generated",
-        metadata: {
-          ...jsonObject(book?.metadata),
-          audioGenerationFailedAt: new Date().toISOString(),
-          audioGenerationFailedCount: failedCount,
-        },
-      },
-    });
-
-    if (manualReviewContext) {
-      await rejectManualReviewReprocessingItem({
-        bookId,
-        manualReviewItemId: manualReviewContext.manualReviewItemId,
-        resolutionType: "regenerate_failed",
-        note: `auto_reject:音频重生失败:task=${taskId}`,
-      });
-    }
-
-    if (qcRetryContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: qcRetryContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:qc_retry音频返工失败:task=${taskId}`,
-      });
-    }
-
-    if (manualReviewBatchContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:manual_review_batch音频重生失败:task=${taskId}`,
-      });
-    }
-    return;
-  }
-
-  const bookStatus = failedCount === 0 ? "completed" : "completed_with_errors";
-
-  await prisma.processingTask.update({
-    where: { id: taskId },
-    data: {
-      status: "completed",
-      completedAt: new Date(),
-      taskData,
-    },
-  });
-
-  await prisma.book.update({
-    where: { id: bookId },
-    data: {
-      status: bookStatus,
-      metadata: {
-        ...jsonObject(book?.metadata),
-        audioGenerationCompletedAt: new Date().toISOString(),
-        audioGenerationStatus: bookStatus,
-        totalAudioFiles,
-        totalAudioDuration: generatedDuration,
-        lastAudioFailureCount: failedCount,
-      },
-    },
-  });
-
-  if (!manualReviewContext && !manualReviewBatchContext && !qcRetryContext) {
-    return;
-  }
-
-  const failedBatchSentenceIds = collectFailedBatchSentenceIds({
+  await finalizeAudioGenerationTask({
+    bookId,
+    taskId,
     type,
+    chapterId,
     scriptSentenceIds,
     results,
+    successCount,
+    failedCount,
+    totalAudioFiles,
+    generatedDuration,
+    taskData,
+    bookMetadata: book?.metadata,
+    manualReviewContext,
+    manualReviewBatchContext,
+    qcRetryContext,
   });
-
-  if (failedBatchSentenceIds.length > 0) {
-    if (qcRetryContext) {
-      await rejectQcRetryReprocessingItemsBySentenceIds({
-        bookId,
-        reviewItemIds: qcRetryContext.selectedReviewItemIds,
-        sentenceIds: failedBatchSentenceIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:qc_retry部分返工失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
-      });
-    }
-
-    if (manualReviewBatchContext) {
-      await rejectQcRetryReprocessingItemsBySentenceIds({
-        bookId,
-        reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-        sentenceIds: failedBatchSentenceIds,
-        resolutionType: "batch_regenerate_failed",
-        note: `auto_reject:manual_review_batch部分重生失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
-      });
-    }
-  }
-
-  const generatedAudioFileIds = Array.from(
-    new Set(
-      results
-        .filter((result) => result.success && typeof result.audioFileId === "string")
-      .map((result) => result.audioFileId as string)
-    )
-  );
-
-  if (generatedAudioFileIds.length === 0) {
-    if (manualReviewContext) {
-      await rejectManualReviewReprocessingItem({
-        bookId,
-        manualReviewItemId: manualReviewContext.manualReviewItemId,
-        resolutionType: "regenerate_missing_audio_ref",
-        note: `auto_reject:重生无有效音频引用:task=${taskId}`,
-      });
-    }
-    if (qcRetryContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: qcRetryContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_missing_audio_ref",
-        note: `auto_reject:qc_retry重生无有效音频引用:task=${taskId}`,
-      });
-    }
-    if (manualReviewBatchContext) {
-      await rejectQcRetryReprocessingItems({
-        bookId,
-        reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-        resolutionType: "batch_regenerate_missing_audio_ref",
-        note: `auto_reject:manual_review_batch重生无有效音频引用:task=${taskId}`,
-      });
-    }
-    return;
-  }
-
-  if (manualReviewContext) {
-    const followupQc = await enqueueManualReviewFollowupQualityCheck({
-      bookId,
-      audioTaskId: taskId,
-      manualReviewItemId: manualReviewContext.manualReviewItemId,
-      audioFileIds: generatedAudioFileIds,
-    });
-
-    const taskDataWithFollowup = await mergeTaskData(taskId, {
-      metadata: {
-        manualReviewFollowup: {
-          qualityTaskId: followupQc.taskId,
-          qualityTaskStatus: followupQc.status,
-          qualityTaskError: followupQc.error || null,
-        },
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        taskData: taskDataWithFollowup,
-      },
-    });
-  }
-
-  if (qcRetryContext) {
-    const followupQc = await enqueueQcRetryFollowupQualityCheck({
-      bookId,
-      audioTaskId: taskId,
-      reviewItemIds: qcRetryContext.selectedReviewItemIds,
-      audioFileIds: generatedAudioFileIds,
-      dispatchPolicy: qcRetryContext.dispatchPolicy,
-    });
-
-    const taskDataWithFollowup = await mergeTaskData(taskId, {
-      metadata: {
-        qcRetryFollowup: {
-          qualityTaskId: followupQc.taskId,
-          qualityTaskStatus: followupQc.status,
-          qualityTaskError: followupQc.error || null,
-          targetReviewItemCount: qcRetryContext.selectedReviewItemIds.length,
-        },
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        taskData: taskDataWithFollowup,
-      },
-    });
-  }
-
-  if (manualReviewBatchContext) {
-    const followupQc = await enqueueManualReviewBatchFollowupQualityCheck({
-      bookId,
-      audioTaskId: taskId,
-      reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-      audioFileIds: generatedAudioFileIds,
-    });
-
-    const taskDataWithFollowup = await mergeTaskData(taskId, {
-      metadata: {
-        manualReviewBatchFollowup: {
-          qualityTaskId: followupQc.taskId,
-          qualityTaskStatus: followupQc.status,
-          qualityTaskError: followupQc.error || null,
-          targetReviewItemCount: manualReviewBatchContext.selectedReviewItemIds.length,
-        },
-      },
-    });
-
-    await prisma.processingTask.update({
-      where: { id: taskId },
-      data: {
-        taskData: taskDataWithFollowup,
-      },
-    });
-  }
 }

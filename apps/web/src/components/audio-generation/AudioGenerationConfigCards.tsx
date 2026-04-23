@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import type { CharacterProfileSummary } from "@/types/book";
 import type { ProviderInfo, VoiceProfile } from "@/hooks/useAudioGeneration";
 
@@ -46,27 +47,27 @@ export function ProviderSelectionCard({
               <button
                 type="button"
                 key={provider.type}
-                className={`min-h-11 rounded-lg border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                className={`min-h-11 rounded-lg border p-4 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   selected === provider.type
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-border bg-accent"
+                    : "border-border bg-card hover:bg-accent/60"
                 }`}
                 onClick={() => onSelect(provider.type)}
                 aria-pressed={selected === provider.type}
               >
-                <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <div className="mb-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-accent text-accent-foreground">
                   <Mic className="h-4 w-4" />
                 </div>
-                <h4 className="font-medium text-gray-900">{provider.name}</h4>
-                <p className="mt-1 text-sm text-gray-600">{provider.type}</p>
+                <h4 className="font-medium text-foreground">{provider.name}</h4>
+                <p className="mt-1 text-sm text-muted-foreground">{provider.type}</p>
               </button>
             ))}
           </div>
         ) : (
           <div className="py-8 text-center">
-            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-yellow-500" />
-            <h3 className="mb-2 text-lg font-medium text-gray-900">未配置语音服务</h3>
-            <p className="text-gray-600">请在环境变量中配置至少一个语音服务提供商</p>
+            <AlertCircle className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <h3 className="mb-2 text-lg font-medium text-foreground">未配置语音服务</h3>
+            <p className="text-muted-foreground">请在环境变量中配置至少一个语音服务提供商</p>
           </div>
         )}
       </CardContent>
@@ -119,22 +120,22 @@ export function CharacterVoicesCard({
               .map((character) => (
                 <div
                   key={character.id}
-                  className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-lg border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                      <User className="h-5 w-5 text-blue-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent text-accent-foreground">
+                      <User className="h-5 w-5" />
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-900">{character.canonicalName}</h4>
-                      <p className="text-sm text-gray-500">
+                      <h4 className="font-medium text-foreground">{character.canonicalName}</h4>
+                      <p className="text-sm text-muted-foreground">
                         {character.scriptSentencesCount ?? 0} 句台词
                       </p>
                     </div>
                   </div>
                   {showConfig ? (
                     <select
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 sm:w-72"
+                      className="h-11 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:w-72"
                       value={characterVoices[character.id] || ""}
                       onChange={(event) => onVoiceChange(character.id, event.target.value)}
                     >
@@ -149,13 +150,13 @@ export function CharacterVoicesCard({
                     <div className="flex items-center space-x-2">
                       {characterVoices[character.id] ? (
                         <>
-                          <Volume2 className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-600">已配置</span>
+                          <Volume2 className="h-4 w-4 text-primary" />
+                          <span className="text-sm text-primary">已配置</span>
                         </>
                       ) : (
                         <>
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
-                          <span className="text-sm text-yellow-600">未配置</span>
+                          <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">未配置</span>
                         </>
                       )}
                     </div>
@@ -174,14 +175,14 @@ export function CharacterVoicesCard({
           </div>
         ) : (
           <div className="py-8 text-center">
-            <Users className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="mb-2 text-lg font-medium text-gray-900">暂无角色配置</h3>
-            <p className="text-gray-600">先创建角色配置后再生成音频</p>
+            <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+            <h3 className="mb-2 text-lg font-medium text-foreground">暂无角色配置</h3>
+            <p className="text-muted-foreground">先创建角色配置后再生成音频</p>
           </div>
         )}
 
         {missingCount > 0 && (
-          <p className="mt-4 text-sm text-amber-600">还有 {missingCount} 个角色未绑定声音。</p>
+          <p className="mt-4 text-sm text-muted-foreground">还有 {missingCount} 个角色未绑定声音。</p>
         )}
       </CardContent>
     </Card>
@@ -219,7 +220,7 @@ export function AudioSettingsCard({
       <CardContent>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">批次大小: {batchSize}</label>
+            <Label className="mb-2 block text-card-foreground">批次大小: {batchSize}</Label>
             <input
               type="range"
               min="1"
@@ -227,27 +228,29 @@ export function AudioSettingsCard({
               step="1"
               value={batchSize}
               onChange={(event) => onChange({ batchSize: Number(event.target.value) })}
-              className="w-full"
+              className="w-full accent-primary"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700">重用已有音频</label>
+            <Label className="block text-card-foreground">重用已有音频</Label>
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 checked={skipExisting}
                 onChange={(event) => onChange({ skipExisting: event.target.checked })}
+                className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-ring"
               />
-              <span className="text-sm text-gray-600">跳过已有音频</span>
+              <span className="text-sm text-muted-foreground">跳过已有音频</span>
             </div>
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 checked={overwriteExisting}
                 onChange={(event) => onChange({ overwriteExisting: event.target.checked })}
+                className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-ring"
               />
-              <span className="text-sm text-gray-600">覆盖已有音频</span>
+              <span className="text-sm text-muted-foreground">覆盖已有音频</span>
             </div>
           </div>
 
@@ -256,8 +259,9 @@ export function AudioSettingsCard({
               type="checkbox"
               checked={autoMerge}
               onChange={(event) => onChange({ autoMerge: event.target.checked })}
+              className="h-4 w-4 rounded border-border bg-background text-primary focus:ring-ring"
             />
-            <span className="text-sm text-gray-600">生成后自动合并章节/整书音频</span>
+            <span className="text-sm text-muted-foreground">生成后自动合并章节/整书音频</span>
           </div>
         </div>
       </CardContent>

@@ -8,6 +8,10 @@ import { mergeTaskData } from "@/lib/processing-task-utils";
 import { runQualityCheckTask } from "@/lib/quality-check-runner";
 import { runScriptGenerationTask } from "@/lib/script-generation-runner";
 import {
+  isTaskCanceledError,
+  throwIfTaskCanceled,
+} from "@/lib/task-cancellation";
+import {
   AUTO_PIPELINE_STAGE_ORDER,
   createStageStateMap,
   getStageTaskProgressRange,
@@ -34,6 +38,8 @@ export async function runAutoPipelineTask({
   bookId,
   options = {},
 }: AutoPipelineRunParams): Promise<void> {
+  await throwIfTaskCanceled(taskId);
+
   const normalizedOptions = normalizeOptions(options);
   const stageState = createStageStateMap();
   const qualityCheckEnabled = normalizedOptions.qualityCheck.enabled !== false;
@@ -55,6 +61,7 @@ export async function runAutoPipelineTask({
     currentStage: AutoPipelineStage | "completed" | "failed";
     metadata?: Record<string, unknown>;
   }) => {
+    await throwIfTaskCanceled(taskId);
     const taskData = await mergeTaskData(taskId, {
       message,
       metadata: {
@@ -136,6 +143,7 @@ export async function runAutoPipelineTask({
         });
       },
     });
+    await throwIfTaskCanceled(taskId);
 
     stageState.text_processing = {
       ...stageState.text_processing,
@@ -189,6 +197,7 @@ export async function runAutoPipelineTask({
         });
       },
     });
+    await throwIfTaskCanceled(taskId);
 
     stageState.script_generation = {
       ...stageState.script_generation,
@@ -245,6 +254,7 @@ export async function runAutoPipelineTask({
         });
       },
     });
+    await throwIfTaskCanceled(taskId);
 
     stageState.audio_generation = {
       ...stageState.audio_generation,
@@ -259,6 +269,7 @@ export async function runAutoPipelineTask({
     });
 
     audioTaskBookStatus = await getAudioTaskBookStatus(bookId);
+    await throwIfTaskCanceled(taskId);
 
     if (qualityCheckEnabled) {
       if (qualityCheckType === "chapter" && !qualityCheckChapterId) {
@@ -330,6 +341,7 @@ export async function runAutoPipelineTask({
           });
         },
       });
+      await throwIfTaskCanceled(taskId);
 
       stageState.quality_check = {
         ...stageState.quality_check,
@@ -395,6 +407,7 @@ export async function runAutoPipelineTask({
       });
     }
 
+    await throwIfTaskCanceled(taskId);
     await completeAutoPipeline({
       taskId,
       bookId,
@@ -404,6 +417,9 @@ export async function runAutoPipelineTask({
       stageCount,
     });
   } catch (error) {
+    if (isTaskCanceledError(error)) {
+      throw error;
+    }
     await markPipelineFailed({
       stageState,
       error,

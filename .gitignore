@@ -12,6 +12,7 @@ build/
 dist/
 .next/
 out/
+apps/web/.mastra/
 
 # Misc
 .DS_Store
@@ -23,6 +24,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+apps/web/package-lock.json
 
 # Local env files
 .env

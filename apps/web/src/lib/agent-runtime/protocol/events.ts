@@ -18,6 +18,12 @@ export type ExecutionEventStatus =
   | "failed"
   | "skipped";
 
+export const EVENT_KIND_CHARACTER_MEMORY_BOOTSTRAPPED =
+  "character_memory_bootstrapped";
+export const EVENT_KIND_CHARACTER_MEMORY_REFRESH_FAILED =
+  "character_memory_refresh_failed";
+export const EVENT_KIND_SPEAKER_CANONICALIZED = "speaker_canonicalized";
+
 export interface ExecutionEvent {
   id: string;
   kind: string;

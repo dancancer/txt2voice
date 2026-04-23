@@ -15,11 +15,13 @@ import { ScriptSentence } from "@/lib/types";
 import type { CharacterProfileSummary } from "@/types/book";
 import type {
   ChapterTreeNode,
+  SegmentFailedReviewTaskLink,
   ScriptNavigationNode,
 } from "../../components";
 
 const SCRIPT_FETCH_PAGE_SIZE = 100;
 const SEGMENT_FETCH_PAGE_SIZE = 200;
+const TASK_FETCH_PAGE_SIZE = 100;
 
 type SegmentModel = {
   id: string;
@@ -43,11 +45,131 @@ type BookModel = {
   characterProfiles?: CharacterProfileSummary[];
 };
 
+type TaskListItem = {
+  id: string;
+  taskType: string;
+  status: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type TaskListResponse = {
+  success: boolean;
+  data?: TaskListItem[];
+  pagination?: {
+    totalPages?: number;
+  };
+  error?: {
+    message?: string;
+  };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+};
+
+const asStringArray = (value: unknown): string[] => {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.filter((item): item is string => typeof item === "string");
+};
+
+const uniqueSegmentIds = (segmentIds: string[]): string[] => {
+  return Array.from(new Set(segmentIds.filter((id) => id.length > 0)));
+};
+
+const toTimestamp = (value: string): number => {
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+};
+
+const toFailedSegmentIds = (metadata: Record<string, unknown> | null): string[] => {
+  const segmentIdsFromMetadata = uniqueSegmentIds(asStringArray(metadata?.segmentIds));
+  const segmentIdsFromFailedDetailRecords = uniqueSegmentIds(
+    (Array.isArray(metadata?.failedSegmentDetails)
+      ? metadata.failedSegmentDetails
+      : []
+    )
+      .map((detail) => {
+        if (!isRecord(detail) || typeof detail.segmentId !== "string") {
+          return "";
+        }
+        return detail.segmentId;
+      })
+      .filter((segmentId) => segmentId.length > 0)
+  );
+  const segmentIdsFromFailedIds = uniqueSegmentIds(
+    asStringArray(metadata?.failedSegmentIds)
+  );
+
+  if (segmentIdsFromMetadata.length === 1) {
+    return segmentIdsFromMetadata;
+  }
+  if (segmentIdsFromFailedDetailRecords.length > 0) {
+    return segmentIdsFromFailedDetailRecords;
+  }
+  return segmentIdsFromFailedIds;
+};
+
+const sortTasksByUpdatedAt = (tasks: TaskListItem[]): TaskListItem[] => {
+  return [...tasks].sort((left, right) => {
+    const updatedDiff = toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt);
+    if (updatedDiff !== 0) {
+      return updatedDiff;
+    }
+
+    const createdDiff = toTimestamp(right.createdAt) - toTimestamp(left.createdAt);
+    if (createdDiff !== 0) {
+      return createdDiff;
+    }
+
+    return left.id.localeCompare(right.id);
+  });
+};
+
+export const buildSegmentFailedReviewTaskLinks = (params: {
+  bookId: string;
+  tasks: TaskListItem[];
+}): Map<string, SegmentFailedReviewTaskLink> => {
+  const failedScriptTasks = sortTasksByUpdatedAt(
+    params.tasks.filter((task) => {
+      if (task.taskType !== "SCRIPT_GENERATION" || task.status !== "failed") {
+        return false;
+      }
+      return toFailedSegmentIds(
+        isRecord(task.metadata) ? task.metadata : null
+      ).length > 0;
+    })
+  );
+
+  const nextMap = new Map<string, SegmentFailedReviewTaskLink>();
+  failedScriptTasks.forEach((task) => {
+    const metadata = isRecord(task.metadata) ? task.metadata : null;
+    const segmentIds = toFailedSegmentIds(metadata);
+    segmentIds.forEach((segmentId) => {
+      if (nextMap.has(segmentId)) {
+        return;
+      }
+      nextMap.set(segmentId, {
+        taskId: task.id,
+        reviewUrl: `/books/${params.bookId}/review#task-${task.id}`,
+        updatedAt: task.updatedAt,
+      });
+    });
+  });
+
+  return nextMap;
+};
+
 export function useScriptStudioData(bookId: string) {
   const [book, setBook] = useState<BookModel | null>(null);
   const [segments, setSegments] = useState<SegmentModel[]>([]);
   const [characters, setCharacters] = useState<CharacterProfileSummary[]>([]);
   const [scriptSentences, setScriptSentences] = useState<ScriptSentence[]>([]);
+  const [latestFailedReviewTaskBySegment, setLatestFailedReviewTaskBySegment] =
+    useState<Map<string, SegmentFailedReviewTaskLink>>(new Map());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -107,6 +229,44 @@ export function useScriptStudioData(bookId: string) {
     return allSegments;
   }, [bookId]);
 
+  const fetchLatestFailedReviewTaskBySegment = useCallback(
+    async (signal?: AbortSignal) => {
+      const tasks: TaskListItem[] = [];
+      let page = 1;
+
+      while (true) {
+        const params = new URLSearchParams({
+          bookId,
+          page: String(page),
+          limit: String(TASK_FETCH_PAGE_SIZE),
+        });
+        const response = await fetch(`/api/tasks?${params.toString()}`, {
+          cache: "no-store",
+          signal,
+        });
+        const payload = (await response.json()) as TaskListResponse;
+
+        if (!response.ok || !payload.success) {
+          throw new Error(payload.error?.message || "加载失败任务失败");
+        }
+
+        tasks.push(...(payload.data || []));
+
+        const totalPages = Math.max(1, payload.pagination?.totalPages ?? 1);
+        if (page >= totalPages) {
+          break;
+        }
+        page += 1;
+      }
+
+      return buildSegmentFailedReviewTaskLinks({
+        bookId,
+        tasks,
+      });
+    },
+    [bookId]
+  );
+
   const loadBookAndData = useCallback(async (signal?: AbortSignal) => {
     try {
       if (signal?.aborted) {
@@ -115,10 +275,24 @@ export function useScriptStudioData(bookId: string) {
       setLoading(true);
       setError(null);
 
-      const [response, segmentsList, scripts] = await Promise.all([
+      const taskMapPromise = fetchLatestFailedReviewTaskBySegment(signal).catch(
+        (taskError) => {
+          if (isRequestCanceled(taskError, signal)) {
+            throw taskError;
+          }
+          if (isFetchInterruptedError(taskError)) {
+            throw taskError;
+          }
+          console.error("Failed to load script failure tasks:", taskError);
+          return new Map<string, SegmentFailedReviewTaskLink>();
+        }
+      );
+
+      const [response, segmentsList, scripts, latestFailedTaskMap] = await Promise.all([
         booksApi.getBook(bookId, ["characters", "chapters"], { signal }),
         fetchAllSegments(signal),
         fetchAllScriptSentences(signal),
+        taskMapPromise,
       ]);
 
       if (signal?.aborted) {
@@ -128,6 +302,7 @@ export function useScriptStudioData(bookId: string) {
       setSegments(segmentsList);
       setCharacters((response.data.characterProfiles || []) as CharacterProfileSummary[]);
       setScriptSentences(scripts);
+      setLatestFailedReviewTaskBySegment(latestFailedTaskMap);
     } catch (err) {
       if (isRequestCanceled(err, signal)) {
         return;
@@ -143,7 +318,12 @@ export function useScriptStudioData(bookId: string) {
         setLoading(false);
       }
     }
-  }, [bookId, fetchAllScriptSentences, fetchAllSegments]);
+  }, [
+    bookId,
+    fetchAllScriptSentences,
+    fetchAllSegments,
+    fetchLatestFailedReviewTaskBySegment,
+  ]);
 
   const hasTextSegments = segments.length > 0;
   const hasScriptSentences = scriptSentences.length > 0;
@@ -332,7 +512,6 @@ export function useScriptStudioData(bookId: string) {
         selectedNode.type === "segment"
           ? segmentMetaMap.get(selectedNode.id)
           : undefined;
-
       return {
         selectedChapterNode,
         selectedSegment,
@@ -340,7 +519,13 @@ export function useScriptStudioData(bookId: string) {
         selectedSegmentMeta,
       };
     },
-    [chapterNodes, segmentMetaMap, segments, sentencesBySegment, scriptSentences]
+    [
+      chapterNodes,
+      segmentMetaMap,
+      segments,
+      sentencesBySegment,
+      scriptSentences,
+    ]
   );
 
   return {
@@ -360,6 +545,7 @@ export function useScriptStudioData(bookId: string) {
     chapterNodes,
     chapterSegmentIds,
     segmentMetaMap,
+    latestFailedReviewTaskBySegment,
     bookStats,
     getSelectedState,
   };

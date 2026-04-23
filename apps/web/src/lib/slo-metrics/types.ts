@@ -4,6 +4,7 @@
 // pos: S32 指标模型
 export type SloMetricStatus = "healthy" | "breached" | "unknown";
 export type SloMetricDirection = "higher_is_better" | "lower_is_better";
+import type { ScriptGenerationRuntimeEvent } from "@/lib/script-generation/runner/runtime-events";
 
 export interface BookSloMetricsQuery {
   windowDays: number;
@@ -97,5 +98,6 @@ export interface BookSloMetricsResult {
     repairCount: number;
     manualReviewCount: number;
     hardFailCount: number;
+    recentRuntimeEvents: ScriptGenerationRuntimeEvent[];
   } | null;
 }

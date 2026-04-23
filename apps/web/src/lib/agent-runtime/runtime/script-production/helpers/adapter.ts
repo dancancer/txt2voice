@@ -1,5 +1,5 @@
 import { TTSError } from "@/lib/error-handler";
-import type { LLMExecutionEvent } from "@/lib/llm-service";
+import type { LLMExecutionEvent } from "@/lib/llm/events";
 import type { LLMAdapter } from "../../../adapters/llm-adapter";
 import type { ExecutionEvent } from "../../../protocol/events";
 import { asErrorMessage } from "./metadata";
@@ -57,6 +57,14 @@ export const createObservedAdapter = (params: {
       status: "submitted",
       provider: input.provider?.name || "unknown",
       model: input.provider?.model || "unknown",
+      source:
+        typeof input.metadata?.source === "string" ? input.metadata.source : undefined,
+      stageId:
+        typeof input.metadata?.stageId === "string" ? input.metadata.stageId : undefined,
+      segmentId:
+        typeof input.metadata?.segmentId === "string"
+          ? input.metadata.segmentId
+          : undefined,
     });
     await appendAdapterTrace({
       trace: params.trace,
@@ -77,6 +85,14 @@ export const createObservedAdapter = (params: {
         content: result.content,
         provider: result.provider,
         model: result.model,
+        source:
+          typeof input.metadata?.source === "string" ? input.metadata.source : undefined,
+        stageId:
+          typeof input.metadata?.stageId === "string" ? input.metadata.stageId : undefined,
+        segmentId:
+          typeof input.metadata?.segmentId === "string"
+            ? input.metadata.segmentId
+            : undefined,
         latencyMs: result.latencyMs,
         attempt: result.attempt,
         usage: result.usage,
@@ -118,10 +134,19 @@ export const createObservedAdapter = (params: {
           error instanceof TTSError
             ? error.provider
             : input.provider?.name || "unknown",
+        model: input.provider?.model || "unknown",
         retryable: error instanceof TTSError ? error.retryable : true,
         attempt,
         retriesUsed,
         message: asErrorMessage(error),
+        source:
+          typeof input.metadata?.source === "string" ? input.metadata.source : undefined,
+        stageId:
+          typeof input.metadata?.stageId === "string" ? input.metadata.stageId : undefined,
+        segmentId:
+          typeof input.metadata?.segmentId === "string"
+            ? input.metadata.segmentId
+            : undefined,
       });
       throw error;
     }
@@ -131,27 +156,32 @@ export const createObservedAdapter = (params: {
 export const createObservedDefaultAdapter = (params: {
   onExecutionEvent?: (event: LLMExecutionEvent) => void;
   trace?: AdapterTraceContext;
+  provider?: {
+    name: string;
+    apiKey: string;
+    baseURL?: string;
+    model: string;
+  };
 }): LLMAdapter => {
   let runtimePromise: Promise<{
     adapter: LLMAdapter;
-    provider: {
+    getProvider: (modelId?: string) => Promise<{
       name: string;
       apiKey: string;
       baseURL?: string;
       model: string;
-    };
+    }>;
   }> | null = null;
 
   const loadRuntime = async () => {
     if (!runtimePromise) {
       runtimePromise = Promise.all([
         import("../../../adapters/llm-adapter"),
-        import("@/lib/llm-service"),
-      ]).then(([adapterModule, llmServiceModule]) => {
-        const provider = llmServiceModule.getConfiguredLLMProvider();
+        import("@/lib/llm/provider"),
+      ]).then(([adapterModule, llmProviderModule]) => {
         return {
           adapter: adapterModule.createDefaultLLMAdapter(),
-          provider,
+          getProvider: llmProviderModule.resolveConfiguredLLMProvider,
         };
       });
     }
@@ -162,7 +192,8 @@ export const createObservedDefaultAdapter = (params: {
   return {
     async call(input) {
       const runtime = await loadRuntime();
-      const provider = input.provider ?? runtime.provider;
+      const provider =
+        input.provider ?? params.provider ?? await runtime.getProvider(input.modelId);
 
       return createObservedAdapter({
         adapter: runtime.adapter,

@@ -21,6 +21,7 @@ import {
   ScriptSentencesTable,
   type ScriptNavigationNode,
 } from "../components";
+import { ScriptStudioAdvancedActionsPanel } from "./components/AdvancedActionsPanel";
 import { ScriptStudioErrorState, ScriptStudioLoadingState } from "./components/PageStates";
 import { useConfirmDialog } from "./hooks/useConfirmDialog";
 import { useScriptStudioData } from "./hooks/useScriptStudioData";
@@ -57,6 +58,7 @@ export function ScriptStudioPageContainer() {
     chapterNodes,
     chapterSegmentIds,
     segmentMetaMap,
+    latestFailedReviewTaskBySegment,
     bookStats,
     getSelectedState,
   } = useScriptStudioData(bookId);
@@ -68,8 +70,15 @@ export function ScriptStudioPageContainer() {
     isGenerating,
     generationProgress,
     generationStatus,
+    generationEvents,
     showIncrementalOptions,
     setShowIncrementalOptions,
+    llmModels,
+    selectedLLMModelId,
+    setSelectedLLMModelId,
+    llmModelsLoading,
+    llmModelsError,
+    canGenerateScript,
     selectedStartSegment,
     setSelectedStartSegment,
     segmentStatus,
@@ -145,6 +154,9 @@ export function ScriptStudioPageContainer() {
     selectedSegmentSentences,
     selectedSegmentMeta,
   } = getSelectedState(safeSelectedNode);
+  const selectedSegmentFailedReviewTask = selectedSegment
+    ? latestFailedReviewTaskBySegment.get(selectedSegment.id) || null
+    : null;
 
   if (loading) {
     return <ScriptStudioLoadingState />;
@@ -163,7 +175,7 @@ export function ScriptStudioPageContainer() {
     <div className="flex items-center gap-2">
       <Button
         onClick={() => handleScopeScriptGeneration("chapter", selectedChapterNode.id)}
-        disabled={isGenerating}
+        disabled={isGenerating || !canGenerateScript}
       >
         章节台本生成
       </Button>
@@ -177,14 +189,31 @@ export function ScriptStudioPageContainer() {
     </div>
   );
 
+  const currentSegmentLabel = selectedSegmentMeta
+    ? `${selectedSegmentMeta.chapterTitle} · ${selectedSegmentMeta.label}`
+    : selectedSegment
+      ? `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`
+      : null;
+
+  const handleOpenIncrementalOptions = async () => {
+    setShowIncrementalOptions(true);
+    await loadSegmentStatus();
+  };
+
+  const handleOpenRegenerateOptions = async () => {
+    setShowRegenerateOptions(true);
+    await loadSegmentStatus();
+  };
+
   return (
-    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
-      {isGenerating && (
+    <div className="flex h-full flex-col overflow-hidden bg-background">
+      {(isGenerating || generationStatus || generationEvents.length > 0) && (
         <div className="flex-shrink-0">
           <GenerationProgress
             isGenerating={isGenerating}
             generationStatus={generationStatus}
             generationProgress={generationProgress}
+            generationEvents={generationEvents}
             onShowPreview={() => setShowScriptPreview(true)}
           />
         </div>
@@ -203,11 +232,27 @@ export function ScriptStudioPageContainer() {
           </div>
 
           <div className="h-full overflow-auto">
-            <div className="space-y-4 h-full ">
+            <div className="h-full space-y-4">
+              <ScriptStudioAdvancedActionsPanel
+                hasTextSegments={hasTextSegments}
+                isGenerating={isGenerating}
+                canGenerateScript={canGenerateScript}
+                currentSegmentLabel={currentSegmentLabel}
+                onOpenIncrementalOptions={handleOpenIncrementalOptions}
+                onOpenRegenerateOptions={handleOpenRegenerateOptions}
+                onRegenerateCurrentSegment={
+                  selectedSegment
+                    ? () =>
+                        handleScopeScriptGeneration("segment", selectedSegment.id)
+                    : undefined
+                }
+              />
+
               {safeSelectedNode.type === "chapter" && selectedChapterNode && (
                 <ChapterSegmentsTable
                   chapterTitle={selectedChapterNode.title}
                   titleAction={titleAction}
+                  failedReviewTaskBySegment={latestFailedReviewTaskBySegment}
                   segments={selectedChapterNode.segments.map((seg) => {
                     const fullSegment = segments.find((s) => s.id === seg.id);
                     return {
@@ -234,23 +279,31 @@ export function ScriptStudioPageContainer() {
 
               {safeSelectedNode.type === "segment" && selectedSegment && (
                 <>
-                  <div className="flex items-center justify-between bg-white px-6 py-4 rounded-lg border sticky top-0 z-10">
+                  <div className="sticky top-0 z-10 flex items-center justify-between rounded-lg border border-border bg-card px-6 py-4">
                     <div>
                       <h2 className="text-xl font-semibold">
                         {selectedSegmentMeta
                           ? `${selectedSegmentMeta.chapterTitle} · ${selectedSegmentMeta.label}`
                           : `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`}
                       </h2>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="mt-1 text-sm text-muted-foreground">
                         字数 {selectedSegment.wordCount ?? selectedSegment.content?.length ?? 0}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
+                      {selectedSegmentFailedReviewTask ? (
+                        <a
+                          href={selectedSegmentFailedReviewTask.reviewUrl}
+                          className="text-sm text-primary underline-offset-4 hover:underline"
+                        >
+                          查看质检失败
+                        </a>
+                      ) : null}
                       <Button
                         onClick={() =>
                           handleScopeScriptGeneration("segment", selectedSegment.id)
                         }
-                        disabled={isGenerating}
+                        disabled={isGenerating || !canGenerateScript}
                       >
                         重生成台本
                       </Button>
@@ -279,20 +332,49 @@ export function ScriptStudioPageContainer() {
               )}
 
               {safeSelectedNode.type === "book" && (
-                <div className="border border-dashed rounded-lg p-12 text-center bg-white">
-                  <div className="max-w-md mx-auto">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                <div className="rounded-lg border border-dashed border-border bg-card p-12 text-center">
+                  <div className="mx-auto max-w-md">
+                    <FileText className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                    <h3 className="mb-2 text-lg font-semibold text-foreground">
                       章节管理 & 台本生成
                     </h3>
-                    <p className="text-sm text-gray-500 mb-6">
+                    <p className="mb-6 text-sm text-muted-foreground">
                       请在左侧选择一个章节查看段落列表，或选择段落查看台词详情。
                     </p>
+                    <div className="mb-4 text-left">
+                      <label
+                        className="mb-2 block text-sm font-medium text-gray-700"
+                        htmlFor="script-llm-model"
+                      >
+                        台本模型
+                      </label>
+                      <select
+                        id="script-llm-model"
+                        aria-label="台本模型"
+                        className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                        value={selectedLLMModelId}
+                        onChange={(event) => setSelectedLLMModelId(event.target.value)}
+                        disabled={llmModelsLoading || llmModels.length === 0}
+                      >
+                        {llmModels.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.label} ({model.model})
+                          </option>
+                        ))}
+                      </select>
+                      {llmModelsError ? (
+                        <p className="mt-2 text-sm text-red-600">{llmModelsError}</p>
+                      ) : (
+                        <p className="mt-2 text-sm text-gray-500">
+                          当前选择会用于全书、章节、段落与增量重生成。
+                        </p>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       <Button
                         className="w-full"
                         onClick={() => handleScopeScriptGeneration("book")}
-                        disabled={isGenerating || !hasTextSegments}
+                        disabled={isGenerating || !hasTextSegments || !canGenerateScript}
                       >
                         全书台本生成
                       </Button>
@@ -378,7 +460,7 @@ export function ScriptStudioPageContainer() {
           <DialogHeader>
             <DialogTitle>{confirmDialog.title}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600">{confirmDialog.description}</p>
+          <p className="text-sm text-muted-foreground">{confirmDialog.description}</p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => resolveConfirmation(false)}>
               {confirmDialog.cancelText}

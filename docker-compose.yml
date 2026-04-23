@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "${TXT2VOICE_POSTGRES_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U txt2voice -d txt2voice"]
       interval: 10s
@@ -51,7 +51,7 @@ services:
     volumes:
       - redis_data:/data
     ports:
-      - "6379:6379"
+      - "${TXT2VOICE_REDIS_HOST_PORT:-6379}:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -109,9 +109,11 @@ services:
       PORT: 3001
       
       # LLM Provider Configuration (从 .env 读取)
+      LLM_DEFAULT_MODEL_ID: ${LLM_DEFAULT_MODEL_ID:-qwen-local}
+      LLM_MODELS_JSON: ${LLM_MODELS_JSON:-}
       LLM_PROVIDER: ${LLM_PROVIDER:-custom}
       LLM_API_KEY: ${LLM_API_KEY:-}
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com/v1}
       LLM_MODEL: ${LLM_MODEL:-deepseek-chat}
       
       # IndexTTS Service (从 .env 文件读取，指向外部 IndexTTS 服务)
@@ -123,20 +125,11 @@ services:
       # 开发模式特定配置
       WATCHPACK_POLLING: "true"
       CHOKIDAR_USEPOLLING: "true"
-    command: sh -lc "pnpm prisma generate && pnpm next dev --hostname 0.0.0.0 -p 3001"
+    command: sh -lc "pnpm prisma generate && pnpm next dev --webpack --hostname 0.0.0.0 -p 3001"
     volumes:
-      # 挂载源代码以支持热更新
-      - ./apps/web/src:/app/apps/web/src:cached
-      - ./apps/web/public:/app/apps/web/public:cached
-      - ./apps/web/prisma:/app/apps/web/prisma:cached
-      - ./apps/web/package.json:/app/apps/web/package.json:cached
-      - ./apps/web/next.config.dev.js:/app/apps/web/next.config.js:cached
-      - ./apps/web/tsconfig.json:/app/apps/web/tsconfig.json:cached
-      - ./apps/web/tailwind.config.ts:/app/apps/web/tailwind.config.ts:cached
-      - ./apps/web/postcss.config.js:/app/apps/web/postcss.config.js:cached
-      - ./package.json:/app/package.json:cached
-      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml:cached
-      # 排除node_modules、.next和生成的Prisma Client（避免覆盖容器内的）
+      # 挂整个仓库，减少漏挂配置文件带来的特殊情况
+      - .:/app:cached
+      # 保留容器内依赖和构建产物，避免被宿主目录覆盖
       - /app/node_modules
       - /app/apps/web/node_modules
       - /app/apps/web/.next

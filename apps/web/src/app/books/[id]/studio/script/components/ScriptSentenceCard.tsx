@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ScriptSentence } from "@/lib/types";
 import { toast } from "sonner";
+import { ScriptProsodyDisplay } from "./prosody-display";
 
 interface ScriptSentenceCardProps {
   sentence: ScriptSentence;
@@ -92,10 +93,10 @@ export function ScriptSentenceCard({
   };
 
   return (
-    <div className="flex items-start justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+    <div className="flex items-start justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/40">
       <div className="flex-1">
-        <div className="flex items-center space-x-2 mb-2">
-          <span className="text-sm font-medium text-gray-500">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">
             #{index + 1}
           </span>
           {sentence.character ? (
@@ -106,7 +107,7 @@ export function ScriptSentenceCard({
           ) : (
             <Badge
               variant="secondary"
-              className="bg-gray-100 text-gray-600 border-gray-300"
+              className="border-border bg-muted text-muted-foreground"
             >
               <Volume2 className="w-3 h-3 mr-1" />
               旁白
@@ -114,32 +115,33 @@ export function ScriptSentenceCard({
           )}
           {sentence.tone && (
             <Badge
-              variant="secondary"
-              className="bg-purple-100 text-purple-700 border-purple-300"
+              variant="outline"
+              className="border-border bg-accent/60 text-accent-foreground"
             >
               {sentence.tone}
             </Badge>
           )}
-          {sentence.strength && (
-            <Badge variant="outline" className="text-xs">
-              强度: {sentence.strength}
-            </Badge>
-          )}
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-foreground">
             段落{" "}
             {sentence.segment?.orderIndex
               ? sentence.segment.orderIndex + 1
               : sentence.orderInSegment + 1}
           </span>
         </div>
-        <div className="text-gray-900">
+        <ScriptProsodyDisplay
+          strength={sentence.strength}
+          pauseAfter={sentence.pauseAfter}
+          prosody={sentence.prosody}
+          className="mb-3"
+        />
+        <div className="text-foreground">
           <p>{displayText}</p>
           {shouldShowToggle && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="mt-1 h-auto p-0 text-blue-600 hover:text-blue-800 hover:bg-transparent"
+              className="mt-1 h-auto p-0 text-primary hover:bg-transparent hover:text-primary/80"
             >
               {isExpanded ? (
                 <>
@@ -157,7 +159,7 @@ export function ScriptSentenceCard({
         </div>
         {sentence.rawSpeaker &&
           sentence.rawSpeaker !== sentence.character?.canonicalName && (
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-muted-foreground">
               原始说话人: {sentence.rawSpeaker}
             </p>
           )}
@@ -195,7 +197,7 @@ export function ScriptSentenceCard({
           variant="ghost"
           size="sm"
           onClick={() => onDelete(sentence.id)}
-          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
           title="删除台词"
         >
           <Trash2 className="w-4 h-4" />
