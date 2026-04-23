@@ -5,6 +5,7 @@
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@/lib/prisma";
 import { jsonObject } from "@/lib/processing-task-utils";
+import { throwIfTaskCanceled } from "@/lib/task-cancellation";
 import {
   extractQ0Q3RawSignals,
   resolveQ0Q3SignalSources,
@@ -77,6 +78,8 @@ export async function runQualityCheckTask({
   chapterId,
   audioFileIds,
 }: QualityCheckRunParams): Promise<void> {
+  await throwIfTaskCanceled(taskId);
+
   const taskSnapshot = await prisma.processingTask.findUnique({
     where: { id: taskId },
     select: {
@@ -123,6 +126,7 @@ export async function runQualityCheckTask({
     totalItems: await prisma.audioFile.count({ where }),
     signalSync: taskContext.signalSync,
   });
+  await throwIfTaskCanceled(taskId);
 
   const audioFiles = await prisma.audioFile.findMany({
     where,
@@ -194,10 +198,13 @@ export async function runQualityCheckTask({
       modelRuntime: modelRuntimeResolution.runtime,
       modelRuntimeSource: modelRuntimeResolution.source,
       isCalibrationEval,
+      assertContinue: () => throwIfTaskCanceled(taskId),
       onProgress: async (payload) => {
         await runtimeUpdater.recordProcessedItem(payload);
       },
     });
+
+  await throwIfTaskCanceled(taskId);
 
   if (processingState.checked === 0) {
     throw new Error("没有可执行质检的句子数据");
@@ -232,6 +239,8 @@ export async function runQualityCheckTask({
         chapterAuditMap: processingState.chapterAuditMap,
         thresholdTemplate: thresholdResolution.template,
       });
+
+  await throwIfTaskCanceled(taskId);
 
   await finalizeQualityCheckRun({
     taskId,

@@ -16,9 +16,7 @@ import { ReferenceAudioTab } from "./speaker-management/panels/ReferenceAudioTab
 import { SpeakerFilters } from "./speaker-management/SpeakerFilters";
 
 const PROVIDER_OPTIONS = [
-  { value: "indextts", label: "IndexTTS" },
-  { value: "cosyvoice", label: "CosyVoice" },
-  { value: "voxcpm", label: "VoxCPM" },
+  { value: "qwen3voice", label: "Qwen3 Voice" },
 ] as const;
 
 export function SpeakerManagement() {
@@ -35,14 +33,17 @@ export function SpeakerManagement() {
           <Button asChild variant="outline">
             <Link href="/">上传书籍</Link>
           </Button>
-          {controller.supportsSpeakerManagement && (
-            <Button onClick={() => controller.setIsCreateDialogOpen(true)}>
-              新建说话人
+          {!controller.supportsSpeakerManagement && (
+            <Button asChild>
+              <a
+                href="http://192.168.88.9:13000"
+                target="_blank"
+                rel="noreferrer"
+              >
+                打开 Qwen3 Voice Studio
+              </a>
             </Button>
           )}
-          <Button onClick={() => controller.setIsUploadDialogOpen(true)}>
-            上传参考音频
-          </Button>
         </div>
       </div>
 
@@ -118,8 +119,8 @@ export function SpeakerManagement() {
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
-          如需修改服务地址，请更新 `.env` 中 `INDEXTTS_API_URL`、
-          `COSYVOICE_API_URL`、`VOXCPM_API_URL` 后重启 `web` 容器。
+          如需修改服务地址，请更新 `.env` 中 `QWEN3VOICE_API_URL` 后重启
+          `web` 容器。
         </p>
       </div>
 
@@ -138,7 +139,7 @@ export function SpeakerManagement() {
 
       {!controller.supportsSpeakerManagement && (
         <div className="rounded-lg border border-border bg-accent/60 p-3 text-sm text-muted-foreground">
-          当前服务仅支持参考音频管理，不提供说话人档案配置。
+          speaker 资产已迁移到 Qwen3 Voice Studio 统一管理，txt2voice 这里只做消费和绑定。
         </div>
       )}
 

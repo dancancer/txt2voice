@@ -36,20 +36,20 @@ export const CONFIG = {
   },
   AUDIO_PROVIDER_STRATEGY: {
     main: {
-      primary: ['indextts'],
-      fallback: ['cosyvoice', 'voxcpm', 'azure', 'openai'],
+      primary: ['qwen3voice'],
+      fallback: [],
     },
     supporting: {
-      primary: ['cosyvoice'],
-      fallback: ['indextts', 'voxcpm', 'openai', 'azure'],
+      primary: ['qwen3voice'],
+      fallback: [],
     },
     minor: {
-      primary: ['voxcpm'],
-      fallback: ['cosyvoice', 'indextts', 'azure', 'openai'],
+      primary: ['qwen3voice'],
+      fallback: [],
     },
     default: {
-      primary: ['indextts'],
-      fallback: ['cosyvoice', 'voxcpm', 'azure', 'openai'],
+      primary: ['qwen3voice'],
+      fallback: [],
     },
   },
 
@@ -124,11 +124,7 @@ export const BOOK_STATUS = {
 
 // TTS 提供商
 export const TTS_PROVIDERS = {
-  AZURE: 'azure',
-  OPENAI: 'openai',
-  INDEXTTS: 'indextts',
-  COSYVOICE: 'cosyvoice',
-  VOXCPM: 'voxcpm',
+  QWEN3VOICE: 'qwen3voice',
 } as const
 
 // 错误代码

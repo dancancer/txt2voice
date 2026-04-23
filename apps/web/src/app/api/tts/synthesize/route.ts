@@ -4,40 +4,20 @@
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/error-handler";
-import { indexTTSService } from "@/lib/indextts-service";
 import { ttsServiceManager } from "@/lib/tts-service";
-import prisma from "@/lib/prisma";
 
 // POST /api/tts/synthesize - 语音合成
 export const POST = withErrorHandler(async (request: NextRequest) => {
   const body = await request.json();
   const {
     text,
-    provider = "indextts",
+    provider = "qwen3voice",
     voiceId,
-    referenceAudio,
-    mode,
-    promptText,
     speakerId,
-    instructText,
-    cosyMode,
-    cosyPromptText,
-    cosySpeakerId,
-    cosyInstructText,
-    voxcpmPromptText,
-    emotionControlMethod = "Same as the voice reference",
-    emotionReference,
-    emotionVector,
-    emotionWeight = 0.7,
-    sample = 1,
     temperature = 0.7,
-    beamSearch = true,
     topK = 50,
     topP = 0.9,
     outputFormat = "mp3",
-    speed = 1.0,
-    pitch = 0,
-    volume = 1.0,
   } = body;
 
   if (!text) {
@@ -50,144 +30,73 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     );
   }
 
-  if (!referenceAudio && provider === "indextts") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "referenceAudio is required for IndexTTS provider",
-      },
-      { status: 400 }
-    );
-  }
-
   try {
-    let synthesisResult: any;
+    await ttsServiceManager.ready();
 
-    if (provider === "indextts") {
-      // 使用 IndexTTS 进行语音合成
-      const synthesizeRequest = {
-        text,
-        referenceAudio,
-        emoControlMethod: emotionControlMethod,
-        emotionReference,
-        emotionVector,
-        emotionWeight,
-        sample,
-        temperature,
-        beamSearch,
-        topK,
-        topP,
-      };
+    const resolvedVoiceId =
+      typeof voiceId === "string" && voiceId.trim()
+        ? voiceId.trim()
+        : typeof speakerId === "string" && speakerId.trim()
+          ? speakerId.trim()
+          : "";
 
-      synthesisResult = await indexTTSService.synthesizeAndWait(
-        synthesizeRequest,
+    const ttsProvider = ttsServiceManager.getProvider(provider);
+    if (!ttsProvider) {
+      return NextResponse.json(
         {
-          timeout: 300000, // 5分钟超时，适配长文案
-          interval: 3000, // 3秒检查一次
-        }
-      );
-
-      // 更新说话人使用次数
-      if (referenceAudio) {
-        const speaker = await prisma.speakerProfile.findFirst({
-          where: {
-            OR: [
-              { referenceAudio },
-              {
-                metadata: {
-                  path: ["uploadData", "filename"],
-                  equals: referenceAudio,
-                },
-              },
-            ],
-          },
-        });
-
-        if (speaker) {
-          await prisma.speakerProfile.update({
-            where: { id: speaker.id },
-            data: {
-              usageCount: { increment: 1 },
-              lastUsedAt: new Date(),
-            },
-          });
-        }
-      }
-    } else {
-      await ttsServiceManager.ready();
-      // 使用其他 TTS 提供商
-      const ttsProvider = ttsServiceManager.getProvider(provider);
-      if (!ttsProvider) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `TTS provider ${provider} not available`,
-          },
-          { status: 400 }
-        );
-      }
-
-      const voice = await ttsServiceManager.getVoice(provider, voiceId);
-      if (!voice) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Voice ${voiceId} not found for provider ${provider}`,
-          },
-          { status: 400 }
-        );
-      }
-
-      const ttsRequest = {
-        text,
-        voice,
-        referenceAudio,
-        outputFormat,
-        speed,
-        pitch,
-        volume,
-        cosyMode: cosyMode || mode,
-        cosyPromptText: cosyPromptText || promptText,
-        cosySpeakerId: cosySpeakerId || speakerId,
-        cosyInstructText: cosyInstructText || instructText,
-        voxcpmPromptText: voxcpmPromptText || promptText,
-      };
-
-      synthesisResult = await ttsServiceManager.synthesize(
-        ttsRequest,
-        provider
+          success: false,
+          error: `TTS provider ${provider} not available`,
+        },
+        { status: 400 }
       );
     }
 
-    const audioUrl =
-      synthesisResult.audioUrl || synthesisResult.metadata?.audioUrl || null;
+    const voice = await ttsServiceManager.getVoice(provider, resolvedVoiceId);
+    if (!voice) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Voice ${resolvedVoiceId} not found for provider ${provider}`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const synthesisResult = await ttsServiceManager.synthesize(
+      {
+        text,
+        voice,
+        outputFormat,
+        temperature,
+        topK,
+        topP,
+      },
+      provider
+    );
+
+    const audioUrl = synthesisResult.metadata?.audioUrl || null;
 
     return NextResponse.json({
       success: true,
       data: {
-        taskId: synthesisResult.taskId || `local-${Date.now()}`,
-        status: synthesisResult.status || "completed",
+        taskId:
+          typeof synthesisResult.metadata?.jobId === "string"
+            ? synthesisResult.metadata.jobId
+            : `local-${Date.now()}`,
+        status:
+          typeof synthesisResult.metadata?.status === "string"
+            ? synthesisResult.metadata.status
+            : "completed",
         audioUrl,
         duration: synthesisResult.duration,
-        format: outputFormat,
+        format: synthesisResult.format || outputFormat,
         metadata: {
           provider,
           text,
-          referenceAudio,
-          emotionControlMethod,
-          emotionWeight,
           synthesisParams: {
-            sample,
             temperature,
-            beamSearch,
             topK,
             topP,
-          },
-          audioParams: {
-            outputFormat,
-            speed,
-            pitch,
-            volume,
           },
           ...synthesisResult.metadata,
         },

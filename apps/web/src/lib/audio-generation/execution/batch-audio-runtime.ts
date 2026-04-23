@@ -18,6 +18,7 @@ async function runBatchPass(params: {
   requests: AudioGenerationRequest[];
   options: AudioGenerationOptions;
   defaultOptions: AudioGenerationOptions;
+  hooks?: AudioBatchGenerationHooks;
   generateSingleAudio: (
     request: AudioGenerationRequest,
     options: AudioGenerationOptions
@@ -28,6 +29,7 @@ async function runBatchPass(params: {
   const batchSize = finalOptions.batchSize || 5;
 
   for (let index = 0; index < params.requests.length; index += batchSize) {
+    await params.hooks?.assertContinue?.();
     const batch = params.requests.slice(index, index + batchSize);
     const batchResults = await Promise.allSettled(
       batch.map((request) => params.generateSingleAudio(request, finalOptions))
@@ -46,6 +48,7 @@ async function runBatchPass(params: {
     });
 
     if (index + batchSize < params.requests.length) {
+      await params.hooks?.assertContinue?.();
       await new Promise((resolve) =>
         setTimeout(resolve, finalOptions.retryDelay || 1000)
       );
@@ -159,6 +162,7 @@ export async function generateBatchAudioWithReliability(params: {
   });
 
   while (pass) {
+    await params.hooks?.assertContinue?.();
     const passStartedAt = Date.now();
     const passResults = await runBatchPass({
       requests: pass.requests,
@@ -168,6 +172,7 @@ export async function generateBatchAudioWithReliability(params: {
         retryDelay: pass.cooldownMs,
       },
       defaultOptions,
+      hooks: params.hooks,
       generateSingleAudio,
     });
 
@@ -197,6 +202,7 @@ export async function generateBatchAudioWithReliability(params: {
       await params.hooks?.onPassComplete?.(latestPassSummary);
     }
 
+    await params.hooks?.assertContinue?.();
     pass = buildNextAudioRetryPass({
       provider: finalOptions.provider,
       previousPass: pass,

@@ -110,6 +110,10 @@ export const appendTaskStatus = (summary: TaskTypeSummary, status: string): void
     summary.failed += 1;
     return;
   }
+  if (status === "canceled") {
+    summary.failed += 1;
+    return;
+  }
   if (status === "processing") {
     summary.processing += 1;
     return;

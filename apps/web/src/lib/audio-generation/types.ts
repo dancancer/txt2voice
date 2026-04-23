@@ -71,6 +71,7 @@ export interface AudioBatchGenerationSummary {
 
 export interface AudioBatchGenerationHooks {
   onPassComplete?: (summary: AudioReliabilityPassSummary) => void | Promise<void>;
+  assertContinue?: () => void | Promise<void>;
 }
 
 export interface VoiceRouteResolution {

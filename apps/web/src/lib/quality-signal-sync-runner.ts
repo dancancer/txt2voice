@@ -10,6 +10,7 @@ import {
   mergeTaskData,
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
+import { throwIfTaskCanceled } from "@/lib/task-cancellation";
 import {
   asNumber,
   asRecord,
@@ -49,6 +50,8 @@ export async function runQualitySignalSyncTask({
   audioFileIds,
   forceResync = false,
 }: QualitySignalSyncRunParams): Promise<void> {
+  await throwIfTaskCanceled(taskId);
+
   const taskSnapshot = await prisma.processingTask.findUnique({
     where: { id: taskId },
     select: { taskData: true },
@@ -132,6 +135,7 @@ export async function runQualitySignalSyncTask({
   };
 
   for (let index = 0; index < audioFiles.length; index += 1) {
+    await throwIfTaskCanceled(taskId);
     const audioFile = audioFiles[index];
     const attempt = audioFile.synthesisAttempts[0];
     if (!attempt || !audioFile.scriptSentence) {
@@ -246,6 +250,8 @@ export async function runQualitySignalSyncTask({
     const progress = 10 + Math.round(((index + 1) / audioFiles.length) * 80);
     await updateTaskProgress(taskId, progress, `信号生产进度 ${index + 1}/${audioFiles.length}`);
   }
+
+  await throwIfTaskCanceled(taskId);
 
   const summary = {
     type,

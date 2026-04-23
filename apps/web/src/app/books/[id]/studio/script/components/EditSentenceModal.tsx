@@ -23,9 +23,32 @@ interface EditSentenceModalProps {
       characterId?: string | null;
       rawSpeaker?: string | null;
       roleType?: string;
+      strength?: number;
+      pauseAfter?: number;
+      prosody?: {
+        pace?: number;
+        pitch?: number;
+        energy?: number;
+        pauseMsAfter?: number;
+      };
     }
   ) => void;
 }
+
+const normalizeOptionalText = (value: string): string | undefined => {
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeOptionalNumber = (value: string): number | undefined => {
+  const normalized = value.trim();
+  if (!normalized) {
+    return undefined;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
 
 export function EditSentenceModal({
   sentence,
@@ -45,6 +68,28 @@ export function EditSentenceModal({
   const narrationValue = narrationCharacter?.id || "__narration__";
   const [text, setText] = useState(sentence.text);
   const [tone, setTone] = useState(sentence.tone ?? "");
+  const [strength, setStrength] = useState(
+    typeof sentence.strength === "number" ? `${sentence.strength}` : ""
+  );
+  const [pauseAfter, setPauseAfter] = useState(
+    typeof sentence.pauseAfter === "number" ? `${sentence.pauseAfter}` : ""
+  );
+  const [pace, setPace] = useState(
+    typeof sentence.prosody?.pace === "number" ? `${sentence.prosody.pace}` : ""
+  );
+  const [pitch, setPitch] = useState(
+    typeof sentence.prosody?.pitch === "number" ? `${sentence.prosody.pitch}` : ""
+  );
+  const [energy, setEnergy] = useState(
+    typeof sentence.prosody?.energy === "number"
+      ? `${sentence.prosody.energy}`
+      : ""
+  );
+  const [pauseMsAfter, setPauseMsAfter] = useState(
+    typeof sentence.prosody?.pauseMsAfter === "number"
+      ? `${sentence.prosody.pauseMsAfter}`
+      : ""
+  );
   const [characterId, setCharacterId] = useState(
     sentence.characterId ??
       (sentence.rawSpeaker === "旁白" || sentence.roleType === "narration"
@@ -83,7 +128,27 @@ export function EditSentenceModal({
       return;
     }
 
-    const normalizedTone = tone.trim();
+    const normalizedTone = normalizeOptionalText(tone);
+    const normalizedStrength = normalizeOptionalNumber(strength);
+    const normalizedPauseAfter = normalizeOptionalNumber(pauseAfter);
+    const normalizedPace = normalizeOptionalNumber(pace);
+    const normalizedPitch = normalizeOptionalNumber(pitch);
+    const normalizedEnergy = normalizeOptionalNumber(energy);
+    const normalizedPauseMsAfter = normalizeOptionalNumber(pauseMsAfter);
+    const normalizedProsody =
+      normalizedPace !== undefined ||
+      normalizedPitch !== undefined ||
+      normalizedEnergy !== undefined ||
+      normalizedPauseMsAfter !== undefined
+        ? {
+            ...(normalizedPace !== undefined ? { pace: normalizedPace } : {}),
+            ...(normalizedPitch !== undefined ? { pitch: normalizedPitch } : {}),
+            ...(normalizedEnergy !== undefined ? { energy: normalizedEnergy } : {}),
+            ...(normalizedPauseMsAfter !== undefined
+              ? { pauseMsAfter: normalizedPauseMsAfter }
+              : {}),
+          }
+        : undefined;
     const isNarration = characterId === narrationValue;
     const resolvedCharacterId = isNarration
       ? narrationCharacter?.id ?? null
@@ -95,6 +160,9 @@ export function EditSentenceModal({
       characterId: resolvedCharacterId,
       rawSpeaker: isNarration ? "旁白" : undefined,
       roleType: isNarration ? "narration" : "dialogue",
+      strength: normalizedStrength,
+      pauseAfter: normalizedPauseAfter,
+      prosody: normalizedProsody,
     });
   };
 
@@ -135,6 +203,74 @@ export function EditSentenceModal({
               onChange={(event) => setTone(event.target.value)}
               placeholder="例如：平静、激动、严肃"
             />
+          </div>
+          <div className="space-y-3 rounded-lg border border-border/80 bg-muted/30 p-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-medium text-foreground">朗读参数</h3>
+              <p className="text-xs text-muted-foreground">
+                控制语音强弱、停顿和语调节奏。留空表示沿用自动推断。
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label className="mb-2 block text-card-foreground">强度</Label>
+                <Input
+                  value={strength}
+                  onChange={(event) => setStrength(event.target.value)}
+                  placeholder="0-100"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">
+                  句末停顿（秒）
+                </Label>
+                <Input
+                  value={pauseAfter}
+                  onChange={(event) => setPauseAfter(event.target.value)}
+                  placeholder="例如：1.5"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">语速</Label>
+                <Input
+                  value={pace}
+                  onChange={(event) => setPace(event.target.value)}
+                  placeholder="例如：0.95"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">音高</Label>
+                <Input
+                  value={pitch}
+                  onChange={(event) => setPitch(event.target.value)}
+                  placeholder="例如：-0.10"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">能量</Label>
+                <Input
+                  value={energy}
+                  onChange={(event) => setEnergy(event.target.value)}
+                  placeholder="例如：0.42"
+                  inputMode="decimal"
+                />
+              </div>
+              <div>
+                <Label className="mb-2 block text-card-foreground">
+                  额外尾停（毫秒）
+                </Label>
+                <Input
+                  value={pauseMsAfter}
+                  onChange={(event) => setPauseMsAfter(event.target.value)}
+                  placeholder="例如：1000"
+                  inputMode="numeric"
+                />
+              </div>
+            </div>
           </div>
           <div className="flex space-x-3">
             <Button variant="outline" onClick={onClose} className="flex-1">

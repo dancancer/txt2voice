@@ -149,7 +149,11 @@ export const getBookSloMetrics = async ({
         workflowSummary.autoPipeline.pendingReviewHandOffCount += 1;
       } else {
         workflowSummary.autoPipeline.directDeliveryCount += 1;
-        if (task.status === "completed" || task.status === "failed") {
+        if (
+          task.status === "completed" ||
+          task.status === "failed" ||
+          task.status === "canceled"
+        ) {
           workflowSummary.deliveryTerminalCount += 1;
           if (task.status === "completed") {
             workflowSummary.deliverySuccessCount += 1;
@@ -163,7 +167,11 @@ export const getBookSloMetrics = async ({
 
     if (task.taskType === "FINAL_ASSEMBLY") {
       appendTaskStatus(workflowSummary.finalAssembly, task.status);
-      if (task.status === "completed" || task.status === "failed") {
+      if (
+        task.status === "completed" ||
+        task.status === "failed" ||
+        task.status === "canceled"
+      ) {
         workflowSummary.deliveryTerminalCount += 1;
         if (task.status === "completed") {
           workflowSummary.deliverySuccessCount += 1;

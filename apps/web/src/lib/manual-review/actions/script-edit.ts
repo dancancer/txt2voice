@@ -84,6 +84,7 @@ export const saveManualReviewScriptEdit = async ({
         typeof detail?.orderIndex === "number" ? Number(detail.orderIndex) : -1,
       content: segmentContent,
     },
+    mode: "manual_edit",
     structuredResult: payload.structuredResult,
     characterMap,
     options: resolveScriptGenerationOptions(),

@@ -90,6 +90,7 @@ export default function TasksPage() {
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [retryToken, setRetryToken] = useState("");
 
   useEffect(() => {
@@ -174,6 +175,39 @@ export default function TasksPage() {
     }
   };
 
+  const handleCancelTask = async (taskId: string) => {
+    const token = retryToken.trim();
+    if (!token) {
+      toast.error("请先填写任务重试凭证");
+      return;
+    }
+
+    try {
+      setCancelingId(taskId);
+      const response = await fetch(`/api/tasks/${taskId}/cancel`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-txt2voice-replay-token": token,
+        },
+        body: JSON.stringify({}),
+      });
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error?.message || "取消任务失败");
+      }
+
+      toast.success("任务已取消");
+      await fetchTasks("manual");
+    } catch (error) {
+      console.error("Failed to cancel task:", error);
+      toast.error(error instanceof Error ? error.message : "取消任务失败");
+    } finally {
+      setCancelingId(null);
+    }
+  };
+
   const inProgressCount = useMemo(
     () => tasks.filter((task) => task.status === "processing").length,
     [tasks]
@@ -223,10 +257,10 @@ export default function TasksPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm leading-6 text-muted-foreground">
-              失败任务重试需要服务端配置的 <code>TASK_REPLAY_API_TOKEN</code>。
+              任务重试与取消需要服务端配置的 <code>TASK_REPLAY_API_TOKEN</code>。
             </p>
             <Label htmlFor="task-retry-token" className="block">
-              任务重试 token
+              任务操作 token
             </Label>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Input
@@ -255,6 +289,7 @@ export default function TasksPage() {
             {tasks.map((task) => {
               const isProcessing = task.status === "processing";
               const canRetry = task.status === "failed";
+              const canCancel = task.status === "processing";
               const statusMeta = getTaskStatusMeta(task.status);
               const childJobSummaries = getTaskChildJobSummaries(task.metadata);
               const recentRuntimeEvents = getTaskRecentRuntimeEvents(task.metadata)
@@ -277,26 +312,45 @@ export default function TasksPage() {
                           书籍：{task.bookTitle || "未知书籍"} · 任务ID：{task.id.slice(0, 8)}
                         </p>
                       </div>
-                      {canRetry ? (
-                        <Button
-                          variant="outline"
-                          className="min-h-11"
-                          disabled={retryingId === task.id || !retryToken.trim()}
-                          onClick={() => handleRetryTask(task.id)}
-                        >
-                          {retryingId === task.id ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              重试中...
-                            </>
-                          ) : (
-                            <>
-                              <RotateCcw className="w-4 h-4 mr-2" />
-                              重试
-                            </>
-                          )}
-                        </Button>
-                      ) : null}
+                      <div className="flex items-center gap-2">
+                        {canRetry ? (
+                          <Button
+                            variant="outline"
+                            className="min-h-11"
+                            disabled={retryingId === task.id || !retryToken.trim()}
+                            onClick={() => handleRetryTask(task.id)}
+                          >
+                            {retryingId === task.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                重试中...
+                              </>
+                            ) : (
+                              <>
+                                <RotateCcw className="w-4 h-4 mr-2" />
+                                重试
+                              </>
+                            )}
+                          </Button>
+                        ) : null}
+                        {canCancel ? (
+                          <Button
+                            variant="outline"
+                            className="min-h-11 text-amber-700"
+                            disabled={cancelingId === task.id || !retryToken.trim()}
+                            onClick={() => handleCancelTask(task.id)}
+                          >
+                            {cancelingId === task.id ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                取消中...
+                              </>
+                            ) : (
+                              "取消任务"
+                            )}
+                          </Button>
+                        ) : null}
+                      </div>
                     </div>
 
                     {isProcessing ? (
@@ -315,6 +369,8 @@ export default function TasksPage() {
                           <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
                         ) : task.status === "failed" ? (
                           <XCircle className="mt-0.5 h-4 w-4 text-destructive" />
+                        ) : task.status === "canceled" ? (
+                          <XCircle className="mt-0.5 h-4 w-4 text-amber-700" />
                         ) : (
                           <AlertCircle className="mt-0.5 h-4 w-4 text-primary" />
                         )}

@@ -20,6 +20,7 @@ export interface RunScriptProductionWorkflowInput {
   segmentIds?: string[];
   onProgress?: (done: number, total: number) => Promise<void> | void;
   onExecutionEvent?: (event: LLMExecutionEvent) => void;
+  assertContinue?: () => Promise<void> | void;
 }
 
 export type SegmentFinalStatus = "success" | "failed" | "manual_review";

@@ -3,9 +3,7 @@
 // output: 音频运行时策略
 // pos: 共享业务库
 export type AudioRuntimeProvider =
-  | "indextts"
-  | "cosyvoice"
-  | "voxcpm"
+  | "qwen3voice"
   | "mixed";
 
 export interface AudioSynthProbePolicy {
@@ -26,8 +24,8 @@ export interface AudioRuntimePolicy {
 }
 
 const AUDIO_RUNTIME_POLICIES: Record<AudioRuntimeProvider, AudioRuntimePolicy> = {
-  indextts: {
-    provider: "indextts",
+  qwen3voice: {
+    provider: "qwen3voice",
     firstPassConcurrency: 3,
     retryPassConcurrency: 2,
     rescuePassConcurrency: 1,
@@ -35,33 +33,8 @@ const AUDIO_RUNTIME_POLICIES: Record<AudioRuntimeProvider, AudioRuntimePolicy> =
     maxPasses: 3,
     synthProbe: {
       text: "系统探针。",
-      requiresReferenceAudio: true,
-    },
-  },
-  cosyvoice: {
-    provider: "cosyvoice",
-    firstPassConcurrency: 2,
-    retryPassConcurrency: 1,
-    rescuePassConcurrency: 1,
-    cooldownMs: 1200,
-    maxPasses: 3,
-    synthProbe: {
-      text: "系统探针。",
-      requiresReferenceAudio: true,
-      preferredMode: "cross_lingual",
-    },
-  },
-  voxcpm: {
-    provider: "voxcpm",
-    firstPassConcurrency: 1,
-    retryPassConcurrency: 1,
-    rescuePassConcurrency: 1,
-    cooldownMs: 1500,
-    maxPasses: 3,
-    synthProbe: {
-      text: "系统探针。",
       requiresReferenceAudio: false,
-      voiceId: "__voxcpm_default__",
+      voiceId: "",
     },
   },
   mixed: {
@@ -82,14 +55,8 @@ const normalizeProvider = (provider?: string | null): AudioRuntimeProvider => {
   const normalized =
     typeof provider === "string" ? provider.trim().toLowerCase() : "";
 
-  if (normalized === "indextts") {
-    return "indextts";
-  }
-  if (normalized === "cosyvoice") {
-    return "cosyvoice";
-  }
-  if (normalized === "voxcpm") {
-    return "voxcpm";
+  if (normalized === "qwen3voice") {
+    return "qwen3voice";
   }
 
   return "mixed";
@@ -101,4 +68,3 @@ export const getAudioRuntimePolicy = (
   const key = normalizeProvider(provider);
   return AUDIO_RUNTIME_POLICIES[key];
 };
-

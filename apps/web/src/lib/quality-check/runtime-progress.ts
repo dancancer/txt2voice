@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { mergeTaskData } from "@/lib/processing-task-utils";
+import { CANCELED_TASK_STATUS } from "@/lib/task-cancellation";
 import {
   buildQualityItemRuntimeEvent,
   buildTaskStageRuntimeEvent,
@@ -22,6 +23,15 @@ export const createQualityTaskRuntimeUpdater = (params: {
   let queue = Promise.resolve();
 
   const persist = async () => {
+    const task = await prisma.processingTask.findUnique({
+      where: { id: params.taskId },
+      select: { status: true },
+    });
+
+    if (task?.status === CANCELED_TASK_STATUS) {
+      return;
+    }
+
     const taskData = await mergeTaskData(params.taskId, {
       message,
       metadata,

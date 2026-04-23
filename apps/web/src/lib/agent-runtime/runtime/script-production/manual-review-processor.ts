@@ -183,10 +183,18 @@ const mapDialogueLines = (params: {
   segment: any;
   scriptSentences: any[];
   characterMap: Map<string, string>;
+  mode?: "generated" | "manual_edit";
 }): DialogueLine[] => {
   const validation = validateSegmentScript({
     segmentContent: params.segment.content,
     scriptSentences: params.scriptSentences,
+    options:
+      params.mode === "manual_edit"
+        ? {
+            allowTextSourceMismatch: true,
+            preserveProvidedText: true,
+          }
+        : undefined,
   });
 
   if (!validation.valid) {
@@ -283,6 +291,7 @@ export const buildSegmentProcessingResultFromStructuredResult = (params: {
   structuredResult: Record<string, unknown>;
   characterMap: Map<string, string>;
   options: ScriptGenerationOptions;
+  mode?: "generated" | "manual_edit";
 }): SegmentProcessingResult => {
   const scriptSentences = resolveScriptSentences(params.structuredResult);
   const rawCharacters = resolveRawCharacters(params.structuredResult);
@@ -296,6 +305,7 @@ export const buildSegmentProcessingResultFromStructuredResult = (params: {
     segment: params.segment,
     scriptSentences,
     characterMap: stagedCharacterMap,
+    mode: params.mode,
   }).filter((line) => line.text.trim().length > 0);
 
   ensureDialogueLengthCap({

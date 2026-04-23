@@ -21,6 +21,7 @@ export type {
   ReplayResult,
   ScriptGenerationQueueInput,
 } from "@/lib/task-queue/core/types";
+export type { CancelProcessingTaskResult } from "@/lib/task-queue/ops/cancel";
 
 export {
   enqueueAutoPipelineJob,
@@ -34,6 +35,7 @@ export {
 export { getTaskQueueHealth } from "@/lib/task-queue/ops/health";
 export { recoverStalledProcessingTasks } from "@/lib/task-queue/ops/recovery";
 export { replayProcessingTask } from "@/lib/task-queue/ops/replay";
+export { cancelProcessingTask } from "@/lib/task-queue/ops/cancel";
 export { cancelProcessingTaskJob } from "@/lib/task-queue/core/runtime";
 export { runLLMExecutionJob } from "@/lib/task-queue/ops/llm-execute";
 export { runAudioSynthesisJob } from "@/lib/task-queue/ops/audio-synthesis-execute";

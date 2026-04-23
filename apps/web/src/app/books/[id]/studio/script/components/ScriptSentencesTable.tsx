@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Play, Edit, Trash2, Volume2, CheckCircle, XCircle } from "lucide-react";
 import { ScriptSentence } from "@/lib/types";
+import { ScriptProsodyDisplay } from "./prosody-display";
 
 interface ScriptSentencesTableProps {
   segmentTitle: string;
@@ -97,11 +98,19 @@ export function ScriptSentencesTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      {sentence.tone && (
-                        <Badge variant="secondary" className="text-xs">
-                          {sentence.tone}
-                        </Badge>
-                      )}
+                      <div className="space-y-1">
+                        {sentence.tone && (
+                          <Badge variant="secondary" className="text-xs">
+                            {sentence.tone}
+                          </Badge>
+                        )}
+                        <ScriptProsodyDisplay
+                          strength={sentence.strength}
+                          pauseAfter={sentence.pauseAfter}
+                          prosody={sentence.prosody}
+                          compact
+                        />
+                      </div>
                     </TableCell>
                     <TableCell>
                       {audioCompleted ? (

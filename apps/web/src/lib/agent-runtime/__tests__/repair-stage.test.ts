@@ -165,6 +165,62 @@ describe("segment repair stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("preserves optional tone and prosody metadata in repaired drafts", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“站住。”",
+            text: "站住。",
+            speaker: "燕赤霞",
+            orderInSegment: 0,
+            tone: "冷厉",
+            prosody: {
+              pace: 0.88,
+              pitch: -0.12,
+              energy: 0.61,
+              pauseMsAfter: 1100,
+            },
+            strength: 64,
+            pauseAfter: 1.1,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-prosody-1",
+      segmentId: "segment-prosody-1",
+      segmentText: "“站住。”",
+      failureKind: "format_repair",
+      failedArtifact: "not-json",
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact?.segmentScriptDraft.lines[0]).toEqual({
+      id: "line-1",
+      sourceText: "“站住。”",
+      text: "站住。",
+      speaker: "燕赤霞",
+      orderInSegment: 0,
+      tone: "冷厉",
+      prosody: {
+        pace: 0.88,
+        pitch: -0.12,
+        energy: 0.61,
+        pauseMsAfter: 1100,
+      },
+      strength: 64,
+      pauseAfter: 1.1,
+    });
+  });
+
   it("renders format_repair prompt without failure_category placeholder and uses segment plus failedArtifact", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({

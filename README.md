@@ -6,7 +6,7 @@ txt2voice 是一个面向长文本生产场景的 LLM 驱动有声书平台。�
 
 - 单体 Web 应用承载 UI、API、任务编排、队列 Worker 与 Prisma 数据访问
 - 台本生产已经接入文件化 Agent Runtime，定义层位于 `agents/`、`skills/`、`workflows/`
-- 音频链路支持 `IndexTTS`、`CosyVoice`、`VoxCPM`、`Azure`、`OpenAI` 等 Provider
+- 音频链路统一收口到远端 `Qwen3 Voice` 服务
 - 提供 Fast Gate + Deep Gate 质检、人工复核工作台、任务中心和 SLO/派单监控
 - 既支持手动分步处理，也支持一键 `Auto Pipeline`
 
@@ -43,7 +43,7 @@ txt2voice/
 - 数据层：PostgreSQL、Prisma 6
 - 异步任务：Redis、Bull
 - LLM：OpenAI SDK 兼容接入，当前常用配置为 `DeepSeek` 风格网关
-- TTS：IndexTTS、CosyVoice、VoxCPM、Azure、OpenAI
+- TTS：Qwen3 Voice
 - UI：Tailwind CSS 4、Radix UI、Zustand、Sonner
 
 ## 快速开始
@@ -92,9 +92,7 @@ pnpm docker:up
 | `LLM_DEFAULT_MODEL_ID` / `LLM_MODELS_JSON` | 可选的环境变量兜底配置；数据库里没有持久化模型时才会回退使用 |
 | `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | 旧版单模型兼容兜底；仅用于迁移或应急 |
 | `TASK_QUEUE_NAMESPACE` | 队列命名空间，用于多实例隔离 |
-| `INDEXTTS_API_URL` | IndexTTS 服务地址 |
-| `COSYVOICE_API_URL` / `COSYVOICE_DEFAULT_MODE` | CosyVoice 服务地址与默认模式 |
-| `VOXCPM_API_URL` | VoxCPM 服务地址 |
+| `QWEN3VOICE_API_URL` | Qwen3 Voice 服务地址 |
 | `UPLOAD_DIR` / `AUDIO_DIR` | 上传文件与音频产物落盘目录 |
 
 如果本地 `3000` 与 Docker `3001` 会同时运行，请为两个实例配置不同的 `TASK_QUEUE_NAMESPACE`，例如：

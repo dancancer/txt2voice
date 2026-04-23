@@ -6,13 +6,65 @@ jest.mock("@/lib/prisma", () => ({
 }));
 
 import prisma from "@/lib/prisma";
-import { saveScriptToDatabase } from "@/lib/agent-runtime/runtime/script-production/storage/persistence";
+import {
+  mapSegmentScriptDraftToDialogueLines,
+  saveScriptToDatabase,
+} from "@/lib/agent-runtime/runtime/script-production/storage/persistence";
 
 const mockPrisma = prisma as unknown as {
   $transaction: jest.Mock;
 };
 
 describe("narration persistence", () => {
+  it("should carry tone and prosody metadata from draft lines into dialogue lines", () => {
+    const dialogueLines = mapSegmentScriptDraftToDialogueLines({
+      segmentScriptDraft: {
+        segmentId: "segment-1",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“别怕。”",
+            text: "别怕。",
+            speaker: "燕赤霞",
+            orderInSegment: 0,
+            tone: "沉稳",
+            prosody: {
+              pace: 0.91,
+              pitch: -0.1,
+              energy: 0.42,
+              pauseMsAfter: 1000,
+            },
+            strength: 52,
+            pauseAfter: 1,
+          },
+        ],
+      },
+      chapterId: "chapter-1",
+    });
+
+    expect(dialogueLines).toEqual([
+      {
+        id: "line-1",
+        segmentId: "segment-1",
+        chapterId: "chapter-1",
+        characterName: "燕赤霞",
+        rawSpeaker: "燕赤霞",
+        text: "别怕。",
+        orderInSegment: 0,
+        isNarration: false,
+        tone: "沉稳",
+        prosody: {
+          pace: 0.91,
+          pitch: -0.1,
+          energy: 0.42,
+          pauseMsAfter: 1000,
+        },
+        strength: 52,
+        pauseAfter: 1,
+      },
+    ]);
+  });
+
   it("should persist narration lines with a real narration character id", async () => {
     const tx = {
       scriptSentence: {

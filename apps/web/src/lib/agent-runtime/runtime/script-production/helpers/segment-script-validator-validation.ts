@@ -57,10 +57,17 @@ const isLikelyNarrationBoundaryFragment = (value: string): boolean => {
 export function validateSegmentScript(params: {
   segmentContent: string;
   scriptSentences: RawScriptSentence[];
+  options?: {
+    allowTextSourceMismatch?: boolean;
+    preserveProvidedText?: boolean;
+  };
 }): SegmentScriptValidationResult {
   const { segmentContent, scriptSentences } = params;
   const issues: SegmentScriptValidationIssue[] = [];
   const lines: ValidatedScriptSentence[] = [];
+  const allowTextSourceMismatch =
+    params.options?.allowTextSourceMismatch === true;
+  const preserveProvidedText = params.options?.preserveProvidedText === true;
 
   if (!Array.isArray(scriptSentences) || scriptSentences.length === 0) {
     issues.push(buildIssue("EMPTY_DIALOGUES", "LLM 未返回任何台本句子"));
@@ -139,7 +146,7 @@ export function validateSegmentScript(params: {
     cursor = end;
     coveredLength += normalizeComparableText(sourceText).length;
 
-    if (comparableText !== comparableExpected) {
+    if (comparableText !== comparableExpected && !allowTextSourceMismatch) {
       issues.push(
         buildIssue(
           "TEXT_SOURCE_MISMATCH",
@@ -180,7 +187,7 @@ export function validateSegmentScript(params: {
       speaker,
       sourceStart: start,
       sourceEnd: end,
-      resolvedText: expectedText,
+      resolvedText: preserveProvidedText ? text : expectedText,
     });
   });
 

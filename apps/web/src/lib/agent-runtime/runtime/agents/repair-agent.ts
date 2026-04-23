@@ -6,6 +6,12 @@ import type {
 } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
 import { renderPromptTemplate } from "../prompt-template";
+import {
+  parseOptionalPauseAfter,
+  parseOptionalProsody,
+  parseOptionalStrength,
+  parseOptionalTone,
+} from "./script-draft-line-metadata";
 
 export interface RepairAgentPrompts {
   systemPrompt: string;
@@ -136,6 +142,10 @@ const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
     text,
     speaker,
     orderInSegment,
+    tone: parseOptionalTone(value.tone),
+    prosody: parseOptionalProsody(value.prosody),
+    strength: parseOptionalStrength(value.strength),
+    pauseAfter: parseOptionalPauseAfter(value.pauseAfter),
   };
 };
 

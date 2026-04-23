@@ -10,6 +10,7 @@ import {
   jsonObject,
   mergeTaskData,
 } from "@/lib/processing-task-utils";
+import { throwIfTaskCanceled } from "@/lib/task-cancellation";
 import {
   extractManualReviewBatchTaskContext,
   extractManualReviewTaskContext,
@@ -44,6 +45,8 @@ export async function runAudioGenerationTask({
   autoMerge = false,
   options = {},
 }: AudioGenerationRunParams): Promise<void> {
+  await throwIfTaskCanceled(taskId);
+
   const audioGenerator = getAudioGenerator();
   const taskSnapshot = await prisma.processingTask.findUnique({
     where: { id: taskId },
@@ -96,6 +99,9 @@ export async function runAudioGenerationTask({
     voiceProfileId,
     options,
     hooks: {
+      assertContinue: async () => {
+        await throwIfTaskCanceled(taskId);
+      },
       onPassComplete: async (summary: AudioReliabilityPassSummary) => {
         const progress = Math.min(
           75,
@@ -113,6 +119,8 @@ export async function runAudioGenerationTask({
       },
     },
   });
+
+  await throwIfTaskCanceled(taskId);
 
   await runtimeUpdater.setStage({
     progress: 80,
@@ -132,6 +140,7 @@ export async function runAudioGenerationTask({
 
   let mergeResult = null;
   if (autoMerge && successCount > 0) {
+    await throwIfTaskCanceled(taskId);
     await runtimeUpdater.setStage({
       progress: 85,
       message: "正在合并音频文件",
@@ -176,6 +185,8 @@ export async function runAudioGenerationTask({
   });
 
   const message = `音频生成完成，成功 ${successCount} 个，失败 ${failedCount} 个${mergeResult?.success ? "，已合并音频" : ""}`;
+
+  await throwIfTaskCanceled(taskId);
 
   const taskData = await mergeTaskData(taskId, {
     message,

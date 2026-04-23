@@ -41,6 +41,8 @@ export const runScriptProductionWorkflow = async (
   input: RunScriptProductionWorkflowInput,
   deps: ScriptProductionWorkflowDeps = {}
 ): Promise<ScriptProductionWorkflowResult> => {
+  await input.assertContinue?.();
+
   const loadBook = deps.loadBookForGeneration || loadBookForGeneration;
   const resolvePartial = deps.resolvePartialSegments || resolvePartialSegments;
   const runDiscoveryStage =
@@ -139,6 +141,7 @@ export const runScriptProductionWorkflow = async (
       appendTrace: tracking.appendTrackedTrace,
     },
     coordinator: async ({ workflowRunId }) => {
+      await input.assertContinue?.();
       const discovery = await runPrepareAndCharacterDiscovery({
         workflowRunId,
         workflowDefinitionId: workflowDefinition.id,
@@ -164,6 +167,7 @@ export const runScriptProductionWorkflow = async (
       }
 
       for (const [segmentIndex, segment] of segments.entries()) {
+        await input.assertContinue?.();
         if (segmentIndex > 0) {
           characterMemorySnapshot = await refreshCharacterMemoryForSegment({
             workflowRunId,
@@ -181,6 +185,7 @@ export const runScriptProductionWorkflow = async (
             runPersistStage: runPersistCommitStage,
             tracking,
           });
+          await input.assertContinue?.();
         }
 
         const result = await runSingleSegment({
@@ -286,6 +291,7 @@ export const runScriptProductionWorkflow = async (
         }
 
         if (input.onProgress) {
+          await input.assertContinue?.();
           await input.onProgress(state.persistedSegments, segments.length);
         }
       }

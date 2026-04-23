@@ -111,6 +111,7 @@ export const processQualityCheckAudioFiles = async ({
   modelRuntime,
   modelRuntimeSource,
   isCalibrationEval,
+  assertContinue,
   onProgress,
 }: {
   taskId: string;
@@ -145,6 +146,7 @@ export const processQualityCheckAudioFiles = async ({
   };
   modelRuntimeSource: string;
   isCalibrationEval: boolean;
+  assertContinue?: () => Promise<void> | void;
   onProgress?: (payload: {
     checked: number;
     total: number;
@@ -189,6 +191,7 @@ export const processQualityCheckAudioFiles = async ({
   );
 
   for (let index = 0; index < audioFiles.length; index += 1) {
+    await assertContinue?.();
     const audioFile = audioFiles[index];
     if (!audioFile.scriptSentence || !audioFile.sentenceId) {
       continue;
@@ -365,6 +368,7 @@ export const processQualityCheckAudioFiles = async ({
         ? `Deep Gate 校准回放进度 ${index + 1}/${audioFiles.length}`
         : `Fast/Deep Gate 质检进度 ${index + 1}/${audioFiles.length}`
     );
+    await assertContinue?.();
     await onProgress?.({
       checked: index + 1,
       total: audioFiles.length,

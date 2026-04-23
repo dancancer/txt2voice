@@ -156,7 +156,10 @@ export function useScriptGenerationActions({
         toast.error("生成超时，请稍后刷新页面确认任务状态");
       }, 5 * 60 * 1000);
 
-      const finalize = (status: "completed" | "failed", errorMessage?: string) => {
+      const finalize = (
+        status: "completed" | "failed" | "canceled",
+        errorMessage?: string
+      ) => {
         if (finished) {
           return;
         }
@@ -169,6 +172,14 @@ export function useScriptGenerationActions({
           setGenerationStatus(messages.completed);
           setIsGenerating(false);
           toast.success(messages.completed);
+          void loadBookAndData();
+          return;
+        }
+
+        if (status === "canceled") {
+          setGenerationStatus("任务已取消");
+          setIsGenerating(false);
+          toast.message("任务已取消");
           void loadBookAndData();
           return;
         }
@@ -194,6 +205,8 @@ export function useScriptGenerationActions({
             const errorMessage =
               typeof data.error === "string" ? data.error : undefined;
             finalize("failed", errorMessage);
+          } else if (data.status === "canceled") {
+            finalize("canceled");
           }
         } catch (error) {
           console.error("Failed to parse script progress event:", error);

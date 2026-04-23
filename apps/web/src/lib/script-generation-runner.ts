@@ -11,6 +11,10 @@ import {
   mergeTaskData,
 } from "@/lib/processing-task-utils";
 import {
+  CANCELED_TASK_STATUS,
+  throwIfTaskCanceled,
+} from "@/lib/task-cancellation";
+import {
   asAgentRuntimeMetadata,
   asRecord,
   asRuntimeManualReviewSync,
@@ -53,6 +57,8 @@ export async function runScriptGenerationTask({
   options,
   extraParams = {},
 }: ScriptGenerationRunParams): Promise<void> {
+  await throwIfTaskCanceled(taskId);
+
   const isSampleRun = isSampleScriptGenerationRun(extraParams);
   const isPartialRun = isPartialScriptGenerationRun(extraParams);
   const taskSnapshot = await prisma.processingTask.findUnique({
@@ -84,6 +90,15 @@ export async function runScriptGenerationTask({
       segmentId?: string;
     };
   }) => {
+    const task = await prisma.processingTask.findUnique({
+      where: { id: taskId },
+      select: { status: true },
+    });
+
+    if (task?.status === CANCELED_TASK_STATUS) {
+      return;
+    }
+
     currentProgress = params.progress;
     currentMessage = params.message;
 
@@ -191,7 +206,9 @@ export async function runScriptGenerationTask({
       segmentIds: extraParams.segmentIds,
       onProgress: segmentProgress,
       onExecutionEvent: observeExecutionEvent,
+      assertContinue: () => throwIfTaskCanceled(taskId),
     });
+    await throwIfTaskCanceled(taskId);
     await enqueueRuntimeUpdate({
       progress: 70,
       message: "段落台本生成完成",
@@ -219,7 +236,9 @@ export async function runScriptGenerationTask({
         limitToSegments: extraParams.limitToSegments,
         onProgress: segmentProgress,
         onExecutionEvent: observeExecutionEvent,
+        assertContinue: () => throwIfTaskCanceled(taskId),
       });
+      await throwIfTaskCanceled(taskId);
       script.segments = script.segments.slice(0, extraParams.limitToSegments);
       await enqueueRuntimeUpdate({
         progress: 70,
@@ -241,7 +260,9 @@ export async function runScriptGenerationTask({
         startFromOrderIndex: extraParams.startFromOrderIndex,
         onProgress: segmentProgress,
         onExecutionEvent: observeExecutionEvent,
+        assertContinue: () => throwIfTaskCanceled(taskId),
       });
+      await throwIfTaskCanceled(taskId);
       await enqueueRuntimeUpdate({
         progress: 70,
         message: "增量台本生成完成",
@@ -257,6 +278,7 @@ export async function runScriptGenerationTask({
     await prisma.scriptSentence.deleteMany({
       where: { bookId },
     });
+    await throwIfTaskCanceled(taskId);
     script = await runScriptProductionWorkflow({
       taskId,
       bookId,
@@ -264,7 +286,9 @@ export async function runScriptGenerationTask({
       mode: "full",
       onProgress: segmentProgress,
       onExecutionEvent: observeExecutionEvent,
+      assertContinue: () => throwIfTaskCanceled(taskId),
     });
+    await throwIfTaskCanceled(taskId);
     await enqueueRuntimeUpdate({
       progress: 70,
       message: "台本生成完成",
@@ -327,6 +351,8 @@ export async function runScriptGenerationTask({
     totalPending: runtimeReviewSync?.pending ?? 0,
   };
   const llmMetrics = llmMetricsCollector.snapshot();
+
+  await throwIfTaskCanceled(taskId);
 
   if (hasSegmentFailures) {
     const failureMessage = `台本生成部分失败：${failedSegments}/${totalSegments} 个段落未生成成功`;

@@ -36,7 +36,7 @@ export function useSpeakerManagementController() {
   const [providerStatusLoading, setProviderStatusLoading] = useState(true);
   const viewState = useSpeakerManagementViewState(referenceAudios);
 
-  const supportsSpeakerManagement = viewState.selectedProvider === "indextts";
+  const supportsSpeakerManagement = false;
   const selectedProviderStatus = useMemo(
     () =>
       providerStatuses.find(

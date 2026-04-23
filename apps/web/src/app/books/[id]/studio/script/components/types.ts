@@ -13,6 +13,12 @@ export interface ScriptSentence {
   rawSpeaker?: string; // 原始说话人信息
   strength?: number;
   pauseAfter?: number;
+  prosody?: {
+    pace?: number;
+    pitch?: number;
+    energy?: number;
+    pauseMsAfter?: number;
+  };
   character?: {
     id: string;
     canonicalName: string;

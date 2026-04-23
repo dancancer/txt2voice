@@ -12,6 +12,7 @@ import {
   mergeTaskData
 } from '@/lib/processing-task-utils'
 import { enqueueAudioGenerationJob } from '@/lib/task-queue'
+import { assertAudioGenerationAllowed } from './route-helpers'
 
 // POST /api/books/[id]/audio/generate - 生成音频
 export const POST = withErrorHandler(async (
@@ -88,19 +89,10 @@ export const POST = withErrorHandler(async (
     throw new ValidationError('书籍不存在')
   }
 
-  const allowedStatuses = new Set([
-    'script_generated',
-    'completed',
-    'completed_with_errors',
-    'generating_audio'
-  ])
-  if (!allowedStatuses.has(book.status)) {
-    throw new ValidationError('请先完成台本生成')
-  }
-
-  if (book._count.scriptSentences === 0) {
-    throw new ValidationError('没有可生成音频的台词')
-  }
+  assertAudioGenerationAllowed({
+    status: book.status,
+    scriptSentenceCount: book._count.scriptSentences
+  })
 
   // 检查是否至少存在可用声音（角色绑定或系统默认声线）
   const charactersWithVoice = book.characterProfiles.filter(cp => cp.voiceBindings.length > 0)

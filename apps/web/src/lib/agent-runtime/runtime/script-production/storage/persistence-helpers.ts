@@ -22,6 +22,15 @@ export interface SegmentScriptDraftLikeLine {
   sourceText?: string;
   speaker: string;
   orderInSegment: number;
+  tone?: string;
+  prosody?: {
+    pace?: number;
+    pitch?: number;
+    energy?: number;
+    pauseMsAfter?: number;
+  };
+  strength?: number;
+  pauseAfter?: number;
 }
 
 export interface SegmentScriptDraftLike {
@@ -252,6 +261,19 @@ export const mapSegmentScriptDraftToDialogueLines = (params: {
         rawSpeaker: speaker,
         text,
         orderInSegment: line.orderInSegment,
+        tone: typeof line.tone === "string" ? line.tone : undefined,
+        prosody:
+          line.prosody && typeof line.prosody === "object"
+            ? line.prosody
+            : undefined,
+        strength:
+          typeof line.strength === "number" && Number.isFinite(line.strength)
+            ? line.strength
+            : undefined,
+        pauseAfter:
+          typeof line.pauseAfter === "number" && Number.isFinite(line.pauseAfter)
+            ? line.pauseAfter
+            : undefined,
         isNarration: isNarrationSpeaker(speaker),
       };
     });

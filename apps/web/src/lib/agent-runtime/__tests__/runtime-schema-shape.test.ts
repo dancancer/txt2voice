@@ -37,6 +37,17 @@ const expectJsonField = (schema: string, modelName: string, fieldName: string) =
   expect(modelBlock?.[1]).toMatch(new RegExp(`\\b${fieldName}\\s+Json\\??\\b`));
 };
 
+const expectIndex = (schema: string, modelName: string, fieldName: string) => {
+  const modelBlock = schema.match(
+    new RegExp(`model\\s+${modelName}\\s+\\{([\\s\\S]*?)\\n\\}`, "m")
+  );
+
+  expect(modelBlock?.[1]).toBeDefined();
+  expect(modelBlock?.[1]).toMatch(
+    new RegExp(`@@index\\(\\[${fieldName}\\]\\)`)
+  );
+};
+
 describe("agent runtime prisma schema shape", () => {
   it("separates workflow authoring stages from runtime-owned substages", () => {
     expect(
@@ -131,5 +142,21 @@ describe("agent runtime prisma schema shape", () => {
     expectJsonField(schema, "ToolCall", "resultSummary");
     expectJsonField(schema, "TraceEvent", "payload");
     expectJsonField(schema, "RuntimeArtifact", "payload");
+  });
+
+  it("indexes runtime foreign keys to keep cascade deletes cheap", () => {
+    const schema = readSchema();
+
+    expectIndex(schema, "WorkflowRun", "bookId");
+    expectIndex(schema, "WorkflowRun", "processingTaskId");
+    expectIndex(schema, "StageRun", "workflowRunId");
+    expectIndex(schema, "AgentRun", "stageRunId");
+    expectIndex(schema, "ToolCall", "agentRunId");
+    expectIndex(schema, "TraceEvent", "workflowRunId");
+    expectIndex(schema, "TraceEvent", "stageRunId");
+    expectIndex(schema, "TraceEvent", "agentRunId");
+    expectIndex(schema, "RuntimeArtifact", "workflowRunId");
+    expectIndex(schema, "RuntimeArtifact", "stageRunId");
+    expectIndex(schema, "RuntimeArtifact", "agentRunId");
   });
 });

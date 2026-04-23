@@ -875,6 +875,7 @@ describe("manual-review-service", () => {
         orderIndex: -1,
         content: "这一段完整原文。",
       },
+      mode: "manual_edit",
       structuredResult: {
         dialogues: [
           expect.objectContaining({

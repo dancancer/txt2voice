@@ -49,10 +49,10 @@ export function useSpeakerManagementViewState(referenceAudios: ReferenceAudio[])
   const [selectedProvider, setSelectedProvider] = useState<TTSReferenceProvider>(
     () => {
       if (typeof window === "undefined") {
-        return "indextts";
+        return "qwen3voice";
       }
       const storedProvider = window.localStorage.getItem(PROVIDER_STORAGE_KEY);
-      return isTTSReferenceProvider(storedProvider) ? storedProvider : "indextts";
+      return isTTSReferenceProvider(storedProvider) ? storedProvider : "qwen3voice";
     }
   );
 

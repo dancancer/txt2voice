@@ -3,78 +3,54 @@
 // output: HTTP 响应/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
-import { withErrorHandler } from "@/lib/error-handler";
-import { indexTTSService } from "@/lib/indextts-service";
-import prisma from "@/lib/prisma";
+import { ValidationError, withErrorHandler } from "@/lib/error-handler";
+import { Qwen3VoiceTTSService } from "@/lib/tts/providers/qwen3voice";
 
 // GET /api/tts/speakers - 获取说话人列表
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
-  const gender = searchParams.get("gender");
-  const ageGroup = searchParams.get("ageGroup");
-  const isActive = searchParams.get("isActive");
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
   const search = searchParams.get("search");
+  const service = new Qwen3VoiceTTSService();
+  const speakers = await service.listSpeakers();
 
-  const where: any = {};
+  const filteredSpeakers = speakers.filter((speaker) => {
+    if (!search) {
+      return true;
+    }
 
-  if (gender) {
-    where.gender = gender;
-  }
+    const normalizedSearch = search.trim().toLowerCase();
+    return (
+      speaker.name.toLowerCase().includes(normalizedSearch) ||
+      (speaker.reference_text || "").toLowerCase().includes(normalizedSearch)
+    );
+  });
 
-  if (ageGroup) {
-    where.ageGroup = ageGroup;
-  }
-
-  if (isActive !== null) {
-    where.isActive = isActive === "true";
-  }
-
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { description: { contains: search, mode: "insensitive" } },
-    ];
-  }
-
+  const total = filteredSpeakers.length;
   const skip = (page - 1) * limit;
-
-  const [speakers, total] = await Promise.all([
-    prisma.speakerProfile.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: [
-        { isActive: "desc" },
-        { usageCount: "desc" },
-        { createdAt: "desc" },
-      ],
-    }),
-    prisma.speakerProfile.count({ where }),
-  ]);
+  const pagedSpeakers = filteredSpeakers.slice(skip, skip + limit);
 
   return NextResponse.json({
     success: true,
     data: {
-      speakers: speakers.map((speaker) => ({
+      speakers: pagedSpeakers.map((speaker) => ({
         id: speaker.id,
+        speakerId: speaker.id,
         name: speaker.name,
-        gender: speaker.gender,
-        ageGroup: speaker.ageGroup,
-        toneStyle: speaker.toneStyle,
-        description: speaker.description,
-        referenceAudio: speaker.referenceAudio,
-        confidence: speaker.confidence
-          ? parseFloat(speaker.confidence.toString())
-          : null,
-        metadata: speaker.metadata,
-        isActive: speaker.isActive,
-        usageCount: speaker.usageCount,
-        lastUsedAt: speaker.lastUsedAt,
-        syncedAt: speaker.syncedAt,
-        createdAt: speaker.createdAt,
-        updatedAt: speaker.updatedAt,
+        gender: "unknown",
+        ageGroup: "adult",
+        toneStyle: "neutral",
+        description: speaker.reference_text || "",
+        referenceAudio: speaker.reference_audio_url || speaker.preview_audio_url || null,
+        confidence: null,
+        metadata: speaker.meta || {},
+        isActive: true,
+        usageCount: 0,
+        lastUsedAt: null,
+        syncedAt: speaker.created_at || null,
+        createdAt: speaker.created_at || new Date().toISOString(),
+        updatedAt: speaker.created_at || new Date().toISOString(),
       })),
       pagination: {
         page,
@@ -89,50 +65,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 });
 
 // POST /api/tts/speakers - 创建说话人档案
-export const POST = withErrorHandler(async (request: NextRequest) => {
-  const body = await request.json();
-  const {
-    name,
-    gender = "unknown",
-    ageGroup = "adult",
-    toneStyle = "neutral",
-    description,
-    referenceAudio,
-    metadata = {},
-  } = body;
-
-  const speaker = await prisma.speakerProfile.create({
-    data: {
-      name,
-      gender,
-      ageGroup,
-      toneStyle,
-      description,
-      referenceAudio,
-      metadata,
-      isActive: true,
-      usageCount: 0,
-    },
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      id: speaker.id,
-      name: speaker.name,
-      gender: speaker.gender,
-      ageGroup: speaker.ageGroup,
-      toneStyle: speaker.toneStyle,
-      description: speaker.description,
-      referenceAudio: speaker.referenceAudio,
-      confidence: speaker.confidence
-        ? parseFloat(speaker.confidence.toString())
-        : null,
-      metadata: speaker.metadata,
-      isActive: speaker.isActive,
-      usageCount: speaker.usageCount,
-      createdAt: speaker.createdAt,
-      updatedAt: speaker.updatedAt,
-    },
-  });
+export const POST = withErrorHandler(async () => {
+  throw new ValidationError("请改为在 qwen3-voice-studio 中创建和管理 speaker");
 });

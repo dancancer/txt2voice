@@ -9,6 +9,5 @@ export type {
   TTSVoice,
 } from "@/lib/tts/types";
 
-export { AzureTTSService } from "@/lib/tts/providers/azure";
-export { OpenAITTSService } from "@/lib/tts/providers/openai";
+export { Qwen3VoiceTTSService } from "@/lib/tts/providers/qwen3voice";
 export { TTSServiceManager, ttsServiceManager } from "@/lib/tts/service-manager";

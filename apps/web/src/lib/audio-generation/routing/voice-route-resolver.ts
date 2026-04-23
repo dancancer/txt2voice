@@ -15,6 +15,9 @@ import {
 import { toFiniteNumber } from "../synthesis/tts-parameter-normalizer";
 import { getEngineHealthSnapshot } from "./engine-health";
 
+const isSupportedProvider = (provider: string | null | undefined): boolean =>
+  provider === "qwen3voice";
+
 export function resolveRouterPolicyVersion(
   scriptSentence: any,
   options: AudioGenerationOptions
@@ -71,12 +74,12 @@ export function resolveVariantVoiceId(
   provider: string,
   providerVoiceId: unknown
 ): string | null {
-  if (typeof providerVoiceId === "string" && providerVoiceId.trim().length > 0) {
-    return providerVoiceId.trim();
+  if (!isSupportedProvider(provider)) {
+    return null;
   }
 
-  if (provider === "voxcpm") {
-    return "__voxcpm_default__";
+  if (typeof providerVoiceId === "string" && providerVoiceId.trim().length > 0) {
+    return providerVoiceId.trim();
   }
 
   return null;
@@ -142,6 +145,9 @@ export async function collectRouteCandidates(params: {
     if (preferredProvider && selectedProfile.provider !== preferredProvider) {
       return [];
     }
+    if (!isSupportedProvider(selectedProfile.provider)) {
+      return [];
+    }
 
     candidates.push({
       candidateId: `manual:${selectedProfile.id}`,
@@ -172,6 +178,9 @@ export async function collectRouteCandidates(params: {
       const provider =
         typeof variant.engine === "string" ? variant.engine.trim().toLowerCase() : "";
       if (!provider) {
+        continue;
+      }
+      if (!isSupportedProvider(provider)) {
         continue;
       }
       if (preferredProvider && provider !== preferredProvider) {
@@ -217,6 +226,9 @@ export async function collectRouteCandidates(params: {
     if (!provider) {
       continue;
     }
+    if (!isSupportedProvider(provider)) {
+      continue;
+    }
     if (preferredProvider && provider !== preferredProvider) {
       continue;
     }
@@ -243,6 +255,9 @@ export async function collectRouteCandidates(params: {
     prismaClient,
   });
   if (narrationFallback) {
+    if (!isSupportedProvider(narrationFallback.provider)) {
+      return candidates;
+    }
     candidates.push({
       candidateId: `fallback:${narrationFallback.id}`,
       source: "narration_fallback",

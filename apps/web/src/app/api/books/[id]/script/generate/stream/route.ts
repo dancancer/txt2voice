@@ -104,7 +104,11 @@ export const GET = withErrorHandler(
               lastRuntimeEventSeq,
             });
 
-            if (formatted.status === "completed" || formatted.status === "failed") {
+            if (
+              formatted.status === "completed" ||
+              formatted.status === "failed" ||
+              formatted.status === "canceled"
+            ) {
               close();
             }
           } catch (error) {

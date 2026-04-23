@@ -1,7 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { indexTTSService } from "@/lib/indextts-service";
 import type { ReferenceAudio, Speaker } from "../types";
 import {
   translateAgeGroup,
@@ -45,11 +44,7 @@ export function SpeakerListTab({
           const referenceAudio = referenceAudios.find(
             (audio) => audio.filename === speaker.referenceAudio
           );
-          const audioUrl =
-            referenceAudio?.url ||
-            (speaker.referenceAudio
-              ? indexTTSService.getPublicAudioUrl(speaker.referenceAudio)
-              : null);
+          const audioUrl = referenceAudio?.url || speaker.referenceAudio || null;
 
           return (
             <Card key={speaker.id} className="relative">
@@ -102,14 +97,6 @@ export function SpeakerListTab({
                       className="mt-1 w-full"
                       onPlay={() => onSetIsPlaying(speaker.referenceAudio)}
                       onEnded={() => onSetIsPlaying(null)}
-                      onError={(e) => {
-                        console.error(`Failed to load audio: ${audioUrl}`, e);
-                        const fallbackUrl = `${
-                          process.env.NEXT_PUBLIC_INDEXTTS_API_URL ||
-                          "http://192.168.88.9:8001"
-                        }/api/audio/file/${speaker.referenceAudio}`;
-                        (e.target as HTMLAudioElement).src = fallbackUrl;
-                      }}
                     />
                   </div>
                 )}

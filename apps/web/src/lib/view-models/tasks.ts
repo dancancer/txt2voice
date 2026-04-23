@@ -7,7 +7,12 @@ import {
   type ScriptGenerationRuntimeEvent,
 } from "@/lib/script-generation/runner/runtime-events";
 
-export type ProcessingTaskStatus = "pending" | "processing" | "completed" | "failed";
+export type ProcessingTaskStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "canceled";
 
 export type TaskStatusMeta = {
   label: string;
@@ -65,6 +70,10 @@ const TASK_STATUS_META: Record<ProcessingTaskStatus, TaskStatusMeta> = {
   failed: {
     label: "失败",
     className: "bg-red-100 text-red-700",
+  },
+  canceled: {
+    label: "已取消",
+    className: "bg-amber-100 text-amber-700",
   },
 };
 

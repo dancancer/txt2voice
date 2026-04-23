@@ -157,6 +157,58 @@ describe("segment scripting stage", () => {
     );
   });
 
+  it("preserves optional tone and prosody metadata from LLM output", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-prosody-1",
+            sourceText: "“别出声。”",
+            text: "别出声。",
+            speaker: "燕赤霞",
+            orderInSegment: 0,
+            tone: "压低声音",
+            prosody: {
+              pace: 0.82,
+              pitch: -0.18,
+              energy: 0.34,
+              pauseMsAfter: 900,
+            },
+            strength: 41,
+            pauseAfter: 0.9,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-prosody-1",
+      segmentId: "segment-prosody-1",
+      segmentText: "“别出声。”",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
+      id: "line-prosody-1",
+      sourceText: "“别出声。”",
+      text: "别出声。",
+      speaker: "燕赤霞",
+      orderInSegment: 0,
+      tone: "压低声音",
+      prosody: {
+        pace: 0.82,
+        pitch: -0.18,
+        energy: 0.34,
+        pauseMsAfter: 900,
+      },
+      strength: 41,
+      pauseAfter: 0.9,
+    });
+  });
+
   it("keeps required line fields in draft", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -189,6 +241,43 @@ describe("segment scripting stage", () => {
       speaker: "燕赤霞",
       orderInSegment: 0,
     });
+  });
+
+  it("declares tone and prosody fields in the rendered prompt contract", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "燕赤霞低喝：“退后。”",
+            text: "退后。",
+            speaker: "燕赤霞",
+            orderInSegment: 0,
+          },
+        ],
+      })
+    );
+
+    const result = await runSegmentScriptingStage({
+      workflowRunId: "wf-segment-prompt-prosody",
+      segmentId: "segment-prompt-prosody",
+      segmentText: "燕赤霞低喝：“退后。”",
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const call = (adapter.call as jest.Mock).mock.calls[0]?.[0] as {
+      prompt: string;
+    };
+    expect(call.prompt).toContain("tone");
+    expect(call.prompt).toContain("prosody");
+    expect(call.prompt).toContain("strength");
+    expect(call.prompt).toContain("pauseAfter");
+    expect(call.prompt).toContain("pace");
+    expect(call.prompt).toContain("pitch");
+    expect(call.prompt).toContain("energy");
+    expect(call.prompt).toContain("pauseMsAfter");
   });
 
   it("realigns pure quoted leaf outputs back to full quoted source text", async () => {

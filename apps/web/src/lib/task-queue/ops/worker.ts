@@ -4,6 +4,7 @@ import { runAutoPipelineCompensationTask } from "@/lib/auto-pipeline-compensatio
 import { runFinalAssemblyTask } from "@/lib/final-assembly-runner";
 import { runManualReviewSyncTask } from "@/lib/manual-review-sync-runner";
 import { runAudioGenerationTask } from "@/lib/audio-generation-runner";
+import { isTaskCanceledError } from "@/lib/task-cancellation";
 import { runAudioSynthesisJob } from "@/lib/task-queue/ops/audio-synthesis-execute";
 import { runLLMExecutionJob } from "@/lib/task-queue/ops/llm-execute";
 import { runQualityCheckTask } from "@/lib/quality-check-runner";
@@ -95,6 +96,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "SCRIPT_GENERATION",
         job,
@@ -128,6 +132,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "AUDIO_GENERATION",
         job,
@@ -168,6 +175,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "QUALITY_CHECK",
         job,
@@ -199,6 +209,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "QUALITY_SIGNAL_SYNC",
         job,
@@ -262,6 +275,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         });
       });
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType:
           mode === "trigger_compensation"

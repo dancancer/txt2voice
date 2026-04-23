@@ -7,6 +7,8 @@ import prisma, { Prisma, ProcessingTask } from '@/lib/prisma'
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value)
 
+const CANCELED_TASK_STATUS = 'canceled'
+
 export const jsonObject = (value: Prisma.JsonValue | null | undefined): Record<string, unknown> =>
   isRecord(value) ? (value as Record<string, unknown>) : {}
 
@@ -42,6 +44,15 @@ export const updateProcessingTaskProgress = async (
   progress: number,
   message: string
 ): Promise<void> => {
+  const task = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: { status: true },
+  })
+
+  if (task?.status === CANCELED_TASK_STATUS) {
+    return
+  }
+
   const taskData = await mergeTaskData(taskId, { message })
 
   await prisma.processingTask.update({

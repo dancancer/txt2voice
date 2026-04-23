@@ -2,18 +2,11 @@
 // input: TTS provider 配置/请求参数
 // output: 共享类型定义
 // pos: TTS 领域类型
-import type { CosyVoiceMode } from "@/lib/cosyvoice-service";
 import type { EmotionVector } from "@/lib/indextts-service";
 
 export interface TTSProvider {
   name: string;
-  type:
-    | "azure"
-    | "openai"
-    | "indextts"
-    | "cosyvoice"
-    | "voxcpm"
-    | "custom";
+  type: "qwen3voice" | "custom";
   apiKey?: string;
   region?: string;
   endpoint?: string;
@@ -64,11 +57,6 @@ export interface TTSRequest {
   beamSearch?: boolean;
   topK?: number;
   topP?: number;
-  cosyMode?: CosyVoiceMode;
-  cosyPromptText?: string;
-  cosySpeakerId?: string;
-  cosyInstructText?: string;
-  voxcpmPromptText?: string;
 }
 
 export interface TTSResponse {

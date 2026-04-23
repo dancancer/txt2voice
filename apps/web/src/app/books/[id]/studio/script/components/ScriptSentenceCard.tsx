@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ScriptSentence } from "@/lib/types";
 import { toast } from "sonner";
+import { ScriptProsodyDisplay } from "./prosody-display";
 
 interface ScriptSentenceCardProps {
   sentence: ScriptSentence;
@@ -94,7 +95,7 @@ export function ScriptSentenceCard({
   return (
     <div className="flex items-start justify-between rounded-lg border border-border bg-card p-4 transition-colors hover:bg-accent/40">
       <div className="flex-1">
-        <div className="flex items-center space-x-2 mb-2">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium text-muted-foreground">
             #{index + 1}
           </span>
@@ -120,11 +121,6 @@ export function ScriptSentenceCard({
               {sentence.tone}
             </Badge>
           )}
-          {sentence.strength && (
-            <Badge variant="outline" className="text-xs">
-              强度: {sentence.strength}
-            </Badge>
-          )}
           <span className="text-xs text-muted-foreground">
             段落{" "}
             {sentence.segment?.orderIndex
@@ -132,6 +128,12 @@ export function ScriptSentenceCard({
               : sentence.orderInSegment + 1}
           </span>
         </div>
+        <ScriptProsodyDisplay
+          strength={sentence.strength}
+          pauseAfter={sentence.pauseAfter}
+          prosody={sentence.prosody}
+          className="mb-3"
+        />
         <div className="text-foreground">
           <p>{displayText}</p>
           {shouldShowToggle && (

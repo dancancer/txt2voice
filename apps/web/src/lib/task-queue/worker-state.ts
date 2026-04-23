@@ -2,6 +2,10 @@ import type Bull from "bull";
 import { buildAutoPipelineBookMetadata, readAutoPipelineCompensationTaskId } from "@/lib/auto-pipeline-trigger-metadata";
 import prisma from "@/lib/prisma";
 import { jsonObject, mergeTaskData } from "@/lib/processing-task-utils";
+import {
+  CANCELED_TASK_STATUS,
+  TaskCanceledError,
+} from "@/lib/task-cancellation";
 import { readGovernanceState } from "@/lib/deep-gate-calibration-governance/parsers";
 import type { QueueTaskType } from "./replay-payload";
 
@@ -47,6 +51,15 @@ export async function markTaskAttemptStart(
   taskId: string,
   job: Bull.Job<unknown>
 ): Promise<void> {
+  const task = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: { status: true },
+  });
+
+  if (task?.status === CANCELED_TASK_STATUS) {
+    throw new TaskCanceledError(taskId);
+  }
+
   const taskData = await mergeTaskData(taskId, {
     message: "任务已进入执行队列",
     metadata: {
@@ -72,6 +85,15 @@ async function touchTaskHeartbeat(
   taskId: string,
   job: Bull.Job<unknown>
 ): Promise<void> {
+  const task = await prisma.processingTask.findUnique({
+    where: { id: taskId },
+    select: { status: true },
+  });
+
+  if (task?.status === CANCELED_TASK_STATUS) {
+    return;
+  }
+
   const taskData = await mergeTaskData(taskId, {
     metadata: {
       queueJobId: String(job.id || taskId),
@@ -127,8 +149,13 @@ export async function markTaskFailed(
 ): Promise<void> {
   const taskSnapshot = await prisma.processingTask.findUnique({
     where: { id: taskId },
-    select: { taskData: true },
+    select: { taskData: true, status: true },
   });
+
+  if (taskSnapshot?.status === CANCELED_TASK_STATUS) {
+    return;
+  }
+
   const taskRoot = jsonObject(taskSnapshot?.taskData);
   const taskMetadata =
     taskRoot.metadata && typeof taskRoot.metadata === "object" && !Array.isArray(taskRoot.metadata)

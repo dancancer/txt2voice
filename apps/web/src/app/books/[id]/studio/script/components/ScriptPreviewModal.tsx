@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScriptSentence } from "./types";
+import { ScriptProsodyDisplay } from "./prosody-display";
 
 interface ScriptPreviewModalProps {
   scriptSentences: ScriptSentence[];
@@ -55,6 +56,13 @@ export function ScriptPreviewModal({
                   )}
                 </div>
                 <p className="text-foreground">{sentence.text}</p>
+                <ScriptProsodyDisplay
+                  strength={sentence.strength}
+                  pauseAfter={sentence.pauseAfter}
+                  prosody={sentence.prosody}
+                  compact
+                  className="mt-2"
+                />
               </div>
             ))}
           </div>

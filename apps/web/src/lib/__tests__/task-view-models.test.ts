@@ -1,4 +1,7 @@
-import { getTaskChildJobSummaries } from "@/lib/view-models/tasks";
+import {
+  getTaskChildJobSummaries,
+  getTaskStatusMeta,
+} from "@/lib/view-models/tasks";
 
 describe("task view models", () => {
   it("should derive llm and audio child job summaries from task metadata", () => {
@@ -74,5 +77,12 @@ describe("task view models", () => {
     });
 
     expect(summaries).toEqual([]);
+  });
+
+  it("should expose canceled status meta", () => {
+    expect(getTaskStatusMeta("canceled")).toEqual({
+      label: "已取消",
+      className: "bg-amber-100 text-amber-700",
+    });
   });
 });
