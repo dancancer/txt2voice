@@ -57,11 +57,15 @@ export interface TTSRequest {
   beamSearch?: boolean;
   topK?: number;
   topP?: number;
-  controlInstruction?: string;
-  cfgValue?: number;
-  inferenceTimesteps?: number;
-  normalize?: boolean;
-  denoise?: boolean;
+  providerParams?: {
+    voxcpm?: {
+      controlInstruction?: string;
+      cfgValue?: number;
+      inferenceTimesteps?: number;
+      normalize?: boolean;
+      denoise?: boolean;
+    };
+  };
 }
 
 export interface TTSResponse {

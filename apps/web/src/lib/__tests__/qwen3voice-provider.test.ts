@@ -87,6 +87,12 @@ describe("qwen3voice provider", () => {
       temperature: 0.6,
       topP: 0.8,
       topK: 16,
+      providerParams: {
+        voxcpm: {
+          controlInstruction: "不应发送给 Qwen3Voice",
+          cfgValue: 2,
+        },
+      },
     });
 
     expect(fetchMock).toHaveBeenNthCalledWith(

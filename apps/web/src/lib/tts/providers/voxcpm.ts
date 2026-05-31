@@ -61,8 +61,9 @@ const compact = (items: Array<string | null | undefined>): string[] =>
   items.filter((item): item is string => Boolean(item && item.trim()));
 
 const resolveControlInstruction = (request: TTSRequest): string | undefined => {
-  if (request.controlInstruction?.trim()) {
-    return request.controlInstruction.trim();
+  const voxcpmParams = request.providerParams?.voxcpm;
+  if (voxcpmParams?.controlInstruction?.trim()) {
+    return voxcpmParams.controlInstruction.trim();
   }
 
   const hints = compact([
@@ -95,15 +96,16 @@ export class VoxCPMTTSService {
   }
 
   async synthesize(request: TTSRequest): Promise<TTSResponse> {
+    const voxcpmParams = request.providerParams?.voxcpm || {};
     const controlInstruction = resolveControlInstruction(request);
     const result = await this.service.synthesize({
       text: request.text,
       referenceAudio: request.referenceAudio,
       controlInstruction,
-      cfgValue: request.cfgValue,
-      inferenceTimesteps: request.inferenceTimesteps,
-      normalize: request.normalize ?? true,
-      denoise: request.denoise,
+      cfgValue: voxcpmParams.cfgValue,
+      inferenceTimesteps: voxcpmParams.inferenceTimesteps,
+      normalize: voxcpmParams.normalize ?? true,
+      denoise: voxcpmParams.denoise,
     });
 
     return createRemoteAudioResponse(

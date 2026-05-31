@@ -69,9 +69,13 @@ describe("voxcpm provider", () => {
       outputFormat: "wav",
       emotion: "calm",
       style: "narration",
-      cfgValue: 2,
-      inferenceTimesteps: 10,
-      normalize: true,
+      providerParams: {
+        voxcpm: {
+          cfgValue: 2,
+          inferenceTimesteps: 10,
+          normalize: true,
+        },
+      },
     });
 
     const payload = JSON.parse(fetchMock.mock.calls[0][1].body as string);

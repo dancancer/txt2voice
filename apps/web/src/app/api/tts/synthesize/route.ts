@@ -75,11 +75,18 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         temperature,
         topK,
         topP,
-        controlInstruction,
-        cfgValue,
-        inferenceTimesteps,
-        normalize,
-        denoise,
+        providerParams:
+          provider === "voxcpm"
+            ? {
+                voxcpm: {
+                  controlInstruction,
+                  cfgValue,
+                  inferenceTimesteps,
+                  normalize,
+                  denoise,
+                },
+              }
+            : undefined,
       },
       provider
     );
