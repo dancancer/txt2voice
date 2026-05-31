@@ -5,6 +5,14 @@ const { buildSegmentFailedReviewTaskLinks } = jest.requireActual(
   "@/app/books/[id]/studio/script/page-container/hooks/useScriptStudioData"
 );
 const mockSearchParams = new URLSearchParams();
+const setMockNodeParam = (value: string | null) => {
+  if (value) {
+    mockSearchParams.set("node", value);
+    return;
+  }
+
+  mockSearchParams.delete("node");
+};
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
@@ -465,6 +473,7 @@ describe("script studio model switching", () => {
     global.fetch = originalFetch;
     global.EventSource = originalEventSource;
     document.body.innerHTML = "";
+    setMockNodeParam(null);
     jest.clearAllMocks();
   });
 
@@ -562,6 +571,7 @@ describe("script studio model switching", () => {
   });
 
   it("triggers single-segment regeneration from the current segment entry", async () => {
+    setMockNodeParam("segment:segment-1");
     global.fetch = jest
       .fn()
       .mockResolvedValueOnce({
@@ -597,19 +607,9 @@ describe("script studio model switching", () => {
       await Promise.resolve();
     });
 
-    const selectSegmentButton = Array.from(container.querySelectorAll("button")).find(
-      (item) => item.textContent === "选择段落"
-    ) as HTMLButtonElement | undefined;
-    expect(selectSegmentButton).toBeDefined();
-
-    await act(async () => {
-      selectSegmentButton!.click();
-      await Promise.resolve();
-    });
-
     const regenerateCurrentSegmentButton = Array.from(
       container.querySelectorAll("button")
-    ).find((item) => item.textContent === "重生当前段落") as
+    ).find((item) => item.textContent === "当前段落台本生成") as
       | HTMLButtonElement
       | undefined;
 
@@ -640,19 +640,10 @@ describe("script studio model switching", () => {
   });
 
   it("renders review failure links for chapter rows and current segment header", async () => {
+    setMockNodeParam("chapter:chapter-1");
     const { container, root } = await mount(<ScriptStudioPageContainer />);
 
     await act(async () => {
-      await Promise.resolve();
-    });
-
-    const selectChapterButton = Array.from(container.querySelectorAll("button")).find(
-      (item) => item.textContent === "选择章节"
-    ) as HTMLButtonElement | undefined;
-    expect(selectChapterButton).toBeDefined();
-
-    await act(async () => {
-      selectChapterButton!.click();
       await Promise.resolve();
     });
 
@@ -664,13 +655,9 @@ describe("script studio model switching", () => {
       "/books/book-1/review#task-task-failed-1"
     );
 
-    const selectSegmentButton = Array.from(container.querySelectorAll("button")).find(
-      (item) => item.textContent === "选择段落"
-    ) as HTMLButtonElement | undefined;
-    expect(selectSegmentButton).toBeDefined();
-
+    setMockNodeParam("segment:segment-1");
     await act(async () => {
-      selectSegmentButton!.click();
+      root.render(<ScriptStudioPageContainer />);
       await Promise.resolve();
     });
 

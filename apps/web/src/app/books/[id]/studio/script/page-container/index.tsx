@@ -30,7 +30,6 @@ import { useScriptScopeActions } from "./hooks/actions/useScriptScopeActions";
 import { useScriptSentenceActions } from "./hooks/actions/useScriptSentenceActions";
 import {
   buildScriptStudioHref,
-  isSameScriptStudioNode,
   parseScriptStudioNodeQuery,
 } from "./node-query";
 
@@ -44,9 +43,7 @@ export function ScriptStudioPageContainer() {
     null
   );
   const [showScriptPreview, setShowScriptPreview] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<ScriptNavigationNode>(() =>
-    parseScriptStudioNodeQuery(bookId, searchParams.get("node"))
-  );
+  const selectedNode = parseScriptStudioNodeQuery(bookId, searchParams.get("node"));
 
   const {
     book,
@@ -134,15 +131,7 @@ export function ScriptStudioPageContainer() {
     return () => controller.abort();
   }, [loadBookAndData]);
 
-  useEffect(() => {
-    const nextNode = parseScriptStudioNodeQuery(bookId, searchParams.get("node"));
-    setSelectedNode((currentNode) =>
-      isSameScriptStudioNode(currentNode, nextNode) ? currentNode : nextNode
-    );
-  }, [bookId, searchParams]);
-
   const handleSelectNode = (node: ScriptNavigationNode) => {
-    setSelectedNode(node);
     router.replace(buildScriptStudioHref(bookId, node), { scroll: false });
   };
 

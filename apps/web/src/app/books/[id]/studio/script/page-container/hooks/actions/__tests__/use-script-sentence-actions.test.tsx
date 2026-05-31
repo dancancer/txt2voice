@@ -23,10 +23,13 @@ jest.mock("sonner", () => ({
 type HookApi = ReturnType<typeof useScriptSentenceActions>;
 
 const renderHook = async (params: Parameters<typeof useScriptSentenceActions>[0]) => {
-  let api: HookApi | null = null;
+  const apiRef = { current: null as HookApi | null };
 
   function TestComponent() {
-    api = useScriptSentenceActions(params);
+    const api = useScriptSentenceActions(params);
+    React.useEffect(() => {
+      apiRef.current = api;
+    }, [api]);
     return null;
   }
 
@@ -40,10 +43,10 @@ const renderHook = async (params: Parameters<typeof useScriptSentenceActions>[0]
 
   return {
     getApi: () => {
-      if (!api) {
+      if (!apiRef.current) {
         throw new Error("hook api unavailable");
       }
-      return api;
+      return apiRef.current;
     },
     root,
     container,
@@ -170,4 +173,3 @@ describe("useScriptSentenceActions", () => {
     await unmount(root, container);
   });
 });
-
