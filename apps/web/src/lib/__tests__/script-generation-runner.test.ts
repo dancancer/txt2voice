@@ -880,13 +880,15 @@ describe("script-generation-runner", () => {
   });
 
   it("should restore previous stable status after sample run instead of leaving generating_script", async () => {
-    mockTaskFindUnique.mockResolvedValueOnce({
-      taskData: {
-        metadata: {
-          previousBookStatus: "processed",
+    mockTaskFindUnique
+      .mockResolvedValueOnce({ status: "processing" })
+      .mockResolvedValueOnce({
+        taskData: {
+          metadata: {
+            previousBookStatus: "processed",
+          },
         },
-      },
-    });
+      });
     mockPrisma.book.findUnique.mockResolvedValueOnce({
       id: "book-1",
       status: "generating_script",

@@ -157,16 +157,18 @@ describe("quality-check-runner signal sync integration", () => {
   });
 
   it("should skip signal sync when explicitly disabled", async () => {
-    mockFindTask.mockResolvedValueOnce({
-      taskData: {
-        metadata: {
-          type: "batch",
-          source: "upload_api",
-          audioFileIds: ["audio-1"],
-          syncSignalsBeforeRun: false,
+    mockFindTask
+      .mockResolvedValueOnce({ status: "processing" })
+      .mockResolvedValueOnce({
+        taskData: {
+          metadata: {
+            type: "batch",
+            source: "upload_api",
+            audioFileIds: ["audio-1"],
+            syncSignalsBeforeRun: false,
+          },
         },
-      },
-    });
+      });
 
     await runQualityCheckTask({
       taskId: "qc-task-2",
@@ -180,16 +182,18 @@ describe("quality-check-runner signal sync integration", () => {
   });
 
   it("should persist recent runtime events for quality check task metadata", async () => {
-    mockFindTask.mockResolvedValueOnce({
-      taskData: {
-        metadata: {
-          type: "batch",
-          source: "upload_api",
-          audioFileIds: ["audio-1"],
-          syncSignalsBeforeRun: false,
+    mockFindTask
+      .mockResolvedValueOnce({ status: "processing" })
+      .mockResolvedValueOnce({
+        taskData: {
+          metadata: {
+            type: "batch",
+            source: "upload_api",
+            audioFileIds: ["audio-1"],
+            syncSignalsBeforeRun: false,
+          },
         },
-      },
-    });
+      });
 
     await runQualityCheckTask({
       taskId: "qc-task-runtime-events",

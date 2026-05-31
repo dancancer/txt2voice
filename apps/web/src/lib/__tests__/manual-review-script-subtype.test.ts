@@ -86,7 +86,7 @@ describe("manual-review-script-subtype", () => {
 
     expect(query).toMatchObject({
       issueType: "SCRIPT_VALIDATION",
-      recommendedAction: "retry_requested",
+      recommendedAction: "regenerate",
     });
   });
 
@@ -144,7 +144,7 @@ describe("manual-review-script-subtype", () => {
       offset: 0,
       status: "pending",
       issueType: "SCRIPT_VALIDATION",
-      recommendedAction: "retry_requested",
+      recommendedAction: "regenerate",
     } as any);
 
     expect(mockCount).toHaveBeenNthCalledWith(1, {
@@ -169,7 +169,7 @@ describe("manual-review-script-subtype", () => {
     expect(result.data[0]).toMatchObject({
       issueType: "SCRIPT_VALIDATION",
       issueSubtype: "COVERAGE",
-      recommendedAction: "retry_requested",
+      recommendedAction: "regenerate",
     });
   });
 });

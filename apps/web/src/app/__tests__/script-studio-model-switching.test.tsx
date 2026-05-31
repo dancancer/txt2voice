@@ -4,13 +4,15 @@ import { ScriptStudioPageContainer } from "@/app/books/[id]/studio/script/page-c
 const { buildSegmentFailedReviewTaskLinks } = jest.requireActual(
   "@/app/books/[id]/studio/script/page-container/hooks/useScriptStudioData"
 );
+const mockSearchParams = new URLSearchParams();
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT =
   true;
 
 jest.mock("next/navigation", () => ({
   useParams: () => ({ id: "book-1" }),
-  useRouter: () => ({ back: jest.fn() }),
+  useRouter: () => ({ back: jest.fn(), replace: jest.fn() }),
+  useSearchParams: () => mockSearchParams,
 }));
 
 jest.mock("sonner", () => ({
@@ -76,6 +78,56 @@ const mockFailedReviewTaskLink = {
 };
 
 jest.mock("@/app/books/[id]/studio/script/components", () => ({
+  BookWorkbench: ({
+    llmModels,
+    selectedLLMModelId,
+    onSelectLLMModelId,
+    onGenerateBookScript,
+  }: {
+    llmModels: Array<{ id: string; displayName?: string; name?: string }>;
+    selectedLLMModelId?: string;
+    onSelectLLMModelId: (id: string) => void;
+    onGenerateBookScript: () => void;
+  }) => (
+    <div>
+      <select
+        aria-label="台本模型"
+        value={selectedLLMModelId || ""}
+        onChange={(event) => onSelectLLMModelId(event.target.value)}
+      >
+        {llmModels.map((model) => (
+          <option key={model.id} value={model.id}>
+            {model.displayName || model.name || model.id}
+          </option>
+        ))}
+      </select>
+      <button type="button" onClick={onGenerateBookScript}>
+        全书台本生成
+      </button>
+    </div>
+  ),
+  ChapterWorkbench: ({
+    segments,
+    failedReviewTaskBySegment,
+  }: {
+    segments: Array<{ id: string }>;
+    failedReviewTaskBySegment?: Map<
+      string,
+      { taskId: string; reviewUrl: string; updatedAt: string }
+    >;
+  }) => (
+    <div>
+      {segments.map((segment) => {
+        const taskLink = failedReviewTaskBySegment?.get(segment.id);
+        return (
+          <div key={segment.id} data-testid={`segment-row-${segment.id}`}>
+            <span>{segment.id}</span>
+            {taskLink ? <a href={taskLink.reviewUrl}>查看质检失败</a> : null}
+          </div>
+        );
+      })}
+    </div>
+  ),
   DocumentTree: ({
     onSelect,
   }: {
@@ -99,26 +151,18 @@ jest.mock("@/app/books/[id]/studio/script/components", () => ({
       </button>
     </div>
   ),
-  ChapterSegmentsTable: ({
-    segments,
-    failedReviewTaskBySegment,
+  SegmentWorkbench: ({
+    failedReviewTask,
+    onRegenerateScript,
   }: {
-    segments: Array<{ id: string }>;
-    failedReviewTaskBySegment?: Map<
-      string,
-      { taskId: string; reviewUrl: string; updatedAt: string }
-    >;
+    failedReviewTask?: { taskId: string; reviewUrl: string; updatedAt: string } | null;
+    onRegenerateScript: () => void;
   }) => (
     <div>
-      {segments.map((segment) => {
-        const taskLink = failedReviewTaskBySegment?.get(segment.id);
-        return (
-          <div key={segment.id} data-testid={`segment-row-${segment.id}`}>
-            <span>{segment.id}</span>
-            {taskLink ? <a href={taskLink.reviewUrl}>查看质检失败</a> : null}
-          </div>
-        );
-      })}
+      <button type="button" onClick={onRegenerateScript}>
+        当前段落台本生成
+      </button>
+      {failedReviewTask ? <a href={failedReviewTask.reviewUrl}>查看质检失败</a> : null}
     </div>
   ),
   EditSentenceModal: () => null,
