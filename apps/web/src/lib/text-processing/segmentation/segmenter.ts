@@ -1,12 +1,10 @@
 import { CONFIG } from "../../constants";
 import { logger } from "../../logger";
-import { calculateTextLength, smartSplitText } from "../../text-splitter";
 import {
   SmartTextSplitter,
   validateSegmentQuality,
 } from "../../smart-text-splitter";
 import { countWords } from "../core/cleaning";
-import { detectContentType } from "./content-type";
 import { detectSegmentType } from "./segment-classification";
 import type { TextProcessingOptions, TextSegmentData } from "../types";
 
@@ -22,19 +20,15 @@ export function segmentText(
   const {
     maxSegmentLength = CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH,
     minSegmentLength = CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
-    useSmartSplitter = true,
   } = options;
 
   logger.info("Starting text segmentation", {
     contentLength: content.length,
     maxSegmentLength,
     minSegmentLength,
-    useSmartSplitter,
   });
 
-  const segments = useSmartSplitter
-    ? segmentWithSmartSplitter(content, options)
-    : segmentWithTraditionalSplitter(content, options);
+  const segments = segmentWithSmartSplitter(content, options);
 
   logger.info("Text segmentation completed", {
     totalSegments: segments.length,
@@ -45,7 +39,7 @@ export function segmentText(
               segments.length
           )
         : 0,
-    method: useSmartSplitter ? "smart_splitter" : "traditional",
+    method: "smart_splitter",
   });
 
   return segments;
@@ -115,73 +109,4 @@ function segmentWithSmartSplitter(
       },
     };
   });
-}
-
-function segmentWithTraditionalSplitter(
-  content: string,
-  options: TextProcessingOptions
-): TextSegmentData[] {
-  const {
-    maxSegmentLength = CONFIG.TEXT_PROCESSING.MAX_SEGMENT_LENGTH,
-    minSegmentLength = CONFIG.TEXT_PROCESSING.MIN_SEGMENT_LENGTH,
-  } = options;
-
-  const contentType = detectContentType(content);
-  logger.debug("Content type detected", { contentType });
-
-  const chunks = smartSplitText(content, {
-    contentType,
-    chunkSize: maxSegmentLength,
-    chunkOverlap: Math.floor(maxSegmentLength * 0.05),
-  });
-
-  const segments: TextSegmentData[] = [];
-  let segmentOrder = 0;
-
-  for (const chunk of chunks) {
-    const length = calculateTextLength(chunk);
-
-    if (length >= minSegmentLength) {
-      segments.push(createTextSegment(chunk, segmentOrder++));
-      continue;
-    }
-
-    if (segments.length > 0) {
-      const lastSegment = segments[segments.length - 1];
-      const mergedContent = `${lastSegment.content}\n\n${chunk}`;
-      const mergedLength = calculateTextLength(mergedContent);
-
-      if (mergedLength <= maxSegmentLength * 1.2) {
-        lastSegment.content = mergedContent;
-        lastSegment.wordCount = countWords(mergedContent);
-        lastSegment.metadata = {
-          ...lastSegment.metadata,
-          characterCount: mergedContent.length,
-          merged: true,
-        };
-      } else {
-        segments.push(createTextSegment(chunk, segmentOrder++));
-      }
-    } else {
-      segments.push(createTextSegment(chunk, segmentOrder++));
-    }
-  }
-
-  return segments;
-}
-
-function createTextSegment(content: string, order: number): TextSegmentData {
-  const cleanedContent = content.trim();
-
-  return {
-    order,
-    content: cleanedContent,
-    wordCount: countWords(cleanedContent),
-    type: detectSegmentType(cleanedContent),
-    metadata: {
-      characterCount: cleanedContent.length,
-      hasDialogue: /[""「」].*?[""「」]/.test(cleanedContent),
-      hasDescription: /[，。！？；：]/.test(cleanedContent),
-    },
-  };
 }

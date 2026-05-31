@@ -51,6 +51,37 @@ export async function buildTTSRequest(params: {
   const tone =
     typeof scriptSentence.tone === "string" ? scriptSentence.tone.trim() : "";
   const routeEmotion = routeAttemptContext?.routeDecision.emotionLabel || undefined;
+  const controlInstruction =
+    request.overrides?.controlInstruction ||
+    (typeof ttsHints.controlInstruction === "string"
+      ? ttsHints.controlInstruction
+      : undefined) ||
+    (typeof sentenceTtsParams.controlInstruction === "string"
+      ? sentenceTtsParams.controlInstruction
+      : undefined) ||
+    (typeof defaultParameters.controlInstruction === "string"
+      ? defaultParameters.controlInstruction
+      : undefined);
+  const cfgValue = normalizeNumber(
+    request.overrides?.cfgValue ??
+      ttsHints.cfgValue ??
+      ttsHints.cfg_value ??
+      sentenceTtsParams.cfgValue ??
+      sentenceTtsParams.cfg_value ??
+      defaultParameters.cfgValue ??
+      defaultParameters.cfg_value,
+    Number.NaN
+  );
+  const inferenceTimesteps = normalizeNumber(
+    request.overrides?.inferenceTimesteps ??
+      ttsHints.inferenceTimesteps ??
+      ttsHints.inference_timesteps ??
+      sentenceTtsParams.inferenceTimesteps ??
+      sentenceTtsParams.inference_timesteps ??
+      defaultParameters.inferenceTimesteps ??
+      defaultParameters.inference_timesteps,
+    Number.NaN
+  );
 
   return {
     text: scriptSentence.text,
@@ -93,5 +124,14 @@ export async function buildTTSRequest(params: {
       request.overrides?.style ||
       resolveStyleFromTone(tone, voice.style) ||
       voice.style[0],
+    controlInstruction,
+    ...(Number.isFinite(cfgValue) ? { cfgValue } : {}),
+    ...(Number.isFinite(inferenceTimesteps) ? { inferenceTimesteps } : {}),
+    ...(typeof request.overrides?.normalize === "boolean"
+      ? { normalize: request.overrides.normalize }
+      : {}),
+    ...(typeof request.overrides?.denoise === "boolean"
+      ? { denoise: request.overrides.denoise }
+      : {}),
   };
 }

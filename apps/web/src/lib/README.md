@@ -32,13 +32,12 @@
 - smart-text-splitter.ts | 地位: 功能模块 | 功能: 提供 smart text splitter 相关能力
 - status.ts | 地位: 功能模块 | 功能: 提供 status 相关能力
 - test-debug.ts | 地位: 功能模块 | 功能: 提供 test debug 相关能力
-- test-text-splitter.ts | 地位: 功能模块 | 功能: 提供 test text splitter 相关能力
 - test-with-real-file.js | 地位: 测试脚本 | 功能: 用于 test with real file 相关调试与验证
 - text-processor.ts | 地位: 功能模块 | 功能: 提供 text processor 相关能力
-- text-splitter.ts | 地位: 功能模块 | 功能: 提供 text splitter 相关能力
 - task-queue.ts | 地位: 功能模块 | 功能: 提供队列执行、心跳恢复、重放能力
 - task-replay-auth.ts | 地位: 功能模块 | 功能: 提供任务重放鉴权能力
 - tts-service.ts | 地位: 功能模块 | 功能: 提供 tts service 相关能力
+- tts | 地位: 领域目录 | 功能: 提供统一 TTS provider manager、共享类型与 provider 实现
 - types.ts | 地位: 类型定义 | 功能: 定义本目录共享类型
 - utils.ts | 地位: 功能模块 | 功能: 提供 utils 相关能力
 - validation.ts | 地位: 功能模块 | 功能: 提供 validation 相关能力

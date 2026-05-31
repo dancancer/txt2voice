@@ -452,7 +452,7 @@ describe("script-generation-runner", () => {
     });
   });
 
-  it("should route full generation through runtime bridge instead of legacy generator", async () => {
+  it("should route full generation through script production runtime", async () => {
     mockRunScriptProductionWorkflow.mockResolvedValue(createSuccessfulScript());
 
     await runScriptGenerationTask({

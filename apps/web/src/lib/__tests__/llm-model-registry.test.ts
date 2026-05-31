@@ -95,26 +95,10 @@ describe("llm-model-registry", () => {
     });
   });
 
-  it("falls back to a legacy single model entry when registry json is missing", () => {
-    const registry = getLLMModelRegistrySnapshot({
-      LLM_PROVIDER: "custom",
-      LLM_API_KEY: "legacy-key",
-      LLM_BASE_URL: "https://api.deepseek.com/v1",
-      LLM_MODEL: "deepseek-chat",
-    } as unknown as NodeJS.ProcessEnv);
-
-    expect(registry.source).toBe("legacy");
-    expect(registry.defaultModelId).toBe("legacy-default");
-    expect(registry.models).toEqual([
-      {
-        id: "legacy-default",
-        label: "Legacy Default",
-        provider: "custom",
-        apiKey: "legacy-key",
-        baseURL: "https://api.deepseek.com/v1",
-        model: "deepseek-chat",
-      },
-    ]);
+  it("throws when registry json is missing", () => {
+    expect(() =>
+      getLLMModelRegistrySnapshot({} as unknown as NodeJS.ProcessEnv)
+    ).toThrow(/LLM_MODELS_JSON|未设置/i);
   });
 
   it("throws when registry ids are duplicated", () => {

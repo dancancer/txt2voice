@@ -195,11 +195,6 @@ export const parseAutoPipelineOptions = (
             preserveFormatting: textProcessing.preserveFormatting,
           }
         : {}),
-      ...(typeof textProcessing.useSmartSplitter === "boolean"
-        ? {
-            useSmartSplitter: textProcessing.useSmartSplitter,
-          }
-        : {}),
     },
     scriptGeneration: scriptGeneration as Partial<ScriptGenerationOptions>,
     audioGeneration: {

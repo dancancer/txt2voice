@@ -75,10 +75,6 @@ jest.mock("@/lib/script-generation-runner", () => ({
   runScriptGenerationTask: jest.fn(),
 }));
 
-jest.mock("@/lib/task-queue/namespace-check", () => ({
-  warnIfLegacyNamespaceHasPendingJobs: jest.fn(),
-}));
-
 jest.mock("@/lib/task-queue/worker-state", () => ({
   handleWorkerFailure: jest.fn(),
   markTaskAttemptStart: jest.fn(),

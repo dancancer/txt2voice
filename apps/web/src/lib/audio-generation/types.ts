@@ -16,6 +16,11 @@ export interface AudioGenerationRequest {
     volume?: number;
     emotion?: string;
     style?: string;
+    controlInstruction?: string;
+    cfgValue?: number;
+    inferenceTimesteps?: number;
+    normalize?: boolean;
+    denoise?: boolean;
   };
   outputFormat?: "mp3" | "wav" | "ogg";
 }

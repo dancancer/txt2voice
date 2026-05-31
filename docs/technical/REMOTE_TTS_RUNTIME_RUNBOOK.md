@@ -35,8 +35,8 @@
 
 ```bash
 TASK_QUEUE_NAMESPACE=txt2voice:3001
-LLM_API_KEY=<有效值>
-LLM_MODEL=deepseek-chat
+LLM_DEFAULT_MODEL_ID=remote-qwen
+LLM_MODELS_JSON='[{"id":"remote-qwen","label":"Remote Qwen","provider":"custom","apiKey":"","baseURL":"http://192.168.88.9:8028/v1","model":"Qwen3.5-9B-GGUF-Q4_K_M"}]'
 LLM_MAX_CONCURRENCY=8
 AUDIO_SYNTHESIS_MAX_CONCURRENCY=6
 INDEXTTS_TIMEOUT=300000
@@ -255,7 +255,7 @@ PY
 1. `POST /api/books`
 2. `POST /api/books/[id]/upload`
 3. `POST /api/books/[id]/process`
-   - 推荐参数：`{"options":{"useSmartSplitter":false,"maxSegmentLength":1800,"minSegmentLength":600}}`
+   - 推荐参数：`{"options":{"maxSegmentLength":1800,"minSegmentLength":600}}`
 4. `POST /api/books/[id]/script/generate`
 5. 轮询 `GET /api/books/[id]/script/generate?includePreview=true&previewLines=10`
 6. `POST /api/books/[id]/audio/generate`
@@ -440,7 +440,7 @@ curl -sS -X POST "$BASE_URL/api/books/$BOOK_ID/upload" \
 ```bash
 curl -sS -X POST "$BASE_URL/api/books/$BOOK_ID/process" \
   -H 'Content-Type: application/json' \
-  -d '{"options":{"useSmartSplitter":false,"maxSegmentLength":1800,"minSegmentLength":600}}' \
+  -d '{"options":{"maxSegmentLength":1800,"minSegmentLength":600}}' \
   | jq .
 ```
 
@@ -538,7 +538,7 @@ node scripts/phase2-audio-validation.js \
 验收过程摘要：
 
 1. 上传成功。
-2. 文本处理成功，参数为 `useSmartSplitter=false, maxSegmentLength=1800, minSegmentLength=600`。
+2. 文本处理成功，参数为 `maxSegmentLength=1800, minSegmentLength=600`。
 3. 台本生成成功，`failedSegments=0`。
 4. 第 1 次全量音频生成（`batchSize=4`）出现 `VoxCPM 500`，成功 `54/80`。
 5. 第 2 次重跑（`batchSize=2`）收敛到 `75/80`。

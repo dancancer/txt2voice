@@ -89,8 +89,7 @@ pnpm docker:up
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL 连接串 |
 | `REDIS_URL` | Redis 连接串，Bull 队列依赖它启动 |
-| `LLM_DEFAULT_MODEL_ID` / `LLM_MODELS_JSON` | 可选的环境变量兜底配置；数据库里没有持久化模型时才会回退使用 |
-| `LLM_PROVIDER` / `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` | 旧版单模型兼容兜底；仅用于迁移或应急 |
+| `LLM_DEFAULT_MODEL_ID` / `LLM_MODELS_JSON` | 可选的环境变量配置；数据库里没有持久化模型时才会使用 |
 | `TASK_QUEUE_NAMESPACE` | 队列命名空间，用于多实例隔离 |
 | `QWEN3VOICE_API_URL` | Qwen3 Voice 服务地址 |
 | `UPLOAD_DIR` / `AUDIO_DIR` | 上传文件与音频产物落盘目录 |
@@ -104,8 +103,7 @@ LLM 配置说明：
 
 - 主入口是产品内设置页 `/settings/llm`，配置会落库持久化
 - 高级台本工作台会优先读取数据库里已配置的模型列表
-- `LLM_DEFAULT_MODEL_ID` + `LLM_MODELS_JSON` 只作为“数据库为空时”的兜底
-- 旧的 `LLM_PROVIDER` 单模型配置仍兼容，但仅建议用于迁移或应急
+- `LLM_DEFAULT_MODEL_ID` + `LLM_MODELS_JSON` 只作为“数据库为空时”的配置来源
 - 当前远端 `http://192.168.88.9:8028/v1/models` 实际返回的模型名是 `Qwen3.5-9B-GGUF-Q4_K_M`
 - 如果后续把远端服务切成 4B，只需要改配置里的 `model`，不需要改代码
 

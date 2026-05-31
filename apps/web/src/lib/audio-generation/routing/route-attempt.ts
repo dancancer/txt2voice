@@ -23,6 +23,16 @@ export function applyRouterPresetToRequest(
     typeof engineParams.style === "string" && engineParams.style.trim().length > 0
       ? engineParams.style.trim()
       : undefined;
+  const controlInstruction =
+    typeof engineParams.controlInstruction === "string" &&
+    engineParams.controlInstruction.trim().length > 0
+      ? engineParams.controlInstruction.trim()
+      : undefined;
+  const cfgValue = toFiniteNumber(engineParams.cfgValue ?? engineParams.cfg_value, null);
+  const inferenceTimesteps = toFiniteNumber(
+    engineParams.inferenceTimesteps ?? engineParams.inference_timesteps,
+    null
+  );
 
   return {
     ...request,
@@ -32,6 +42,13 @@ export function applyRouterPresetToRequest(
       ...(pitch !== null ? { pitch } : {}),
       ...(volume !== null ? { volume } : {}),
       ...(style ? { style } : {}),
+      ...(controlInstruction ? { controlInstruction } : {}),
+      ...(cfgValue !== null ? { cfgValue } : {}),
+      ...(inferenceTimesteps !== null ? { inferenceTimesteps } : {}),
+      ...(typeof engineParams.normalize === "boolean"
+        ? { normalize: engineParams.normalize }
+        : {}),
+      ...(typeof engineParams.denoise === "boolean" ? { denoise: engineParams.denoise } : {}),
       ...(request.overrides?.emotion ? {} : { emotion: preset.emotionLabel }),
     },
   };

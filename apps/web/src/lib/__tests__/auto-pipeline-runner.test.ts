@@ -34,7 +34,6 @@ describe("auto-pipeline-runner", () => {
         maxSegmentLength: 888,
         minSegmentLength: 66,
         preserveFormatting: false,
-        useSmartSplitter: true,
       },
       scriptGeneration: {
         includeNarration: true,
@@ -58,7 +57,6 @@ describe("auto-pipeline-runner", () => {
         maxSegmentLength: 888,
         minSegmentLength: 66,
         preserveFormatting: false,
-        useSmartSplitter: true,
       },
       scriptGeneration: {
         includeNarration: true,

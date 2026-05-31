@@ -5,8 +5,6 @@ export const TASK_QUEUE_NAMESPACE =
   process.env.TASK_QUEUE_NAMESPACE?.trim() ||
   `txt2voice:${(process.env.PORT || "3000").trim()}`;
 
-export const LEGACY_QUEUE_NAMESPACE = "txt2voice";
-
 export const SCRIPT_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:script-generation`;
 export const AUDIO_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:audio-generation`;
 export const AUDIO_SYNTHESIS_QUEUE_NAME = `${TASK_QUEUE_NAMESPACE}:audio-synthesis`;

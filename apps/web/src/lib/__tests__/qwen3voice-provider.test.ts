@@ -122,3 +122,5 @@ describe("qwen3voice provider", () => {
     });
   });
 });
+
+export {};

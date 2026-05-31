@@ -22,10 +22,6 @@ import {
   type ScriptProductionRuntimeMetadata,
 } from "./script-production-runtime-helpers";
 import {
-  isMastraShadowModeEnabled,
-  resolveStageExecutor,
-} from "./executor-policy";
-import {
   createScriptProductionRuntimeStore,
   type ScriptProductionRuntimeStore,
 } from "./script-production-runtime-store";
@@ -83,24 +79,6 @@ export const runScriptProductionWorkflow = async (
   const createId = deps.createId || createRuntimeId;
   const now = deps.now ?? (() => new Date());
   const runtimeStore = deps.runtimeStore || createScriptProductionRuntimeStore();
-  const executorPolicy = {
-    shadowModeEnabled: isMastraShadowModeEnabled(),
-    stageExecutors: {
-      character_discovery: resolveStageExecutor({
-        stageId: "character_discovery",
-      }),
-      segment_scripting: resolveStageExecutor({
-        stageId: "segment_scripting",
-      }),
-      segment_repair: resolveStageExecutor({
-        stageId: "segment_repair",
-      }),
-      quality_judgement: resolveStageExecutor({
-        stageId: "quality_judgement",
-      }),
-    },
-  };
-
   const book = (await loadBook({
     bookId: input.bookId,
     segmentIds: input.mode === "regenerate" ? input.segmentIds : undefined,
@@ -120,7 +98,7 @@ export const runScriptProductionWorkflow = async (
     throw new TTSError(
       input.mode === "regenerate" ? "没有找到指定的段落" : "没有可处理的文本段落",
       "TTS_SERVICE_DOWN",
-      "script-generator"
+      "script-production"
     );
   }
 
@@ -134,7 +112,7 @@ export const runScriptProductionWorkflow = async (
   const failedSegmentDetails: SegmentFailureDetail[] = [];
   const segmentOutcomeIndex: Array<{
     segmentId: string;
-    finalStatus: "success" | "failed";
+    finalStatus: "success" | "failed" | "manual_review";
     terminalStage: string;
     errorCode?: string;
   }> = [];
@@ -219,7 +197,6 @@ export const runScriptProductionWorkflow = async (
           processingTaskId: input.taskId ?? null,
           runtimeConfig: {
             mode: input.mode,
-            executorPolicy,
           },
           startedAt,
         });
@@ -349,8 +326,6 @@ export const runScriptProductionWorkflow = async (
         onStageResult: (stageResult) => {
           coordinatorStageResults.push(stageResult);
         },
-        executor: executorPolicy.stageExecutors.character_discovery,
-        shadowMode: executorPolicy.shadowModeEnabled,
         runCharacterDiscoveryStage: runDiscoveryStage,
         runPersistStage: runPersistCommitStage,
       });
@@ -386,12 +361,6 @@ export const runScriptProductionWorkflow = async (
             });
           },
           appendTrace: appendTrackedTrace,
-          executorPolicy: {
-            segmentScripting: executorPolicy.stageExecutors.segment_scripting,
-            segmentRepair: executorPolicy.stageExecutors.segment_repair,
-            qualityJudgement: executorPolicy.stageExecutors.quality_judgement,
-            shadowModeEnabled: executorPolicy.shadowModeEnabled,
-          },
           onStageResult: (stageResult) => {
             coordinatorStageResults.push(stageResult);
           },
@@ -432,11 +401,24 @@ export const runScriptProductionWorkflow = async (
         dialogueLines.push(...result.dialogueLines);
         segmentSummaries.push(result.summary);
         persistedSegments += 1;
-        segmentOutcomeIndex.push({
-          segmentId: segment.id,
-          finalStatus: "success",
-          terminalStage: "persist",
-        });
+        if (result.manualReviewFailure) {
+          failedSegmentIds.push(segment.id);
+          failedSegmentDetails.push(result.manualReviewFailure);
+          qualityRejectedCount += 1;
+          manualReviewRequiredCount += 1;
+          segmentOutcomeIndex.push({
+            segmentId: segment.id,
+            finalStatus: "manual_review",
+            terminalStage: result.manualReviewFailure.stage,
+            errorCode: result.manualReviewFailure.errorCode,
+          });
+        } else {
+          segmentOutcomeIndex.push({
+            segmentId: segment.id,
+            finalStatus: "success",
+            terminalStage: "persist",
+          });
+        }
 
         if (input.onProgress) {
           await input.onProgress(persistedSegments, segments.length);

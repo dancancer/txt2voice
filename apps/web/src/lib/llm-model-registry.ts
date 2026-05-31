@@ -15,7 +15,7 @@ export interface LLMModelRegistryItem {
 export interface LLMModelRegistrySnapshot {
   defaultModelId: string;
   models: LLMModelRegistryItem[];
-  source: "registry" | "legacy";
+  source: "registry";
 }
 
 type LLMModelRegistryEnv = NodeJS.ProcessEnv;
@@ -28,8 +28,6 @@ interface RawRegistryItem {
   baseURL?: unknown;
   model?: unknown;
 }
-
-const LEGACY_MODEL_ID = "legacy-default";
 
 const asString = (value: unknown): string => {
   return typeof value === "string" ? value.trim() : "";
@@ -108,29 +106,6 @@ const resolveRegistryDefault = (
   return defaultModelId;
 };
 
-const buildLegacySnapshot = (
-  env: LLMModelRegistryEnv
-): LLMModelRegistrySnapshot => {
-  const legacyModel: LLMModelRegistryItem = {
-    id: LEGACY_MODEL_ID,
-    label: "Legacy Default",
-    provider: asString(env.LLM_PROVIDER) || "custom",
-    apiKey: asString(env.LLM_API_KEY) || asString(env.OPENAI_API_KEY),
-    ...(asString(env.LLM_BASE_URL) || asString(env.OPENAI_BASE_URL)
-      ? {
-          baseURL: asString(env.LLM_BASE_URL) || asString(env.OPENAI_BASE_URL),
-        }
-      : {}),
-    model: asString(env.LLM_MODEL) || "gpt-3.5-turbo",
-  };
-
-  return {
-    defaultModelId: LEGACY_MODEL_ID,
-    models: [legacyModel],
-    source: "legacy",
-  };
-};
-
 const getModelFromRegistry = (
   registry: LLMModelRegistrySnapshot,
   modelId: string
@@ -149,7 +124,7 @@ export function getLLMModelRegistrySnapshot(
   const rawModelsJson = asString(env.LLM_MODELS_JSON);
 
   if (!rawModelsJson) {
-    return buildLegacySnapshot(env);
+    throw new Error("LLM_MODELS_JSON 未设置");
   }
 
   const models = parseRegistryJson(rawModelsJson);

@@ -10,4 +10,5 @@ export type {
 } from "@/lib/tts/types";
 
 export { Qwen3VoiceTTSService } from "@/lib/tts/providers/qwen3voice";
+export { VoxCPMTTSService } from "@/lib/tts/providers/voxcpm";
 export { TTSServiceManager, ttsServiceManager } from "@/lib/tts/service-manager";

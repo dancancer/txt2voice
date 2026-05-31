@@ -60,19 +60,24 @@ describe("llm provider and client", () => {
     });
   });
 
-  it("resolves configured provider with expected env priority", async () => {
+  it("resolves the configured provider from the registry env", async () => {
     const { getConfiguredLLMProvider } = await import("@/lib/llm/provider");
 
-    process.env.OPENAI_API_KEY = "openai-fallback-key";
-    process.env.OPENAI_BASE_URL = "https://fallback.base.url/v1";
-    process.env.LLM_PROVIDER = "custom";
-    process.env.LLM_API_KEY = "llm-priority-key";
-    process.env.LLM_BASE_URL = "https://llm.base.url/v1";
-    process.env.LLM_MODEL = "deepseek-chat";
+    process.env.LLM_MODELS_JSON = JSON.stringify([
+      {
+        id: "deepseek-cloud",
+        label: "DeepSeek Cloud",
+        provider: "custom",
+        apiKey: "llm-registry-key",
+        baseURL: "https://llm.base.url/v1",
+        model: "deepseek-chat",
+      },
+    ]);
+    process.env.LLM_DEFAULT_MODEL_ID = "deepseek-cloud";
 
     expect(getConfiguredLLMProvider()).toEqual({
       name: "custom",
-      apiKey: "llm-priority-key",
+      apiKey: "llm-registry-key",
       baseURL: "https://llm.base.url/v1",
       model: "deepseek-chat",
     });
@@ -144,8 +149,17 @@ describe("llm provider and client", () => {
     const { getConfiguredLLMProvider } = await import("@/lib/llm/provider");
     const { TTSError } = await import("@/lib/error-handler");
 
-    delete process.env.LLM_API_KEY;
-    delete process.env.OPENAI_API_KEY;
+    process.env.LLM_MODELS_JSON = JSON.stringify([
+      {
+        id: "deepseek-cloud",
+        label: "DeepSeek Cloud",
+        provider: "custom",
+        apiKey: "",
+        baseURL: "https://api.deepseek.com/v1",
+        model: "deepseek-chat",
+      },
+    ]);
+    process.env.LLM_DEFAULT_MODEL_ID = "deepseek-cloud";
 
     try {
       getConfiguredLLMProvider();

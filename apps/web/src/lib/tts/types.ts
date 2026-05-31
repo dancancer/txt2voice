@@ -6,7 +6,7 @@ import type { EmotionVector } from "@/lib/indextts-service";
 
 export interface TTSProvider {
   name: string;
-  type: "qwen3voice" | "custom";
+  type: "qwen3voice" | "voxcpm" | "custom";
   apiKey?: string;
   region?: string;
   endpoint?: string;
@@ -57,6 +57,11 @@ export interface TTSRequest {
   beamSearch?: boolean;
   topK?: number;
   topP?: number;
+  controlInstruction?: string;
+  cfgValue?: number;
+  inferenceTimesteps?: number;
+  normalize?: boolean;
+  denoise?: boolean;
 }
 
 export interface TTSResponse {

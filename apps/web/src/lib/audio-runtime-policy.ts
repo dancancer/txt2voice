@@ -4,6 +4,7 @@
 // pos: 共享业务库
 export type AudioRuntimeProvider =
   | "qwen3voice"
+  | "voxcpm"
   | "mixed";
 
 export interface AudioSynthProbePolicy {
@@ -37,6 +38,19 @@ const AUDIO_RUNTIME_POLICIES: Record<AudioRuntimeProvider, AudioRuntimePolicy> =
       voiceId: "",
     },
   },
+  voxcpm: {
+    provider: "voxcpm",
+    firstPassConcurrency: 1,
+    retryPassConcurrency: 1,
+    rescuePassConcurrency: 1,
+    cooldownMs: 1200,
+    maxPasses: 3,
+    synthProbe: {
+      text: "系统探针。",
+      requiresReferenceAudio: false,
+      voiceId: "__voxcpm_default__",
+    },
+  },
   mixed: {
     provider: "mixed",
     firstPassConcurrency: 2,
@@ -57,6 +71,10 @@ const normalizeProvider = (provider?: string | null): AudioRuntimeProvider => {
 
   if (normalized === "qwen3voice") {
     return "qwen3voice";
+  }
+
+  if (normalized === "voxcpm" || normalized === "voxcpm2") {
+    return "voxcpm";
   }
 
   return "mixed";

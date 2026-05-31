@@ -21,7 +21,7 @@ describe('GBK 文本分段', () => {
     const buffer = iconv.encode(sourceText, 'gbk')
 
     const processed = processFileContent(buffer, 'test.txt', { preserveFormatting: true })
-    const segments = segmentText(processed.content, { useSmartSplitter: true })
+    const segments = segmentText(processed.content)
 
     expect(processed.encoding).toBe('gbk')
     expect(segments.length).toBeGreaterThan(1)
@@ -51,7 +51,7 @@ describe('GBK 文本分段', () => {
 
   it('facade 与新分段模块对同一文本给出相同分段结果', () => {
     const sourceText = buildGbkSampleText()
-    const options = { useSmartSplitter: true, preserveFormatting: true }
+    const options = { preserveFormatting: true }
 
     const facadeSegments = segmentText(sourceText, options)
     const moduleSegments = segmentTextFromModule(sourceText, options)

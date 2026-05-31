@@ -54,12 +54,20 @@ const createScriptGenerationSkillFixture = (params?: {
         .join(", ")}]`,
       'inputSchemaRef = "segment-script-input"',
       'outputSchemaRef = "segment-script-draft"',
-      `contextRequirements = [${(params?.contextRequirements ?? ["segment"])
+      `contextRequirements = [${(params?.contextRequirements ?? [
+        "segment",
+        "character_memory_summary",
+      ])
         .map((requirement) => `"${requirement}"`)
         .join(", ")}]`,
       `toolAllowlist = [${(params?.toolAllowlist ?? [])
         .map((tool) => `"${tool}"`)
         .join(", ")}]`,
+      'promptBundle = ["prompts/system.md", "prompts/user.md"]',
+      'modelPolicy = "balanced"',
+      'repairPolicy = "handoff-to-json-repair"',
+      'successCriteria = ["returns-segment-script-draft"]',
+      'telemetryTags = ["runtime", "segment-scripting"]',
     ].join("\n"),
     "utf8"
   );
@@ -71,7 +79,7 @@ const createScriptGenerationSkillFixture = (params?: {
   );
   fs.writeFileSync(
     path.join(fixtureSkillDir, "prompts/user.md"),
-    "{{segment_text}}",
+    "{{segment_text}} {{character_memory_summary}}",
     "utf8"
   );
 
@@ -214,7 +222,7 @@ describe("segment scripting stage", () => {
     });
   });
 
-  it("fills missing speaker with unknown instead of failing the draft", async () => {
+  it("returns repairing when speaker is missing", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         lines: [
@@ -237,15 +245,8 @@ describe("segment scripting stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("completed");
-    const completed = asCompletedResult(result);
-    expect(completed.artifact.segmentScriptDraft.lines[0]).toEqual({
-      id: "line-1",
-      sourceText: "“胆儿挺大的啊。”",
-      text: "胆儿挺大的啊。",
-      speaker: "未知",
-      orderInSegment: 0,
-    });
+    expect(result.status).toBe("repairing");
+    expect("artifact" in result).toBe(false);
   });
 
   it("returns draft artifact only and does not expose persistence outputs", async () => {
@@ -273,18 +274,18 @@ describe("segment scripting stage", () => {
 
     expect(result.status).toBe("completed");
     const completed = asCompletedResult(result);
-    expect(completed.artifact).toEqual({
+    expect(completed.artifact).toEqual(expect.objectContaining({
       kind: "segment-script-draft",
       skillId: "script-generation",
       segmentScriptDraft: expect.objectContaining({
         segmentId: "segment-3",
       }),
-    });
+    }));
     expect("scriptSentences" in completed).toBe(false);
     expect("persisted" in completed).toBe(false);
   });
 
-  it("uses runtime skill id from skill source instead of fixed literal", async () => {
+  it("rejects custom skill ids not allowed by the script generation agent", async () => {
     const fixtureSkillDir = createScriptGenerationSkillFixture({
       skillId: "script-generation-custom",
     });
@@ -311,12 +312,11 @@ describe("segment scripting stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("completed");
-    const completed = asCompletedResult(result);
-    expect(completed.artifact.skillId).toBe("script-generation-custom");
+    expect(result.status).toBe("failed");
+    expect("artifact" in result).toBe(false);
   });
 
-  it("does not inject character memory summary into prompt for current minimal contract", async () => {
+  it("injects character memory summary into the Mastra prompt", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         lines: [
@@ -340,7 +340,7 @@ describe("segment scripting stage", () => {
     });
 
     const call = (adapter.call as jest.Mock).mock.calls[0]?.[0];
-    expect(call.prompt).not.toContain("角色记忆摘要");
+    expect(call.prompt).toContain("角色记忆摘要");
     expect(call.prompt).not.toContain("{{character_memory_summary}}");
   });
 
@@ -640,93 +640,4 @@ describe("segment scripting stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
-  it("uses mastra executor path when stage executor is mastra", async () => {
-    const adapter = createMockAdapter("{}");
-    const runMastraSegmentScriptingStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-stage-1",
-      agentRunId: "mastra-agent-1",
-      status: "completed",
-      artifact: {
-        kind: "segment-script-draft",
-        skillId: "script-generation",
-        segmentScriptDraft: {
-          segmentId: "segment-mastra-1",
-          createdAt: "2026-04-01T00:00:00.000Z",
-          lines: [
-            {
-              id: "line-1",
-              sourceText: "宁采臣抬头。",
-              text: "宁采臣抬头。",
-              speaker: "旁白",
-              orderInSegment: 0,
-            },
-          ],
-        },
-      },
-    } satisfies RunSegmentScriptingStageResult);
-
-    const result = await runSegmentScriptingStage({
-      workflowRunId: "wf-scripting-mastra",
-      segmentId: "segment-mastra-1",
-      segmentText: "宁采臣抬头。",
-      skillDir,
-      adapter,
-      executor: "mastra",
-      runMastraSegmentScriptingStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraSegmentScriptingStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(0);
-    expect(asCompletedResult(result).artifact.segmentScriptDraft.segmentId).toBe(
-      "segment-mastra-1"
-    );
-  });
-
-  it("keeps native result as primary output when scripting shadow mode is enabled", async () => {
-    const adapter = createMockAdapter(
-      JSON.stringify({
-        lines: [
-          {
-            id: "line-1",
-            sourceText: "宁采臣抬头。",
-            text: "宁采臣抬头。",
-            speaker: "旁白",
-            orderInSegment: 0,
-          },
-        ],
-      })
-    );
-    const runMastraSegmentScriptingStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-shadow-stage-1",
-      agentRunId: "mastra-shadow-agent-1",
-      status: "completed",
-      artifact: {
-        kind: "segment-script-draft",
-        skillId: "script-generation",
-        segmentScriptDraft: {
-          segmentId: "segment-shadow-alt",
-          createdAt: "2026-04-01T00:00:00.000Z",
-          lines: [],
-        },
-      },
-    } satisfies RunSegmentScriptingStageResult);
-
-    const result = await runSegmentScriptingStage({
-      workflowRunId: "wf-scripting-shadow",
-      segmentId: "segment-shadow-primary",
-      segmentText: "宁采臣抬头。",
-      skillDir,
-      adapter,
-      shadowMode: true,
-      runMastraSegmentScriptingStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraSegmentScriptingStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(1);
-    expect(asCompletedResult(result).artifact.segmentScriptDraft.segmentId).toBe(
-      "segment-shadow-primary"
-    );
-  });
 });

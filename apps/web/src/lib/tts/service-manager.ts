@@ -1,9 +1,10 @@
 // 一旦我被更新，请更新我的开头注释
 // input: provider 名称/TTS 请求
-// output: TTS manager 与全局实例
+// output: 多 TTS provider manager 与全局实例
 // pos: TTS 领域服务
 import { TTSError } from "@/lib/error-handler";
 import { Qwen3VoiceTTSService } from "@/lib/tts/providers/qwen3voice";
+import { VoxCPMTTSService } from "@/lib/tts/providers/voxcpm";
 import type {
   TTSProvider,
   TTSRequest,
@@ -12,34 +13,83 @@ import type {
 } from "@/lib/tts/types";
 
 const QWEN3VOICE_PROVIDER = "qwen3voice";
+const VOXCPM_PROVIDER = "voxcpm";
+
+interface ManagedTTSService {
+  getAvailableVoices(): Promise<TTSVoice[]>;
+  synthesize(request: TTSRequest): Promise<TTSResponse>;
+}
+
+interface ProviderRegistration {
+  key: string;
+  service: ManagedTTSService;
+  provider: Omit<TTSProvider, "isAvailable" | "supportedLanguages" | "supportedVoices">;
+}
 
 export class TTSServiceManager {
   private providers: Map<string, TTSProvider> = new Map();
-  private services: Map<string, Qwen3VoiceTTSService> = new Map();
+  private services: Map<string, ManagedTTSService> = new Map();
   private initializationPromise: Promise<void> | null = null;
 
-  private async initializeProviders() {
-    const qwen3VoiceService = new Qwen3VoiceTTSService();
-    const voices = await qwen3VoiceService.getAvailableVoices();
+  private async registerProvider(registration: ProviderRegistration): Promise<void> {
+    const { key, service, provider } = registration;
 
+    try {
+      const voices = await service.getAvailableVoices();
+      this.providers.set(key, {
+        ...provider,
+        isAvailable: true,
+        supportedLanguages: [...new Set(voices.map((voice) => voice.language))],
+        supportedVoices: voices,
+      });
+      this.services.set(key, service);
+    } catch (error) {
+      console.warn(`TTS provider ${key} unavailable`, error);
+      this.providers.set(key, {
+        ...provider,
+        isAvailable: false,
+        supportedLanguages: [],
+        supportedVoices: [],
+      });
+    }
+  }
+
+  private async initializeProviders() {
     this.providers.clear();
     this.services.clear();
 
-    this.providers.set(QWEN3VOICE_PROVIDER, {
-      name: "Qwen3 Voice",
-      type: "qwen3voice",
-      endpoint: process.env.QWEN3VOICE_API_URL || "http://192.168.88.9:18080",
-      model: "Qwen3-TTS-12Hz-1.7B",
-      isAvailable: true,
-      supportedLanguages: [...new Set(voices.map((voice) => voice.language))],
-      supportedVoices: voices,
-      maxCharacters: 3000,
-      rateLimits: {
-        requestsPerMinute: 10,
-        charactersPerMinute: 30000,
-      },
-    });
-    this.services.set(QWEN3VOICE_PROVIDER, qwen3VoiceService);
+    await Promise.all([
+      this.registerProvider({
+        key: QWEN3VOICE_PROVIDER,
+        service: new Qwen3VoiceTTSService(),
+        provider: {
+          name: "Qwen3 Voice",
+          type: "qwen3voice",
+          endpoint: process.env.QWEN3VOICE_API_URL || "http://192.168.88.9:18080",
+          model: "Qwen3-TTS-12Hz-1.7B",
+          maxCharacters: 3000,
+          rateLimits: {
+            requestsPerMinute: 10,
+            charactersPerMinute: 30000,
+          },
+        },
+      }),
+      this.registerProvider({
+        key: VOXCPM_PROVIDER,
+        service: new VoxCPMTTSService(),
+        provider: {
+          name: "VoxCPM2",
+          type: "voxcpm",
+          endpoint: process.env.VOXCPM_API_URL || "http://192.168.88.9:18083",
+          model: "OpenBMB/VoxCPM2",
+          maxCharacters: 4000,
+          rateLimits: {
+            requestsPerMinute: 6,
+            charactersPerMinute: 12000,
+          },
+        },
+      }),
+    ]);
   }
 
   getAvailableProviders(): TTSProvider[] {
@@ -50,7 +100,7 @@ export class TTSServiceManager {
     return this.providers.get(providerName);
   }
 
-  getService(providerName: string): Qwen3VoiceTTSService | undefined {
+  getService(providerName: string): ManagedTTSService | undefined {
     return this.services.get(providerName);
   }
 

@@ -174,7 +174,6 @@ export const runTextProcessingStage = async ({
     minSegmentLength: options.minSegmentLength,
     preserveFormatting: options.preserveFormatting,
     encoding: options.encoding,
-    useSmartSplitter: options.useSmartSplitter,
   });
 
   const {

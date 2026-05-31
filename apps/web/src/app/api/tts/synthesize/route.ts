@@ -17,6 +17,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     temperature = 0.7,
     topK = 50,
     topP = 0.9,
+    controlInstruction,
+    cfgValue,
+    inferenceTimesteps,
+    normalize,
+    denoise,
     outputFormat = "mp3",
   } = body;
 
@@ -70,6 +75,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         temperature,
         topK,
         topP,
+        controlInstruction,
+        cfgValue,
+        inferenceTimesteps,
+        normalize,
+        denoise,
       },
       provider
     );
@@ -97,6 +107,11 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
             temperature,
             topK,
             topP,
+            controlInstruction,
+            cfgValue,
+            inferenceTimesteps,
+            normalize,
+            denoise,
           },
           ...synthesisResult.metadata,
         },
