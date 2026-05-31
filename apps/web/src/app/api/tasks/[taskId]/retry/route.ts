@@ -18,6 +18,7 @@ export const POST = withErrorHandler(
     const { taskId } = await params;
     const body = await request.json().catch(() => ({}));
     const force = body?.force !== false;
+    const refreshPreset = body?.refreshPreset === true;
 
     const task = await prisma.processingTask.findUnique({
       where: { id: taskId },
@@ -48,6 +49,7 @@ export const POST = withErrorHandler(
     const replayResult = await replayProcessingTask(taskId, {
       force,
       reason: "manual_api_retry",
+      refreshPreset,
     });
 
     return NextResponse.json({

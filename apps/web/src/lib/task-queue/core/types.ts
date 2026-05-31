@@ -200,6 +200,7 @@ export interface QueueControlOptions {
 export interface ReplayControlOptions {
   force?: boolean;
   reason?: string;
+  refreshPreset?: boolean;
 }
 
 export interface ReplayResult {

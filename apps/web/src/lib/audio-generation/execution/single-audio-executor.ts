@@ -9,7 +9,7 @@ import type {
   VoiceRouteResolution,
 } from "../types";
 import { createRouteAttemptContext, applyRouterPresetToRequest } from "../routing/route-attempt";
-import { resolveVoiceRouteForSentence } from "../routing/voice-route-resolver";
+import { runVoiceRoutingAgent } from "@/lib/auto-pipeline/voice-routing-agent";
 import { buildTTSRequest } from "../synthesis/tts-request-builder";
 import { recordFailedSynthesisAttempt } from "../persistence/synthesis-attempt-store";
 import { saveAudioFile } from "../persistence/audio-file-store";
@@ -111,12 +111,13 @@ export async function executeSingleAudioSynthesis(params: {
     }
 
     attemptStartedAt = new Date();
-    routeResolution = await resolveVoiceRouteForSentence({
+    const voiceRoutingDecision = await runVoiceRoutingAgent({
       scriptSentence,
       request,
       options: finalOptions,
       prismaClient,
     });
+    routeResolution = voiceRoutingDecision.routeResolution;
 
     if (!routeResolution?.selectedCandidate) {
       try {
