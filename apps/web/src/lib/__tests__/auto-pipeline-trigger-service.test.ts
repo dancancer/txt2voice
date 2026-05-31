@@ -98,6 +98,17 @@ describe("auto-pipeline-trigger-service", () => {
           metadata: expect.objectContaining({
             triggerSource: "pipeline_auto_api",
             totalStages: 4,
+            presetId: "zero_touch_voxcpm",
+            presetVersion: "zero_touch_voxcpm@1",
+            resolvedOptions: expect.objectContaining({
+              audioGeneration: {
+                autoMerge: false,
+                options: {
+                  preferredProvider: "voxcpm",
+                  skipExisting: true,
+                },
+              },
+            }),
           }),
         }),
       }),
@@ -107,6 +118,13 @@ describe("auto-pipeline-trigger-service", () => {
         taskId: "task-auto-1",
         bookId: "book-1",
         options: {
+          audioGeneration: {
+            autoMerge: false,
+            options: {
+              preferredProvider: "voxcpm",
+              skipExisting: true,
+            },
+          },
           qualityCheck: {
             enabled: true,
             type: "book",
@@ -268,12 +286,36 @@ describe("auto-pipeline-trigger-service", () => {
       data: expect.objectContaining({
         bookId: "book-1",
         taskType: "AUTO_PIPELINE_COMPENSATION",
+        taskData: expect.objectContaining({
+          metadata: expect.objectContaining({
+            presetId: "zero_touch_voxcpm",
+            presetVersion: "zero_touch_voxcpm@1",
+            resolvedOptions: expect.objectContaining({
+              audioGeneration: {
+                autoMerge: false,
+                options: {
+                  preferredProvider: "voxcpm",
+                  skipExisting: true,
+                },
+              },
+            }),
+          }),
+        }),
       }),
     });
     expect(mockEnqueueAutoPipeline).toHaveBeenCalledWith(
       expect.objectContaining({
         taskId: "task-compensation-1",
         bookId: "book-1",
+        options: expect.objectContaining({
+          audioGeneration: {
+            autoMerge: false,
+            options: {
+              preferredProvider: "voxcpm",
+              skipExisting: true,
+            },
+          },
+        }),
         mode: "trigger_compensation",
         triggerSource: "upload_compensation",
         allowReuseRunningTask: true,

@@ -175,7 +175,8 @@ export const buildAutoPipelineReplayPayloadFromTask = (
 ): AutoPipelineReplayInput => {
   const rawTaskData = jsonObject(task.taskData);
   const metadata = asRecord(rawTaskData.metadata);
-  const options = asRecord(metadata?.options) || {};
+  const options =
+    asRecord(metadata?.resolvedOptions) || asRecord(metadata?.options) || {};
   const workflowPayload =
     (asRecord(metadata?.workflowPayload) ||
       (task.taskType === "FINAL_ASSEMBLY"

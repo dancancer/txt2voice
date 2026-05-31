@@ -16,10 +16,15 @@ export const POST = withErrorHandler(
     const { id: bookId } = await params;
     const body = await request.json().catch(() => ({}));
     const options = parseAutoPipelineOptions(body?.options);
+    const presetId =
+      typeof body?.presetId === "string" && body.presetId.trim()
+        ? body.presetId.trim()
+        : undefined;
     await ensureTaskWorkerStarted();
     const result = await startAutoPipelineTask({
       bookId,
       options,
+      presetId,
       triggerSource: "pipeline_auto_api",
       allowReuseRunningTask: true,
     });

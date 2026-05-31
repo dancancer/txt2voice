@@ -95,6 +95,11 @@ export const POST = withErrorHandler(async (
   const autoPipelineOptions = parseAutoPipelineOptionsField(
     formData.get('autoPipelineOptions')
   )
+  const presetField = formData.get('autoPipelinePresetId')
+  const autoPipelinePresetId =
+    typeof presetField === 'string' && presetField.trim()
+      ? presetField.trim()
+      : undefined
 
   if (!file) {
     throw new ValidationError('未选择文件', 'file')
@@ -219,6 +224,7 @@ export const POST = withErrorHandler(async (
       autoPipelineResult = await startAutoPipelineTask({
         bookId,
         options: autoPipelineOptions,
+        presetId: autoPipelinePresetId,
         triggerSource: 'upload_api',
         triggerMetadata: {
           filename: file.name,
@@ -238,6 +244,7 @@ export const POST = withErrorHandler(async (
         const compensationResult = await scheduleAutoPipelineCompensationTask({
           bookId,
           options: autoPipelineOptions,
+          presetId: autoPipelinePresetId,
           originalTriggerSource: 'upload_api',
           triggerMetadata: {
             filename: file.name,
