@@ -166,43 +166,6 @@ export const POST = withErrorHandler(async (
     )
   }
 
-  // 读取文件内容进行基础验证
-  let content: string
-  try {
-    content = buffer.toString('utf-8')
-
-    // 检查文件内容是否为空或只包含空白字符
-    if (!content.trim()) {
-      throw new FileProcessingError(
-        '文件内容为空',
-        'CORRUPTED_FILE',
-        { message: '文件不包含任何有效文本内容' }
-      )
-    }
-
-    // 检查内容长度（防止异常大的文件）
-    if (content.length > CONFIG.FILE_UPLOAD.MAX_TEXT_LENGTH) {
-      throw new FileProcessingError(
-        '文本内容过长',
-        'FILE_TOO_LARGE',
-        {
-          maxTextLength: `${CONFIG.FILE_UPLOAD.MAX_TEXT_LENGTH / 1024 / 1024}MB`,
-          actualLength: `${(content.length / 1024 / 1024).toFixed(2)}MB`
-        }
-      )
-    }
-
-  } catch (error) {
-    if (error instanceof FileProcessingError) {
-      throw error
-    }
-    throw new FileProcessingError(
-      '文件读取失败，可能文件已损坏',
-      'CORRUPTED_FILE',
-      { error: error instanceof Error ? error.message : 'Unknown error' }
-    )
-  }
-
   // 更新书籍记录
   const updatedBook = await prisma.book.update({
     where: { id: bookId },
@@ -278,7 +241,7 @@ export const POST = withErrorHandler(async (
       originalFilename: file.name,
       size: file.size,
       uploadedAt: updatedBook.updatedAt,
-      contentPreview: content.slice(0, 200) + (content.length > 200 ? '...' : ''),
+      contentPreview: null,
       autoPipeline: {
         enabled: autoPipelineEnabled,
         triggered: Boolean(autoPipelineResult),
