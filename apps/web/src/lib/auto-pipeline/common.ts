@@ -14,6 +14,13 @@ export type AutoPipelineStage =
   | "audio_generation"
   | "quality_check";
 
+export type AutoPipelineDecisionAction =
+  | "run"
+  | "skip"
+  | "retry"
+  | "manual_review"
+  | "fail";
+
 export type AutoPipelineStageStatus =
   | "pending"
   | "processing"
@@ -27,6 +34,46 @@ export interface AutoPipelineStageState {
   startedAt: string | null;
   completedAt: string | null;
   error: string | null;
+}
+
+export interface AutoPipelineSourceFingerprint {
+  uploadedFilePath?: string | null;
+  originalFilename?: string | null;
+  fileSize?: number | string | null;
+  contentHash?: string | null;
+  optionsHash?: string | null;
+}
+
+export interface AutoPipelineStageVersion {
+  version: string;
+  inputs?: Record<string, unknown>;
+}
+
+export interface AutoPipelineCheckpoint {
+  stage: AutoPipelineStage;
+  sourceFingerprint: AutoPipelineSourceFingerprint;
+  stageVersion: AutoPipelineStageVersion;
+  artifactHash: string;
+  taskId: string;
+  completedAt: string;
+  invalidatedAt?: string | null;
+  invalidationReason?: string | null;
+}
+
+export type AutoPipelineCheckpointMap = Partial<
+  Record<AutoPipelineStage, AutoPipelineCheckpoint>
+>;
+
+export interface AutoPipelineCheckpointPatch {
+  checkpoints: AutoPipelineCheckpointMap;
+}
+
+export interface AutoPipelineDecision {
+  action: AutoPipelineDecisionAction;
+  stage: AutoPipelineStage;
+  reason: string;
+  retryable: boolean;
+  manualReviewRequired: boolean;
 }
 
 interface AutoPipelineAudioOptions {
