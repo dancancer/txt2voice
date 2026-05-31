@@ -99,7 +99,6 @@ export const POST = withErrorHandler(async (
   const availableVoiceProfilesCount = await prisma.tTSVoiceProfile.count({
     where: {
       isAvailable: true,
-      ...(options.provider ? { provider: options.provider } : {})
     }
   })
 
@@ -152,7 +151,7 @@ export const POST = withErrorHandler(async (
             totalSentences,
             voiceProfileId,
             autoMerge,
-            provider: options.provider || null,
+            preferredProvider: options.preferredProvider || null,
             routerPolicyVersion: options.routerPolicyVersion || null,
             enableRouterDebug: options.enableRouterDebug === true,
           }

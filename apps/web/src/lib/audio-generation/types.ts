@@ -32,7 +32,7 @@ export interface AudioGenerationOptions {
   priority?: "low" | "normal" | "high";
   skipExisting?: boolean;
   overwriteExisting?: boolean;
-  provider?: string;
+  preferredProvider?: "voxcpm" | "qwen3voice";
   routerPolicyVersion?: string;
   enableRouterDebug?: boolean;
 }

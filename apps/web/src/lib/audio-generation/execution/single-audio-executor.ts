@@ -133,7 +133,7 @@ export async function executeSingleAudioSynthesis(params: {
               })
             : undefined,
           fallbackEngine:
-            finalOptions.provider || scriptSentence.engineHint || undefined,
+            finalOptions.preferredProvider || scriptSentence.engineHint || undefined,
           error: new Error("未找到可用的声音配置（包含旁白兜底）"),
         });
       } catch (persistError) {
@@ -219,7 +219,7 @@ export async function executeSingleAudioSynthesis(params: {
             startedAt: attemptStartedAt,
             prismaClient,
             fallbackEngine:
-              finalOptions.provider || scriptSentence.engineHint || undefined,
+              finalOptions.preferredProvider || scriptSentence.engineHint || undefined,
             routeAttemptContext,
             error,
             isFinal: isFinalAttempt,
@@ -264,7 +264,7 @@ export async function executeSingleAudioSynthesis(params: {
           startedAt: attemptStartedAt,
           prismaClient,
           fallbackEngine:
-            finalOptions.provider || scriptSentence.engineHint || undefined,
+            finalOptions.preferredProvider || scriptSentence.engineHint || undefined,
           routeAttemptContext: routeResolution
             ? createRouteAttemptContext({
                 routeResolution,

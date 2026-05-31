@@ -2,6 +2,7 @@ import {
   AudioRetryPass,
   buildAudioRetryPass,
   buildNextAudioRetryPass,
+  resolveEffectiveAudioPolicyProvider,
 } from "@/lib/audio-retry-plan";
 
 import {
@@ -133,6 +134,7 @@ export async function generateBatchAudioWithReliability(params: {
     params;
   const getRequestId = (request: AudioGenerationRequest) => request.scriptSentenceId;
   const finalOptions = { ...defaultOptions, ...options };
+  const effectivePolicyProvider = resolveEffectiveAudioPolicyProvider(finalOptions);
   const finalResults = new Map<string, AudioGenerationResult>();
   const attemptedResults: AudioGenerationResult[] = [];
   const passSummaries: AudioReliabilityPassSummary[] = [];
@@ -141,10 +143,7 @@ export async function generateBatchAudioWithReliability(params: {
     return {
       results: [],
       reliability: {
-        policyProvider:
-          typeof finalOptions.provider === "string" && finalOptions.provider.trim()
-            ? finalOptions.provider.trim().toLowerCase()
-            : "mixed",
+        policyProvider: effectivePolicyProvider,
         firstPassSuccessRate: 0,
         retryRounds: 0,
         averageDurationMs: 0,
@@ -155,7 +154,7 @@ export async function generateBatchAudioWithReliability(params: {
   }
 
   let pass: AudioRetryPass<AudioGenerationRequest> | null = buildAudioRetryPass({
-    provider: finalOptions.provider,
+    preferredProvider: finalOptions.preferredProvider,
     passName: "pass-1",
     requests,
     getRequestId,
@@ -198,7 +197,7 @@ export async function generateBatchAudioWithReliability(params: {
     await hooks?.onPassComplete?.(passSummaries[passSummaries.length - 1]!);
 
     pass = buildNextAudioRetryPass({
-      provider: finalOptions.provider,
+      preferredProvider: finalOptions.preferredProvider,
       previousPass: pass,
       results: passResults,
       getRequestId,
@@ -217,15 +216,13 @@ export async function generateBatchAudioWithReliability(params: {
     results: orderedResults,
     reliability: {
       policyProvider:
-        typeof finalOptions.provider === "string" && finalOptions.provider.trim()
-          ? finalOptions.provider.trim().toLowerCase()
-          : "mixed",
+        effectivePolicyProvider,
       firstPassSuccessRate: calculateFirstPassSuccessRate(passSummaries),
       retryRounds: Math.max(0, passSummaries.length - 1),
       averageDurationMs: calculateAverageDurationMs(orderedResults),
       providerFailures: summarizeProviderFailures(
         attemptedResults,
-        finalOptions.provider
+        finalOptions.preferredProvider
       ),
       passSummaries,
     },

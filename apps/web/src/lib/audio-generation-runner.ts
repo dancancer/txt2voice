@@ -135,7 +135,7 @@ export async function runAudioGenerationTask({
   const routerDecisionSummary = summarizeRouterDecisions(results);
   const audioChildJobMetrics = summarizeAudioChildJobs(
     results,
-    typeof options.provider === "string" ? options.provider : null
+    typeof options.preferredProvider === "string" ? options.preferredProvider : null
   );
 
   let mergeResult = null;
@@ -195,7 +195,7 @@ export async function runAudioGenerationTask({
       type,
       chapterId,
       voiceProfileId,
-      provider: options.provider || null,
+      preferredProvider: options.preferredProvider || null,
       routerPolicyVersion: options.routerPolicyVersion || null,
       enableRouterDebug: options.enableRouterDebug === true,
       audioReliability,

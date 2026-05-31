@@ -340,7 +340,8 @@ export async function runAutoPipelineTask({
       metadata: {
         type: "book",
         autoMerge: normalizedOptions.audioGeneration.autoMerge,
-        provider: normalizedOptions.audioGeneration.options?.provider || null,
+        preferredProvider:
+          normalizedOptions.audioGeneration.options?.preferredProvider || null,
       },
     });
 

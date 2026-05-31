@@ -14,8 +14,8 @@ import type {
 
 const BASE_SCORE_BY_SOURCE: Record<AudioRouteSource, number> = {
   manual_voice_profile: 200,
-  speaker_engine_variant: 110,
-  character_voice_binding: 90,
+  character_voice_binding: 120,
+  speaker_engine_variant: 100,
   narration_fallback: 70,
 };
 

@@ -211,7 +211,7 @@ export const resolveManualReviewItemsInBatch = async ({
           scriptSentenceIds,
           selectedReviewItemIds: orderedItems.map((item) => item.id),
           voiceProfileId: payload.voiceProfileId || null,
-          provider: payload.provider || null,
+          preferredProvider: payload.preferredProvider || null,
           autoMerge: payload.autoMerge,
           note: payload.note || null,
           skipExisting: false,
@@ -230,7 +230,7 @@ export const resolveManualReviewItemsInBatch = async ({
       voiceProfileId: payload.voiceProfileId,
       autoMerge: payload.autoMerge,
       options: {
-        provider: payload.provider,
+        preferredProvider: payload.preferredProvider,
         skipExisting: false,
         overwriteExisting: true,
       },

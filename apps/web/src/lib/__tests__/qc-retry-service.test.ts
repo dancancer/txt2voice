@@ -112,7 +112,7 @@ describe("qc-retry-service", () => {
       issueType: "fast_gate",
       minScore: "50",
       maxScore: 80,
-      provider: "voxcpm",
+      preferredProvider: "voxcpm",
     });
 
     expect(payload).toMatchObject({
@@ -121,7 +121,7 @@ describe("qc-retry-service", () => {
       maxScore: 80,
       includeRejected: false,
       limit: 100,
-      provider: "voxcpm",
+      preferredProvider: "voxcpm",
       autoMerge: false,
     });
   });
@@ -186,7 +186,7 @@ describe("qc-retry-service", () => {
         includeRejected: false,
         limit: 5,
         voiceProfileId: "voice-1",
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
         autoMerge: false,
         note: "批量返工",
       },
@@ -222,7 +222,7 @@ describe("qc-retry-service", () => {
       voiceProfileId: "voice-1",
       autoMerge: false,
       options: {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
         skipExisting: false,
         overwriteExisting: true,
       },

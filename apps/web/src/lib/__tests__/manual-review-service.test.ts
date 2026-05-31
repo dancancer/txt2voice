@@ -621,7 +621,7 @@ describe("manual-review-service", () => {
         note: undefined,
         assignedTo: "qa-1",
         voiceProfileId: "voice-1",
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
         autoMerge: false,
       },
     });

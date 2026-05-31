@@ -140,6 +140,16 @@ const asString = (value: unknown): string | undefined => {
   return normalized.length > 0 ? normalized : undefined;
 };
 
+const asPreferredProvider = (
+  value: unknown
+): AudioGenerationOptions["preferredProvider"] | undefined => {
+  const provider = asString(value)?.toLowerCase();
+  if (provider === "voxcpm" || provider === "qwen3voice") {
+    return provider;
+  }
+  return undefined;
+};
+
 const defaultStageState = (): AutoPipelineStageState => ({
   taskId: null,
   status: "pending",
@@ -217,6 +227,7 @@ export const parseAutoPipelineOptions = (
   const textProcessing = asRecord(root.textProcessing) || {};
   const scriptGeneration = asRecord(root.scriptGeneration) || {};
   const audioGenerationRoot = asRecord(root.audioGeneration) || {};
+  const audioOptionsRoot = asRecord(audioGenerationRoot.options) || {};
   const qualityCheckRoot = asRecord(root.qualityCheck) || {};
 
   const qualityType =
@@ -250,7 +261,26 @@ export const parseAutoPipelineOptions = (
             autoMerge: audioGenerationRoot.autoMerge,
           }
         : {}),
-      options: (asRecord(audioGenerationRoot.options) || {}) as AudioGenerationOptions,
+      options: {
+        ...(typeof audioOptionsRoot.batchSize === "number"
+          ? { batchSize: Math.max(1, Math.floor(audioOptionsRoot.batchSize)) }
+          : {}),
+        ...(typeof audioOptionsRoot.skipExisting === "boolean"
+          ? { skipExisting: audioOptionsRoot.skipExisting }
+          : {}),
+        ...(typeof audioOptionsRoot.overwriteExisting === "boolean"
+          ? { overwriteExisting: audioOptionsRoot.overwriteExisting }
+          : {}),
+        ...(asPreferredProvider(audioOptionsRoot.preferredProvider)
+          ? { preferredProvider: asPreferredProvider(audioOptionsRoot.preferredProvider) }
+          : {}),
+        ...(asString(audioOptionsRoot.routerPolicyVersion)
+          ? { routerPolicyVersion: asString(audioOptionsRoot.routerPolicyVersion) }
+          : {}),
+        ...(typeof audioOptionsRoot.enableRouterDebug === "boolean"
+          ? { enableRouterDebug: audioOptionsRoot.enableRouterDebug }
+          : {}),
+      },
     },
     qualityCheck: {
       ...(typeof qualityCheckRoot.enabled === "boolean"

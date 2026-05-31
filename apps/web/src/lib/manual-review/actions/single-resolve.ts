@@ -154,7 +154,7 @@ export const resolveManualReviewItem = async ({
           scriptSentenceIds: [item.sentenceId],
           voiceProfileId: payload.voiceProfileId || null,
           autoMerge: payload.autoMerge,
-          provider: payload.provider || null,
+          preferredProvider: payload.preferredProvider || null,
           skipExisting: false,
           overwriteExisting: true,
         },
@@ -171,7 +171,7 @@ export const resolveManualReviewItem = async ({
       voiceProfileId: payload.voiceProfileId,
       autoMerge: payload.autoMerge,
       options: {
-        provider: payload.provider,
+        preferredProvider: payload.preferredProvider,
         skipExisting: false,
         overwriteExisting: true,
       },

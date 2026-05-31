@@ -31,7 +31,7 @@ export interface QualityRetryPayload {
   includeRejected: boolean;
   limit: number;
   voiceProfileId?: string;
-  provider?: string;
+  preferredProvider?: "voxcpm" | "qwen3voice";
   autoMerge: boolean;
   note?: string;
   dispatchPolicy?: RetryDispatchPolicy;
@@ -171,7 +171,7 @@ export const retryQualityIssues = async ({
           maxScore: payload.maxScore ?? null,
           includeRejected: payload.includeRejected,
           voiceProfileId: payload.voiceProfileId || null,
-          provider: payload.provider || null,
+          preferredProvider: payload.preferredProvider || null,
           autoMerge: payload.autoMerge,
           skipExisting: false,
           overwriteExisting: true,
@@ -198,7 +198,7 @@ export const retryQualityIssues = async ({
       voiceProfileId: payload.voiceProfileId,
       autoMerge: payload.autoMerge,
       options: {
-        provider: payload.provider,
+        preferredProvider: payload.preferredProvider,
         skipExisting: false,
         overwriteExisting: true,
       },

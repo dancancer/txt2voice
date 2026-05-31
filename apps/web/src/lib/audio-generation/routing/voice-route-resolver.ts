@@ -127,8 +127,8 @@ export async function collectRouteCandidates(params: {
 }): Promise<AudioRouteCandidate[]> {
   const { scriptSentence, request, options, prismaClient } = params;
   const preferredProvider =
-    typeof options.provider === "string" && options.provider.trim()
-      ? options.provider.trim().toLowerCase()
+    typeof options.preferredProvider === "string" && options.preferredProvider.trim()
+      ? options.preferredProvider.trim().toLowerCase()
       : null;
   const candidates: AudioRouteCandidate[] = [];
 
@@ -137,9 +137,6 @@ export async function collectRouteCandidates(params: {
       where: { id: request.voiceProfileId },
     });
     if (!selectedProfile) {
-      return [];
-    }
-    if (preferredProvider && selectedProfile.provider !== preferredProvider) {
       return [];
     }
 
@@ -161,6 +158,36 @@ export async function collectRouteCandidates(params: {
     return candidates;
   }
 
+  for (const binding of scriptSentence.character?.voiceBindings || []) {
+    const voiceProfile = binding.voiceProfile;
+    if (!voiceProfile || voiceProfile.isAvailable === false) {
+      continue;
+    }
+
+    const provider =
+      typeof voiceProfile.provider === "string"
+        ? voiceProfile.provider.trim().toLowerCase()
+        : "";
+    if (!provider) {
+      continue;
+    }
+
+    candidates.push({
+      candidateId: `binding:${binding.id}`,
+      source: "character_voice_binding",
+      provider,
+      voiceId: voiceProfile.voiceId,
+      voiceProfile: {
+        id: voiceProfile.id,
+        provider,
+        voiceId: voiceProfile.voiceId,
+        defaultParameters: asRecord(voiceProfile.defaultParameters),
+      },
+      isDefault: Boolean(binding.isDefault),
+      routingWeight: 1,
+    });
+  }
+
   const speakerBindings = scriptSentence.character?.speakerBindings || [];
   for (const speakerBinding of speakerBindings) {
     const speakerProfile = speakerBinding.speakerProfile;
@@ -172,9 +199,6 @@ export async function collectRouteCandidates(params: {
       const provider =
         typeof variant.engine === "string" ? variant.engine.trim().toLowerCase() : "";
       if (!provider) {
-        continue;
-      }
-      if (preferredProvider && provider !== preferredProvider) {
         continue;
       }
 
@@ -204,39 +228,6 @@ export async function collectRouteCandidates(params: {
     }
   }
 
-  for (const binding of scriptSentence.character?.voiceBindings || []) {
-    const voiceProfile = binding.voiceProfile;
-    if (!voiceProfile || voiceProfile.isAvailable === false) {
-      continue;
-    }
-
-    const provider =
-      typeof voiceProfile.provider === "string"
-        ? voiceProfile.provider.trim().toLowerCase()
-        : "";
-    if (!provider) {
-      continue;
-    }
-    if (preferredProvider && provider !== preferredProvider) {
-      continue;
-    }
-
-    candidates.push({
-      candidateId: `binding:${binding.id}`,
-      source: "character_voice_binding",
-      provider,
-      voiceId: voiceProfile.voiceId,
-      voiceProfile: {
-        id: voiceProfile.id,
-        provider,
-        voiceId: voiceProfile.voiceId,
-        defaultParameters: asRecord(voiceProfile.defaultParameters),
-      },
-      isDefault: Boolean(binding.isDefault),
-      routingWeight: 1,
-    });
-  }
-
   const narrationFallback = await findNarrationFallbackVoice({
     bookId: scriptSentence.bookId,
     provider: preferredProvider || undefined,
@@ -259,6 +250,22 @@ export async function collectRouteCandidates(params: {
     });
   }
 
+  if (!narrationFallback && preferredProvider === "voxcpm") {
+    candidates.push({
+      candidateId: "fallback:voxcpm-default",
+      source: "narration_fallback",
+      provider: "voxcpm",
+      voiceId: "__voxcpm_default__",
+      voiceProfile: {
+        provider: "voxcpm",
+        voiceId: "__voxcpm_default__",
+        defaultParameters: {},
+      },
+      isDefault: true,
+      routingWeight: 1,
+    });
+  }
+
   return candidates;
 }
 
@@ -271,8 +278,8 @@ export async function resolveVoiceRouteForSentence(params: {
   const { scriptSentence, request, options, prismaClient } = params;
   const policyVersion = resolveRouterPolicyVersion(scriptSentence, options);
   const preferredProvider =
-    typeof options.provider === "string" && options.provider.trim()
-      ? options.provider.trim().toLowerCase()
+    typeof options.preferredProvider === "string" && options.preferredProvider.trim()
+      ? options.preferredProvider.trim().toLowerCase()
       : null;
   const context: AudioRouteContext = {
     roleType: typeof scriptSentence.roleType === "string" ? scriptSentence.roleType : null,

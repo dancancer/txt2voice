@@ -18,14 +18,14 @@ export interface AudioRetryPass<T> {
 }
 
 interface BuildAudioRetryPassOptions<T> {
-  provider?: string | null;
+  preferredProvider?: string | null;
   passName: AudioRetryPassName;
   requests: T[];
   getRequestId: (request: T) => string;
 }
 
 interface BuildNextAudioRetryPassOptions<T> {
-  provider?: string | null;
+  preferredProvider?: string | null;
   previousPass: AudioRetryPass<T>;
   results: Array<{ success?: boolean } | null | undefined>;
   getRequestId: (request: T) => string;
@@ -56,6 +56,17 @@ const getPassConcurrency = (
   return policy.rescuePassConcurrency;
 };
 
+export const resolveEffectiveAudioPolicyProvider = (options?: {
+  preferredProvider?: string | null;
+}): string => {
+  const preferredProvider =
+    typeof options?.preferredProvider === "string"
+      ? options.preferredProvider.trim().toLowerCase()
+      : "";
+
+  return preferredProvider || "mixed";
+};
+
 const getNextPassName = (
   passName: AudioRetryPassName
 ): AudioRetryPassName | null => {
@@ -75,7 +86,7 @@ const selectFailedRequests = <T>(
   requests.filter((request, index) => results[index]?.success !== true);
 
 export const buildAudioRetryPass = <T>({
-  provider,
+  preferredProvider,
   passName,
   requests,
   getRequestId,
@@ -84,12 +95,12 @@ export const buildAudioRetryPass = <T>({
   mode: getPassMode(passName),
   requests,
   requestIds: requests.map(getRequestId),
-  concurrency: getPassConcurrency(provider, passName),
-  cooldownMs: getAudioRuntimePolicy(provider).cooldownMs,
+  concurrency: getPassConcurrency(preferredProvider, passName),
+  cooldownMs: getAudioRuntimePolicy(preferredProvider).cooldownMs,
 });
 
 export const buildNextAudioRetryPass = <T>({
-  provider,
+  preferredProvider,
   previousPass,
   results,
   getRequestId,
@@ -105,7 +116,7 @@ export const buildNextAudioRetryPass = <T>({
   }
 
   return buildAudioRetryPass({
-    provider,
+    preferredProvider,
     passName: nextPassName,
     requests: failedRequests,
     getRequestId,

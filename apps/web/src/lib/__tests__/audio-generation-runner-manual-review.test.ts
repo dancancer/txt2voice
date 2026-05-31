@@ -130,7 +130,7 @@ describe("runAudioGenerationTask manual review followup", () => {
       type: "single",
       scriptSentenceIds: ["sentence-1"],
       options: {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
       },
     });
 
@@ -231,7 +231,7 @@ describe("runAudioGenerationTask manual review followup", () => {
       type: "batch",
       scriptSentenceIds: ["sentence-11", "sentence-12"],
       options: {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
       },
     });
 

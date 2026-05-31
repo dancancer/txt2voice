@@ -73,7 +73,7 @@ export const buildAudioDedupeKey = (input: AudioDedupeInput): string => {
     chapterId: input.chapterId || null,
     scriptSentenceIds: (input.scriptSentenceIds || []).slice().sort(),
     voiceProfileId: input.voiceProfileId || null,
-    provider: input.options?.provider || null,
+    preferredProvider: input.options?.preferredProvider || null,
     routerPolicyVersion: input.options?.routerPolicyVersion || null,
   };
 

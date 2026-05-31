@@ -131,7 +131,7 @@ describe("auto-pipeline-runner", () => {
       audioGeneration: {
         autoMerge: true,
         options: {
-          provider: "cosyvoice",
+          preferredProvider: "voxcpm",
           batchSize: 3,
         },
       },
@@ -154,7 +154,7 @@ describe("auto-pipeline-runner", () => {
       audioGeneration: {
         autoMerge: true,
         options: {
-          provider: "cosyvoice",
+          preferredProvider: "voxcpm",
           batchSize: 3,
         },
       },

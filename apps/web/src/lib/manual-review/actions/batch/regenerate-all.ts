@@ -160,7 +160,6 @@ export const regenerateAllPendingManualReviewItems = async ({
         voiceProfileId: undefined,
         autoMerge: false,
         options: {
-          provider: undefined,
           skipExisting: false,
           overwriteExisting: true,
         },

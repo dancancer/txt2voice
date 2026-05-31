@@ -123,9 +123,7 @@ describe("audio-generation-runner reliability metadata", () => {
       taskId: "task-audio-reliability-1",
       type: "batch",
       scriptSentenceIds: ["sentence-1", "sentence-2"],
-      options: {
-        provider: "indextts",
-      },
+      options: {},
     });
 
     expect(mockMergeTaskData).toHaveBeenCalledWith(
@@ -238,9 +236,7 @@ describe("audio-generation-runner reliability metadata", () => {
       taskId: "task-audio-runtime-events",
       type: "batch",
       scriptSentenceIds: ["sentence-1", "sentence-2"],
-      options: {
-        provider: "indextts",
-      },
+      options: {},
     });
 
     const lastCall =

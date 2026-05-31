@@ -32,7 +32,7 @@ export const POST = withErrorHandler(
         skipExisting: body?.skipExisting ?? true,
         overwriteExisting: body?.overwriteExisting ?? false,
         batchSize: body?.batchSize,
-        provider: body?.provider,
+        preferredProvider: body?.preferredProvider,
       },
     };
 

@@ -82,9 +82,7 @@ describe("audio-generator reliability", () => {
         { scriptSentenceId: "sentence-2", outputFormat: "mp3" },
         { scriptSentenceId: "sentence-3", outputFormat: "mp3" },
       ],
-      {
-        provider: "indextts",
-      }
+      {}
     );
 
     expect(generateSingleAudio).toHaveBeenCalledTimes(6);
@@ -164,7 +162,7 @@ describe("audio-generator reliability", () => {
         { scriptSentenceId: "sentence-2", outputFormat: "mp3" },
       ],
       options: {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
       },
       defaultOptions: {
         batchSize: 5,
