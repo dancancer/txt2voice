@@ -136,7 +136,10 @@ export function BookList({
       return sortOrder === 'asc' ? comparison : -comparison
     })
   const completedBooksCount = books.filter(
-    (book) => book.status === 'completed' || book.status === 'completed_with_errors'
+    (book) =>
+      book.status === 'completed' ||
+      book.status === 'completed_with_errors' ||
+      book.status === 'audio_review_ready'
   ).length
   const hasActiveFilters =
     Boolean(searchQuery) || statusFilter !== 'all' || sortBy !== 'createdAt' || sortOrder !== 'desc'
@@ -290,6 +293,7 @@ export function BookList({
             <option value="processed">已处理</option>
             <option value="script_generated">脚本已生成</option>
             <option value="generating_audio">生成音频中</option>
+            <option value="audio_review_ready">音频待验收</option>
             <option value="completed_with_errors">部分完成</option>
             <option value="completed">已完成</option>
           </select>

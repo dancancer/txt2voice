@@ -82,7 +82,7 @@ export const getQcDispatchMetrics = async ({
     prisma.manualReviewItem.findMany({
       where: {
         bookId,
-        resolutionType: "auto_rejected",
+        resolutionType: "auto_recovery_exhausted",
         resolvedAt: {
           gte: since,
         },

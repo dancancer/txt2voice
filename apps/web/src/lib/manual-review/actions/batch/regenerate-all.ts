@@ -195,7 +195,7 @@ export const regenerateAllPendingManualReviewItems = async ({
           });
           await markReprocessingReviewItems({
             items: scriptItems,
-            resolutionType: "bulk_regenerate_pending",
+            resolutionType: "retry_requested",
             resolutionNote: buildAllPendingRegenerateNote(scriptTaskId),
           });
           processedCount += scriptItems.length;
@@ -231,7 +231,7 @@ export const regenerateAllPendingManualReviewItems = async ({
     });
     await markReprocessingReviewItems({
       items: scriptItems,
-      resolutionType: "bulk_regenerate_pending",
+      resolutionType: "retry_requested",
       resolutionNote: buildAllPendingRegenerateNote(scriptTaskId),
     });
     processedCount += scriptItems.length;
@@ -240,7 +240,7 @@ export const regenerateAllPendingManualReviewItems = async ({
   if (audioTask) {
     await markReprocessingReviewItems({
       items: audioItems,
-      resolutionType: "bulk_regenerate_pending",
+      resolutionType: "retry_requested",
       resolutionNote: buildAllPendingRegenerateNote(audioTask.taskId),
     });
     processedCount += audioItems.length;

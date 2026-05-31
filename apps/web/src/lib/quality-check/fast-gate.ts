@@ -114,12 +114,12 @@ export const resolveReprocessingStatusFromVerdict = (
   if (verdict === "pass" || verdict === "repair") {
     return {
       status: "resolved",
-      resolutionType: "auto_resolved",
+      resolutionType: "fixed",
     };
   }
 
   return {
     status: "rejected",
-    resolutionType: "auto_rejected",
+    resolutionType: "auto_recovery_exhausted",
   };
 };

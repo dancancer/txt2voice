@@ -105,7 +105,7 @@ export const saveManualReviewScriptEdit = async ({
       where: { id: itemId },
       data: {
         status: "resolved",
-        resolutionType: "manual_edit_saved",
+        resolutionType: "fixed",
         resolutionNote: appendResolutionNote(
           item.resolutionNote,
           `manual_edit_saved:${now.toISOString()}`

@@ -3,6 +3,7 @@
 // output: 复核状态归集与可选交付触发结果
 // pos: S31 复核同步执行器
 import prisma from "@/lib/prisma";
+import { summarizeManualReviewGate } from "@/lib/auto-pipeline/manual-review-gate";
 import { jsonObject, mergeTaskData, updateProcessingTaskProgress as updateTaskProgress } from "@/lib/processing-task-utils";
 import { enqueueAutoPipelineJobInternal } from "@/lib/task-queue/ops/auto-pipeline-enqueue";
 
@@ -30,12 +31,25 @@ export async function runManualReviewSyncTask({
 }: ManualReviewSyncRunParams): Promise<void> {
   await updateTaskProgress(taskId, 10, "开始归集复核状态");
 
-  const [book, pendingCount, reprocessingCount, resolvedCount, rejectedCount] = await Promise.all([
+  const [book, reviewItems, pendingCount, reprocessingCount, resolvedCount, rejectedCount] = await Promise.all([
     prisma.book.findUnique({
       where: { id: bookId },
       select: {
         metadata: true,
         status: true,
+      },
+    }),
+    prisma.manualReviewItem.findMany({
+      where: {
+        bookId,
+        status: { in: ["pending", "reprocessing", "resolved", "rejected"] },
+      },
+      select: {
+        id: true,
+        status: true,
+        resolutionType: true,
+        issueType: true,
+        issueDetail: true,
       },
     }),
     prisma.manualReviewItem.count({ where: { bookId, status: "pending" } }),
@@ -44,7 +58,8 @@ export async function runManualReviewSyncTask({
     prisma.manualReviewItem.count({ where: { bookId, status: "rejected" } }),
   ]);
 
-  const readyForAssembly = pendingCount === 0 && reprocessingCount === 0;
+  const gate = summarizeManualReviewGate(reviewItems);
+  const readyForAssembly = gate.blockingCount === 0;
   let finalAssemblyTaskId: string | null = null;
 
   if (readyForAssembly && autoTriggerFinalAssembly) {
@@ -113,6 +128,8 @@ export async function runManualReviewSyncTask({
       reprocessingCount,
       resolvedCount,
       rejectedCount,
+      blockingReviewCount: gate.blockingCount,
+      blockingReviewItemIds: gate.blockingItemIds,
       readyForAssembly,
       autoTriggerFinalAssembly,
       finalAssemblyTaskId,
@@ -138,7 +155,7 @@ export async function runManualReviewSyncTask({
       status: readyForAssembly
         ? autoTriggerFinalAssembly
           ? "assembling_audio"
-          : book?.status || "completed"
+          : "audio_review_ready"
         : "manual_review_pending",
       metadata: toJson({
         ...rootMetadata,
@@ -148,6 +165,8 @@ export async function runManualReviewSyncTask({
           reprocessingCount,
           resolvedCount,
           rejectedCount,
+          blockingReviewCount: gate.blockingCount,
+          blockingReviewItemIds: gate.blockingItemIds,
           readyForAssembly,
           autoTriggerFinalAssembly,
           finalAssemblyTaskId,

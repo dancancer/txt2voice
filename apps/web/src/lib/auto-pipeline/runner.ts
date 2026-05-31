@@ -16,6 +16,7 @@ import {
   type SelectedAudioCandidate,
   type SelectedAudioSet,
 } from "./selected-audio-set";
+import { summarizeManualReviewGate } from "./manual-review-gate";
 import {
   AUTO_PIPELINE_STAGE_ORDER,
   createStageStateMap,
@@ -501,12 +502,21 @@ export async function runAutoPipelineTask({
         completedAt: new Date().toISOString(),
       };
 
-      pendingReviewCount = await prisma.manualReviewItem.count({
+      const reviewItems = await prisma.manualReviewItem.findMany({
         where: {
           bookId,
-          status: "pending",
+          status: { in: ["pending", "reprocessing", "resolved", "rejected"] },
+        },
+        select: {
+          id: true,
+          status: true,
+          resolutionType: true,
+          issueType: true,
+          issueDetail: true,
         },
       });
+      const reviewGate = summarizeManualReviewGate(reviewItems);
+      pendingReviewCount = reviewGate.blockingCount;
 
       if (pendingReviewCount > 0) {
         await prisma.book.update({
@@ -519,17 +529,7 @@ export async function runAutoPipelineTask({
         await prisma.book.update({
           where: { id: bookId },
           data: {
-            status: "assembling_audio",
-          },
-        });
-
-        await prisma.book.update({
-          where: { id: bookId },
-          data: {
-            status:
-              audioTaskBookStatus === "completed_with_errors"
-                ? "completed_with_errors"
-                : "completed",
+            status: "audio_review_ready",
           },
         });
       }
@@ -554,7 +554,7 @@ export async function runAutoPipelineTask({
           status:
             audioTaskBookStatus === "completed_with_errors"
               ? "completed_with_errors"
-              : "completed",
+              : "audio_review_ready",
         },
       });
     }

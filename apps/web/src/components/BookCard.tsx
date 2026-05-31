@@ -279,7 +279,9 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
             </Button>
           )}
 
-          {(book.status === 'completed' || book.status === 'completed_with_errors') && hasAudio && (
+          {(book.status === 'completed' ||
+            book.status === 'completed_with_errors' ||
+            book.status === 'audio_review_ready') && hasAudio && (
             <Button
               variant="default"
               onClick={() => router.push(`/books/${book.id}/play`)}

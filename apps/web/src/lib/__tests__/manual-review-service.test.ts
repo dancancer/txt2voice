@@ -195,13 +195,13 @@ describe("manual-review-service", () => {
     const payload = parseManualReviewResolvePayload({
       action: "重生",
       note: "重跑并复听",
-      provider: "voxcpm",
+      preferredProvider: "voxcpm",
     });
 
     expect(payload).toMatchObject({
       action: "regenerate",
       note: "重跑并复听",
-      provider: "voxcpm",
+      preferredProvider: "voxcpm",
       autoMerge: false,
     });
   });
@@ -570,7 +570,7 @@ describe("manual-review-service", () => {
     mockUpdate.mockResolvedValueOnce(
       baseItem({
         status: "resolved",
-        resolutionType: "approved",
+        resolutionType: "fixed",
         resolutionNote: "人工确认通过",
         resolvedAt: new Date("2026-03-05T13:00:00.000Z"),
       })
@@ -608,7 +608,7 @@ describe("manual-review-service", () => {
     mockUpdate.mockResolvedValueOnce(
       baseItem({
         status: "reprocessing",
-        resolutionType: "regenerate",
+        resolutionType: "retry_requested",
         resolutionNote: "retry_task:task-retry-1",
       })
     );
@@ -640,7 +640,7 @@ describe("manual-review-service", () => {
       voiceProfileId: "voice-1",
       autoMerge: false,
       options: {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
         skipExisting: false,
         overwriteExisting: true,
       },
@@ -692,7 +692,7 @@ describe("manual-review-service", () => {
         audioFile: null,
         qualityCheckResult: null,
         status: "reprocessing",
-        resolutionType: "regenerate",
+        resolutionType: "retry_requested",
         resolutionNote: "retry_task:task-script-retry-1",
       })
     );
@@ -745,7 +745,7 @@ describe("manual-review-service", () => {
       where: { id: "review-script-1" },
       data: {
         status: "reprocessing",
-        resolutionType: "regenerate",
+        resolutionType: "retry_requested",
         resolutionNote: "retry_task:task-script-retry-1",
         assignedTo: "qa-1",
         resolvedAt: null,
@@ -816,7 +816,7 @@ describe("manual-review-service", () => {
         audioFile: null,
         qualityCheckResult: null,
         status: "resolved",
-        resolutionType: "manual_edit_saved",
+        resolutionType: "fixed",
         issueDetail: {
           stage: "script_validation",
           errorCode: "SCRIPT_VALIDATION_FAILED",
@@ -903,7 +903,7 @@ describe("manual-review-service", () => {
       where: { id: "review-script-edit-1" },
       data: expect.objectContaining({
         status: "resolved",
-        resolutionType: "manual_edit_saved",
+        resolutionType: "fixed",
         resolvedAt: expect.any(Date),
         issueDetail: expect.objectContaining({
           manualEditedStructuredResult: expect.objectContaining({
@@ -926,14 +926,14 @@ describe("manual-review-service", () => {
         baseItem({
           id: "review-11",
           status: "resolved",
-          resolutionType: "approved",
+          resolutionType: "fixed",
         })
       )
       .mockResolvedValueOnce(
         baseItem({
           id: "review-12",
           status: "resolved",
-          resolutionType: "approved",
+          resolutionType: "fixed",
         })
       );
 
@@ -973,14 +973,14 @@ describe("manual-review-service", () => {
         baseItem({
           id: "review-21",
           status: "reprocessing",
-          resolutionType: "batch_regenerate",
+          resolutionType: "retry_requested",
         })
       )
       .mockResolvedValueOnce(
         baseItem({
           id: "review-22",
           status: "reprocessing",
-          resolutionType: "batch_regenerate",
+          resolutionType: "retry_requested",
         })
       );
 
@@ -1013,7 +1013,6 @@ describe("manual-review-service", () => {
       voiceProfileId: undefined,
       autoMerge: false,
       options: {
-        provider: undefined,
         skipExisting: false,
         overwriteExisting: true,
       },
@@ -1077,7 +1076,7 @@ describe("manual-review-service", () => {
           audioFile: null,
           qualityCheckResult: null,
           status: "reprocessing",
-          resolutionType: "batch_regenerate",
+          resolutionType: "retry_requested",
           resolutionNote: "manual_review_batch_task:task-script-batch-1",
         })
       )
@@ -1094,7 +1093,7 @@ describe("manual-review-service", () => {
           audioFile: null,
           qualityCheckResult: null,
           status: "reprocessing",
-          resolutionType: "batch_regenerate",
+          resolutionType: "retry_requested",
           resolutionNote: "manual_review_batch_task:task-script-batch-1",
         })
       );
@@ -1148,7 +1147,7 @@ describe("manual-review-service", () => {
       where: { id: "review-script-21" },
       data: {
         status: "reprocessing",
-        resolutionType: "batch_regenerate",
+        resolutionType: "retry_requested",
         resolutionNote: "manual_review_batch_task:task-script-batch-1",
         assignedTo: null,
         resolvedAt: null,
@@ -1159,7 +1158,7 @@ describe("manual-review-service", () => {
       where: { id: "review-script-22" },
       data: {
         status: "reprocessing",
-        resolutionType: "batch_regenerate",
+        resolutionType: "retry_requested",
         resolutionNote: "manual_review_batch_task:task-script-batch-1",
         assignedTo: null,
         resolvedAt: null,
@@ -1246,7 +1245,7 @@ describe("manual-review-service", () => {
           audioFile: null,
           qualityCheckResult: null,
           status: "reprocessing",
-          resolutionType: "bulk_regenerate_pending",
+          resolutionType: "retry_requested",
         })
       )
       .mockResolvedValueOnce(
@@ -1256,7 +1255,7 @@ describe("manual-review-service", () => {
           sentenceId: "sentence-audio-all-1",
           segmentId: null,
           status: "reprocessing",
-          resolutionType: "bulk_regenerate_pending",
+          resolutionType: "retry_requested",
         })
       );
 
@@ -1295,7 +1294,6 @@ describe("manual-review-service", () => {
       voiceProfileId: undefined,
       autoMerge: false,
       options: {
-        provider: undefined,
         skipExisting: false,
         overwriteExisting: true,
       },

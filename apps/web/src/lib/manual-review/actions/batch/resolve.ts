@@ -155,7 +155,7 @@ export const resolveManualReviewItemsInBatch = async ({
         where: { id: item.id },
         data: {
           status: "reprocessing",
-          resolutionType: "batch_regenerate",
+          resolutionType: "retry_requested",
           resolutionNote: buildBatchRegenerateNote(payload.note, task.id),
           assignedTo: payload.assignedTo ?? item.assignedTo,
           resolvedAt: null,
@@ -250,7 +250,7 @@ export const resolveManualReviewItemsInBatch = async ({
       where: { id: item.id },
       data: {
         status: "reprocessing",
-        resolutionType: "batch_regenerate",
+        resolutionType: "retry_requested",
         resolutionNote: buildBatchRegenerateNote(payload.note, task.id),
         assignedTo: payload.assignedTo ?? item.assignedTo,
         resolvedAt: null,

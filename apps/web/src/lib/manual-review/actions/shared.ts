@@ -5,13 +5,19 @@ import { mergeTaskData } from "@/lib/processing-task-utils";
 export const resolveUpdatedStatus = (
   action: "approve" | "reject" | "regenerate"
 ): "resolved" | "rejected" => {
-  return action === "approve" ? "resolved" : "rejected";
+  return action === "regenerate" ? "rejected" : "resolved";
 };
 
 export const resolveResolutionType = (
   action: "approve" | "reject" | "regenerate"
 ): string => {
-  return action === "approve" ? "approved" : "rejected";
+  if (action === "approve") {
+    return "fixed";
+  }
+  if (action === "reject") {
+    return "false_positive";
+  }
+  return "retry_requested";
 };
 
 export const ensureNoActiveAudioTask = async (bookId: string): Promise<void> => {

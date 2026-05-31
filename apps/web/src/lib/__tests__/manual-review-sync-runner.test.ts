@@ -11,6 +11,7 @@ jest.mock("@/lib/prisma", () => ({
     },
     manualReviewItem: {
       count: jest.fn(),
+      findMany: jest.fn(),
     },
     processingTask: {
       findFirst: jest.fn(),
@@ -40,6 +41,7 @@ import { runManualReviewSyncTask } from "@/lib/manual-review-sync-runner";
 const mockFindBook = (prisma as any).book.findUnique as jest.Mock;
 const mockUpdateBook = (prisma as any).book.update as jest.Mock;
 const mockCountItems = (prisma as any).manualReviewItem.count as jest.Mock;
+const mockFindReviewItems = (prisma as any).manualReviewItem.findMany as jest.Mock;
 const mockFindProcessingTask = (prisma as any).processingTask.findFirst as jest.Mock;
 const mockCreateTask = (prisma as any).processingTask.create as jest.Mock;
 const mockUpdateTask = (prisma as any).processingTask.update as jest.Mock;
@@ -52,6 +54,7 @@ describe("manual-review-sync-runner", () => {
     jest.clearAllMocks();
     mockFindBook.mockResolvedValue({ metadata: {}, status: "manual_review_pending" });
     mockUpdateBook.mockResolvedValue({});
+    mockFindReviewItems.mockResolvedValue([]);
     mockFindProcessingTask.mockResolvedValue(null);
     mockCreateTask.mockResolvedValue({ id: "assembly-task-1" });
     mockUpdateTask.mockResolvedValue({});

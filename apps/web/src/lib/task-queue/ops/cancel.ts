@@ -75,7 +75,7 @@ const STAGE_BOOK_STATUS_FALLBACK: Record<string, string> = {
   quality_check: "script_generated",
   quality_signal_sync: "script_generated",
   final_assembly: "manual_review_pending",
-  manual_review_sync: "manual_review_pending",
+  manual_review_sync: "audio_review_ready",
 };
 
 const TASK_BOOK_STATUS_FALLBACK: Record<CancelableTaskType, string> = {
@@ -87,7 +87,7 @@ const TASK_BOOK_STATUS_FALLBACK: Record<CancelableTaskType, string> = {
   AUTO_PIPELINE: "uploaded",
   AUTO_PIPELINE_COMPENSATION: "uploaded",
   FINAL_ASSEMBLY: "manual_review_pending",
-  MANUAL_REVIEW_SYNC: "manual_review_pending",
+  MANUAL_REVIEW_SYNC: "audio_review_ready",
 };
 
 const readRelatedTaskIds = (params: {

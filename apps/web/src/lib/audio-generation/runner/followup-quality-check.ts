@@ -97,7 +97,7 @@ export const enqueueManualReviewFollowupQualityCheck = async ({
     await rejectManualReviewReprocessingItem({
       bookId,
       manualReviewItemId,
-      resolutionType: "regenerate_qc_enqueue_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:后置质检入队失败:${message}`,
     });
 
@@ -167,7 +167,7 @@ export const enqueueManualReviewBatchFollowupQualityCheck = async ({
     await rejectQcRetryReprocessingItems({
       bookId,
       reviewItemIds,
-      resolutionType: "batch_regenerate_qc_enqueue_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:manual_review_batch后置质检入队失败:${message}`,
     });
 
@@ -247,7 +247,7 @@ export const enqueueQcRetryFollowupQualityCheck = async ({
     await rejectQcRetryReprocessingItems({
       bookId,
       reviewItemIds,
-      resolutionType: "batch_regenerate_qc_enqueue_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:qc_retry后置质检入队失败:${message}`,
     });
 

@@ -184,7 +184,7 @@ describe("runAudioGenerationTask manual review followup", () => {
       where: { id: "review-2" },
       data: expect.objectContaining({
         status: "rejected",
-        resolutionType: "regenerate_failed",
+        resolutionType: "hard_failure",
       }),
     });
   });
@@ -433,7 +433,7 @@ describe("runAudioGenerationTask manual review followup", () => {
       where: { id: "review-21" },
       data: expect.objectContaining({
         status: "rejected",
-        resolutionType: "batch_regenerate_failed",
+        resolutionType: "hard_failure",
       }),
     });
   });
@@ -502,7 +502,7 @@ describe("runAudioGenerationTask manual review followup", () => {
       where: { id: "review-52" },
       data: expect.objectContaining({
         status: "rejected",
-        resolutionType: "batch_regenerate_failed",
+        resolutionType: "hard_failure",
       }),
     });
     expect(mockEnqueueQualityCheck).toHaveBeenCalledWith({

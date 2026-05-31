@@ -116,6 +116,7 @@ export const BOOK_STATUS = {
   GENERATING_AUDIO: 'generating_audio',
   QUALITY_CHECKING: 'quality_checking',
   MANUAL_REVIEW_PENDING: 'manual_review_pending',
+  AUDIO_REVIEW_READY: 'audio_review_ready',
   ASSEMBLING_AUDIO: 'assembling_audio',
   COMPLETED_WITH_ERRORS: 'completed_with_errors',
   COMPLETED: 'completed',

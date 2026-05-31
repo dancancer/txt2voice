@@ -78,7 +78,7 @@ const rejectAllReprocessingContexts = async (params: {
     await rejectManualReviewReprocessingItem({
       bookId,
       manualReviewItemId: manualReviewContext.manualReviewItemId,
-      resolutionType: "regenerate_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:音频重生失败:task=${taskId}`,
     });
   }
@@ -87,7 +87,7 @@ const rejectAllReprocessingContexts = async (params: {
     await rejectQcRetryReprocessingItems({
       bookId,
       reviewItemIds: qcRetryContext.selectedReviewItemIds,
-      resolutionType: "batch_regenerate_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:qc_retry音频返工失败:task=${taskId}`,
     });
   }
@@ -96,7 +96,7 @@ const rejectAllReprocessingContexts = async (params: {
     await rejectQcRetryReprocessingItems({
       bookId,
       reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-      resolutionType: "batch_regenerate_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:manual_review_batch音频重生失败:task=${taskId}`,
     });
   }
@@ -121,7 +121,7 @@ const rejectMissingAudioReferenceContexts = async (params: {
     await rejectManualReviewReprocessingItem({
       bookId,
       manualReviewItemId: manualReviewContext.manualReviewItemId,
-      resolutionType: "regenerate_missing_audio_ref",
+      resolutionType: "hard_failure",
       note: `auto_reject:重生无有效音频引用:task=${taskId}`,
     });
   }
@@ -129,7 +129,7 @@ const rejectMissingAudioReferenceContexts = async (params: {
     await rejectQcRetryReprocessingItems({
       bookId,
       reviewItemIds: qcRetryContext.selectedReviewItemIds,
-      resolutionType: "batch_regenerate_missing_audio_ref",
+      resolutionType: "hard_failure",
       note: `auto_reject:qc_retry重生无有效音频引用:task=${taskId}`,
     });
   }
@@ -137,7 +137,7 @@ const rejectMissingAudioReferenceContexts = async (params: {
     await rejectQcRetryReprocessingItems({
       bookId,
       reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
-      resolutionType: "batch_regenerate_missing_audio_ref",
+      resolutionType: "hard_failure",
       note: `auto_reject:manual_review_batch重生无有效音频引用:task=${taskId}`,
     });
   }
@@ -176,7 +176,7 @@ const rejectPartialBatchFailures = async (params: {
       bookId,
       reviewItemIds: qcRetryContext.selectedReviewItemIds,
       sentenceIds: failedBatchSentenceIds,
-      resolutionType: "batch_regenerate_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:qc_retry部分返工失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
     });
   }
@@ -186,7 +186,7 @@ const rejectPartialBatchFailures = async (params: {
       bookId,
       reviewItemIds: manualReviewBatchContext.selectedReviewItemIds,
       sentenceIds: failedBatchSentenceIds,
-      resolutionType: "batch_regenerate_failed",
+      resolutionType: "hard_failure",
       note: `auto_reject:manual_review_batch部分重生失败:task=${taskId};failedSentences=${failedBatchSentenceIds.length}`,
     });
   }

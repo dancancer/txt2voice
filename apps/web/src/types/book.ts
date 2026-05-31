@@ -16,6 +16,7 @@ export type BookStatus =
   | 'generating_audio'
   | 'quality_checking'
   | 'manual_review_pending'
+  | 'audio_review_ready'
   | 'assembling_audio'
   | 'completed_with_errors'
   | 'completed'

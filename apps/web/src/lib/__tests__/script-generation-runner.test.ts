@@ -197,7 +197,7 @@ describe("script-generation-runner", () => {
         attempt: 1,
       });
       const result =
-        input.mode === "partial" || input.mode === "regenerate"
+        input.mode === "partial" || input.mode === "retry_requested"
           ? {
               dialogueLines: [
                 {

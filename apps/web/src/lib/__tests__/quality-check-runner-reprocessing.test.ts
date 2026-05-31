@@ -159,7 +159,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       where: { id: "review-reprocessing-1" },
       data: expect.objectContaining({
         status: "rejected",
-        resolutionType: "auto_rejected",
+        resolutionType: "auto_recovery_exhausted",
         issueDetail: expect.objectContaining({
           source: "qc_retry",
         }),
@@ -248,7 +248,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       where: { id: "review-reprocessing-2" },
       data: expect.objectContaining({
         status: "rejected",
-        resolutionType: "auto_rejected",
+        resolutionType: "auto_recovery_exhausted",
         issueDetail: expect.objectContaining({
           source: "qc_retry",
           secondaryDispatch: "threshold_blocked",

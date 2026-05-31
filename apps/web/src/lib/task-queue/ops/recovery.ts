@@ -16,7 +16,7 @@ import { markTaskFailed } from "@/lib/task-queue/worker-state";
 
 const getFallbackStatus = (
   taskType: string
-): "uploaded" | "completed" | "processed" | "script_generated" | "manual_review_pending" | "completed_with_errors" | "error" => {
+): "uploaded" | "completed" | "processed" | "script_generated" | "manual_review_pending" | "audio_review_ready" | "completed_with_errors" | "error" => {
   if (taskType === "SCRIPT_GENERATION") {
     return "processed";
   }
@@ -33,7 +33,7 @@ const getFallbackStatus = (
     return "completed_with_errors";
   }
   if (taskType === "MANUAL_REVIEW_SYNC") {
-    return "manual_review_pending";
+    return "audio_review_ready";
   }
   if (taskType === "AUTO_PIPELINE_COMPENSATION") {
     return "uploaded";

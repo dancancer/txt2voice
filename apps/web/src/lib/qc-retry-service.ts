@@ -233,7 +233,7 @@ export const retryQualityIssues = async ({
       },
       data: {
         status: "reprocessing",
-        resolutionType: "batch_regenerate",
+        resolutionType: "retry_requested",
         resolutionNote: appendResolutionNote(item.resolutionNote, marker, payload.note),
         resolvedAt: null,
       },

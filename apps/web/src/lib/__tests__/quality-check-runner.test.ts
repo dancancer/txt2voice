@@ -64,22 +64,22 @@ describe('resolveReprocessingStatusFromVerdict', () => {
   it('should resolve when verdict is pass/repair', () => {
     expect(resolveReprocessingStatusFromVerdict('pass')).toEqual({
       status: 'resolved',
-      resolutionType: 'auto_resolved'
+      resolutionType: 'fixed'
     })
     expect(resolveReprocessingStatusFromVerdict('repair')).toEqual({
       status: 'resolved',
-      resolutionType: 'auto_resolved'
+      resolutionType: 'fixed'
     })
   })
 
   it('should reject when verdict requires manual intervention', () => {
     expect(resolveReprocessingStatusFromVerdict('manual_review')).toEqual({
       status: 'rejected',
-      resolutionType: 'auto_rejected'
+      resolutionType: 'auto_recovery_exhausted'
     })
     expect(resolveReprocessingStatusFromVerdict('hard_fail')).toEqual({
       status: 'rejected',
-      resolutionType: 'auto_rejected'
+      resolutionType: 'auto_recovery_exhausted'
     })
   })
 })
