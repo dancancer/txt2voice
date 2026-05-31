@@ -12,6 +12,11 @@ import {
   throwIfTaskCanceled,
 } from "@/lib/task-cancellation";
 import {
+  buildSelectedAudioSet,
+  type SelectedAudioCandidate,
+  type SelectedAudioSet,
+} from "./selected-audio-set";
+import {
   AUTO_PIPELINE_STAGE_ORDER,
   createStageStateMap,
   getStageTaskProgressRange,
@@ -28,6 +33,118 @@ import {
   runStage,
   runTextProcessingStage,
 } from "./task-stage-utils";
+
+type TargetSentence = {
+  id: string;
+  chapterId: string | null;
+  segmentId: string;
+};
+
+const loadTargetSentences = async (bookId: string): Promise<TargetSentence[]> =>
+  prisma.scriptSentence.findMany({
+    where: { bookId },
+    select: {
+      id: true,
+      chapterId: true,
+      segmentId: true,
+    },
+    orderBy: [
+      { segment: { chapterOrderIndex: "asc" } },
+      { orderInSegment: "asc" },
+      { id: "asc" },
+    ],
+  });
+
+const loadCompletedAudioCandidates = async ({
+  bookId,
+  targetSentenceIds,
+}: {
+  bookId: string;
+  targetSentenceIds: string[];
+}): Promise<SelectedAudioCandidate[]> =>
+  prisma.audioFile.findMany({
+    where: {
+      bookId,
+      status: "completed",
+      sentenceId: { in: targetSentenceIds },
+    },
+    select: {
+      id: true,
+      sentenceId: true,
+      status: true,
+      attemptNo: true,
+      createdAt: true,
+      filePath: true,
+      fileSize: true,
+      duration: true,
+      format: true,
+    },
+  });
+
+const selectedAudioSummary = (selectedAudioSet: SelectedAudioSet) => ({
+  selectedAudioSetHash: selectedAudioSet.selectedAudioSetHash,
+  targetSentenceIdsHash: selectedAudioSet.targetSentenceIdsHash,
+  selectedCount: selectedAudioSet.selectedCount,
+  missingCount: selectedAudioSet.missingCount,
+});
+
+const createMissingAudioReviewItems = async ({
+  bookId,
+  sentences,
+  selectedAudioSet,
+}: {
+  bookId: string;
+  sentences: TargetSentence[];
+  selectedAudioSet: SelectedAudioSet;
+}): Promise<number> => {
+  if (selectedAudioSet.missingSentenceIds.length === 0) {
+    return 0;
+  }
+
+  const sentenceById = new Map(sentences.map((sentence) => [sentence.id, sentence]));
+  const existingItems = await prisma.manualReviewItem.findMany({
+    where: {
+      bookId,
+      issueType: "MISSING_AUDIO",
+      status: { in: ["pending", "reprocessing"] },
+      sentenceId: { in: selectedAudioSet.missingSentenceIds },
+    },
+    select: { sentenceId: true },
+  });
+  const existingSentenceIds = new Set(
+    existingItems
+      .map((item) => item.sentenceId)
+      .filter((sentenceId): sentenceId is string => Boolean(sentenceId))
+  );
+  const missingSentences = selectedAudioSet.missingSentenceIds
+    .filter((sentenceId) => !existingSentenceIds.has(sentenceId))
+    .map((sentenceId) => sentenceById.get(sentenceId))
+    .filter((sentence): sentence is TargetSentence => Boolean(sentence));
+
+  if (missingSentences.length === 0) {
+    return 0;
+  }
+
+  await prisma.manualReviewItem.createMany({
+    data: missingSentences.map((sentence) => ({
+      bookId,
+      chapterId: sentence.chapterId,
+      segmentId: sentence.segmentId,
+      sentenceId: sentence.id,
+      issueType: "MISSING_AUDIO",
+      priority: "high",
+      status: "pending",
+      resolutionType: null,
+      issueDetail: toInputJsonValue({
+        blocking: true,
+        blockingReason: "missing_audio",
+        selectedAudioSet: selectedAudioSummary(selectedAudioSet),
+      }),
+    })),
+  });
+
+  return missingSentences.length;
+};
 
 /**
  * 执行自动编排任务。
@@ -272,21 +389,53 @@ export async function runAutoPipelineTask({
     await throwIfTaskCanceled(taskId);
 
     if (qualityCheckEnabled) {
-      if (qualityCheckType === "chapter" && !qualityCheckChapterId) {
-        throw new Error("自动编排章节质检必须提供 chapterId");
+      const targetSentences = await loadTargetSentences(bookId);
+      const targetSentenceIds = targetSentences.map((sentence) => sentence.id);
+      const completedAudio = await loadCompletedAudioCandidates({
+        bookId,
+        targetSentenceIds,
+      });
+      const selectedAudioSet = buildSelectedAudioSet({
+        targetSentenceIds,
+        audioFiles: completedAudio,
+      });
+
+      if (selectedAudioSet.missingCount > 0) {
+        pendingReviewCount = await createMissingAudioReviewItems({
+          bookId,
+          sentences: targetSentences,
+          selectedAudioSet,
+        });
+
+        await prisma.book.update({
+          where: { id: bookId },
+          data: {
+            status: "manual_review_pending",
+          },
+        });
+
+        await syncPipelineTask({
+          progress: getStageTaskProgressRange("quality_check", qualityCheckEnabled).start,
+          message: "音频缺失，已创建人工复核项",
+          currentStage: "completed",
+          metadata: {
+            selectedAudioSet: selectedAudioSummary(selectedAudioSet),
+            pendingReviewCount,
+          },
+        });
+
+        await completeAutoPipeline({
+          taskId,
+          bookId,
+          options: normalizedOptions,
+          stageState,
+          pendingReviewCount,
+          stageCount,
+        });
+        return;
       }
 
-      const qcTotalItems = await prisma.audioFile.count({
-        where: {
-          bookId,
-          status: "completed",
-          ...(qualityCheckType === "chapter" && qualityCheckChapterId
-            ? {
-                chapterId: qualityCheckChapterId,
-              }
-            : {}),
-        },
-      });
+      const qcTotalItems = selectedAudioSet.selectedCount;
 
       if (qcTotalItems <= 0) {
         throw new Error("音频生成未产出可质检文件");
@@ -300,9 +449,11 @@ export async function runAutoPipelineTask({
         message: "Auto Pipeline: 质量检查阶段",
         totalItems: qcTotalItems,
         metadata: {
-          type: qualityCheckType,
+          type: "batch",
           chapterId: qualityCheckChapterId || null,
+          audioFileIds: selectedAudioSet.selectedAudioFileIds,
           source: "auto_pipeline",
+          selectedAudioSet: selectedAudioSummary(selectedAudioSet),
           syncSignalsBeforeRun: normalizedOptions.qualityCheck.syncSignalsBeforeRun,
           forceSignalResync: normalizedOptions.qualityCheck.forceSignalResync,
         },
@@ -336,8 +487,8 @@ export async function runAutoPipelineTask({
           await runQualityCheckTask({
             taskId: qualityTask.id,
             bookId,
-            type: qualityCheckType,
-            chapterId: qualityCheckChapterId,
+            type: "batch",
+            audioFileIds: selectedAudioSet.selectedAudioFileIds,
           });
         },
       });

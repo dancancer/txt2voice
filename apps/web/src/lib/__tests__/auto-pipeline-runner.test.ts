@@ -25,7 +25,97 @@ jest.mock("@/lib/text-processor", () => ({
   createChapterSegmentRecords: jest.fn(),
 }));
 
-import { parseAutoPipelineOptions } from "@/lib/auto-pipeline-runner";
+jest.mock("@/lib/auto-pipeline/task-stage-utils", () => ({
+  createStageTask: jest.fn(),
+  runStage: jest.fn(async ({ run }) => run()),
+  runTextProcessingStage: jest.fn(),
+  getAudioTaskBookStatus: jest.fn(async () => "completed"),
+  completeAutoPipeline: jest.fn(),
+  markPipelineFailed: jest.fn(),
+}));
+
+import {
+  parseAutoPipelineOptions,
+  runAutoPipelineTask,
+} from "@/lib/auto-pipeline-runner";
+import prisma from "@/lib/prisma";
+import { runQualityCheckTask } from "@/lib/quality-check-runner";
+import {
+  completeAutoPipeline,
+  createStageTask,
+} from "@/lib/auto-pipeline/task-stage-utils";
+
+const mockedPrisma = prisma as any;
+const mockedCreateStageTask = createStageTask as jest.Mock;
+const mockedRunQualityCheckTask = runQualityCheckTask as jest.Mock;
+const mockedCompleteAutoPipeline = completeAutoPipeline as jest.Mock;
+
+const at = (iso: string) => new Date(iso);
+
+const baseSentence = (id: string) => ({
+  id,
+  chapterId: `chapter-${id}`,
+  segmentId: `segment-${id}`,
+});
+
+const baseAudio = (overrides: Record<string, unknown>) => ({
+  id: "audio-1",
+  sentenceId: "sentence-1",
+  status: "completed",
+  attemptNo: 1,
+  createdAt: at("2026-01-01T00:00:00.000Z"),
+  filePath: "/audio/a.mp3",
+  fileSize: 1000,
+  duration: 2.5,
+  format: "mp3",
+  ...overrides,
+});
+
+const setupRunnerPrisma = () => {
+  mockedCreateStageTask
+    .mockResolvedValueOnce({ id: "text-task" })
+    .mockResolvedValueOnce({ id: "script-task" })
+    .mockResolvedValueOnce({ id: "audio-task" })
+    .mockResolvedValueOnce({ id: "quality-task" });
+
+  mockedPrisma.processingTask = {
+    findUnique: jest.fn(async () => ({
+      status: "processing",
+      taskData: {},
+    })),
+    update: jest.fn(async () => ({})),
+  };
+  mockedPrisma.book = {
+    update: jest.fn(async () => ({})),
+    findUnique: jest.fn(async () => ({
+      status: "processing",
+      metadata: {},
+    })),
+  };
+  mockedPrisma.textSegment = {
+    count: jest.fn(async () => 2),
+  };
+  mockedPrisma.scriptSentence = {
+    count: jest.fn(async () => 2),
+    findMany: jest.fn(async () => [
+      baseSentence("sentence-1"),
+      baseSentence("sentence-2"),
+    ]),
+  };
+  mockedPrisma.audioFile = {
+    findMany: jest.fn(async () => []),
+  };
+  mockedPrisma.manualReviewItem = {
+    count: jest.fn(async () => 0),
+    findMany: jest.fn(async () => []),
+    createMany: jest.fn(async () => ({ count: 0 })),
+  };
+};
+
+beforeEach(() => {
+  jest.clearAllMocks();
+  setupRunnerPrisma();
+});
 
 describe("auto-pipeline-runner", () => {
   it("should parse and normalize nested options", () => {
@@ -99,5 +189,73 @@ describe("auto-pipeline-runner", () => {
       },
       qualityCheck: {},
     });
+  });
+
+  it("runs quality check only for the selected audio set", async () => {
+    mockedPrisma.audioFile.findMany.mockResolvedValue([
+      baseAudio({
+        id: "audio-old",
+        sentenceId: "sentence-1",
+        attemptNo: 1,
+      }),
+      baseAudio({
+        id: "audio-new",
+        sentenceId: "sentence-1",
+        attemptNo: 2,
+      }),
+      baseAudio({
+        id: "audio-s2",
+        sentenceId: "sentence-2",
+        attemptNo: 1,
+      }),
+    ]);
+
+    await runAutoPipelineTask({
+      taskId: "pipeline-task",
+      bookId: "book-1",
+      options: {},
+    });
+
+    expect(mockedRunQualityCheckTask).toHaveBeenCalledWith({
+      taskId: "quality-task",
+      bookId: "book-1",
+      type: "batch",
+      audioFileIds: ["audio-new", "audio-s2"],
+    });
+  });
+
+  it("creates one actionable review item per missing audio sentence", async () => {
+    mockedPrisma.audioFile.findMany.mockResolvedValue([
+      baseAudio({
+        id: "audio-s1",
+        sentenceId: "sentence-1",
+      }),
+    ]);
+
+    await runAutoPipelineTask({
+      taskId: "pipeline-task",
+      bookId: "book-1",
+      options: {},
+    });
+
+    expect(mockedRunQualityCheckTask).not.toHaveBeenCalled();
+    expect(mockedPrisma.manualReviewItem.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          bookId: "book-1",
+          chapterId: "chapter-sentence-2",
+          segmentId: "segment-sentence-2",
+          sentenceId: "sentence-2",
+          issueType: "MISSING_AUDIO",
+          status: "pending",
+          resolutionType: null,
+        }),
+      ],
+    });
+    expect(mockedCompleteAutoPipeline).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pendingReviewCount: 1,
+      })
+    );
   });
 });
