@@ -89,6 +89,20 @@ describe("llm-model-config-service", () => {
     });
   });
 
+  it("should return an empty selectable list when no database or env models exist", async () => {
+    delete process.env.LLM_MODELS_JSON;
+    delete process.env.LLM_DEFAULT_MODEL_ID;
+    prismaMock.llmModelConfig.findMany.mockResolvedValue([]);
+
+    const result = await listSelectableLLMModels();
+
+    expect(result).toEqual({
+      defaultModelId: "",
+      models: [],
+      source: "none",
+    });
+  });
+
   it("should resolve provider from persisted database config before env fallback", async () => {
     prismaMock.llmModelConfig.findMany.mockResolvedValue([
       {

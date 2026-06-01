@@ -9,6 +9,7 @@ import {
   getDefaultLLMModel,
   getLLMModelById,
   getLLMModelRegistrySnapshot,
+  type LLMModelRegistrySnapshot,
 } from "@/lib/llm-model-registry";
 
 export interface LLMResolvedProvider {
@@ -160,6 +161,18 @@ const toEnvResolvedProvider = (
   model: model.model,
 });
 
+const readOptionalRegistry = (): LLMModelRegistrySnapshot | null => {
+  try {
+    return getLLMModelRegistrySnapshot();
+  } catch (error) {
+    if (error instanceof Error && error.message === "LLM_MODELS_JSON 未设置") {
+      return null;
+    }
+
+    throw error;
+  }
+};
+
 const pickDefaultModel = async () => {
   const models = await prisma.llmModelConfig.findMany({
     where: { isActive: true },
@@ -186,7 +199,7 @@ export async function listPersistedLLMModelConfigs(): Promise<
 export async function listSelectableLLMModels(): Promise<{
   defaultModelId: string;
   models: LLMSelectableModelView[];
-  source: "database" | "registry";
+  source: "database" | "registry" | "none";
 }> {
   const models = await prisma.llmModelConfig.findMany({
     where: { isActive: true },
@@ -203,7 +216,15 @@ export async function listSelectableLLMModels(): Promise<{
     };
   }
 
-  const registry = getLLMModelRegistrySnapshot();
+  const registry = readOptionalRegistry();
+  if (!registry) {
+    return {
+      defaultModelId: "",
+      models: [],
+      source: "none",
+    };
+  }
+
   return {
     defaultModelId: registry.defaultModelId,
     models: registry.models.map((model) =>
