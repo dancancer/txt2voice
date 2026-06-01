@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
 // input: quality stage 输入/trace 依赖/skill 定位
-// output: mastra quality stage 共享辅助函数
+// output: mastra quality stage 共享辅助函数/长段台本质检预算
 // pos: agent runtime mastra
 import fs from "fs";
 import path from "path";
@@ -47,8 +47,8 @@ const DETERMINISTIC_HARD_FAIL_COVERAGE_THRESHOLD = 0.5;
 const AUTO_REVIEW_SCORE_THRESHOLD = 0.8;
 const AUTO_REVIEW_CONFIDENCE_THRESHOLD = 0.75;
 export const QUALITY_STAGE_PROMPT_BUDGET = {
-  maxContextChars: 10000,
-  reservedOutputChars: 1000,
+  maxContextChars: 50000,
+  reservedOutputChars: 6000,
 } as const;
 const CORE_QUALITY_EVIDENCE_KEYS = new Set([
   "segment_script_draft_json",

@@ -1,7 +1,7 @@
 // 一旦我被更新，请更新我的开头注释
-// input: 函数参数/外部依赖
-// output: 工具/服务导出
-// pos: 共享业务库
+// input: 全局运行参数/外部依赖
+// output: 文件、文本、音频、LLM、状态常量
+// pos: 共享业务库，DeepSeek V4-Pro 长上下文分段基线
 /**
  * 应用程序常量配置
  * 集中管理所有魔法数字和配置值
@@ -18,10 +18,10 @@ export const CONFIG = {
 
   // 文本处理配置
   TEXT_PROCESSING: {
-    MAX_SEGMENT_LENGTH: 600,  // 段落上限控制在500±100字的上限
-    MIN_SEGMENT_LENGTH: 400,  // 段落下限控制在500±100字的下限
-    DEFAULT_SEGMENT_LENGTH: 500,  // 目标长度
-    SEGMENT_TOLERANCE: 100,  // 分段均匀性容差
+    MAX_SEGMENT_LENGTH: 4000,
+    MIN_SEGMENT_LENGTH: 1600,
+    DEFAULT_SEGMENT_LENGTH: 2400,
+    SEGMENT_TOLERANCE: 600,
     LLM_CHUNK_SIZE: 8000,
     OVERLAP_SIZE: 200,
   },

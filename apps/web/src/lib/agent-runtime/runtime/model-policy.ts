@@ -20,15 +20,24 @@ const POLICY_REQUEST_OPTIONS: Record<
 > = {
   balanced: {
     temperature: 0.3,
-    maxTokens: 8000,
+    maxTokens: 16000,
+    timeoutMs: 5 * 60 * 1_000,
+    responseFormat: "json_object",
+    thinking: "disabled",
   },
   "cheap-repair": {
     temperature: 0,
-    maxTokens: 2000,
+    maxTokens: 8000,
+    timeoutMs: 5 * 60 * 1_000,
+    responseFormat: "json_object",
+    thinking: "disabled",
   },
   quality: {
     temperature: 0.1,
-    maxTokens: 3000,
+    maxTokens: 6000,
+    timeoutMs: 5 * 60 * 1_000,
+    responseFormat: "json_object",
+    thinking: "disabled",
   },
 };
 

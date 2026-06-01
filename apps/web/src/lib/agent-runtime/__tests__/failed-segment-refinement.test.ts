@@ -2,6 +2,7 @@ import {
   refineFailedSegment,
   shouldRefineSegmentFailure,
 } from "../runtime/script-production/helpers/failed-segment-refinement";
+import { buildInputRefinementSegments } from "../runtime/script-production/helpers/validation-and-refinement";
 
 describe("failed segment refinement", () => {
   it("only refines targeted validation failures", () => {
@@ -55,5 +56,40 @@ describe("failed segment refinement", () => {
       [8, 13],
     ]);
     expect(refined.every((slice) => slice.parentSegmentId === "seg-1")).toBe(true);
+  });
+
+  it("coalesces refinement fanout into bounded child segments", () => {
+    const content = Array.from({ length: 12 }, (_, index) => {
+      return `第${index + 1}句需要继续验证。`;
+    }).join("");
+
+    const refined = buildInputRefinementSegments({
+      segment: {
+        id: "seg-many",
+        chapterId: "chapter-1",
+        orderIndex: 3,
+        content,
+      },
+      validationReport: {
+        segmentId: "seg-many",
+        valid: false,
+        coverageRatio: 0.5,
+        issues: [
+          {
+            code: "TEXT_SOURCE_MISMATCH",
+            message: "source mismatch",
+          },
+        ],
+      },
+    });
+
+    expect(refined).toHaveLength(4);
+    expect(refined.map((slice) => slice.content).join("")).toBe(content);
+    expect(refined.map((slice) => slice.id)).toEqual([
+      "seg-many::refined-1",
+      "seg-many::refined-2",
+      "seg-many::refined-3",
+      "seg-many::refined-4",
+    ]);
   });
 });

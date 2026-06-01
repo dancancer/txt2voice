@@ -213,19 +213,37 @@ describe("agent runtime llm adapter", () => {
     expect(runLLMRequest).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
-        requestOptions: { temperature: 0, maxTokens: 2000 },
+        requestOptions: {
+          temperature: 0,
+          maxTokens: 8000,
+          timeoutMs: 300000,
+          responseFormat: "json_object",
+          thinking: "disabled",
+        },
       })
     );
     expect(runLLMRequest).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        requestOptions: { temperature: 0.1, maxTokens: 3000 },
+        requestOptions: {
+          temperature: 0.1,
+          maxTokens: 6000,
+          timeoutMs: 300000,
+          responseFormat: "json_object",
+          thinking: "disabled",
+        },
       })
     );
     expect(runLLMRequest).toHaveBeenNthCalledWith(
       3,
       expect.objectContaining({
-        requestOptions: { temperature: 0.3, maxTokens: 8000 },
+        requestOptions: {
+          temperature: 0.3,
+          maxTokens: 16000,
+          timeoutMs: 300000,
+          responseFormat: "json_object",
+          thinking: "disabled",
+        },
       })
     );
   });
@@ -255,12 +273,24 @@ describe("agent runtime llm adapter", () => {
     expect(resolveLLMExecutionPolicy("cheap-repair")).toEqual({
       policy: "cheap-repair",
       modelId: "shared-default-model",
-      requestOptions: { temperature: 0, maxTokens: 2000 },
+      requestOptions: {
+        temperature: 0,
+        maxTokens: 8000,
+        timeoutMs: 300000,
+        responseFormat: "json_object",
+        thinking: "disabled",
+      },
     });
     expect(resolveLLMExecutionPolicy("quality")).toEqual({
       policy: "quality",
       modelId: "shared-default-model",
-      requestOptions: { temperature: 0.1, maxTokens: 3000 },
+      requestOptions: {
+        temperature: 0.1,
+        maxTokens: 6000,
+        timeoutMs: 300000,
+        responseFormat: "json_object",
+        thinking: "disabled",
+      },
     });
   });
 });

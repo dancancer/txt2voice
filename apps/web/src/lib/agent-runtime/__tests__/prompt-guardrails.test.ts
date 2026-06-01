@@ -124,6 +124,9 @@ describe("production prompt guardrails", () => {
     expect(call.systemPrompt).toContain("不能总结、压缩、改写、解释或补写原文");
     expect(call.systemPrompt).toContain("旁白的 text 必须与 sourceText 完全一致");
     expect(call.systemPrompt).toContain("不要把叙事改写成括号里的舞台说明");
+    expect(call.systemPrompt).toContain("连续旁白、动作、环境描写");
+    expect(call.systemPrompt).toContain("800 字左右的段落通常输出 8-18 行");
+    expect(call.prompt).toContain("避免输出过长 JSON");
     expect(call.prompt).toContain("不要漏字，不要重抽");
   });
 

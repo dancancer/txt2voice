@@ -63,6 +63,33 @@ describe("character memory canonicalize", () => {
     ]);
   });
 
+  it("treats narration speaker as resolved without requiring character memory", () => {
+    const snapshot = createBootstrapCharacterMemorySnapshot([]);
+    const draft: SegmentScriptDraft = {
+      segmentId: "segment-narration",
+      createdAt: "2026-04-09T00:00:00.000Z",
+      lines: [
+        {
+          id: "line-narration",
+          sourceText: "山风吹过。",
+          text: "山风吹过。",
+          speaker: "旁白",
+          orderInSegment: 0,
+        },
+      ],
+    };
+
+    const result = canonicalizeSegmentScriptDraftSpeakers({
+      draft,
+      snapshot,
+    });
+
+    expect(result.evidence.unresolvedSpeakers).toEqual([]);
+    expect(result.evidence.resolvedSpeakers).toEqual([
+      { raw: "旁白", canonical: "旁白", reason: "direct_match" },
+    ]);
+  });
+
   it("preserves ambiguous aliases and records conflict evidence", () => {
     const snapshot = createBootstrapCharacterMemorySnapshot([
       {

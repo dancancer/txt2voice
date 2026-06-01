@@ -160,8 +160,8 @@ export const runMastraSegmentRepairStage = async (
   const runtimeAgentId = "repair-agent";
   const maxRepairDepth = input.maxRepairDepth ?? defaultMaxRepairDepth;
   const promptBudget = {
-    maxContextChars: 5000,
-    reservedOutputChars: 1200,
+    maxContextChars: 12000,
+    reservedOutputChars: 5000,
   } as const;
 
   const stageResult = await runStage({

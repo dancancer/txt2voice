@@ -105,6 +105,20 @@ const normalizeLLMInput = (
   requestOptions: input.requestOptions || {},
 });
 
+const buildLLMJobOptions = (
+  input: LLMExecutionQueueInput
+): Bull.JobOptions => {
+  const timeoutMs = input.requestOptions?.timeoutMs;
+  const hasTimeout =
+    typeof timeoutMs === "number" && Number.isFinite(timeoutMs) && timeoutMs > 0;
+
+  return {
+    ...LLM_JOB_OPTIONS,
+    ...(hasTimeout ? { timeout: timeoutMs } : {}),
+    jobId: input.requestId,
+  };
+};
+
 export async function enqueueScriptGenerationJob(
   input: ScriptGenerationQueueInput,
   control: QueueControlOptions = {}
@@ -361,10 +375,7 @@ export async function enqueueLLMExecutionJob(
       metadata: normalizedInput.metadata || {},
       requestOptions: normalizedInput.requestOptions || {},
     },
-    {
-      ...LLM_JOB_OPTIONS,
-      jobId: normalizedInput.requestId,
-    }
+    buildLLMJobOptions(normalizedInput)
   );
 
   return {

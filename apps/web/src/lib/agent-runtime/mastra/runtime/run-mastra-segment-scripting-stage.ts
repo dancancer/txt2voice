@@ -141,8 +141,8 @@ export const runMastraSegmentScriptingStage = async (
 ): Promise<RunSegmentScriptingStageResult> => {
   const runtimeAgentId = "script-generation-agent";
   const promptBudget = {
-    maxContextChars: 4000,
-    reservedOutputChars: 1200,
+    maxContextChars: 12000,
+    reservedOutputChars: 5000,
   } as const;
 
   const stageResult = await runStage({

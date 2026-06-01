@@ -82,6 +82,8 @@ export interface LLMExecutionRequestOptions {
   temperature?: number;
   maxTokens?: number;
   timeoutMs?: number;
+  responseFormat?: "json_object";
+  thinking?: "enabled" | "disabled";
 }
 
 export interface LLMExecutionQueueInput {

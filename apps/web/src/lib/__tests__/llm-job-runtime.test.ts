@@ -170,4 +170,36 @@ describe("llm-job-runtime queue wiring", () => {
       model: "gpt-test",
     });
   });
+
+  it("should pass request timeout to queued llm jobs", async () => {
+    jest.resetModules();
+    llmQueue.add.mockResolvedValueOnce({ id: "llm-timeout-job" });
+
+    const { enqueueLLMExecutionJob } = await import(
+      "@/lib/task-queue/ops/enqueue"
+    );
+
+    await enqueueLLMExecutionJob({
+      requestId: "llm-timeout-job",
+      provider: {
+        name: "deepseek",
+        apiKey: "test",
+        model: "deepseek-v4-pro",
+      },
+      prompt: "hello",
+      requestOptions: {
+        timeoutMs: 300000,
+      },
+    });
+
+    expect(llmQueue.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: "llm-timeout-job",
+      }),
+      expect.objectContaining({
+        jobId: "llm-timeout-job",
+        timeout: 300000,
+      })
+    );
+  });
 });

@@ -60,6 +60,42 @@ describe("llm provider and client", () => {
     });
   });
 
+  it("serializes JSON mode and DeepSeek thinking controls", async () => {
+    const { executeProviderLLMCall } = await import("@/lib/llm/client");
+
+    createMock.mockResolvedValueOnce({
+      choices: [{ message: { content: "{\"ok\":true}" } }],
+      model: "deepseek-v4-pro",
+      usage: { total_tokens: 12 },
+    });
+
+    await executeProviderLLMCall({
+      provider: {
+        name: "deepseek",
+        apiKey: "key",
+        baseURL: "https://api.deepseek.com/v1",
+        model: "deepseek-v4-pro",
+      },
+      prompt: "请返回 json",
+      requestOptions: {
+        temperature: 0.3,
+        maxTokens: 16000,
+        responseFormat: "json_object",
+        thinking: "disabled",
+      },
+    });
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: "deepseek-v4-pro",
+        temperature: 0.3,
+        max_tokens: 16000,
+        response_format: { type: "json_object" },
+        extra_body: { thinking: { type: "disabled" } },
+      })
+    );
+  });
+
   it("resolves the configured provider from the registry env", async () => {
     const { getConfiguredLLMProvider } = await import("@/lib/llm/provider");
 

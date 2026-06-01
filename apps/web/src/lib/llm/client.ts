@@ -1,4 +1,7 @@
 import OpenAI from "openai";
+import type {
+  ChatCompletionCreateParamsNonStreaming,
+} from "openai/resources/chat/completions";
 
 import { TTSError } from "@/lib/error-handler";
 import type {
@@ -19,6 +22,14 @@ const DEFAULT_REQUEST_OPTIONS: Required<
 > = {
   temperature: 0.3,
   maxTokens: 8000,
+};
+
+type DeepSeekCompletionParams = ChatCompletionCreateParamsNonStreaming & {
+  extra_body?: {
+    thinking?: {
+      type: "enabled" | "disabled";
+    };
+  };
 };
 
 const buildOpenAIConfig = (provider: LLMProvider) => {
@@ -43,6 +54,51 @@ const normalizeUsage = (
   }
 
   return JSON.parse(JSON.stringify(usage)) as Record<string, unknown>;
+};
+
+const isDeepSeekProvider = (provider: LLMProvider): boolean => {
+  const name = provider.name.toLowerCase();
+  const model = provider.model.toLowerCase();
+  const baseURL = provider.baseURL?.toLowerCase() || "";
+
+  return (
+    name === "deepseek" ||
+    model.includes("deepseek") ||
+    baseURL.includes("deepseek.com")
+  );
+};
+
+const buildCompletionParams = (input: {
+  provider: LLMProvider;
+  messages: ChatCompletionCreateParamsNonStreaming["messages"];
+  requestOptions: LLMExecutionRequestOptions;
+}): DeepSeekCompletionParams => {
+  const { provider, messages, requestOptions } = input;
+  const params: DeepSeekCompletionParams = {
+    model: provider.model,
+    messages,
+    temperature:
+      typeof requestOptions.temperature === "number"
+        ? requestOptions.temperature
+        : DEFAULT_REQUEST_OPTIONS.temperature,
+    max_tokens:
+      typeof requestOptions.maxTokens === "number"
+        ? requestOptions.maxTokens
+        : DEFAULT_REQUEST_OPTIONS.maxTokens,
+    ...(provider.name === "custom" && { stream: false }),
+  };
+
+  if (requestOptions.responseFormat === "json_object") {
+    params.response_format = { type: "json_object" };
+  }
+
+  if (requestOptions.thinking && isDeepSeekProvider(provider)) {
+    params.extra_body = {
+      thinking: { type: requestOptions.thinking },
+    };
+  }
+
+  return params;
 };
 
 const toRetryableServiceError = (
@@ -100,19 +156,9 @@ export async function executeProviderLLMCall(
   ];
 
   try {
-    const response = await client.chat.completions.create({
-      model: provider.model,
-      messages,
-      temperature:
-        typeof requestOptions.temperature === "number"
-          ? requestOptions.temperature
-          : DEFAULT_REQUEST_OPTIONS.temperature,
-      max_tokens:
-        typeof requestOptions.maxTokens === "number"
-          ? requestOptions.maxTokens
-          : DEFAULT_REQUEST_OPTIONS.maxTokens,
-      ...(provider.name === "custom" && { stream: false }),
-    });
+    const response = await client.chat.completions.create(
+      buildCompletionParams({ provider, messages, requestOptions })
+    );
 
     return {
       content: response.choices[0]?.message?.content || "",

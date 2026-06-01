@@ -1,4 +1,5 @@
 import type { SegmentScriptDraft } from "../../context";
+import { isNarrationSpeaker } from "@/lib/narration-character";
 import type {
   CanonicalizedSegmentScriptDraftResult,
   CharacterAliasConflict,
@@ -37,6 +38,15 @@ export const canonicalizeSegmentScriptDraftSpeakers = (params: {
 
   const lines = params.draft.lines.map((line) => {
     const speaker = line.speaker.trim();
+    if (isNarrationSpeaker(speaker)) {
+      resolvedSpeakers.push({
+        raw: speaker,
+        canonical: speaker,
+        reason: "direct_match",
+      });
+      return line;
+    }
+
     const canonicalByAlias = params.snapshot.derivedMaps.canonicalNameByAlias[speaker];
     const canonicalById = params.snapshot.derivedMaps.canonicalNameById[speaker];
     const canonicalIdentity = params.snapshot.canonicalIdentities.find(

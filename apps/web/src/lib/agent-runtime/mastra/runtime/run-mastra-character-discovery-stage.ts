@@ -50,8 +50,8 @@ export const runMastraCharacterDiscoveryStage = async (
 ): Promise<RunCharacterDiscoveryStageResult> => {
   const runtimeAgentId = "character-discovery-agent";
   const promptBudget = {
-    maxContextChars: 4000,
-    reservedOutputChars: 1200,
+    maxContextChars: 12000,
+    reservedOutputChars: 3000,
   } as const;
 
   const stageResult = await runStage({
