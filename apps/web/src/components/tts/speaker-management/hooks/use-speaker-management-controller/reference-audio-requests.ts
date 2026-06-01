@@ -7,10 +7,6 @@ import type { ReferenceAudio, TTSReferenceProvider } from "../../types";
 export async function fetchReferenceAudiosRequest(
   provider: TTSReferenceProvider
 ): Promise<ReferenceAudio[]> {
-  if (provider === "qwen3voice") {
-    return [];
-  }
-
   const allAudios: ReferenceAudio[] = [];
   const limit = 20;
   let page = 1;
@@ -42,10 +38,6 @@ export async function deleteReferenceAudioRequest(params: {
   provider: TTSReferenceProvider;
   filename: string;
 }): Promise<void> {
-  if (params.provider === "qwen3voice") {
-    throw new Error("请在 qwen3-voice-studio 中管理参考音频");
-  }
-
   const response = await fetch(
     `/api/tts/reference-audio?provider=${encodeURIComponent(
       params.provider
@@ -67,10 +59,6 @@ export async function uploadReferenceAudioRequest(params: {
   description?: string;
   onProgress: (progress: number) => void;
 }): Promise<void> {
-  if (params.provider === "qwen3voice") {
-    throw new Error("请在 qwen3-voice-studio 中上传参考音频");
-  }
-
   await new Promise<void>((resolve, reject) => {
     const formData = new FormData();
     formData.append("file", params.file);

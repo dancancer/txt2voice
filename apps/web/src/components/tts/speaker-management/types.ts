@@ -1,4 +1,4 @@
-export type TTSReferenceProvider = "qwen3voice";
+export type TTSReferenceProvider = "voxcpm";
 
 export interface ProviderServiceStatus {
   provider: TTSReferenceProvider;

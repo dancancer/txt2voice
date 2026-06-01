@@ -7,7 +7,7 @@ import type { TTSReferenceProvider } from "../../types";
 export const PROVIDER_STORAGE_KEY = "tts.speaker-management.provider";
 
 export const SUPPORTED_PROVIDER_LIST: readonly TTSReferenceProvider[] = [
-  "qwen3voice",
+  "voxcpm",
 ];
 
 export const isTTSReferenceProvider = (

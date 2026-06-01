@@ -49,10 +49,10 @@ export function useSpeakerManagementViewState(referenceAudios: ReferenceAudio[])
   const [selectedProvider, setSelectedProvider] = useState<TTSReferenceProvider>(
     () => {
       if (typeof window === "undefined") {
-        return "qwen3voice";
+        return "voxcpm";
       }
       const storedProvider = window.localStorage.getItem(PROVIDER_STORAGE_KEY);
-      return isTTSReferenceProvider(storedProvider) ? storedProvider : "qwen3voice";
+      return isTTSReferenceProvider(storedProvider) ? storedProvider : "voxcpm";
     }
   );
 

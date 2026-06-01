@@ -35,14 +35,23 @@ export function useSpeakerManagementController() {
   const [providerStatuses, setProviderStatuses] = useState<ProviderServiceStatus[]>([]);
   const [providerStatusLoading, setProviderStatusLoading] = useState(true);
   const viewState = useSpeakerManagementViewState(referenceAudios);
+  const {
+    currentPage,
+    searchTerm,
+    filterGender,
+    filterAgeGroup,
+    filterActive,
+    selectedProvider,
+    setTotalPages,
+  } = viewState;
 
   const supportsSpeakerManagement = false;
   const selectedProviderStatus = useMemo(
     () =>
       providerStatuses.find(
-        (status) => status.provider === viewState.selectedProvider
+        (status) => status.provider === selectedProvider
       ) || null,
-    [providerStatuses, viewState.selectedProvider]
+    [providerStatuses, selectedProvider]
   );
 
   const fetchProviderStatuses = useCallback(async () => {
@@ -61,7 +70,7 @@ export function useSpeakerManagementController() {
 
   const changeProvider = useCallback(
     (provider: TTSReferenceProvider) => {
-      if (provider === viewState.selectedProvider) {
+      if (provider === selectedProvider) {
         return;
       }
 
@@ -70,42 +79,50 @@ export function useSpeakerManagementController() {
       viewState.setAudioPage(1);
       viewState.setSelectedAudioFilenames([]);
     },
-    [viewState]
+    [selectedProvider, viewState]
   );
 
   const fetchSpeakers = useCallback(async () => {
     if (!supportsSpeakerManagement) {
       setSpeakers([]);
-      viewState.setTotalPages(1);
+      setTotalPages(1);
       return;
     }
 
     try {
       const result = await fetchSpeakersRequest({
-        page: viewState.currentPage,
-        searchTerm: viewState.searchTerm,
-        filterGender: viewState.filterGender,
-        filterAgeGroup: viewState.filterAgeGroup,
-        filterActive: viewState.filterActive,
+        page: currentPage,
+        searchTerm,
+        filterGender,
+        filterAgeGroup,
+        filterActive,
       });
       setSpeakers(result.speakers);
-      viewState.setTotalPages(result.totalPages);
+      setTotalPages(result.totalPages);
     } catch (error) {
       console.error("Failed to fetch speakers:", error);
       toast.error("获取说话人列表失败");
     }
-  }, [supportsSpeakerManagement, viewState]);
+  }, [
+    currentPage,
+    filterActive,
+    filterAgeGroup,
+    filterGender,
+    searchTerm,
+    setTotalPages,
+    supportsSpeakerManagement,
+  ]);
 
   const fetchReferenceAudios = useCallback(async () => {
     try {
       setReferenceAudios(
-        await fetchReferenceAudiosRequest(viewState.selectedProvider)
+        await fetchReferenceAudiosRequest(selectedProvider)
       );
     } catch (error) {
       console.error("Failed to fetch reference audios:", error);
       toast.error("获取参考音频列表失败");
     }
-  }, [viewState.selectedProvider]);
+  }, [selectedProvider]);
 
   const createSpeaker = useCallback(async () => {
     if (!supportsSpeakerManagement) {
@@ -178,7 +195,7 @@ export function useSpeakerManagementController() {
       try {
         await uploadReferenceAudioRequest({
           file,
-          provider: viewState.selectedProvider,
+          provider: selectedProvider,
           description,
           onProgress: viewState.setUploadProgress,
         });
@@ -195,7 +212,7 @@ export function useSpeakerManagementController() {
         viewState.setIsUploading(false);
       }
     },
-    [fetchReferenceAudios, fetchSpeakers, viewState]
+    [fetchReferenceAudios, fetchSpeakers, selectedProvider, viewState]
   );
 
   const submitSelectedAudio = useCallback(async () => {
@@ -221,7 +238,7 @@ export function useSpeakerManagementController() {
     async (filename: string): Promise<{ ok: boolean; error?: string }> => {
       try {
         await deleteReferenceAudioRequest({
-          provider: viewState.selectedProvider,
+          provider: selectedProvider,
           filename,
         });
         return { ok: true };
@@ -233,7 +250,7 @@ export function useSpeakerManagementController() {
         };
       }
     },
-    [viewState.selectedProvider]
+    [selectedProvider]
   );
 
   const deleteReferenceAudio = useCallback(

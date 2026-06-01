@@ -16,7 +16,7 @@ import { ReferenceAudioTab } from "./speaker-management/panels/ReferenceAudioTab
 import { SpeakerFilters } from "./speaker-management/SpeakerFilters";
 
 const PROVIDER_OPTIONS = [
-  { value: "qwen3voice", label: "Qwen3 Voice" },
+  { value: "voxcpm", label: "VoxCPM2" },
 ] as const;
 
 export function SpeakerManagement() {
@@ -36,11 +36,11 @@ export function SpeakerManagement() {
           {!controller.supportsSpeakerManagement && (
             <Button asChild>
               <a
-                href="http://192.168.88.9:13000"
+                href={controller.selectedProviderStatus?.endpoint || "http://192.168.88.9:18083"}
                 target="_blank"
                 rel="noreferrer"
               >
-                打开 Qwen3 Voice Studio
+                打开 VoxCPM2 服务
               </a>
             </Button>
           )}
@@ -119,7 +119,7 @@ export function SpeakerManagement() {
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
-          如需修改服务地址，请更新 `.env` 中 `QWEN3VOICE_API_URL` 后重启
+          如需修改服务地址，请更新 `.env` 中 `VOXCPM_API_URL` 后重启
           `web` 容器。
         </p>
       </div>
@@ -139,7 +139,7 @@ export function SpeakerManagement() {
 
       {!controller.supportsSpeakerManagement && (
         <div className="rounded-lg border border-border bg-accent/60 p-3 text-sm text-muted-foreground">
-          speaker 资产已迁移到 Qwen3 Voice Studio 统一管理，txt2voice 这里只做消费和绑定。
+          VoxCPM2 使用参考音频与语气控制完成合成；这里管理参考音频，角色绑定会在生成时默认走 VoxCPM2。
         </div>
       )}
 
