@@ -14,6 +14,7 @@ import type {
   RunQualityStageInput,
 } from "../../../runtime/stages/run-quality-stage";
 import type { QualitySignals } from "../../../runtime/agents/quality-judge-agent";
+import type { CharacterResolutionEvidence } from "../../../runtime/character-memory/types";
 
 export interface QualityStageRuntimeDeps {
   createId?: TraceDependencies["createId"];
@@ -55,6 +56,14 @@ const CORE_QUALITY_EVIDENCE_KEYS = new Set([
   "validation_report_json",
   "character_resolution_evidence_json",
 ]);
+
+const LOCAL_SPEAKER_REASON = "local_speaker_auto_create_allowed";
+const NORMALIZATION_REASON_MARKERS = [
+  "归一化",
+  "规范名称",
+  "canonical",
+  "已知角色",
+];
 
 export const resolveCoreQualityEvidenceKeys = (input: RunQualityStageInput) => {
   const keys = new Set(CORE_QUALITY_EVIDENCE_KEYS);
@@ -171,6 +180,85 @@ export const createManualReviewHandoff = (params: {
     },
   },
 });
+
+const collectAutoLocalSpeakers = (
+  evidence?: CharacterResolutionEvidence
+): string[] =>
+  [
+    ...new Set(
+      (evidence?.resolvedSpeakers || [])
+        .filter((record) => record.reason === "auto_local")
+        .flatMap((record) => [record.raw, record.canonical])
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+    ),
+  ];
+
+const isAutoLocalNormalizationReason = (
+  reason: string,
+  speakers: string[]
+): boolean => {
+  const normalized = reason.trim().toLowerCase();
+  if (!normalized) return false;
+
+  const mentionsAutoLocalSpeaker = speakers.some((speaker) =>
+    normalized.includes(speaker.toLowerCase())
+  );
+  const mentionsNormalization = NORMALIZATION_REASON_MARKERS.some((marker) =>
+    normalized.includes(marker.toLowerCase())
+  );
+
+  return mentionsAutoLocalSpeaker && mentionsNormalization;
+};
+
+export const normalizeSemanticVerdictForCharacterResolution = (params: {
+  verdict: QualityVerdict;
+  confidence: number;
+  summary: string;
+  characterResolutionEvidence?: CharacterResolutionEvidence;
+}) => {
+  const evidence = params.characterResolutionEvidence;
+  if (
+    (evidence?.unresolvedSpeakers.length ?? 0) > 0 ||
+    (evidence?.aliasConflicts.length ?? 0) > 0
+  ) {
+    return params;
+  }
+
+  const autoLocalSpeakers = collectAutoLocalSpeakers(evidence);
+  if (autoLocalSpeakers.length === 0) {
+    return params;
+  }
+
+  const reasons = params.verdict.reasons.filter(
+    (reason) => !isAutoLocalNormalizationReason(reason, autoLocalSpeakers)
+  );
+  if (reasons.length === params.verdict.reasons.length) {
+    return params;
+  }
+
+  if (reasons.length > 0) {
+    return {
+      ...params,
+      verdict: {
+        ...params.verdict,
+        reasons,
+      },
+    };
+  }
+
+  return {
+    verdict: {
+      ...params.verdict,
+      verdict: "pass" as const,
+      score: Math.max(params.verdict.score, 0.82),
+      reasons: [LOCAL_SPEAKER_REASON],
+    },
+    confidence: Math.max(params.confidence, 0.8),
+    summary: LOCAL_SPEAKER_REASON,
+    characterResolutionEvidence: evidence,
+  };
+};
 
 export const resolveDeterministicDecision = (
   input: RunQualityStageInput

@@ -11,7 +11,8 @@
    - 是否出现脱离原文的改写、臆造、语义漂移
    - `validation report` / `quality signals` 指向的结构化风险
 3. 不要把原文题材、叙事质量、受众适宜性、性描写、暴力程度、价值判断写成质检理由，除非这些内容直接导致了台本抽取错误或角色/语气判断错误。
-4. 如果未发现明确问题，`reasons` 应写出台本质量为何可通过，而不是评价原文题材或剧情内容。
+4. 角色归一化只以 `character resolution evidence` 为准：`alias_match` 可要求回写 canonical；`alias_conflicts` / `unresolvedSpeakers` 可作为风险；`auto_local` 表示系统允许自动创建本地角色，不得因为它没有归一化到某个已知角色而降分或要求人工复核。
+5. 如果未发现明确问题，`reasons` 应写出台本质量为何可通过，而不是评价原文题材或剧情内容。
 
 输出要求：
 1. 只输出一个 JSON 对象，不要输出额外说明。

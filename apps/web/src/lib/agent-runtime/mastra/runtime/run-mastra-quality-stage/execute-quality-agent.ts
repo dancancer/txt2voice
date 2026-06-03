@@ -31,6 +31,7 @@ import {
   resolveDeterministicDecision,
   resolveQualitySkillSource,
   resolveSemanticDecision,
+  normalizeSemanticVerdictForCharacterResolution,
   type StageOutput,
 } from "./helpers";
 
@@ -182,11 +183,17 @@ export const executeMastraQualityAgent = async (params: {
     systemPrompt: skill.systemPrompt,
     userPrompt: skill.userPrompt,
   });
-  const decision = resolveSemanticDecision({
-    segmentId: input.segmentId,
+  const semanticVerdict = normalizeSemanticVerdictForCharacterResolution({
     verdict: result.verdict,
     confidence: result.confidence,
     summary: result.summary,
+    characterResolutionEvidence: input.characterResolutionEvidence,
+  });
+  const decision = resolveSemanticDecision({
+    segmentId: input.segmentId,
+    verdict: semanticVerdict.verdict,
+    confidence: semanticVerdict.confidence,
+    summary: semanticVerdict.summary,
     validationReport: input.validationReport,
     qualitySignals: input.qualitySignals,
     unresolvedSpeakers: input.characterResolutionEvidence?.unresolvedSpeakers,

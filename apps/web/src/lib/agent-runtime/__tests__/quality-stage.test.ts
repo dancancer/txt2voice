@@ -169,6 +169,62 @@ describe("quality stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("does not let quality judge block auto-local speaker labels", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.62,
+        confidence: 0.94,
+        reasons: [
+          "角色“门后的人”未归一化为已知角色“顾青”，影响角色一致性。",
+        ],
+        summary: "对白角色未使用规范名称。",
+      })
+    );
+
+    const result = await runQualityStage({
+      workflowRunId: "wf-quality-auto-local-speaker-1",
+      segmentId: "segment-auto-local-speaker-1",
+      segmentScriptDraft: {
+        segmentId: "segment-auto-local-speaker-1",
+        createdAt: "2026-03-24T00:00:00.000Z",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“资料带来了吗？”门后的人压低声音。",
+            text: "资料带来了吗？",
+            speaker: "门后的人",
+            orderInSegment: 0,
+          },
+        ],
+      },
+      validationReport: createValidationReport("segment-auto-local-speaker-1"),
+      characterResolutionEvidence: {
+        memoryVersion: 1,
+        rawSpeakers: ["门后的人"],
+        resolvedSpeakers: [
+          {
+            raw: "门后的人",
+            canonical: "门后的人",
+            reason: "auto_local",
+          },
+        ],
+        unresolvedSpeakers: [],
+        aliasConflicts: [],
+      },
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toBe("auto_pass");
+    expect(completed.verdict).toEqual({
+      segmentId: "segment-auto-local-speaker-1",
+      verdict: "pass",
+      score: 0.82,
+      reasons: ["local_speaker_auto_create_allowed"],
+    });
+  });
+
   it("passes prompt guardrails that limit reasons to script-generation quality", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -195,7 +251,9 @@ describe("quality stage", () => {
 
     expect(request.systemPrompt).toContain("只评估台本生成质量");
     expect(request.systemPrompt).toContain("不要把原文题材、叙事质量、受众适宜性");
+    expect(request.systemPrompt).toContain("auto_local");
     expect(request.prompt).toContain("不要把原文叙事连贯性、题材敏感性、受众适宜性");
+    expect(request.prompt).toContain("auto_local");
   });
 
   it("converts low score output into manual_review_required", async () => {
