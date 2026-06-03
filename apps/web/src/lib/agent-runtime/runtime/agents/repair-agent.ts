@@ -271,6 +271,23 @@ const toRepairExecutionError = (params: {
   return wrapped;
 };
 
+const createSemanticRetryFallback = (params: {
+  segmentId: string;
+  rawResponse: string;
+  provider: string;
+  model: string;
+}): RepairAgentResult => ({
+  decision: {
+    segmentId: params.segmentId,
+    action: "retry",
+    reason: "semantic_retry_parse_failed",
+    retryable: true,
+  },
+  rawResponse: params.rawResponse,
+  provider: params.provider,
+  model: params.model,
+});
+
 export const createRepairAgent = (deps: RepairAgentDeps) => ({
   async execute(input: RepairAgentInput): Promise<RepairAgentResult> {
     const response = await deps.adapter.call({
@@ -316,6 +333,15 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
         model: response.model,
       };
     } catch (error) {
+      if (input.failureKind === "semantic_retry") {
+        return createSemanticRetryFallback({
+          segmentId: input.segmentId,
+          rawResponse: response.content,
+          provider: response.provider,
+          model: response.model,
+        });
+      }
+
       throw toRepairExecutionError({
         error,
         context: {

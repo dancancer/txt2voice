@@ -218,6 +218,46 @@ describe("segment repair stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps semantic retry recoverable when repair output is truncated", async () => {
+    const adapter = createMockAdapter('{"lines":[{"id":"line-1"');
+
+    const result = await runSegmentRepairStage({
+      workflowRunId: "wf-repair-semantic-truncated",
+      segmentId: "segment-semantic-truncated",
+      segmentText: "宁采臣抬头。燕赤霞点头。",
+      failureKind: "semantic_retry",
+      failedArtifact: {
+        segmentId: "segment-semantic-truncated",
+      },
+      validationReport: {
+        segmentId: "segment-semantic-truncated",
+        valid: false,
+        coverageRatio: 0.34,
+        issues: [
+          {
+            code: "LOW_COVERAGE",
+            message: "coverage below threshold",
+          },
+        ],
+      },
+      repairDepth: 0,
+      maxRepairDepth: 2,
+      skillDir,
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toEqual({
+      segmentId: "segment-semantic-truncated",
+      action: "retry",
+      reason: "semantic_retry_parse_failed",
+      retryable: true,
+    });
+    expect(completed.artifact).toBeUndefined();
+    expect(adapter.call).toHaveBeenCalledTimes(1);
+  });
+
   it("routes over-budget failures to input_refinement without calling adapter", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
