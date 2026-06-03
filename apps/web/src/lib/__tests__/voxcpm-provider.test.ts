@@ -67,6 +67,9 @@ describe("voxcpm provider", () => {
         sampleRate: 48000,
       },
       outputFormat: "wav",
+      referenceAudio: "voice-ref.wav",
+      promptAudio: "prompt-ref.wav",
+      promptText: "你好，世界",
       emotion: "calm",
       style: "narration",
       providerParams: {
@@ -81,6 +84,9 @@ describe("voxcpm provider", () => {
     const payload = JSON.parse(fetchMock.mock.calls[0][1].body as string);
     expect(payload).toMatchObject({
       text: "你好，世界",
+      reference_audio: "voice-ref.wav",
+      prompt_audio: "prompt-ref.wav",
+      prompt_text: "你好，世界",
       control_instruction: expect.stringContaining("calm"),
       cfg_value: 2,
       inference_timesteps: 10,

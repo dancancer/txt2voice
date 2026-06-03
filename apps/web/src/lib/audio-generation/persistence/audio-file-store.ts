@@ -13,6 +13,24 @@ import type {
 import { buildRouteAttemptPayload } from "./synthesis-attempt-store";
 import { resolveAudioDurationSeconds } from "../synthesis/tts-parameter-normalizer";
 
+const resolveGeneratedReferenceAudio = (ttsResponse: any): string | null => {
+  const filename = ttsResponse?.metadata?.filename;
+  if (typeof filename === "string" && filename.trim().length > 0) {
+    return filename.trim();
+  }
+
+  return null;
+};
+
+const shouldBackfillVoxCpmReference = (
+  voiceProfile: any,
+  routeAttemptContext: RouteAttemptContext | undefined,
+  referenceAudio: string | null
+): boolean =>
+  voiceProfile?.provider === "voxcpm" &&
+  Boolean(referenceAudio) &&
+  Boolean(routeAttemptContext?.selectedCandidate.speakerEngineVariantId);
+
 export async function saveAudioFile(params: {
   scriptSentence: any;
   voiceProfile: any;
@@ -51,6 +69,7 @@ export async function saveAudioFile(params: {
     scriptSentence.text,
     ttsResponse?.duration
   );
+  const generatedReferenceAudio = resolveGeneratedReferenceAudio(ttsResponse);
   const attemptNo =
     (await prismaClient.synthesisAttempt.count({
       where: {
@@ -72,6 +91,7 @@ export async function saveAudioFile(params: {
         duration: durationSeconds,
         format: request.outputFormat || "mp3",
         status: "completed",
+        provider: voiceProfile.provider,
         attemptNo,
         engineUsed: voiceProfile.provider,
         qualityStatus: "pending",
@@ -124,6 +144,24 @@ export async function saveAudioFile(params: {
         isFinal: true,
       },
     });
+
+    if (
+      shouldBackfillVoxCpmReference(
+        voiceProfile,
+        routeAttemptContext,
+        generatedReferenceAudio
+      )
+    ) {
+      await tx.speakerEngineVariant.updateMany({
+        where: {
+          id: routeAttemptContext!.selectedCandidate.speakerEngineVariantId!,
+          referenceAudio: null,
+        },
+        data: {
+          referenceAudio: generatedReferenceAudio,
+        },
+      });
+    }
 
     return audioFile;
   });

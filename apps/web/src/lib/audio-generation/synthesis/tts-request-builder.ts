@@ -12,6 +12,9 @@ import {
 } from "./tts-parameter-normalizer";
 import { planVoxCPMProsodyParams } from "./prosody-control-planner";
 
+const asNonEmptyText = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+
 export async function buildTTSRequest(params: {
   scriptSentence: any;
   voiceProfile: any;
@@ -53,6 +56,18 @@ export async function buildTTSRequest(params: {
     typeof scriptSentence.tone === "string" ? scriptSentence.tone.trim() : "";
   const routeEmotion = routeAttemptContext?.routeDecision.emotionLabel || undefined;
   const isVoxCPM = voiceProfile.provider === "voxcpm";
+  const referenceAudio =
+    asNonEmptyText(voiceProfile.referenceAudio) ||
+    asNonEmptyText(defaultParameters.referenceAudio) ||
+    asNonEmptyText(defaultParameters.reference_audio);
+  const promptAudio =
+    asNonEmptyText(voiceProfile.promptAudio) ||
+    asNonEmptyText(defaultParameters.promptAudio) ||
+    asNonEmptyText(defaultParameters.prompt_audio);
+  const promptText =
+    asNonEmptyText(voiceProfile.promptText) ||
+    asNonEmptyText(defaultParameters.promptText) ||
+    asNonEmptyText(defaultParameters.prompt_text);
   const voxcpmProsody = isVoxCPM
     ? planVoxCPMProsodyParams({
         tone,
@@ -106,6 +121,9 @@ export async function buildTTSRequest(params: {
       request.overrides?.style ||
       resolveStyleFromTone(tone, voice.style) ||
       voice.style[0],
+    ...(referenceAudio ? { referenceAudio } : {}),
+    ...(promptAudio ? { promptAudio } : {}),
+    ...(promptText ? { promptText } : {}),
     ...(voxcpmProsody ? { providerParams: { voxcpm: voxcpmProsody } } : {}),
   };
 }

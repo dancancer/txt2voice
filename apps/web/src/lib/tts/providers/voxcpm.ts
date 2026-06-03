@@ -101,6 +101,8 @@ export class VoxCPMTTSService {
     const result = await this.service.synthesize({
       text: request.text,
       referenceAudio: request.referenceAudio,
+      promptAudio: request.promptAudio,
+      promptText: request.promptText,
       controlInstruction,
       cfgValue: voxcpmParams.cfgValue,
       inferenceTimesteps: voxcpmParams.inferenceTimesteps,

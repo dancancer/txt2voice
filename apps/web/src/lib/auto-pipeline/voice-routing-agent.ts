@@ -9,6 +9,7 @@ import type {
   VoiceRouteResolution,
 } from "@/lib/audio-generation/types";
 import { resolveVoiceRouteForSentence } from "@/lib/audio-generation/routing/voice-route-resolver";
+import { ensureZeroTouchVoxCpmSpeakerRoute } from "@/lib/audio-generation/routing/zero-touch-voxcpm-speakers";
 
 export interface VoiceRoutingAgentDecision {
   routeResolution: VoiceRouteResolution | null;
@@ -22,7 +23,11 @@ export const runVoiceRoutingAgent = async (params: {
   options: AudioGenerationOptions;
   prismaClient: typeof prisma;
 }): Promise<VoiceRoutingAgentDecision> => {
-  const routeResolution = await resolveVoiceRouteForSentence(params);
+  const scriptSentence = await ensureZeroTouchVoxCpmSpeakerRoute(params);
+  const routeResolution = await resolveVoiceRouteForSentence({
+    ...params,
+    scriptSentence,
+  });
 
   if (routeResolution?.selectedCandidate) {
     return {

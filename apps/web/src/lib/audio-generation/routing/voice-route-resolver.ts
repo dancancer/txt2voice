@@ -82,6 +82,27 @@ export function resolveVariantVoiceId(
   return null;
 }
 
+const asNonEmptyString = (value: unknown): string | null =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+
+const resolveVariantReferenceAudio = (params: {
+  variantReferenceAudio: unknown;
+  speakerReferenceAudio: unknown;
+  capability: Record<string, unknown>;
+}): string | null =>
+  asNonEmptyString(params.variantReferenceAudio) ||
+  asNonEmptyString(params.speakerReferenceAudio) ||
+  asNonEmptyString(params.capability.referenceAudio) ||
+  asNonEmptyString(params.capability.reference_audio);
+
+const resolveVariantPromptText = (params: {
+  speakerDescription: unknown;
+  capability: Record<string, unknown>;
+}): string | null =>
+  asNonEmptyString(params.capability.promptText) ||
+  asNonEmptyString(params.capability.prompt_text) ||
+  asNonEmptyString(params.speakerDescription);
+
 export async function findNarrationFallbackVoice(params: {
   bookId: string;
   provider?: string;
@@ -204,6 +225,15 @@ export async function collectRouteCandidates(params: {
 
       const voiceId = resolveVariantVoiceId(provider, variant.providerVoiceId);
       const capability = asRecord(variant.capability) || {};
+      const referenceAudio = resolveVariantReferenceAudio({
+        variantReferenceAudio: variant.referenceAudio,
+        speakerReferenceAudio: speakerProfile.referenceAudio,
+        capability,
+      });
+      const promptText = resolveVariantPromptText({
+        speakerDescription: speakerProfile.description,
+        capability,
+      });
       candidates.push({
         candidateId: `variant:${variant.id}`,
         source: "speaker_engine_variant",
@@ -213,8 +243,12 @@ export async function collectRouteCandidates(params: {
           ? {
               provider,
               voiceId,
+              referenceAudio,
+              promptText,
               defaultParameters: {
                 ...(asRecord(capability.defaultParameters) || {}),
+                ...(referenceAudio ? { referenceAudio } : {}),
+                ...(promptText ? { promptText } : {}),
               },
             }
           : null,

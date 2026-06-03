@@ -45,6 +45,8 @@ export interface TTSRequest {
   emotion?: string;
   style?: string;
   referenceAudio?: string;
+  promptAudio?: string;
+  promptText?: string;
   emoControlMethod?:
     | "Same as the voice reference"
     | "Use separate emotion reference"

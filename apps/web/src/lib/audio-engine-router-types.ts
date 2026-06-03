@@ -20,6 +20,9 @@ export interface RoutedVoiceProfile {
   id?: string | null;
   provider: string;
   voiceId: string;
+  referenceAudio?: string | null;
+  promptAudio?: string | null;
+  promptText?: string | null;
   defaultParameters?: Record<string, unknown>;
 }
 

@@ -13,6 +13,23 @@ const buildPrismaClient = () =>
     characterVoiceBinding: {
       findFirst: jest.fn(),
     },
+    characterProfile: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    speakerProfile: {
+      create: jest.fn(),
+    },
+    speakerEngineVariant: {
+      create: jest.fn(),
+    },
+    characterSpeakerBinding: {
+      create: jest.fn(),
+    },
+    scriptSentence: {
+      update: jest.fn(),
+    },
     synthesisAttempt: {
       findMany: jest.fn().mockResolvedValue([]),
     },
@@ -86,6 +103,61 @@ describe("auto-pipeline voice routing agent", () => {
       source: "narration_fallback",
       provider: "voxcpm",
       voiceId: "__voxcpm_default__",
+    });
+  });
+
+  it("creates a stable VoxCPM speaker route for unbound characters", async () => {
+    const prismaClient = buildPrismaClient();
+    prismaClient.speakerProfile.create.mockResolvedValue({
+      id: 11,
+      name: "门后的人",
+      isActive: true,
+      referenceAudio: null,
+      engineVariants: [],
+    });
+    prismaClient.speakerEngineVariant.create.mockResolvedValue({
+      id: "variant-11",
+      engine: "voxcpm",
+      providerVoiceId: "__voxcpm_default__",
+      referenceAudio: null,
+      capability: {},
+      emotionPresets: [],
+      isActive: true,
+      isDefault: true,
+      routingWeight: 1,
+    });
+    prismaClient.characterSpeakerBinding.create.mockResolvedValue({
+      id: "binding-11",
+      isDefault: true,
+    });
+    prismaClient.characterVoiceBinding.findFirst.mockResolvedValue(null);
+    prismaClient.tTSVoiceProfile.findFirst.mockResolvedValue(null);
+
+    const decision = await runVoiceRoutingAgent({
+      scriptSentence: buildSentence({
+        character: {
+          id: "char-local",
+          canonicalName: "门后的人",
+          genderHint: "unknown",
+          voiceBindings: [],
+          speakerBindings: [],
+        },
+      }),
+      request: {
+        scriptSentenceId: "sentence-1",
+      },
+      options: {
+        preferredProvider: "voxcpm",
+      },
+      prismaClient,
+    });
+
+    expect(decision.manualReviewRequired).toBe(false);
+    expect(decision.routeResolution?.selectedCandidate).toMatchObject({
+      source: "speaker_engine_variant",
+      provider: "voxcpm",
+      speakerProfileId: 11,
+      speakerEngineVariantId: "variant-11",
     });
   });
 });
