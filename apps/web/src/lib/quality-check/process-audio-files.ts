@@ -37,6 +37,30 @@ const updateSignalSourceCount = (
   bucket[key] = (bucket[key] || 0) + 1;
 };
 
+export const resolveQualityVoiceProfileId = (audioFile: {
+  voiceProfileId: string | null;
+  synthesisAttempts: Array<{
+    speakerProfileId?: number | null;
+    speakerEngineVariantId?: string | null;
+  }>;
+}): string | null => {
+  const legacyVoiceProfileId = audioFile.voiceProfileId?.trim();
+  if (legacyVoiceProfileId) {
+    return legacyVoiceProfileId;
+  }
+
+  const attempt = audioFile.synthesisAttempts[0];
+  const variantId = attempt?.speakerEngineVariantId?.trim();
+  if (variantId) {
+    return `speaker_engine_variant:${variantId}`;
+  }
+  if (typeof attempt?.speakerProfileId === "number") {
+    return `speaker_profile:${attempt.speakerProfileId}`;
+  }
+
+  return null;
+};
+
 export interface QualityCheckProcessingState {
   checked: number;
   passCount: number;
@@ -134,6 +158,8 @@ export const processQualityCheckAudioFiles = async ({
     synthesisAttempts: Array<{
       id: string;
       metrics?: unknown;
+      speakerProfileId?: number | null;
+      speakerEngineVariantId?: string | null;
     }>;
   }>;
   taskContext: QualityCheckTaskContext;
@@ -174,11 +200,12 @@ export const processQualityCheckAudioFiles = async ({
         if (!Number.isFinite(durationSeconds) || durationSeconds <= 0) {
           return null;
         }
+        const voiceProfileId = resolveQualityVoiceProfileId(audioFile);
 
         return {
           chapterId: audioFile.chapterId,
           roleType: audioFile.scriptSentence.roleType || "narration",
-          voiceProfileId: audioFile.voiceProfileId || "",
+          voiceProfileId: voiceProfileId || "",
           charsPerSecond: Number(
             (
               audioFile.scriptSentence.text.trim().length /
@@ -209,13 +236,14 @@ export const processQualityCheckAudioFiles = async ({
       audioFileId: audioFile.id,
       sentenceId: audioFile.sentenceId || null,
     });
+    const voiceProfileId = resolveQualityVoiceProfileId(audioFile);
     const fastDecision = evaluateFastGate({
       text: audioFile.scriptSentence.text,
       roleType: audioFile.scriptSentence.roleType,
       priority: audioFile.scriptSentence.priority,
       emotionIntensity,
       durationSeconds,
-      hasVoiceProfile: Boolean(audioFile.voiceProfileId),
+      hasVoiceProfile: Boolean(voiceProfileId),
       rawSignals,
       signalSources: q0q3SignalSourceConfig as any,
       thresholds: q0q3ThresholdTemplate,
@@ -229,7 +257,7 @@ export const processQualityCheckAudioFiles = async ({
       chapterContext: audioFile.chapterId
         ? chapterContextMap.get(audioFile.chapterId)
         : undefined,
-      voiceProfileId: audioFile.voiceProfileId,
+      voiceProfileId,
     };
     const deepModelInference = await inferDeepGateModelSignals({
       runtime: modelRuntime as any,
@@ -356,7 +384,7 @@ export const processQualityCheckAudioFiles = async ({
     updateChapterAuditMap({
       chapterAuditMap: state.chapterAuditMap,
       chapterId: audioFile.chapterId,
-      voiceProfileId: audioFile.voiceProfileId,
+      voiceProfileId,
       decision,
     });
 

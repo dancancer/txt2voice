@@ -152,6 +152,8 @@ export async function runQualityCheckTask({
         select: {
           id: true,
           metrics: true,
+          speakerProfileId: true,
+          speakerEngineVariantId: true,
         },
         orderBy: [{ attemptNo: "desc" }, { createdAt: "desc" }],
         take: 1,

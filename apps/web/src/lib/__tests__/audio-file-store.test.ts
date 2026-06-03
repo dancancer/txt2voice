@@ -40,6 +40,9 @@ describe("audio file store", () => {
       },
       $transaction: jest.fn(async (callback) => callback(tx)),
     } as any;
+    const uploadReferenceAudio = jest
+      .fn()
+      .mockResolvedValue("uploaded_reference.wav");
 
     await saveAudioFile({
       scriptSentence: {
@@ -79,6 +82,7 @@ describe("audio file store", () => {
       },
       startedAt: new Date("2026-06-03T00:00:00.000Z"),
       prismaClient,
+      uploadReferenceAudio,
       routeAttemptContext: {
         selectedCandidate: {
           candidateId: "variant:1",
@@ -133,13 +137,19 @@ describe("audio file store", () => {
         }),
       })
     );
+    expect(uploadReferenceAudio).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: "voxcpm",
+        fileName: expect.stringMatching(/sentence-1_\d+\.mp3/),
+      })
+    );
     expect(tx.speakerEngineVariant.updateMany).toHaveBeenCalledWith({
       where: {
         id: "variant-1",
         referenceAudio: null,
       },
       data: {
-        referenceAudio: "voxcpm2_reference.wav",
+        referenceAudio: "uploaded_reference.wav",
       },
     });
   });
