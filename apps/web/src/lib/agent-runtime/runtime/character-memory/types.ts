@@ -42,6 +42,7 @@ export type CharacterResolutionReason =
   | "direct_match"
   | "alias_match"
   | "unchanged"
+  | "auto_local"
   | "unknown";
 
 export interface CharacterResolutionRecord {

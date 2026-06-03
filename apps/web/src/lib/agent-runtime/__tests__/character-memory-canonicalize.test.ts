@@ -38,7 +38,7 @@ describe("character memory canonicalize", () => {
           id: "line-3",
           sourceText: "“是。”",
           text: "是。",
-          speaker: "陌生人",
+          speaker: "未知",
           orderInSegment: 2,
         },
       ],
@@ -52,14 +52,48 @@ describe("character memory canonicalize", () => {
     expect(result.draft.lines.map((line) => line.speaker)).toEqual([
       "宁尘",
       "龙雅歌",
-      "陌生人",
+      "未知",
     ]);
     expect(result.evidence.memoryVersion).toBe(1);
-    expect(result.evidence.unresolvedSpeakers).toEqual(["陌生人"]);
+    expect(result.evidence.unresolvedSpeakers).toEqual(["未知"]);
     expect(result.evidence.resolvedSpeakers).toEqual([
       { raw: "宁尘", canonical: "宁尘", reason: "direct_match" },
       { raw: "宫主", canonical: "龙雅歌", reason: "alias_match" },
-      { raw: "陌生人", canonical: "陌生人", reason: "unknown" },
+      { raw: "未知", canonical: "未知", reason: "unknown" },
+    ]);
+  });
+
+  it("treats clear local speaker labels as auto-creatable roles", () => {
+    const snapshot = createBootstrapCharacterMemorySnapshot([
+      {
+        id: "char-lin",
+        canonicalName: "林舟",
+        aliases: [],
+      },
+    ]);
+    const draft: SegmentScriptDraft = {
+      segmentId: "segment-local-speaker",
+      createdAt: "2026-04-09T00:00:00.000Z",
+      lines: [
+        {
+          id: "line-1",
+          sourceText: "“资料带来了吗？”门后的人压低声音。",
+          text: "资料带来了吗？",
+          speaker: "门后的人",
+          orderInSegment: 0,
+        },
+      ],
+    };
+
+    const result = canonicalizeSegmentScriptDraftSpeakers({
+      draft,
+      snapshot,
+    });
+
+    expect(result.draft.lines[0]?.speaker).toBe("门后的人");
+    expect(result.evidence.unresolvedSpeakers).toEqual([]);
+    expect(result.evidence.resolvedSpeakers).toEqual([
+      { raw: "门后的人", canonical: "门后的人", reason: "auto_local" },
     ]);
   });
 

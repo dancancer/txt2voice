@@ -10,6 +10,47 @@ import type {
 
 const unique = (values: string[]): string[] => [...new Set(values)];
 
+const BLOCKING_UNKNOWN_SPEAKERS = new Set([
+  "未知",
+  "unknown",
+  "不明",
+  "未识别",
+  "说话人",
+  "speaker",
+]);
+
+const LOCAL_ROLE_MARKERS = [
+  "的人",
+  "人",
+  "者",
+  "男声",
+  "女声",
+  "男人",
+  "女人",
+  "老人",
+  "少年",
+  "少女",
+  "先生",
+  "女士",
+  "医生",
+  "警察",
+  "司机",
+  "店员",
+];
+
+const isAutoCreatableLocalSpeaker = (speaker: string): boolean => {
+  const normalized = speaker.trim();
+  if (!normalized || BLOCKING_UNKNOWN_SPEAKERS.has(normalized.toLowerCase())) {
+    return false;
+  }
+
+  if (normalized.length > 16 || /[，。！？、,.!?；;：:“”"']/u.test(normalized)) {
+    return false;
+  }
+
+  return LOCAL_ROLE_MARKERS.some((marker) => normalized.includes(marker));
+};
+
 const resolveAliasCandidates = (
   speaker: string,
   snapshot: CharacterMemorySnapshot
@@ -111,6 +152,15 @@ export const canonicalizeSegmentScriptDraftSpeakers = (params: {
         ...line,
         speaker: canonicalById,
       };
+    }
+
+    if (isAutoCreatableLocalSpeaker(speaker)) {
+      resolvedSpeakers.push({
+        raw: speaker,
+        canonical: speaker,
+        reason: "auto_local",
+      });
+      return line;
     }
 
     unresolvedSpeakers.add(speaker);
