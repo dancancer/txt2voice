@@ -36,19 +36,19 @@ export const CONFIG = {
   },
   AUDIO_PROVIDER_STRATEGY: {
     main: {
-      primary: ['qwen3voice'],
+      primary: ['voxcpm'],
       fallback: [],
     },
     supporting: {
-      primary: ['qwen3voice'],
+      primary: ['voxcpm'],
       fallback: [],
     },
     minor: {
-      primary: ['qwen3voice'],
+      primary: ['voxcpm'],
       fallback: [],
     },
     default: {
-      primary: ['qwen3voice'],
+      primary: ['voxcpm'],
       fallback: [],
     },
   },
@@ -125,7 +125,7 @@ export const BOOK_STATUS = {
 
 // TTS 提供商
 export const TTS_PROVIDERS = {
-  QWEN3VOICE: 'qwen3voice',
+  VOXCPM: 'voxcpm',
 } as const
 
 // 错误代码

@@ -13,6 +13,36 @@ export interface ResolvedAutoPipelinePreset {
   resolvedOptions: AutoPipelineOptions;
 }
 
+type PresetAudioOptions = NonNullable<
+  NonNullable<AutoPipelineOptions["audioGeneration"]>["options"]
+>;
+
+const sanitizeAudioOptions = (options?: PresetAudioOptions) => {
+  if (!options || typeof options !== "object") {
+    return options;
+  }
+
+  const { preferredProvider, ...rest } = options as Record<string, unknown>;
+  const sanitized = { ...rest };
+  if (preferredProvider === "voxcpm") {
+    sanitized.preferredProvider = "voxcpm";
+  }
+
+  return sanitized as PresetAudioOptions;
+};
+
+const sanitizeOptions = (options: AutoPipelineOptions): AutoPipelineOptions => ({
+  ...options,
+  ...(options.audioGeneration
+    ? {
+        audioGeneration: {
+          ...options.audioGeneration,
+          options: sanitizeAudioOptions(options.audioGeneration.options),
+        },
+      }
+    : {}),
+});
+
 export const resolveAutoPipelinePreset = (
   presetId: string
 ): ResolvedAutoPipelinePreset => {
@@ -43,23 +73,24 @@ export const resolveAutoPipelineOptionsSnapshot = (
   options: AutoPipelineOptions = {}
 ): ResolvedAutoPipelinePreset => {
   const preset = resolveAutoPipelinePreset(presetId);
+  const sanitizedOptions = sanitizeOptions(options);
 
   return {
     ...preset,
     resolvedOptions: {
       ...preset.resolvedOptions,
-      ...options,
+      ...sanitizedOptions,
       audioGeneration: {
         ...preset.resolvedOptions.audioGeneration,
-        ...options.audioGeneration,
+        ...sanitizedOptions.audioGeneration,
         options: {
           ...preset.resolvedOptions.audioGeneration?.options,
-          ...options.audioGeneration?.options,
+          ...sanitizedOptions.audioGeneration?.options,
         },
       },
       qualityCheck: {
         ...preset.resolvedOptions.qualityCheck,
-        ...options.qualityCheck,
+        ...sanitizedOptions.qualityCheck,
       },
     },
   };

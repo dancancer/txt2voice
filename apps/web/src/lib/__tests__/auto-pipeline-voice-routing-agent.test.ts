@@ -57,8 +57,8 @@ describe("auto-pipeline voice routing agent", () => {
     const prismaClient = buildPrismaClient();
     prismaClient.tTSVoiceProfile.findUnique.mockResolvedValue({
       id: "voice-explicit",
-      provider: "qwen3voice",
-      voiceId: "qwen-voice-1",
+      provider: "voxcpm",
+      voiceId: "manual-voice-1",
       defaultParameters: {},
     });
 
@@ -77,8 +77,8 @@ describe("auto-pipeline voice routing agent", () => {
     expect(decision.manualReviewRequired).toBe(false);
     expect(decision.routeResolution?.selectedCandidate).toMatchObject({
       source: "manual_voice_profile",
-      provider: "qwen3voice",
-      voiceId: "qwen-voice-1",
+      provider: "voxcpm",
+      voiceId: "manual-voice-1",
     });
   });
 

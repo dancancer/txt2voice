@@ -38,6 +38,13 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   await ttsServiceManager.ready()
   // 获取系统内置声音
   const providers = ttsServiceManager.getAvailableProviders()
+  const providerKeys = providers.map(p => p.type)
+  const customProviderFilter =
+    provider && providerKeys.some((key) => key === provider)
+      ? provider
+      : provider
+        ? '__unsupported__'
+        : { in: providerKeys }
   let systemVoices: any[] = []
 
   providers.forEach(p => {
@@ -83,7 +90,7 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
     const customVoiceProfiles = await prisma.tTSVoiceProfile.findMany({
       where: {
         isAvailable: true,
-        ...(provider && { provider }),
+        provider: customProviderFilter,
         ...(search && {
           OR: [
             { voiceName: { contains: search, mode: 'insensitive' } },

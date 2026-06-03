@@ -73,7 +73,7 @@ export const POST = withErrorHandler(
       voiceProfile.voiceId
     );
     if (!voice) {
-      throw new ValidationError("当前音色在 qwen3-voice 中不存在");
+      throw new ValidationError("当前音色在 VoxCPM2 中不存在");
     }
 
     const synthesisResult = await ttsServiceManager.synthesize(

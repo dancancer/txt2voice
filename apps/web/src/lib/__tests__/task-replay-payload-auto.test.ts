@@ -96,7 +96,7 @@ describe("auto pipeline replay payload", () => {
           options: {
             audioGeneration: {
               options: {
-                preferredProvider: "qwen3voice",
+                preferredProvider: "legacy-provider",
               },
             },
           },

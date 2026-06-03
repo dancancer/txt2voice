@@ -33,7 +33,7 @@ export function useSpeakerBindings(bookId: string, setCharacters: (updater: any)
   const buildSpeakerPreviewSources = (referenceAudio?: string | null) => {
     if (!referenceAudio) return []
     if (/^https?:\/\//.test(referenceAudio)) return [referenceAudio]
-    const base = (process.env.NEXT_PUBLIC_QWEN3VOICE_API_URL || 'http://192.168.88.9:18080').replace(/\/$/, '')
+    const base = (process.env.NEXT_PUBLIC_VOXCPM_API_URL || 'http://192.168.88.9:18083').replace(/\/$/, '')
     if (referenceAudio.startsWith('/')) return [`${base}${referenceAudio}`]
     return [referenceAudio]
   }

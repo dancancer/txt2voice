@@ -6,7 +6,7 @@ import type { EmotionVector } from "@/lib/indextts-service";
 
 export interface TTSProvider {
   name: string;
-  type: "qwen3voice" | "voxcpm" | "custom";
+  type: "voxcpm" | "custom";
   apiKey?: string;
   region?: string;
   endpoint?: string;

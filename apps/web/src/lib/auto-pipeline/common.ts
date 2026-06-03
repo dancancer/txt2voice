@@ -144,7 +144,7 @@ const asPreferredProvider = (
   value: unknown
 ): AudioGenerationOptions["preferredProvider"] | undefined => {
   const provider = asString(value)?.toLowerCase();
-  if (provider === "voxcpm" || provider === "qwen3voice") {
+  if (provider === "voxcpm") {
     return provider;
   }
   return undefined;

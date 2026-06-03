@@ -103,8 +103,10 @@ export const buildAudioReplayPayloadFromTask = (
     autoMerge: Boolean(metadata?.autoMerge),
     options: {
       preferredProvider:
-        metadata && typeof metadata.preferredProvider === "string"
-          ? (metadata.preferredProvider as "voxcpm" | "qwen3voice")
+        metadata &&
+        typeof metadata.preferredProvider === "string" &&
+        metadata.preferredProvider.toLowerCase() === "voxcpm"
+          ? "voxcpm"
           : undefined,
       routerPolicyVersion:
         metadata && typeof metadata.routerPolicyVersion === "string"

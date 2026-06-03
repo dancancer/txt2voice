@@ -29,24 +29,27 @@ describe("auto pipeline presets", () => {
     });
   });
 
-  it("should keep caller overrides inside the preset snapshot", () => {
-    const snapshot = resolveAutoPipelineOptionsSnapshot(ZERO_TOUCH_VOXCPM_PRESET_ID, {
-      audioGeneration: {
-        options: {
-          preferredProvider: "qwen3voice",
-          routerPolicyVersion: "router-v2",
+  it("should sanitize caller overrides inside the preset snapshot", () => {
+    const snapshot = resolveAutoPipelineOptionsSnapshot(
+      ZERO_TOUCH_VOXCPM_PRESET_ID,
+      {
+        audioGeneration: {
+          options: {
+            preferredProvider: "legacy-provider" as any,
+            routerPolicyVersion: "router-v2",
+          },
         },
-      },
-      qualityCheck: {
-        enabled: false,
-      },
-    });
+        qualityCheck: {
+          enabled: false,
+        },
+      }
+    );
 
     expect(snapshot.resolvedOptions).toEqual({
       audioGeneration: {
         autoMerge: false,
         options: {
-          preferredProvider: "qwen3voice",
+          preferredProvider: "voxcpm",
           routerPolicyVersion: "router-v2",
           skipExisting: true,
         },

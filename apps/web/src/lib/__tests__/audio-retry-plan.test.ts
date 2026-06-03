@@ -32,7 +32,7 @@ describe("audio-retry-plan", () => {
       "sentence-2",
       "sentence-3",
     ]);
-    expect(pass.concurrency).toBeGreaterThan(1);
+    expect(pass.concurrency).toBe(1);
   });
 
   it("should only keep failed requests for later passes", () => {

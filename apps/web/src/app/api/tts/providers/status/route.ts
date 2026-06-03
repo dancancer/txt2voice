@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/error-handler";
-type ProviderKey = "qwen3voice" | "voxcpm";
+type ProviderKey = "voxcpm";
 
 type ProviderStatus = {
   provider: ProviderKey;
@@ -26,12 +26,6 @@ const PROVIDER_CONFIG: Record<
     supportsSpeakerManagement: boolean;
   }
 > = {
-  qwen3voice: {
-    name: "Qwen3 Voice",
-    endpointEnv: process.env.QWEN3VOICE_API_URL,
-    fallbackEndpoint: "http://192.168.88.9:18080",
-    supportsSpeakerManagement: false,
-  },
   voxcpm: {
     name: "VoxCPM2",
     endpointEnv: process.env.VOXCPM_API_URL,

@@ -304,7 +304,7 @@ export interface CharacterCandidate {
 
 // TTS 服务类型
 export interface TTSServiceConfig {
-  provider: "qwen3voice";
+  provider: "voxcpm";
   apiKey?: string;
   region?: string;
   voiceId: string;

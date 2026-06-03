@@ -5,11 +5,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withErrorHandler, ValidationError } from "@/lib/error-handler";
 import prisma, { Prisma } from "@/lib/prisma";
-import { Qwen3VoiceTTSService } from "@/lib/tts/providers/qwen3voice";
-import {
-  ensureCharacterVoiceBinding,
-  syncQwen3VoiceSpeakerAssets,
-} from "@/lib/qwen3voice/speaker-sync";
 import { z } from "zod";
 
 const createBindingSchema = z.object({
@@ -34,6 +29,18 @@ const updateBindingSchema = z.object({
 
 const toJsonValue = (value?: Record<string, unknown>): Prisma.InputJsonValue =>
   (value ?? {}) as Prisma.InputJsonValue;
+
+const resolveSpeakerProfileId = (value: {
+  speakerId?: string;
+  speakerProfileId?: number;
+}): number | null => {
+  if (typeof value.speakerProfileId === "number") {
+    return value.speakerProfileId;
+  }
+
+  const parsed = value.speakerId ? parseInt(value.speakerId, 10) : NaN;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 const serializeBinding = (binding: any) => ({
   id: binding.id,
@@ -113,20 +120,14 @@ export const POST = withErrorHandler(
             where: { characterId },
           })) === 0;
 
-    const resolvedSpeakerProfile = validatedData.speakerId
-      ? await syncQwen3VoiceSpeakerAssets({
-          remoteSpeakerId: validatedData.speakerId,
-          prismaClient: prisma,
-          service: new Qwen3VoiceTTSService(),
-        })
-      : {
-          speakerProfile: await prisma.speakerProfile.findUnique({
-            where: { id: validatedData.speakerProfileId },
-          }),
-          voiceProfile: null,
-        };
+    const speakerProfileId = resolveSpeakerProfileId(validatedData);
+    if (!speakerProfileId) {
+      throw new ValidationError("说话人ID无效");
+    }
 
-    const speakerProfile = resolvedSpeakerProfile.speakerProfile;
+    const speakerProfile = await prisma.speakerProfile.findUnique({
+      where: { id: speakerProfileId },
+    });
 
     if (!speakerProfile) {
       throw new ValidationError("说话人不存在");
@@ -171,15 +172,6 @@ export const POST = withErrorHandler(
         speakerProfile: true,
       },
     });
-
-    if (resolvedSpeakerProfile.voiceProfile) {
-      await ensureCharacterVoiceBinding({
-        characterId,
-        voiceProfileId: resolvedSpeakerProfile.voiceProfile.id,
-        isDefault: shouldBeDefault,
-        prismaClient: prisma,
-      });
-    }
 
     return NextResponse.json({
       success: true,

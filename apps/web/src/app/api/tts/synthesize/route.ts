@@ -11,9 +11,12 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
   const body = await request.json();
   const {
     text,
-    provider = "qwen3voice",
+    provider = "voxcpm",
     voiceId,
     speakerId,
+    referenceAudio,
+    promptAudio,
+    promptText,
     temperature = 0.7,
     topK = 50,
     topP = 0.9,
@@ -41,9 +44,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
     const resolvedVoiceId =
       typeof voiceId === "string" && voiceId.trim()
         ? voiceId.trim()
-        : typeof speakerId === "string" && speakerId.trim()
-          ? speakerId.trim()
-          : "";
+        : "__voxcpm_default__";
 
     const ttsProvider = ttsServiceManager.getProvider(provider);
     if (!ttsProvider) {
@@ -75,6 +76,10 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         temperature,
         topK,
         topP,
+        referenceAudio:
+          typeof referenceAudio === "string" ? referenceAudio.trim() : undefined,
+        promptAudio: typeof promptAudio === "string" ? promptAudio.trim() : undefined,
+        promptText: typeof promptText === "string" ? promptText.trim() : undefined,
         providerParams:
           provider === "voxcpm"
             ? {
@@ -110,6 +115,7 @@ export const POST = withErrorHandler(async (request: NextRequest) => {
         metadata: {
           provider,
           text,
+          speakerId,
           synthesisParams: {
             temperature,
             topK,

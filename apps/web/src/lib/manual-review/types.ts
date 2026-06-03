@@ -22,7 +22,7 @@ export interface ManualReviewResolvePayload {
   note?: string;
   assignedTo?: string;
   voiceProfileId?: string;
-  preferredProvider?: "voxcpm" | "qwen3voice";
+  preferredProvider?: "voxcpm";
   autoMerge: boolean;
 }
 

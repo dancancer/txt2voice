@@ -45,7 +45,7 @@ const buildAutoPipelineTask = () =>
         resolvedOptions: {
           audioGeneration: {
             options: {
-              preferredProvider: "qwen3voice",
+              preferredProvider: "voxcpm",
             },
           },
           qualityCheck: {
@@ -79,7 +79,7 @@ describe("replayProcessingTask preset refresh", () => {
         options: {
           audioGeneration: {
             options: {
-              preferredProvider: "qwen3voice",
+              preferredProvider: "voxcpm",
             },
           },
           qualityCheck: {

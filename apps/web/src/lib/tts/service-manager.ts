@@ -1,9 +1,8 @@
 // 一旦我被更新，请更新我的开头注释
 // input: provider 名称/TTS 请求
-// output: 多 TTS provider manager 与全局实例
+// output: VoxCPM2 TTS provider manager 与全局实例
 // pos: TTS 领域服务
 import { TTSError } from "@/lib/error-handler";
-import { Qwen3VoiceTTSService } from "@/lib/tts/providers/qwen3voice";
 import { VoxCPMTTSService } from "@/lib/tts/providers/voxcpm";
 import type {
   TTSProvider,
@@ -12,7 +11,6 @@ import type {
   TTSVoice,
 } from "@/lib/tts/types";
 
-const QWEN3VOICE_PROVIDER = "qwen3voice";
 const VOXCPM_PROVIDER = "voxcpm";
 
 interface ManagedTTSService {
@@ -58,38 +56,21 @@ export class TTSServiceManager {
     this.providers.clear();
     this.services.clear();
 
-    await Promise.all([
-      this.registerProvider({
-        key: QWEN3VOICE_PROVIDER,
-        service: new Qwen3VoiceTTSService(),
-        provider: {
-          name: "Qwen3 Voice",
-          type: "qwen3voice",
-          endpoint: process.env.QWEN3VOICE_API_URL || "http://192.168.88.9:18080",
-          model: "Qwen3-TTS-12Hz-1.7B",
-          maxCharacters: 3000,
-          rateLimits: {
-            requestsPerMinute: 10,
-            charactersPerMinute: 30000,
-          },
+    await this.registerProvider({
+      key: VOXCPM_PROVIDER,
+      service: new VoxCPMTTSService(),
+      provider: {
+        name: "VoxCPM2",
+        type: "voxcpm",
+        endpoint: process.env.VOXCPM_API_URL || "http://192.168.88.9:18083",
+        model: "OpenBMB/VoxCPM2",
+        maxCharacters: 4000,
+        rateLimits: {
+          requestsPerMinute: 6,
+          charactersPerMinute: 12000,
         },
-      }),
-      this.registerProvider({
-        key: VOXCPM_PROVIDER,
-        service: new VoxCPMTTSService(),
-        provider: {
-          name: "VoxCPM2",
-          type: "voxcpm",
-          endpoint: process.env.VOXCPM_API_URL || "http://192.168.88.9:18083",
-          model: "OpenBMB/VoxCPM2",
-          maxCharacters: 4000,
-          rateLimits: {
-            requestsPerMinute: 6,
-            charactersPerMinute: 12000,
-          },
-        },
-      }),
-    ]);
+      },
+    });
   }
 
   getAvailableProviders(): TTSProvider[] {

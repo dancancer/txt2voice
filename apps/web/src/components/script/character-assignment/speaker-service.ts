@@ -35,8 +35,10 @@ export async function requestSynthesisPreview(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       text,
-      provider: "qwen3voice",
+      provider: "voxcpm",
+      voiceId: "__voxcpm_default__",
       speakerId: speaker.speakerId || speaker.id,
+      referenceAudio: speaker.referenceAudio || undefined,
       outputFormat: "mp3",
     }),
   });

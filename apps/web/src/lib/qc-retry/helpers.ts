@@ -181,10 +181,10 @@ export const parseQualityRetryPayload = (body: unknown): QualityRetryPayload => 
     includeRejected: payload?.includeRejected === true,
     limit,
     voiceProfileId: asString(payload?.voiceProfileId),
-    preferredProvider: asString(payload?.preferredProvider) as
-      | "voxcpm"
-      | "qwen3voice"
-      | undefined,
+    preferredProvider:
+      asString(payload?.preferredProvider)?.toLowerCase() === "voxcpm"
+        ? "voxcpm"
+        : undefined,
     autoMerge: payload?.autoMerge === true,
     note,
     dispatchPolicy,

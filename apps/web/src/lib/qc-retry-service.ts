@@ -31,7 +31,7 @@ export interface QualityRetryPayload {
   includeRejected: boolean;
   limit: number;
   voiceProfileId?: string;
-  preferredProvider?: "voxcpm" | "qwen3voice";
+  preferredProvider?: "voxcpm";
   autoMerge: boolean;
   note?: string;
   dispatchPolicy?: RetryDispatchPolicy;

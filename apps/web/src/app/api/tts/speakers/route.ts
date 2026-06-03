@@ -1,10 +1,10 @@
 // 一旦我被更新，请更新我的开头注释
-// input: HTTP 请求/路由参数/服务依赖
-// output: HTTP 响应/JSON
+// input: HTTP 请求/路由参数/本地 speaker 数据
+// output: VoxCPM2 本地说话人列表/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
 import { ValidationError, withErrorHandler } from "@/lib/error-handler";
-import { Qwen3VoiceTTSService } from "@/lib/tts/providers/qwen3voice";
+import prisma from "@/lib/prisma";
 
 // GET /api/tts/speakers - 获取说话人列表
 export const GET = withErrorHandler(async (request: NextRequest) => {
@@ -12,45 +12,55 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
   const search = searchParams.get("search");
-  const service = new Qwen3VoiceTTSService();
-  const speakers = await service.listSpeakers();
+  const normalizedSearch = search?.trim();
+  const where = {
+    isActive: true,
+    ...(normalizedSearch
+      ? {
+          OR: [
+            { name: { contains: normalizedSearch, mode: "insensitive" as const } },
+            {
+              description: {
+                contains: normalizedSearch,
+                mode: "insensitive" as const,
+              },
+            },
+          ],
+        }
+      : {}),
+  };
 
-  const filteredSpeakers = speakers.filter((speaker) => {
-    if (!search) {
-      return true;
-    }
-
-    const normalizedSearch = search.trim().toLowerCase();
-    return (
-      speaker.name.toLowerCase().includes(normalizedSearch) ||
-      (speaker.reference_text || "").toLowerCase().includes(normalizedSearch)
-    );
-  });
-
-  const total = filteredSpeakers.length;
   const skip = (page - 1) * limit;
-  const pagedSpeakers = filteredSpeakers.slice(skip, skip + limit);
+  const [total, speakers] = await Promise.all([
+    prisma.speakerProfile.count({ where }),
+    prisma.speakerProfile.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+      skip,
+      take: limit,
+    }),
+  ]);
 
   return NextResponse.json({
     success: true,
     data: {
-      speakers: pagedSpeakers.map((speaker) => ({
-        id: speaker.id,
-        speakerId: speaker.id,
-        name: speaker.name,
-        gender: "unknown",
-        ageGroup: "adult",
-        toneStyle: "neutral",
-        description: speaker.reference_text || "",
-        referenceAudio: speaker.reference_audio_url || speaker.preview_audio_url || null,
-        confidence: null,
-        metadata: speaker.meta || {},
-        isActive: true,
-        usageCount: 0,
-        lastUsedAt: null,
-        syncedAt: speaker.created_at || null,
-        createdAt: speaker.created_at || new Date().toISOString(),
-        updatedAt: speaker.created_at || new Date().toISOString(),
+      speakers: speakers.map((speaker) => ({
+        id: String(speaker.id),
+        speakerId: String(speaker.id),
+        name: speaker.name || `说话人 #${speaker.id}`,
+        gender: speaker.gender,
+        ageGroup: speaker.ageGroup,
+        toneStyle: speaker.toneStyle,
+        description: speaker.description || "",
+        referenceAudio: speaker.referenceAudio || null,
+        confidence: speaker.confidence ? Number(speaker.confidence) : null,
+        metadata: speaker.metadata || {},
+        isActive: speaker.isActive,
+        usageCount: speaker.usageCount,
+        lastUsedAt: speaker.lastUsedAt,
+        syncedAt: speaker.syncedAt,
+        createdAt: speaker.createdAt,
+        updatedAt: speaker.updatedAt,
       })),
       pagination: {
         page,
@@ -66,5 +76,5 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 
 // POST /api/tts/speakers - 创建说话人档案
 export const POST = withErrorHandler(async () => {
-  throw new ValidationError("请改为在 qwen3-voice-studio 中创建和管理 speaker");
+  throw new ValidationError("VoxCPM2 说话人由参考音频上传或自动角色路由创建");
 });

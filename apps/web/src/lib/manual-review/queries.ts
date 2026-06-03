@@ -92,10 +92,10 @@ export const parseManualReviewResolvePayload = (
     note,
     assignedTo: asString(payload?.assignedTo),
     voiceProfileId: asString(payload?.voiceProfileId),
-    preferredProvider: asString(payload?.preferredProvider) as
-      | "voxcpm"
-      | "qwen3voice"
-      | undefined,
+    preferredProvider:
+      asString(payload?.preferredProvider)?.toLowerCase() === "voxcpm"
+        ? "voxcpm"
+        : undefined,
     autoMerge: payload?.autoMerge === true,
   };
 };

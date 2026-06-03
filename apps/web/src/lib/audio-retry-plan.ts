@@ -64,7 +64,7 @@ export const resolveEffectiveAudioPolicyProvider = (options?: {
       ? options.preferredProvider.trim().toLowerCase()
       : "";
 
-  return preferredProvider || "mixed";
+  return preferredProvider === "voxcpm" ? "voxcpm" : "voxcpm";
 };
 
 const getNextPassName = (
