@@ -78,6 +78,11 @@ const STATUS_META: Record<BookStatus, BookStatusMeta> = {
     className: 'bg-amber-100 text-amber-800',
     icon: AlertCircle,
   },
+  audio_review_ready: {
+    label: '音频待验收',
+    className: 'bg-emerald-100 text-emerald-800',
+    icon: Volume2,
+  },
   assembling_audio: {
     label: '合并音频中',
     className: 'bg-indigo-100 text-indigo-800',

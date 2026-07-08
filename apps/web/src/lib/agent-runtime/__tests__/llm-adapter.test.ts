@@ -1,24 +1,31 @@
 export {};
 
 const runLLMRequest = jest.fn();
-const getConfiguredLLMProvider = jest.fn();
+const resolveConfiguredLLMProvider = jest.fn();
 
 jest.mock("@/lib/llm-runtime", () => ({
   runLLMRequest: (...args: unknown[]) => runLLMRequest(...args),
 }));
 
-jest.mock("@/lib/llm-service", () => ({
-  getConfiguredLLMProvider: (...args: unknown[]) =>
-    getConfiguredLLMProvider(...args),
+jest.mock("@/lib/llm/provider", () => ({
+  resolveConfiguredLLMProvider: (...args: unknown[]) =>
+    resolveConfiguredLLMProvider(...args),
 }));
 
 describe("agent runtime llm adapter", () => {
+  const originalEnv = process.env;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env = { ...originalEnv };
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
   });
 
   it("uses configured provider by default and returns normalized response", async () => {
-    getConfiguredLLMProvider.mockReturnValueOnce({
+    resolveConfiguredLLMProvider.mockResolvedValueOnce({
       name: "openai",
       apiKey: "key",
       model: "gpt-4.1-mini",
@@ -48,7 +55,7 @@ describe("agent runtime llm adapter", () => {
       metadata: { source: "agent_runtime" },
     });
 
-    expect(getConfiguredLLMProvider).toHaveBeenCalledTimes(1);
+    expect(resolveConfiguredLLMProvider).toHaveBeenCalledTimes(1);
     expect(runLLMRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: expect.objectContaining({
@@ -104,7 +111,7 @@ describe("agent runtime llm adapter", () => {
       requestOptions: { temperature: 0.2, maxTokens: 256 },
     });
 
-    expect(getConfiguredLLMProvider).not.toHaveBeenCalled();
+    expect(resolveConfiguredLLMProvider).not.toHaveBeenCalled();
     expect(runLLMRequest).toHaveBeenCalledWith(
       expect.objectContaining({
         provider,
@@ -121,6 +128,169 @@ describe("agent runtime llm adapter", () => {
       retriesUsed: 0,
       totalElapsedMs: 7,
       usage: null,
+    });
+  });
+
+  it("observed default adapter can use an explicit provider override", async () => {
+    const explicitProvider = {
+      name: "custom",
+      apiKey: "explicit-key",
+      model: "Qwen3.5-9B-GGUF-Q4_K_M",
+      baseURL: "http://192.168.88.9:8028/v1",
+    };
+
+    runLLMRequest.mockResolvedValueOnce({
+      content: "explicit",
+      provider: "custom",
+      model: "Qwen3.5-9B-GGUF-Q4_K_M",
+      latencyMs: 11,
+      attempt: 1,
+      usage: null,
+    });
+
+    const { createObservedDefaultAdapter } = await import(
+      "../runtime/script-production/helpers/adapter"
+    );
+    const adapter = createObservedDefaultAdapter({
+      provider: explicitProvider,
+    } as any);
+
+    await adapter.call({
+      prompt: "test",
+      metadata: { source: "agent_runtime" },
+    });
+
+    expect(resolveConfiguredLLMProvider).not.toHaveBeenCalled();
+    expect(runLLMRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        provider: explicitProvider,
+      })
+    );
+  });
+
+  it("maps modelPolicy to provider lookup and request options", async () => {
+    process.env.LLM_DEFAULT_MODEL_ID = "balanced-model";
+    process.env.LLM_CHEAP_REPAIR_MODEL_ID = "repair-model";
+    process.env.LLM_QUALITY_MODEL_ID = "quality-model";
+
+    const getProvider = jest.fn(async (modelId?: string) => ({
+      name: "custom",
+      apiKey: "policy-key",
+      model: modelId || "fallback-model",
+      baseURL: "https://llm.example/v1",
+    }));
+
+    runLLMRequest.mockResolvedValue({
+      content: "policy",
+      provider: "custom",
+      model: "policy-model",
+      latencyMs: 5,
+      attempt: 1,
+      usage: null,
+    });
+
+    const { createDefaultLLMAdapter } = await import(
+      "../adapters/llm-adapter"
+    );
+    const adapter = createDefaultLLMAdapter({ getProvider });
+
+    await adapter.call({
+      prompt: "repair",
+      modelPolicy: "cheap-repair",
+    });
+    await adapter.call({
+      prompt: "quality",
+      modelPolicy: "quality",
+    });
+    await adapter.call({
+      prompt: "balanced",
+      modelPolicy: "balanced",
+    });
+
+    expect(getProvider).toHaveBeenNthCalledWith(1, "repair-model");
+    expect(getProvider).toHaveBeenNthCalledWith(2, "quality-model");
+    expect(getProvider).toHaveBeenNthCalledWith(3, "balanced-model");
+    expect(runLLMRequest).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        requestOptions: {
+          temperature: 0,
+          maxTokens: 8000,
+          timeoutMs: 300000,
+          responseFormat: "json_object",
+          thinking: "disabled",
+        },
+      })
+    );
+    expect(runLLMRequest).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        requestOptions: {
+          temperature: 0.1,
+          maxTokens: 6000,
+          timeoutMs: 300000,
+          responseFormat: "json_object",
+          thinking: "disabled",
+        },
+      })
+    );
+    expect(runLLMRequest).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({
+        requestOptions: {
+          temperature: 0.3,
+          maxTokens: 16000,
+          timeoutMs: 300000,
+          responseFormat: "json_object",
+          thinking: "disabled",
+        },
+      })
+    );
+  });
+
+  it("fails fast for missing or unknown modelPolicy", async () => {
+    const { resolveLLMExecutionPolicy } = await import(
+      "../runtime/model-policy"
+    );
+
+    expect(() => resolveLLMExecutionPolicy(undefined)).toThrow(
+      "modelPolicy is required"
+    );
+    expect(() => resolveLLMExecutionPolicy("unknown-policy")).toThrow(
+      "Unsupported modelPolicy"
+    );
+  });
+
+  it("falls back to the default model when policy-specific model ids are absent", async () => {
+    process.env.LLM_DEFAULT_MODEL_ID = "shared-default-model";
+    delete process.env.LLM_CHEAP_REPAIR_MODEL_ID;
+    delete process.env.LLM_QUALITY_MODEL_ID;
+
+    const { resolveLLMExecutionPolicy } = await import(
+      "../runtime/model-policy"
+    );
+
+    expect(resolveLLMExecutionPolicy("cheap-repair")).toEqual({
+      policy: "cheap-repair",
+      modelId: "shared-default-model",
+      requestOptions: {
+        temperature: 0,
+        maxTokens: 8000,
+        timeoutMs: 300000,
+        responseFormat: "json_object",
+        thinking: "disabled",
+      },
+    });
+    expect(resolveLLMExecutionPolicy("quality")).toEqual({
+      policy: "quality",
+      modelId: "shared-default-model",
+      requestOptions: {
+        temperature: 0.1,
+        maxTokens: 6000,
+        timeoutMs: 300000,
+        responseFormat: "json_object",
+        thinking: "disabled",
+      },
     });
   });
 });

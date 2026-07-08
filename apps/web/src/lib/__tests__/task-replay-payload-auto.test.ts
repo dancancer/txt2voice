@@ -88,6 +88,59 @@ describe("auto pipeline replay payload", () => {
     });
   });
 
+  it("should prefer resolvedOptions snapshot when replaying without queue payload", () => {
+    const payload = extractPayloadFromTask({
+      ...baseTask,
+      taskData: {
+        metadata: {
+          options: {
+            audioGeneration: {
+              options: {
+                preferredProvider: "legacy-provider",
+              },
+            },
+          },
+          resolvedOptions: {
+            audioGeneration: {
+              autoMerge: false,
+              options: {
+                preferredProvider: "voxcpm",
+                skipExisting: true,
+              },
+            },
+            qualityCheck: {
+              enabled: true,
+            },
+          },
+        },
+      },
+    } as any);
+
+    expect(payload).toEqual({
+      kind: "auto_pipeline",
+      input: {
+        taskId: "task-auto-1",
+        bookId: "book-1",
+        options: {
+          audioGeneration: {
+            autoMerge: false,
+            options: {
+              preferredProvider: "voxcpm",
+              skipExisting: true,
+            },
+          },
+          qualityCheck: {
+            enabled: true,
+          },
+        },
+        mode: "pipeline",
+        triggerSource: undefined,
+        triggerMetadata: {},
+        allowReuseRunningTask: undefined,
+      },
+    });
+  });
+
   it("should treat auto pipeline as recoverable task", () => {
     expect(isRecoverableTask("AUTO_PIPELINE")).toBe(true);
     expect(isRecoverableTask("UNKNOWN_TASK")).toBe(false);

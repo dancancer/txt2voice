@@ -75,10 +75,6 @@ jest.mock("@/lib/script-generation-runner", () => ({
   runScriptGenerationTask: jest.fn(),
 }));
 
-jest.mock("@/lib/task-queue/namespace-check", () => ({
-  warnIfLegacyNamespaceHasPendingJobs: jest.fn(),
-}));
-
 jest.mock("@/lib/task-queue/worker-state", () => ({
   handleWorkerFailure: jest.fn(),
   markTaskAttemptStart: jest.fn(),
@@ -173,5 +169,37 @@ describe("llm-job-runtime queue wiring", () => {
       content: "ok",
       model: "gpt-test",
     });
+  });
+
+  it("should pass request timeout to queued llm jobs", async () => {
+    jest.resetModules();
+    llmQueue.add.mockResolvedValueOnce({ id: "llm-timeout-job" });
+
+    const { enqueueLLMExecutionJob } = await import(
+      "@/lib/task-queue/ops/enqueue"
+    );
+
+    await enqueueLLMExecutionJob({
+      requestId: "llm-timeout-job",
+      provider: {
+        name: "deepseek",
+        apiKey: "test",
+        model: "deepseek-v4-pro",
+      },
+      prompt: "hello",
+      requestOptions: {
+        timeoutMs: 300000,
+      },
+    });
+
+    expect(llmQueue.add).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestId: "llm-timeout-job",
+      }),
+      expect.objectContaining({
+        jobId: "llm-timeout-job",
+        timeout: 300000,
+      })
+    );
   });
 });

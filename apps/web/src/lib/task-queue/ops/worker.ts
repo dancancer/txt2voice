@@ -4,19 +4,18 @@ import { runAutoPipelineCompensationTask } from "@/lib/auto-pipeline-compensatio
 import { runFinalAssemblyTask } from "@/lib/final-assembly-runner";
 import { runManualReviewSyncTask } from "@/lib/manual-review-sync-runner";
 import { runAudioGenerationTask } from "@/lib/audio-generation-runner";
+import { isTaskCanceledError } from "@/lib/task-cancellation";
 import { runAudioSynthesisJob } from "@/lib/task-queue/ops/audio-synthesis-execute";
 import { runLLMExecutionJob } from "@/lib/task-queue/ops/llm-execute";
 import { runQualityCheckTask } from "@/lib/quality-check-runner";
 import { runQualitySignalSyncTask } from "@/lib/quality-signal-sync-runner";
 import { runScriptGenerationTask } from "@/lib/script-generation-runner";
-import { warnIfLegacyNamespaceHasPendingJobs } from "@/lib/task-queue/namespace-check";
 import {
   AUDIO_QUEUE_NAME,
   AUDIO_SYNTHESIS_MAX_CONCURRENCY,
   AUDIO_SYNTHESIS_QUEUE_NAME,
   AUTO_PIPELINE_QUEUE_NAME,
   HEARTBEAT_INTERVAL_MS,
-  LEGACY_QUEUE_NAMESPACE,
   LLM_MAX_CONCURRENCY,
   LLM_QUEUE_NAME,
   QUALITY_QUEUE_NAME,
@@ -76,12 +75,6 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
     llmQueue: LLM_QUEUE_NAME,
   });
 
-  await warnIfLegacyNamespaceHasPendingJobs(
-    audioQueue,
-    TASK_QUEUE_NAMESPACE,
-    LEGACY_QUEUE_NAMESPACE
-  );
-
   scriptQueue.process(2, async (job: Bull.Job<ScriptGenerationJobData>) => {
     await markTaskAttemptStart(job.data.taskId, job);
 
@@ -95,6 +88,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "SCRIPT_GENERATION",
         job,
@@ -128,6 +124,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "AUDIO_GENERATION",
         job,
@@ -168,6 +167,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "QUALITY_CHECK",
         job,
@@ -199,6 +201,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         })
       );
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType: "QUALITY_SIGNAL_SYNC",
         job,
@@ -262,6 +267,9 @@ export async function ensureTaskWorkerStarted(): Promise<void> {
         });
       });
     } catch (error) {
+      if (isTaskCanceledError(error)) {
+        return;
+      }
       await handleWorkerFailure({
         taskType:
           mode === "trigger_compensation"

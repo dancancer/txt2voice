@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
 // input: 书籍 ID
-// output: 复核工作台状态与动作
+// output: 复核工作台状态与动作（含任务排序能力）
 // pos: 质检复核页面数据钩子
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -27,80 +27,34 @@ import type {
 } from "../models/types";
 import { REVIEW_PAGE_LIMIT } from "../models/types";
 import { useReviewWorkbenchActions } from "./useReviewWorkbenchActions";
+import {
+  DEFAULT_DISPATCH_EVENT_SUMMARY,
+  DEFAULT_PAGINATION,
+  DEFAULT_SUMMARY,
+  toRegenerateTask,
+} from "./useReviewWorkbenchData-helpers";
 
-const DEFAULT_PAGINATION: ReviewPagination = {
-  page: 1,
-  limit: REVIEW_PAGE_LIMIT,
-  total: 0,
-  totalPages: 1,
-  hasNext: false,
-  hasPrev: false,
+const toTimestamp = (value: string): number => {
+  const timestamp = Date.parse(value);
+  return Number.isNaN(timestamp) ? 0 : timestamp;
 };
 
-const DEFAULT_SUMMARY: ReviewSummary = {
-  pendingCount: 0,
-  reprocessingCount: 0,
-  resolvedCount: 0,
-  rejectedCount: 0,
-  total: 0,
-};
+export const sortReviewRegenerateTasks = (
+  tasks: ReviewRegenerateTask[]
+): ReviewRegenerateTask[] => {
+  return [...tasks].sort((left, right) => {
+    const updatedDiff = toTimestamp(right.updatedAt) - toTimestamp(left.updatedAt);
+    if (updatedDiff !== 0) {
+      return updatedDiff;
+    }
 
-const DEFAULT_DISPATCH_EVENT_SUMMARY = {
-  openCount: 0,
-  ackedCount: 0,
-  resolvedCount: 0,
-  totalCount: 0,
-};
+    const createdDiff = toTimestamp(right.createdAt) - toTimestamp(left.createdAt);
+    if (createdDiff !== 0) {
+      return createdDiff;
+    }
 
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return !!value && typeof value === "object" && !Array.isArray(value);
-};
-
-const asStringArray = (value: unknown): string[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  return value.filter((item): item is string => typeof item === "string");
-};
-
-const toRegenerateTask = (
-  task: NonNullable<ReviewTaskListResponse["data"]>[number]
-): ReviewRegenerateTask | null => {
-  const metadata = isRecord(task.metadata) ? task.metadata : null;
-  const source =
-    metadata?.source === "manual_review" ||
-    metadata?.source === "manual_review_batch" ||
-    metadata?.source === "manual_review_bulk_pending"
-      ? metadata.source
-      : null;
-
-  if (!source) {
-    return null;
-  }
-
-  const selectedReviewItemIds = asStringArray(metadata?.selectedReviewItemIds);
-  const segmentIds = asStringArray(metadata?.segmentIds);
-  const scriptSentenceIds = asStringArray(metadata?.scriptSentenceIds);
-  const targetCount =
-    selectedReviewItemIds.length ||
-    segmentIds.length ||
-    scriptSentenceIds.length ||
-    1;
-
-  return {
-    id: task.id,
-    taskType: task.taskType,
-    status: task.status,
-    progress: task.progress || 0,
-    message: task.message || null,
-    errorMessage: task.errorMessage || null,
-    createdAt: task.createdAt,
-    updatedAt: task.updatedAt,
-    completedAt: task.completedAt || null,
-    source,
-    targetCount,
-  };
+    return left.id.localeCompare(right.id);
+  });
 };
 
 export function useReviewWorkbenchData(bookId: string) {
@@ -311,10 +265,11 @@ export function useReviewWorkbenchData(bookId: string) {
           throw new Error(payload.error?.message || "加载重生任务失败");
         }
 
-        const tasks = (payload.data || [])
-          .map((task) => toRegenerateTask(task))
-          .filter((task): task is ReviewRegenerateTask => Boolean(task))
-          .slice(0, 6);
+        const tasks = sortReviewRegenerateTasks(
+          (payload.data || [])
+            .map((task) => toRegenerateTask(task))
+            .filter((task): task is ReviewRegenerateTask => Boolean(task))
+        ).slice(0, 6);
 
         setRecentRegenerateTasks(tasks);
       } catch (loadError) {
@@ -358,6 +313,9 @@ export function useReviewWorkbenchData(bookId: string) {
     }
 
     const timer = window.setInterval(() => {
+      if (document.visibilityState !== "visible") {
+        return;
+      }
       void Promise.all([loadReviewData(false), loadRegenerateTasks(false)]);
     }, 5000);
 

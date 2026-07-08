@@ -7,7 +7,10 @@
 import { useState } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 import { booksApi } from '@/lib/api'
+import { Badge } from './ui/badge'
 import { Button } from './ui/button'
+import { Input } from './ui/input'
+import { Progress } from './ui/progress'
 import { Upload, X, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface BookUploadProps {
@@ -135,15 +138,31 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">上传新书</h2>
+    <div className="mx-auto max-w-2xl rounded-[1.5rem] border border-border/80 bg-card p-6 text-card-foreground shadow-[0_1px_2px_rgba(15,23,42,0.04),0_12px_28px_rgba(15,23,42,0.06)] sm:p-7">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="space-y-3">
+          <div>
+            <h2 className="text-2xl font-semibold tracking-tight text-card-foreground">上传新书</h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              先录入书籍信息，再上传原始文本。系统会继续进入章节识别与后续编排。
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-[0.72rem] font-medium text-muted-foreground">
+              支持 txt / md
+            </Badge>
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-[0.72rem] font-medium text-muted-foreground">
+              文件上限 20MB
+            </Badge>
+          </div>
+        </div>
         {onCancel && (
           <Button
             variant="ghost"
-            size="sm"
+            size="icon"
             onClick={onCancel}
             disabled={uploadStep !== 'form'}
+            className="rounded-xl"
           >
             <X className="w-4 h-4" />
           </Button>
@@ -155,15 +174,14 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                书籍标题 <span className="text-red-500">*</span>
+              <label htmlFor="title" className="mb-2 block text-sm font-medium text-card-foreground">
+                书籍标题 <span className="text-destructive">*</span>
               </label>
-              <input
+              <Input
                 type="text"
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="请输入书籍标题"
                 disabled={uploadStep !== 'form'}
                 required
@@ -171,25 +189,24 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
             </div>
 
             <div>
-              <label htmlFor="author" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="author" className="mb-2 block text-sm font-medium text-card-foreground">
                 作者
               </label>
-              <input
+              <Input
                 type="text"
                 id="author"
                 value={formData.author}
                 onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="请输入作者名称（可选）"
                 disabled={uploadStep !== 'form'}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                选择文件 <span className="text-red-500">*</span>
+              <label className="mb-2 block text-sm font-medium text-card-foreground">
+                选择文件 <span className="text-destructive">*</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+              <div className={`rounded-[1.25rem] border-2 border-dashed p-6 text-center transition-colors ${selectedFile ? 'border-primary/25 bg-accent/40' : 'border-border bg-muted/30 hover:border-foreground/20'}`}>
                 <input
                   type="file"
                   id="file"
@@ -202,11 +219,11 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
                   htmlFor="file"
                   className={`cursor-pointer ${uploadStep !== 'form' ? 'cursor-not-allowed opacity-50' : ''}`}
                 >
-                  <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-                  <p className="text-gray-600 mb-2">
+                  <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+                  <p className="mb-2 font-medium text-foreground">
                     点击选择文件或拖拽文件到此处
                   </p>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm leading-6 text-muted-foreground">
                     支持 .txt 和 .md 格式，文件大小不超过 20MB
                   </p>
                 </label>
@@ -214,12 +231,12 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
             </div>
 
             {selectedFile && (
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-md">
+              <div className="flex items-center justify-between rounded-[1rem] border border-border bg-accent/45 p-3.5">
                 <div className="flex items-center space-x-3">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                  <FileText className="h-5 w-5 text-accent-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-blue-900">{selectedFile.name}</p>
-                    <p className="text-xs text-blue-700">
+                    <p className="text-sm font-medium text-accent-foreground">{selectedFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
                       {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                     </p>
                   </div>
@@ -238,9 +255,9 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
           </div>
 
           {error && (
-            <div className="flex items-center space-x-2 p-3 bg-red-50 rounded-md">
-              <AlertCircle className="w-5 h-5 text-red-600" />
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="flex items-center space-x-2 rounded-[1rem] border border-destructive/20 bg-destructive/10 p-3 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              <p className="text-sm">{error}</p>
             </div>
           )}
 
@@ -267,43 +284,38 @@ export function BookUpload({ onSuccess, onCancel }: BookUploadProps) {
 
       {/* Uploading Step */}
       {uploadStep === 'uploading' && (
-        <div className="text-center py-8">
-          <Loader2 className="w-12 h-12 mx-auto text-blue-600 mb-4 animate-spin" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">正在上传文件...</h3>
+        <div className="rounded-[1.25rem] border border-border bg-muted/25 py-8 text-center">
+          <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-primary" />
+          <h3 className="mb-2 text-lg font-medium text-card-foreground">正在上传文件...</h3>
           <div className="w-full max-w-sm mx-auto">
-            <div className="bg-gray-200 rounded-full h-2 mb-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-            <p className="text-sm text-gray-600">{uploadProgress}%</p>
+            <Progress value={uploadProgress} className="mb-2" />
+            <p className="text-sm text-muted-foreground">{uploadProgress}%</p>
           </div>
         </div>
       )}
 
       {/* Success Step */}
       {uploadStep === 'success' && (
-        <div className="text-center py-8">
-          <CheckCircle className="w-12 h-12 mx-auto text-green-600 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">上传成功！</h3>
+        <div className="rounded-[1.25rem] border border-emerald-200/70 bg-emerald-50/80 py-8 text-center">
+          <CheckCircle className="mx-auto mb-4 h-12 w-12 text-primary" />
+          <h3 className="mb-2 text-lg font-medium text-card-foreground">上传成功！</h3>
           {autoPipelineWarning ? (
-            <p className="text-amber-700">
+            <p className="mx-auto max-w-lg text-muted-foreground">
               文件已上传，但自动编排触发失败：{autoPipelineWarning}
             </p>
           ) : (
-            <p className="text-gray-600">书籍已上传，自动编排任务已进入队列</p>
+            <p className="mx-auto max-w-lg text-muted-foreground">书籍已上传，自动编排任务已进入队列</p>
           )}
         </div>
       )}
 
       {/* Error Step */}
       {uploadStep === 'error' && (
-        <div className="text-center py-8">
-          <AlertCircle className="w-12 h-12 mx-auto text-red-600 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">上传失败</h3>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <div className="flex justify-center space-x-3">
+        <div className="rounded-[1.25rem] border border-destructive/15 bg-destructive/5 py-8 text-center">
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-destructive" />
+          <h3 className="mb-2 text-lg font-medium text-card-foreground">上传失败</h3>
+          <p className="mb-4 text-muted-foreground">{error}</p>
+          <div className="flex justify-center gap-3">
             <Button variant="outline" onClick={resetForm}>
               重新填写
             </Button>

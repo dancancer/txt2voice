@@ -3,6 +3,7 @@
 // output: 核心 SLO 指标快照
 // pos: S32 指标服务
 import prisma from "@/lib/prisma";
+import { normalizeScriptGenerationRuntimeEvents } from "@/lib/script-generation/runner/runtime-events";
 import {
   DAY_MS,
   appendTaskStatus,
@@ -129,6 +130,9 @@ export const getBookSloMetrics = async ({
           repairCount: Number(asNumber(metadata?.repairCount) || 0),
           manualReviewCount: Number(asNumber(metadata?.manualReviewCount) || 0),
           hardFailCount: Number(asNumber(metadata?.hardFailCount) || 0),
+          recentRuntimeEvents: normalizeScriptGenerationRuntimeEvents(
+            metadata?.recentRuntimeEvents
+          ).slice(-5),
         };
       }
       continue;
@@ -145,7 +149,11 @@ export const getBookSloMetrics = async ({
         workflowSummary.autoPipeline.pendingReviewHandOffCount += 1;
       } else {
         workflowSummary.autoPipeline.directDeliveryCount += 1;
-        if (task.status === "completed" || task.status === "failed") {
+        if (
+          task.status === "completed" ||
+          task.status === "failed" ||
+          task.status === "canceled"
+        ) {
           workflowSummary.deliveryTerminalCount += 1;
           if (task.status === "completed") {
             workflowSummary.deliverySuccessCount += 1;
@@ -159,7 +167,11 @@ export const getBookSloMetrics = async ({
 
     if (task.taskType === "FINAL_ASSEMBLY") {
       appendTaskStatus(workflowSummary.finalAssembly, task.status);
-      if (task.status === "completed" || task.status === "failed") {
+      if (
+        task.status === "completed" ||
+        task.status === "failed" ||
+        task.status === "canceled"
+      ) {
         workflowSummary.deliveryTerminalCount += 1;
         if (task.status === "completed") {
           workflowSummary.deliverySuccessCount += 1;

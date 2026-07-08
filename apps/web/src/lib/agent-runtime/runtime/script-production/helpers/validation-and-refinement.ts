@@ -1,6 +1,6 @@
-import { refineFailedSegment } from "@/lib/script-generator/pipeline/refinement/failed-segment-refinement";
-import { validateSegmentScript } from "@/lib/script-generator/pipeline/segment-script-validator";
-import type { SegmentSummary } from "@/lib/script-generator/types";
+import { refineFailedSegment } from "./failed-segment-refinement";
+import { validateSegmentScript } from "./segment-script-validator";
+import type { SegmentSummary } from "../types";
 import type { SegmentScriptDraft, ValidationReport } from "../../../context";
 import {
   checkScriptCoverage,
@@ -27,6 +27,13 @@ const INPUT_REFINEMENT_CLOSING_QUOTES = new Set([
   "\"",
   "'",
 ]);
+const MAX_INPUT_REFINEMENT_SEGMENTS = 4;
+
+type InputRefinementSlice = {
+  start: number;
+  end: number;
+  content: string;
+};
 
 const trimSlice = (content: string, start: number, end: number) => {
   let nextStart = start;
@@ -77,6 +84,52 @@ const splitSegmentForInputRefinement = (content: string) => {
   }
 
   return slices.length > 1 ? slices : [];
+};
+
+const normalizeRefinementSlices = (slices: InputRefinementSlice[]) =>
+  slices
+    .filter((slice) => slice.end > slice.start && slice.content.trim().length > 0)
+    .sort((left, right) => left.start - right.start);
+
+const coalesceRefinementSlices = (
+  sourceContent: string,
+  slices: InputRefinementSlice[]
+) => {
+  const normalized = normalizeRefinementSlices(slices);
+
+  if (normalized.length <= MAX_INPUT_REFINEMENT_SEGMENTS) {
+    return normalized;
+  }
+
+  const targetLength = Math.ceil(
+    sourceContent.length / MAX_INPUT_REFINEMENT_SEGMENTS
+  );
+  const merged: InputRefinementSlice[] = [];
+  let groupStart = normalized[0].start;
+  let groupEnd = normalized[0].end;
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    const slice = normalized[index];
+    groupEnd = slice.end;
+
+    const remainingSlices = normalized.length - index - 1;
+    const remainingSlots = MAX_INPUT_REFINEMENT_SEGMENTS - merged.length - 1;
+    const shouldClose =
+      remainingSlots > 0 &&
+      remainingSlices > 0 &&
+      (groupEnd - groupStart >= targetLength ||
+        remainingSlices === remainingSlots);
+
+    if (!shouldClose) {
+      continue;
+    }
+
+    merged.push(trimSlice(sourceContent, groupStart, groupEnd));
+    groupStart = normalized[index + 1].start;
+  }
+
+  merged.push(trimSlice(sourceContent, groupStart, groupEnd));
+  return normalizeRefinementSlices(merged);
 };
 
 export const buildValidationReport = (params: {
@@ -160,27 +213,26 @@ export const buildInputRefinementSegments = (params: {
     : ["TEXT_SOURCE_MISMATCH", "NON_WHITESPACE_GAP"];
   const refinedSegments = refineByIssues(issueCodes);
 
-  const genericFallbackSegments =
+  const refinementSlices =
     refinedSegments.length <= 1
-      ? splitSegmentForInputRefinement(params.segment.content).map(
-          (slice, index) => ({
-            id: `${params.segment.id}::refined-${index + 1}`,
-            chapterId: params.segment.chapterId ?? null,
-            orderIndex:
-              typeof params.segment.orderIndex === "number"
-                ? params.segment.orderIndex
-                : -1,
-            content: slice.content,
-          })
-        )
+      ? splitSegmentForInputRefinement(params.segment.content)
       : refinedSegments.map((slice) => ({
-          id: slice.id,
-          chapterId: slice.chapterId,
-          orderIndex: slice.orderIndex,
+          start: slice.offsetStart,
+          end: slice.offsetEnd,
           content: slice.content,
         }));
 
-  return genericFallbackSegments;
+  return coalesceRefinementSlices(params.segment.content, refinementSlices).map(
+    (slice, index) => ({
+      id: `${params.segment.id}::refined-${index + 1}`,
+      chapterId: params.segment.chapterId ?? null,
+      orderIndex:
+        typeof params.segment.orderIndex === "number"
+          ? params.segment.orderIndex
+          : -1,
+      content: slice.content,
+    })
+  );
 };
 
 export const mergeRefinedSegmentDrafts = (params: {

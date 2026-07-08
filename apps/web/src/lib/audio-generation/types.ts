@@ -16,6 +16,11 @@ export interface AudioGenerationRequest {
     volume?: number;
     emotion?: string;
     style?: string;
+    controlInstruction?: string;
+    cfgValue?: number;
+    inferenceTimesteps?: number;
+    normalize?: boolean;
+    denoise?: boolean;
   };
   outputFormat?: "mp3" | "wav" | "ogg";
 }
@@ -27,7 +32,7 @@ export interface AudioGenerationOptions {
   priority?: "low" | "normal" | "high";
   skipExisting?: boolean;
   overwriteExisting?: boolean;
-  provider?: string;
+  preferredProvider?: "voxcpm";
   routerPolicyVersion?: string;
   enableRouterDebug?: boolean;
 }
@@ -67,6 +72,13 @@ export interface AudioReliabilitySummary {
 export interface AudioBatchGenerationSummary {
   results: AudioGenerationResult[];
   reliability: AudioReliabilitySummary;
+}
+
+export interface AudioBatchGenerationHooks {
+  assertContinue?: () => Promise<void> | void;
+  onPassComplete?: (
+    summary: AudioReliabilityPassSummary
+  ) => Promise<void> | void;
 }
 
 export interface VoiceRouteResolution {

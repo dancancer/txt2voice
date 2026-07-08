@@ -52,7 +52,7 @@ Service Layer (apps/web/src/lib)
         +--> External Providers
                  |
                  +--> LLM Gateway
-                 +--> IndexTTS / CosyVoice / VoxCPM / Azure / OpenAI
+                 +--> Qwen3 Voice
 ```
 
 ## 3. 分层边界
@@ -401,9 +401,7 @@ pnpm --filter web dev
 - Web 生产镜像由 `docker-compose.prod.yml` 管理
 - 远端 TTS 栈说明位于 `ops/remote-tts-stack/README.md`
 - 当前远端常见 Provider 端口：
-  - `8001`：IndexTTS
-  - `8011`：CosyVoice
-  - `8012`：VoxCPM
+  - `18080`：Qwen3 Voice API
 
 ## 9. 目录边界
 

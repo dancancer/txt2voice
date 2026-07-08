@@ -38,20 +38,20 @@ export function PlaybackSidebar({
         <CardContent>
           <div className="space-y-3">
             <div>
-              <h3 className="mb-1 font-semibold text-gray-900">{book.title}</h3>
-              {book.author && <p className="text-sm text-gray-600">作者：{book.author}</p>}
+              <h3 className="mb-1 font-semibold text-foreground">{book.title}</h3>
+              {book.author && <p className="text-sm text-muted-foreground">作者：{book.author}</p>}
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">总时长</span>
-              <span className="font-medium">{totalDuration > 0 ? formatTime(totalDuration) : "--:--"}</span>
+              <span className="text-muted-foreground">总时长</span>
+              <span className="font-medium text-foreground">{totalDuration > 0 ? formatTime(totalDuration) : "--:--"}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">文件数量</span>
-              <span className="font-medium">{audioFiles.length}</span>
+              <span className="text-muted-foreground">文件数量</span>
+              <span className="font-medium text-foreground">{audioFiles.length}</span>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-600">总大小</span>
-              <span className="font-medium">{formatFileSize(totalFileSize)}</span>
+              <span className="text-muted-foreground">总大小</span>
+              <span className="font-medium text-foreground">{formatFileSize(totalFileSize)}</span>
             </div>
           </div>
         </CardContent>
@@ -84,20 +84,20 @@ export function PlaybackSidebar({
         <CardContent>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-gray-600">播放/暂停</span>
-              <kbd className="rounded bg-gray-100 px-2 py-1">Space</kbd>
+              <span className="text-muted-foreground">播放/暂停</span>
+              <kbd className="rounded bg-muted px-2 py-1 text-foreground">Space</kbd>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">上一首</span>
-              <kbd className="rounded bg-gray-100 px-2 py-1">←</kbd>
+              <span className="text-muted-foreground">上一首</span>
+              <kbd className="rounded bg-muted px-2 py-1 text-foreground">←</kbd>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">下一首</span>
-              <kbd className="rounded bg-gray-100 px-2 py-1">→</kbd>
+              <span className="text-muted-foreground">下一首</span>
+              <kbd className="rounded bg-muted px-2 py-1 text-foreground">→</kbd>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">静音</span>
-              <kbd className="rounded bg-gray-100 px-2 py-1">M</kbd>
+              <span className="text-muted-foreground">静音</span>
+              <kbd className="rounded bg-muted px-2 py-1 text-foreground">M</kbd>
             </div>
           </div>
         </CardContent>

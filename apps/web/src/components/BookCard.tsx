@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Book } from '@/types/book'
-import { booksApi, formatFileSize, formatDate, getStatusColor, getStatusText } from '@/lib/api'
+import { booksApi, formatFileSize, formatDate, getBookStatusMeta } from '@/lib/api'
 import { Button } from './ui/button'
 import { toast } from 'sonner'
 import {
@@ -35,6 +35,8 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const statusMeta = getBookStatusMeta(book.status)
+  const StatusIcon = statusMeta.icon
 
   const handleCardClick = () => {
     router.push(`/books/${book.id}`)
@@ -119,27 +121,6 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
     }
   }
 
-  const getStatusIcon = () => {
-    switch (book.status) {
-      case 'uploaded':
-        return <Upload className="w-4 h-4" />
-      case 'processing':
-        return <Loader2 className="w-4 h-4 animate-spin" />
-      case 'processed':
-        return <CheckCircle className="w-4 h-4" />
-      case 'script_generated':
-        return <FileText className="w-4 h-4" />
-      case 'generating_audio':
-        return <Loader2 className="w-4 h-4 animate-spin" />
-      case 'completed':
-        return <CheckCircle className="w-4 h-4" />
-      case 'completed_with_errors':
-        return <AlertCircle className="w-4 h-4" />
-      default:
-        return <AlertCircle className="w-4 h-4" />
-    }
-  }
-
   const canGenerateScript = book.status === 'processed' || book.status === 'completed_with_errors'
   const canGenerateAudio =
     book.status === 'processed' ||
@@ -150,95 +131,96 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
   const showViewTaskButton = book.status !== 'uploaded' && book.status !== 'uploading'
 
   return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 overflow-hidden">
-      {/* Status Bar */}
-      <div className={`px-4 py-2 flex items-center justify-between text-xs font-medium ${getStatusColor(book.status)}`}>
-        <div className="flex items-center space-x-1">
-          {getStatusIcon()}
-          <span>{getStatusText(book.status)}</span>
-        </div>
-        {book.status === 'processing' && (
-          <div className="flex items-center space-x-1">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            <span>处理中...</span>
-          </div>
-        )}
-      </div>
-
-      {/* Card Content */}
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900 mb-1 line-clamp-2">
-              {book.title}
-            </h3>
-            {book.author && (
-              <p className="text-sm text-gray-600 mb-2">作者：{book.author}</p>
-            )}
-            {book.originalFilename && (
-              <p className="text-xs text-gray-500 flex items-center">
-                <FileText className="w-3 h-3 mr-1" />
-                {book.originalFilename}
-              </p>
-            )}
-          </div>
-          <div className="flex space-x-1 ml-4">
-            {showViewTaskButton && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCardClick}
-                className="text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                title="进入任务"
-                aria-label="进入书籍详情"
-              >
-                <BookOpen className="w-4 h-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Statistics */}
-        <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
-          <div className="flex items-center text-gray-600">
-            <FileText className="w-4 h-4 mr-2 text-gray-400" />
-            <span>段落：{book.totalSegments}</span>
-          </div>
-          <div className="flex items-center text-gray-600">
-            <span className="w-4 h-4 mr-2 text-gray-400 text-center">字</span>
-            <span>字符：{book.totalCharacters.toLocaleString()}</span>
-          </div>
-          {book.fileSize && (
-            <div className="flex items-center text-gray-600">
-              <HardDrive className="w-4 h-4 mr-2 text-gray-400" />
-              <span>{formatFileSize(book.fileSize)}</span>
+    <div className="group flex h-full flex-col overflow-hidden rounded-[1.35rem] border border-border/80 bg-card text-card-foreground shadow-[0_1px_2px_rgba(15,23,42,0.05),0_12px_28px_rgba(15,23,42,0.05)] transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-foreground/10 hover:shadow-[0_8px_24px_rgba(15,23,42,0.08),0_18px_42px_rgba(15,23,42,0.08)]">
+      <div className="flex h-full flex-col p-5">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${statusMeta.className}`}>
+                <StatusIcon className={`h-3.5 w-3.5 ${statusMeta.animated ? 'animate-spin' : ''}`} />
+                {statusMeta.label}
+              </span>
+              {book.status === 'processing' ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-[0.72rem] font-medium text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  处理中
+                </span>
+              ) : null}
             </div>
-          )}
-          <div className="flex items-center text-gray-600">
-            <Clock className="w-4 h-4 mr-2 text-gray-400" />
-            <span>{formatDate(book.createdAt)}</span>
-          </div>
-        </div>
-
-        {/* Audio Files Count */}
-        {audioFilesCount > 0 && (
-          <div className="mb-4 p-2 bg-green-50 rounded-md">
-            <div className="flex items-center text-sm text-green-800">
-              <Play className="w-4 h-4 mr-2" />
-              <span>已生成 {audioFilesCount} 个音频文件</span>
+            <div className="space-y-1.5">
+              <h3 className="line-clamp-2 text-xl font-semibold leading-7 text-card-foreground">
+                {book.title}
+              </h3>
+              {book.author ? (
+                <p className="text-sm text-muted-foreground">作者：{book.author}</p>
+              ) : null}
+              {book.originalFilename ? (
+                <p className="flex items-center gap-1.5 text-xs leading-5 text-muted-foreground">
+                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                  <span className="line-clamp-1 break-all">{book.originalFilename}</span>
+                </p>
+              ) : null}
             </div>
           </div>
-        )}
+          {showViewTaskButton ? (
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleCardClick}
+              title="进入任务"
+              aria-label="进入书籍详情"
+              className="rounded-xl"
+            >
+              <BookOpen className="w-4 h-4" />
+            </Button>
+          ) : null}
+        </div>
 
-        {/* Action Buttons */}
-        <div className="flex space-x-2">
+        <div className="grid grid-cols-2 gap-3 rounded-[1rem] border border-border/70 bg-muted/30 p-4 text-sm">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <FileText className="h-4 w-4" />
+              <span>段落</span>
+            </div>
+            <p className="font-medium text-foreground">{book.totalSegments}</p>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="inline-flex h-4 w-4 items-center justify-center text-[11px] font-semibold">字</span>
+              <span>字符</span>
+            </div>
+            <p className="font-medium text-foreground">{book.totalCharacters.toLocaleString()}</p>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <HardDrive className="h-4 w-4" />
+              <span>文件大小</span>
+            </div>
+            <p className="font-medium text-foreground">{book.fileSize ? formatFileSize(book.fileSize) : '待上传'}</p>
+          </div>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>创建时间</span>
+            </div>
+            <p className="font-medium text-foreground">{formatDate(book.createdAt)}</p>
+          </div>
+        </div>
+
+        {audioFilesCount > 0 ? (
+          <div className="mt-4 flex items-center gap-2 rounded-[1rem] border border-emerald-200/70 bg-emerald-50/80 px-3.5 py-3 text-sm text-emerald-900">
+            <Play className="h-4 w-4 shrink-0" />
+            <span>已生成 {audioFilesCount} 个音频文件，可直接进入播放或继续补齐缺失片段。</span>
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap gap-2">
           {book.status === 'uploaded' && !book.originalFilename && (
             <Button
               variant="outline"
-              size="sm"
               onClick={handleUploadFile}
               disabled={isLoading}
-              className="flex-1"
+              className="min-w-[9.5rem] flex-1"
             >
               {isLoading ? (
                 <>
@@ -257,10 +239,9 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
           {book.status === 'uploaded' && book.originalFilename && (
             <Button
               variant="outline"
-              size="sm"
               onClick={handleStartProcessing}
               disabled={isLoading}
-              className="flex-1"
+              className="min-w-[9.5rem] flex-1"
             >
               {isLoading ? (
                 <>
@@ -279,9 +260,8 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
           {canGenerateScript && (
             <Button
               variant="outline"
-              size="sm"
               onClick={() => router.push(`/books/${book.id}`)}
-              className="flex-1"
+              className="min-w-[9.5rem] flex-1"
             >
               <FileText className="w-4 h-4 mr-2" />
               章节详情
@@ -291,21 +271,21 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
           {canGenerateAudio && (
             <Button
               variant="default"
-              size="sm"
               onClick={() => router.push(`/books/${book.id}`)}
-              className="flex-1"
+              className="min-w-[9.5rem] flex-1"
             >
               <Play className="w-4 h-4 mr-2" />
               章节音频
             </Button>
           )}
 
-          {(book.status === 'completed' || book.status === 'completed_with_errors') && hasAudio && (
+          {(book.status === 'completed' ||
+            book.status === 'completed_with_errors' ||
+            book.status === 'audio_review_ready') && hasAudio && (
             <Button
               variant="default"
-              size="sm"
               onClick={() => router.push(`/books/${book.id}/play`)}
-              className="flex-1"
+              className="min-w-[9.5rem] flex-1"
             >
               <Play className="w-4 h-4 mr-2" />
               播放音频
@@ -316,29 +296,28 @@ export function BookCard({ book, onDelete, onUpdate }: BookCardProps) {
           {!showDeleteConfirm ? (
             <Button
               variant="ghost"
-              size="sm"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isDeleting}
-              className="text-red-600 hover:text-red-800 hover:bg-red-50"
+              className="min-w-[44px] text-destructive hover:bg-destructive/10 hover:text-destructive"
               aria-label="删除书籍"
             >
               <Trash2 className="w-4 h-4" />
             </Button>
           ) : (
-            <div className="flex space-x-1">
+            <div className="flex flex-1 flex-wrap gap-2">
               <Button
                 variant="outline"
-                size="sm"
                 onClick={() => setShowDeleteConfirm(false)}
                 disabled={isDeleting}
+                className="min-w-[7rem] flex-1"
               >
                 取消
               </Button>
               <Button
                 variant="destructive"
-                size="sm"
                 onClick={handleDelete}
                 disabled={isDeleting}
+                className="min-w-[8rem] flex-1"
               >
                 {isDeleting ? (
                   <>

@@ -36,7 +36,7 @@ describe("audio-synthesis-runtime", () => {
         outputFormat: "mp3",
       },
       options: {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
       },
       metadata: {
         source: "test",
@@ -91,7 +91,7 @@ describe("audio-synthesis-runtime", () => {
           outputFormat: "mp3",
         },
         options: {
-          provider: "voxcpm",
+          preferredProvider: "voxcpm",
         },
       })
     ).rejects.toMatchObject({

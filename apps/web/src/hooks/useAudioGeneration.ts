@@ -9,6 +9,10 @@ import {
   isFetchInterruptedError,
   isRequestCanceled,
 } from '@/lib/request-guards'
+import {
+  normalizeScriptGenerationRuntimeEvents,
+  type ScriptGenerationRuntimeEvent,
+} from '@/lib/script-generation/runner/runtime-events'
 import type { Book, CharacterProfileSummary } from '@/types/book'
 
 export type VoiceProfile = {
@@ -34,6 +38,7 @@ export type GenerationState = {
   message?: string | null
   lastGenerated?: string | null
   audioCount?: number
+  recentRuntimeEvents?: ScriptGenerationRuntimeEvent[]
 }
 
 type AudioSettings = {
@@ -104,7 +109,10 @@ export function useAudioGeneration(bookId: string) {
         progress: payload.generationProgress || 0,
         message: payload.latestMessage,
         lastGenerated: payload.lastGenerated,
-        audioCount: payload.audioCount
+        audioCount: payload.audioCount,
+        recentRuntimeEvents: normalizeScriptGenerationRuntimeEvents(
+          payload.taskDetails?.metadata?.recentRuntimeEvents
+        ),
       }
       setGenerationState(nextState)
       setBook(prev => (prev ? { ...prev, status: payload.bookStatus } : prev))

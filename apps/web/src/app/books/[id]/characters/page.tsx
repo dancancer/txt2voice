@@ -195,10 +195,10 @@ export default function CharacterProfilesPage() {
 
   if (loading) {
     return (
-      <div className="h-full bg-gray-50 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">加载中...</p>
+          <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <p className="text-muted-foreground">加载中...</p>
         </div>
       </div>
     );
@@ -206,10 +206,10 @@ export default function CharacterProfilesPage() {
 
   if (error || !book) {
     return (
-      <div className="h-full bg-gray-50 flex items-center justify-center">
+      <div className="flex h-full items-center justify-center bg-background">
         <div className="text-center">
-          <Users className="w-8 h-8 text-red-500 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">{error || "书籍不存在"}</p>
+          <Users className="mx-auto mb-4 h-8 w-8 text-destructive" />
+          <p className="mb-4 text-destructive">{error || "书籍不存在"}</p>
           <Button onClick={() => router.back()}>返回</Button>
         </div>
       </div>
@@ -217,7 +217,7 @@ export default function CharacterProfilesPage() {
   }
 
   return (
-    <div className="min-h-full bg-gray-50">
+    <div className="min-h-full bg-background">
       <CharactersHeader
         title={book.title}
         total={pagination.total}
@@ -273,11 +273,11 @@ export default function CharacterProfilesPage() {
         ) : (
           <Card>
             <CardContent className="pt-12 p-12 text-center">
-              <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
+              <Users className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+              <h3 className="mb-2 text-lg font-medium text-foreground">
                 暂无角色配置
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="mb-6 text-muted-foreground">
                 角色配置用于为书中的人物分配不同的语音，让有声读物更加生动。
               </p>
               <div className="space-y-4">
@@ -290,7 +290,7 @@ export default function CharacterProfilesPage() {
                   创建第一个角色
                 </Button>
                 {!hasTextSegments ? (
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     请先完成文本处理，然后再创建角色配置
                   </p>
                 ) : null}

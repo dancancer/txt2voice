@@ -5,42 +5,45 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { FileText } from "lucide-react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScriptSentence } from "@/lib/types";
 import {
-  ChapterSegmentsTable,
+  BookWorkbench,
+  ChapterWorkbench,
   DocumentTree,
   EditSentenceModal,
   GenerationProgress,
   IncrementalProcessingModal,
   RegenerateSegmentsModal,
+  SegmentWorkbench,
   ScriptPreviewModal,
-  ScriptSentencesTable,
   type ScriptNavigationNode,
 } from "../components";
+import { ScriptStudioAdvancedActionsPanel } from "./components/AdvancedActionsPanel";
 import { ScriptStudioErrorState, ScriptStudioLoadingState } from "./components/PageStates";
 import { useConfirmDialog } from "./hooks/useConfirmDialog";
 import { useScriptStudioData } from "./hooks/useScriptStudioData";
 import { useScriptGenerationActions } from "./hooks/actions/useScriptGenerationActions";
 import { useScriptScopeActions } from "./hooks/actions/useScriptScopeActions";
 import { useScriptSentenceActions } from "./hooks/actions/useScriptSentenceActions";
+import {
+  buildScriptStudioHref,
+  parseScriptStudioNodeQuery,
+} from "./node-query";
 
 export function ScriptStudioPageContainer() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const bookId = params.id as string;
 
   const [editingSentence, setEditingSentence] = useState<ScriptSentence | null>(
     null
   );
   const [showScriptPreview, setShowScriptPreview] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<ScriptNavigationNode>({
-    type: "book",
-    id: bookId,
-  });
+  const selectedNode = parseScriptStudioNodeQuery(bookId, searchParams.get("node"));
 
   const {
     book,
@@ -57,6 +60,7 @@ export function ScriptStudioPageContainer() {
     chapterNodes,
     chapterSegmentIds,
     segmentMetaMap,
+    latestFailedReviewTaskBySegment,
     bookStats,
     getSelectedState,
   } = useScriptStudioData(bookId);
@@ -68,8 +72,15 @@ export function ScriptStudioPageContainer() {
     isGenerating,
     generationProgress,
     generationStatus,
+    generationEvents,
     showIncrementalOptions,
     setShowIncrementalOptions,
+    llmModels,
+    selectedLLMModelId,
+    setSelectedLLMModelId,
+    llmModelsLoading,
+    llmModelsError,
+    canGenerateScript,
     selectedStartSegment,
     setSelectedStartSegment,
     segmentStatus,
@@ -120,6 +131,10 @@ export function ScriptStudioPageContainer() {
     return () => controller.abort();
   }, [loadBookAndData]);
 
+  const handleSelectNode = (node: ScriptNavigationNode) => {
+    router.replace(buildScriptStudioHref(bookId, node), { scroll: false });
+  };
+
   const safeSelectedNode = useMemo(() => {
     if (selectedNode.type === "book" && selectedNode.id !== bookId) {
       return { type: "book", id: bookId } as ScriptNavigationNode;
@@ -145,6 +160,9 @@ export function ScriptStudioPageContainer() {
     selectedSegmentSentences,
     selectedSegmentMeta,
   } = getSelectedState(safeSelectedNode);
+  const selectedSegmentFailedReviewTask = selectedSegment
+    ? latestFailedReviewTaskBySegment.get(selectedSegment.id) || null
+    : null;
 
   if (loading) {
     return <ScriptStudioLoadingState />;
@@ -163,7 +181,7 @@ export function ScriptStudioPageContainer() {
     <div className="flex items-center gap-2">
       <Button
         onClick={() => handleScopeScriptGeneration("chapter", selectedChapterNode.id)}
-        disabled={isGenerating}
+        disabled={isGenerating || !canGenerateScript}
       >
         章节台本生成
       </Button>
@@ -177,14 +195,31 @@ export function ScriptStudioPageContainer() {
     </div>
   );
 
+  const currentSegmentLabel = selectedSegmentMeta
+    ? `${selectedSegmentMeta.chapterTitle} · ${selectedSegmentMeta.label}`
+    : selectedSegment
+      ? `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`
+      : null;
+
+  const handleOpenIncrementalOptions = async () => {
+    setShowIncrementalOptions(true);
+    await loadSegmentStatus();
+  };
+
+  const handleOpenRegenerateOptions = async () => {
+    setShowRegenerateOptions(true);
+    await loadSegmentStatus();
+  };
+
   return (
-    <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
-      {isGenerating && (
+    <div className="flex h-full flex-col overflow-hidden bg-background">
+      {(isGenerating || generationStatus || generationEvents.length > 0) && (
         <div className="flex-shrink-0">
           <GenerationProgress
             isGenerating={isGenerating}
             generationStatus={generationStatus}
             generationProgress={generationProgress}
+            generationEvents={generationEvents}
             onShowPreview={() => setShowScriptPreview(true)}
           />
         </div>
@@ -198,16 +233,33 @@ export function ScriptStudioPageContainer() {
               bookStats={bookStats}
               chapters={chapterNodes}
               selectedNode={safeSelectedNode}
-              onSelect={setSelectedNode}
+              onSelect={handleSelectNode}
             />
           </div>
 
           <div className="h-full overflow-auto">
-            <div className="space-y-4 h-full ">
+            <div className="h-full space-y-4">
+              <ScriptStudioAdvancedActionsPanel
+                hasTextSegments={hasTextSegments}
+                isGenerating={isGenerating}
+                canGenerateScript={canGenerateScript}
+                currentSegmentLabel={currentSegmentLabel}
+                onOpenIncrementalOptions={handleOpenIncrementalOptions}
+                onOpenRegenerateOptions={handleOpenRegenerateOptions}
+                onRegenerateCurrentSegment={
+                  selectedSegment
+                    ? () =>
+                        handleScopeScriptGeneration("segment", selectedSegment.id)
+                    : undefined
+                }
+              />
+
               {safeSelectedNode.type === "chapter" && selectedChapterNode && (
-                <ChapterSegmentsTable
-                  chapterTitle={selectedChapterNode.title}
+                <ChapterWorkbench
+                  bookId={bookId}
+                  chapter={selectedChapterNode}
                   titleAction={titleAction}
+                  failedReviewTaskBySegment={latestFailedReviewTaskBySegment}
                   segments={selectedChapterNode.segments.map((seg) => {
                     const fullSegment = segments.find((s) => s.id === seg.id);
                     return {
@@ -220,93 +272,66 @@ export function ScriptStudioPageContainer() {
                       hasAudio: seg.hasAudio,
                     };
                   })}
-                  onSegmentClick={(segmentId) =>
-                    setSelectedNode({ type: "segment", id: segmentId })
+                  onSelectSegment={(segmentId) =>
+                    handleSelectNode({ type: "segment", id: segmentId })
                   }
-                  onGenerateScript={(segmentId) =>
+                  onGenerateSegmentScript={(segmentId) =>
                     handleScopeScriptGeneration("segment", segmentId)
                   }
-                  onGenerateAudio={(segmentId) =>
+                  onGenerateSegmentAudio={(segmentId) =>
                     handleScopeAudioGeneration("segment", segmentId)
+                  }
+                  onGenerateChapterScript={() =>
+                    handleScopeScriptGeneration("chapter", selectedChapterNode.id)
+                  }
+                  onGenerateChapterAudio={() =>
+                    handleScopeAudioGeneration("chapter", selectedChapterNode.id)
                   }
                 />
               )}
 
               {safeSelectedNode.type === "segment" && selectedSegment && (
-                <>
-                  <div className="flex items-center justify-between bg-white px-6 py-4 rounded-lg border sticky top-0 z-10">
-                    <div>
-                      <h2 className="text-xl font-semibold">
-                        {selectedSegmentMeta
-                          ? `${selectedSegmentMeta.chapterTitle} · ${selectedSegmentMeta.label}`
-                          : `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`}
-                      </h2>
-                      <p className="text-sm text-gray-500 mt-1">
-                        字数 {selectedSegment.wordCount ?? selectedSegment.content?.length ?? 0}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        onClick={() =>
-                          handleScopeScriptGeneration("segment", selectedSegment.id)
-                        }
-                        disabled={isGenerating}
-                      >
-                        重生成台本
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          handleScopeAudioGeneration("segment", selectedSegment.id)
-                        }
-                        disabled={isGenerating || selectedSegmentSentences.length === 0}
-                      >
-                        生成语音
-                      </Button>
-                    </div>
-                  </div>
-                  <ScriptSentencesTable
-                    segmentTitle={
-                      selectedSegmentMeta?.label ||
-                      `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`
-                    }
-                    sentences={selectedSegmentSentences}
-                    onEdit={setEditingSentence}
-                    onDelete={handleSentenceDelete}
-                    onGenerateAudio={handleSentenceAudioGeneration}
-                  />
-                </>
+                <SegmentWorkbench
+                  bookId={bookId}
+                  title={
+                    selectedSegmentMeta?.label ||
+                    `段落 #${(selectedSegment.segmentIndex ?? 0) + 1}`
+                  }
+                  segment={selectedSegment}
+                  sentences={selectedSegmentSentences}
+                  characters={characters}
+                  failedReviewTask={selectedSegmentFailedReviewTask}
+                  onRegenerateScript={() =>
+                    handleScopeScriptGeneration("segment", selectedSegment.id)
+                  }
+                  onGenerateAudio={() =>
+                    handleScopeAudioGeneration("segment", selectedSegment.id)
+                  }
+                  onEditSentence={setEditingSentence}
+                  onDeleteSentence={handleSentenceDelete}
+                  onGenerateSentenceAudio={handleSentenceAudioGeneration}
+                />
               )}
 
               {safeSelectedNode.type === "book" && (
-                <div className="border border-dashed rounded-lg p-12 text-center bg-white">
-                  <div className="max-w-md mx-auto">
-                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      章节管理 & 台本生成
-                    </h3>
-                    <p className="text-sm text-gray-500 mb-6">
-                      请在左侧选择一个章节查看段落列表，或选择段落查看台词详情。
-                    </p>
-                    <div className="space-y-2">
-                      <Button
-                        className="w-full"
-                        onClick={() => handleScopeScriptGeneration("book")}
-                        disabled={isGenerating || !hasTextSegments}
-                      >
-                        全书台本生成
-                      </Button>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => handleScopeAudioGeneration("book")}
-                        disabled={isGenerating || !hasScriptSentences}
-                      >
-                        全书音频生成
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <BookWorkbench
+                  bookTitle={book.title}
+                  bookStats={bookStats}
+                  chapters={chapterNodes}
+                  failedReviewTaskBySegment={latestFailedReviewTaskBySegment}
+                  llmModels={llmModels}
+                  selectedLLMModelId={selectedLLMModelId}
+                  llmModelsLoading={llmModelsLoading}
+                  llmModelsError={llmModelsError}
+                  isGenerating={isGenerating}
+                  hasTextSegments={hasTextSegments}
+                  hasScriptSentences={hasScriptSentences}
+                  canGenerateScript={canGenerateScript}
+                  onSelectNode={handleSelectNode}
+                  onSelectLLMModelId={setSelectedLLMModelId}
+                  onGenerateBookScript={() => handleScopeScriptGeneration("book")}
+                  onGenerateBookAudio={() => handleScopeAudioGeneration("book")}
+                />
               )}
             </div>
           </div>
@@ -323,6 +348,7 @@ export function ScriptStudioPageContainer() {
       {editingSentence && (
         <EditSentenceModal
           key={editingSentence.id}
+          bookId={bookId}
           sentence={editingSentence}
           characters={characters}
           onClose={() => setEditingSentence(null)}
@@ -378,7 +404,7 @@ export function ScriptStudioPageContainer() {
           <DialogHeader>
             <DialogTitle>{confirmDialog.title}</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600">{confirmDialog.description}</p>
+          <p className="text-sm text-muted-foreground">{confirmDialog.description}</p>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => resolveConfirmation(false)}>
               {confirmDialog.cancelText}

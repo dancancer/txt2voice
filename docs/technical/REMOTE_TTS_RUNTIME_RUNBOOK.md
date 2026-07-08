@@ -35,8 +35,8 @@
 
 ```bash
 TASK_QUEUE_NAMESPACE=txt2voice:3001
-LLM_API_KEY=<有效值>
-LLM_MODEL=deepseek-chat
+LLM_DEFAULT_MODEL_ID=remote-qwen
+LLM_MODELS_JSON='[{"id":"remote-qwen","label":"Remote Qwen","provider":"custom","apiKey":"","baseURL":"http://192.168.88.9:8028/v1","model":"Qwen3.5-9B-GGUF-Q4_K_M"}]'
 LLM_MAX_CONCURRENCY=8
 AUDIO_SYNTHESIS_MAX_CONCURRENCY=6
 INDEXTTS_TIMEOUT=300000
@@ -80,8 +80,18 @@ bash scripts/deploy-remote-web.sh
 - 远端 bootstrap deploy clone
 - `git fetch + git pull --ff-only`
 - `.env` 链接校验
+- `docker compose -p txt2voice up -d postgres redis`
+- 仅在依赖层文件变化时执行 `docker compose -p txt2voice build web`
 - `docker compose -p txt2voice up -d --no-deps web`
 - 健康检查
+
+当前远端 `web` 默认使用开发态容器：
+
+- 源码整仓挂载到 `/app`
+- 容器内运行 `next dev --webpack`
+- 普通代码改动不需要重建镜像
+- 只有 `package.json` / `pnpm-lock.yaml` / `pnpm-workspace.yaml` / `apps/web/package.json` / `apps/web/Dockerfile.dev` 变化时才需要 build
+- 脚本默认把远端宿主机端口映射改成 PostgreSQL `15432`、Redis `16379`，避免和宿主机已有服务冲突
 
 这条脚本还会额外做两层护栏：
 
@@ -179,7 +189,8 @@ ssh 192.168.88.9 'cd /root/code/tts-openstack && docker compose up -d cosyvoice-
 ### Step 3: 拉起 txt2voice Web
 
 ```bash
-ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose up -d postgres redis web'
+ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose up -d postgres redis'
+ssh 192.168.88.9 'cd /root/deploy/txt2voice-web && docker compose up -d --no-deps web'
 ```
 
 注意：当前 compose 已避开宿主机默认数据库端口，不要再改回 `5432/6379`。
@@ -244,7 +255,7 @@ PY
 1. `POST /api/books`
 2. `POST /api/books/[id]/upload`
 3. `POST /api/books/[id]/process`
-   - 推荐参数：`{"options":{"useSmartSplitter":false,"maxSegmentLength":1800,"minSegmentLength":600}}`
+   - 推荐参数：`{"options":{"maxSegmentLength":1800,"minSegmentLength":600}}`
 4. `POST /api/books/[id]/script/generate`
 5. 轮询 `GET /api/books/[id]/script/generate?includePreview=true&previewLines=10`
 6. `POST /api/books/[id]/audio/generate`
@@ -378,7 +389,8 @@ bash scripts/deploy-remote-web.sh --branch <branch>
 
 - 远端 deploy clone 能完成 `git pull --ff-only`
 - `.env` 链接仍指向 `/root/code/txt2voice/.env`
-- `txt2voice-web` 重建或重启后恢复健康
+- 普通代码变更只需重启 `txt2voice-web` 即可恢复健康
+- 依赖层文件变更时，脚本会先 build 再拉起 `txt2voice-web`
 
 ### 5. 部署后最小门禁
 
@@ -428,7 +440,7 @@ curl -sS -X POST "$BASE_URL/api/books/$BOOK_ID/upload" \
 ```bash
 curl -sS -X POST "$BASE_URL/api/books/$BOOK_ID/process" \
   -H 'Content-Type: application/json' \
-  -d '{"options":{"useSmartSplitter":false,"maxSegmentLength":1800,"minSegmentLength":600}}' \
+  -d '{"options":{"maxSegmentLength":1800,"minSegmentLength":600}}' \
   | jq .
 ```
 
@@ -487,12 +499,15 @@ node scripts/phase2-audio-validation.js \
 
 包含三处和稳定性直接相关的修复：
 
-1. `apps/web/src/lib/llm-service.ts`
+1. `apps/web/src/lib/llm/*`（当前运行时真相源；已替代旧 `llm-service.ts`）
    - `max_tokens` 从 `4000` 提高到 `8000`
-2. `apps/web/src/lib/script-generator/options.ts`
+2. `apps/web/src/lib/agent-runtime/runtime/script-production/options.ts`
    - `maxDialogueLength` 从 `200` 提高到 `800`
-3. `apps/web/src/lib/script-generator/pipeline/segment-processor.ts`
-   - 日志从整段原文改成长度摘要，避免日志淹没关键信息
+3. `apps/web/src/lib/agent-runtime/runtime/script-production/helpers/metadata.ts`
+   - 段落失败信息统一收敛为 `segmentPreview` 摘要，避免整段原文淹没关键信息
+
+说明：
+- 上述第 2、3 项最初落在旧 `script-generator/*` 管线中，当前仓库已经完成 runtime 收口，真相源以 `agent-runtime/runtime/script-production/*` 为准。
 
 ## 当前结论
 
@@ -523,7 +538,7 @@ node scripts/phase2-audio-validation.js \
 验收过程摘要：
 
 1. 上传成功。
-2. 文本处理成功，参数为 `useSmartSplitter=false, maxSegmentLength=1800, minSegmentLength=600`。
+2. 文本处理成功，参数为 `maxSegmentLength=1800, minSegmentLength=600`。
 3. 台本生成成功，`failedSegments=0`。
 4. 第 1 次全量音频生成（`batchSize=4`）出现 `VoxCPM 500`，成功 `54/80`。
 5. 第 2 次重跑（`batchSize=2`）收敛到 `75/80`。

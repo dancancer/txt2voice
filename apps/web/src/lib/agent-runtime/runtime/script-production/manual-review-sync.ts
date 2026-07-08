@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { resolveScriptValidationSubtype } from "@/lib/script-validation-review";
-import type { SegmentFailureDetail } from "@/lib/script-generator/types";
+import type { SegmentFailureDetail } from "./types";
 
 const MANUAL_REVIEW_ISSUE_TYPE = "SCRIPT_VALIDATION";
 const MANUAL_REVIEW_HIGH_PRIORITY_CODES = new Set([
@@ -12,6 +12,51 @@ const MANUAL_REVIEW_HIGH_PRIORITY_CODES = new Set([
 
 const toInputJson = (value: unknown) =>
   JSON.parse(JSON.stringify(value ?? {})) as Record<string, unknown>;
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value
+        .filter((entry): entry is string => typeof entry === "string")
+        .map((entry) => entry.trim())
+        .filter((entry) => entry.length > 0)
+    : [];
+
+const toIssueCodeFingerprint = (issueCodes: string[]): string =>
+  [...new Set(issueCodes)].sort().join("|");
+
+const buildFailureSignature = (params: {
+  scriptSubtype: string;
+  errorCode: string;
+  issueCodes: string[];
+}) =>
+  [
+    params.scriptSubtype.trim(),
+    params.errorCode.trim(),
+    toIssueCodeFingerprint(params.issueCodes),
+  ].join("::");
+
+const readReviewItemSignature = (issueDetail: unknown): string | null => {
+  const detail = asRecord(issueDetail);
+  const scriptSubtype =
+    typeof detail?.scriptSubtype === "string" ? detail.scriptSubtype.trim() : "";
+  const errorCode =
+    typeof detail?.errorCode === "string" ? detail.errorCode.trim() : "";
+
+  if (!scriptSubtype || !errorCode) {
+    return null;
+  }
+
+  return buildFailureSignature({
+    scriptSubtype,
+    errorCode,
+    issueCodes: asStringArray(detail?.issueCodes),
+  });
+};
 
 const pickManualReviewPriority = (failure: SegmentFailureDetail) => {
   if (
@@ -45,24 +90,51 @@ export const syncRuntimeManualReviewItems = async (params: {
   processedSegmentIds: string[];
   failedSegmentIds: string[];
 }): Promise<ManualReviewSyncResult> => {
-  if (!params.taskId) {
-    return {
-      issueType: MANUAL_REVIEW_ISSUE_TYPE,
-      created: 0,
-      updated: 0,
-      pending: 0,
-      resolved: 0,
-    };
-  }
-
   let created = 0;
   let updated = 0;
   let resolved = 0;
 
   if (params.failures.length > 0) {
     await prisma.$transaction(async (tx: any) => {
+      const segmentIds = [...new Set(params.failures.map((failure) => failure.segmentId))];
+      const existingItems = await tx.manualReviewItem.findMany({
+        where: {
+          bookId: params.bookId,
+          issueType: MANUAL_REVIEW_ISSUE_TYPE,
+          segmentId: {
+            in: segmentIds,
+          },
+          status: {
+            in: ["pending", "reprocessing"],
+          },
+        },
+        select: {
+          id: true,
+          segmentId: true,
+          issueDetail: true,
+        },
+      });
+      const existingItemBySegmentAndSignature = new Map<string, { id: string }>();
+
+      for (const item of existingItems) {
+        const signature = readReviewItemSignature(item.issueDetail);
+        if (!signature || typeof item.segmentId !== "string") {
+          continue;
+        }
+
+        existingItemBySegmentAndSignature.set(
+          `${item.segmentId}::${signature}`,
+          { id: item.id }
+        );
+      }
+
       for (const failure of params.failures) {
         const scriptSubtype = resolveScriptValidationSubtype({
+          errorCode: failure.errorCode,
+          issueCodes: failure.issueCodes,
+        });
+        const signature = buildFailureSignature({
+          scriptSubtype,
           errorCode: failure.errorCode,
           issueCodes: failure.issueCodes,
         });
@@ -88,20 +160,9 @@ export const syncRuntimeManualReviewItems = async (params: {
           scriptSubtype,
         };
         const priority = pickManualReviewPriority(failure);
-
-        const existing = await tx.manualReviewItem.findFirst({
-          where: {
-            bookId: params.bookId,
-            issueType: MANUAL_REVIEW_ISSUE_TYPE,
-            segmentId: failure.segmentId,
-            status: {
-              in: ["pending", "reprocessing"],
-            },
-          },
-          select: {
-            id: true,
-          },
-        });
+        const existing = existingItemBySegmentAndSignature.get(
+          `${failure.segmentId}::${signature}`
+        );
 
         if (existing) {
           await tx.manualReviewItem.update({
@@ -130,43 +191,34 @@ export const syncRuntimeManualReviewItems = async (params: {
             issueDetail: toInputJson(issueDetail),
           },
         });
+        existingItemBySegmentAndSignature.set(
+          `${failure.segmentId}::${signature}`,
+          {
+            id: `created::${failure.segmentId}::${signature}`,
+          }
+        );
         created += 1;
       }
     });
   }
-
-  const successfulSegmentIds = params.processedSegmentIds.filter(
-    (segmentId) => segmentId && !params.failedSegmentIds.includes(segmentId)
-  );
-
-  if (successfulSegmentIds.length > 0) {
-    const result = await prisma.manualReviewItem.updateMany({
-      where: {
-        bookId: params.bookId,
-        issueType: MANUAL_REVIEW_ISSUE_TYPE,
-        segmentId: {
-          in: successfulSegmentIds,
-        },
-        status: {
-          in: ["pending", "reprocessing"],
-        },
+  const pendingItems = await prisma.manualReviewItem.findMany({
+    where: {
+      bookId: params.bookId,
+      issueType: MANUAL_REVIEW_ISSUE_TYPE,
+      status: {
+        in: ["pending", "reprocessing"],
       },
-      data: {
-        status: "resolved",
-        resolutionType: "auto_resolved",
-        resolutionNote: `script_generation_success:task=${params.taskId}`,
-        resolvedAt: new Date(),
-      },
-    });
-
-    resolved = typeof result.count === "number" ? result.count : 0;
-  }
+    },
+    select: {
+      id: true,
+    },
+  });
 
   return {
     issueType: MANUAL_REVIEW_ISSUE_TYPE,
     created,
     updated,
-    pending: created + updated,
+    pending: pendingItems.length,
     resolved,
   };
 };

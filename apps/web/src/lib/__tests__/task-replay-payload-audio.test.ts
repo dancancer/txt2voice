@@ -31,7 +31,7 @@ describe("audio replay payload", () => {
             type: "batch",
             scriptSentenceIds: ["sentence-1"],
             options: {
-              provider: "voxcpm",
+              preferredProvider: "voxcpm",
               routerPolicyVersion: "router-v1",
               enableRouterDebug: true,
             },
@@ -51,12 +51,17 @@ describe("audio replay payload", () => {
         voiceProfileId: undefined,
         autoMerge: false,
         options: {
-          provider: "voxcpm",
+          preferredProvider: "voxcpm",
           routerPolicyVersion: "router-v1",
           enableRouterDebug: true,
         },
       },
     });
+    expect(payload?.kind).toBe("audio");
+    if (payload?.kind !== "audio") {
+      throw new Error("expected audio replay payload");
+    }
+    expect(payload.input.options).not.toHaveProperty("provider");
   });
 
   it("should fallback to metadata router options when queue payload missing", () => {
@@ -66,7 +71,7 @@ describe("audio replay payload", () => {
         metadata: {
           type: "single",
           scriptSentenceIds: ["sentence-2"],
-          provider: "indextts",
+          preferredProvider: "voxcpm",
           routerPolicyVersion: "router-v2",
           enableRouterDebug: false,
         },
@@ -84,11 +89,16 @@ describe("audio replay payload", () => {
         voiceProfileId: undefined,
         autoMerge: false,
         options: {
-          provider: "indextts",
+          preferredProvider: "voxcpm",
           routerPolicyVersion: "router-v2",
           enableRouterDebug: false,
         },
       },
     });
+    expect(payload?.kind).toBe("audio");
+    if (payload?.kind !== "audio") {
+      throw new Error("expected audio replay payload");
+    }
+    expect(payload.input.options).not.toHaveProperty("provider");
   });
 });

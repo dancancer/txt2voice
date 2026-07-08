@@ -2,7 +2,17 @@
 // input: 函数参数/外部依赖
 // output: 任务视图模型
 // pos: 共享业务库
-export type ProcessingTaskStatus = "pending" | "processing" | "completed" | "failed";
+import {
+  normalizeScriptGenerationRuntimeEvents,
+  type ScriptGenerationRuntimeEvent,
+} from "@/lib/script-generation/runner/runtime-events";
+
+export type ProcessingTaskStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "canceled";
 
 export type TaskStatusMeta = {
   label: string;
@@ -60,6 +70,10 @@ const TASK_STATUS_META: Record<ProcessingTaskStatus, TaskStatusMeta> = {
   failed: {
     label: "失败",
     className: "bg-red-100 text-red-700",
+  },
+  canceled: {
+    label: "已取消",
+    className: "bg-amber-100 text-amber-700",
   },
 };
 
@@ -205,4 +219,15 @@ export const getTaskChildJobSummaries = (
   ].filter((entry): entry is TaskChildJobSummary => Boolean(entry));
 
   return summaries;
+};
+
+export const getTaskRecentRuntimeEvents = (
+  metadata: unknown
+): ScriptGenerationRuntimeEvent[] => {
+  const record = asRecord(metadata);
+  if (!record) {
+    return [];
+  }
+
+  return normalizeScriptGenerationRuntimeEvents(record.recentRuntimeEvents).slice(-5);
 };

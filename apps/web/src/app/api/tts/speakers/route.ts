@@ -1,75 +1,60 @@
 // 一旦我被更新，请更新我的开头注释
-// input: HTTP 请求/路由参数/服务依赖
-// output: HTTP 响应/JSON
+// input: HTTP 请求/路由参数/本地 speaker 数据
+// output: VoxCPM2 本地说话人列表/JSON
 // pos: API 路由处理器
 import { NextRequest, NextResponse } from "next/server";
-import { withErrorHandler } from "@/lib/error-handler";
-import { indexTTSService } from "@/lib/indextts-service";
-import { PrismaClient } from "@/generated/prisma";
+import { ValidationError, withErrorHandler } from "@/lib/error-handler";
 import prisma from "@/lib/prisma";
 
 // GET /api/tts/speakers - 获取说话人列表
 export const GET = withErrorHandler(async (request: NextRequest) => {
   const { searchParams } = new URL(request.url);
-  const gender = searchParams.get("gender");
-  const ageGroup = searchParams.get("ageGroup");
-  const isActive = searchParams.get("isActive");
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "20");
   const search = searchParams.get("search");
-
-  const where: any = {};
-
-  if (gender) {
-    where.gender = gender;
-  }
-
-  if (ageGroup) {
-    where.ageGroup = ageGroup;
-  }
-
-  if (isActive !== null) {
-    where.isActive = isActive === "true";
-  }
-
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { description: { contains: search, mode: "insensitive" } },
-    ];
-  }
+  const normalizedSearch = search?.trim();
+  const where = {
+    isActive: true,
+    ...(normalizedSearch
+      ? {
+          OR: [
+            { name: { contains: normalizedSearch, mode: "insensitive" as const } },
+            {
+              description: {
+                contains: normalizedSearch,
+                mode: "insensitive" as const,
+              },
+            },
+          ],
+        }
+      : {}),
+  };
 
   const skip = (page - 1) * limit;
-
-  const [speakers, total] = await Promise.all([
+  const [total, speakers] = await Promise.all([
+    prisma.speakerProfile.count({ where }),
     prisma.speakerProfile.findMany({
       where,
+      orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
       skip,
       take: limit,
-      orderBy: [
-        { isActive: "desc" },
-        { usageCount: "desc" },
-        { createdAt: "desc" },
-      ],
     }),
-    prisma.speakerProfile.count({ where }),
   ]);
 
   return NextResponse.json({
     success: true,
     data: {
       speakers: speakers.map((speaker) => ({
-        id: speaker.id,
-        name: speaker.name,
+        id: String(speaker.id),
+        speakerId: String(speaker.id),
+        name: speaker.name || `说话人 #${speaker.id}`,
         gender: speaker.gender,
         ageGroup: speaker.ageGroup,
         toneStyle: speaker.toneStyle,
-        description: speaker.description,
-        referenceAudio: speaker.referenceAudio,
-        confidence: speaker.confidence
-          ? parseFloat(speaker.confidence.toString())
-          : null,
-        metadata: speaker.metadata,
+        description: speaker.description || "",
+        referenceAudio: speaker.referenceAudio || null,
+        confidence: speaker.confidence ? Number(speaker.confidence) : null,
+        metadata: speaker.metadata || {},
         isActive: speaker.isActive,
         usageCount: speaker.usageCount,
         lastUsedAt: speaker.lastUsedAt,
@@ -90,50 +75,6 @@ export const GET = withErrorHandler(async (request: NextRequest) => {
 });
 
 // POST /api/tts/speakers - 创建说话人档案
-export const POST = withErrorHandler(async (request: NextRequest) => {
-  const body = await request.json();
-  const {
-    name,
-    gender = "unknown",
-    ageGroup = "adult",
-    toneStyle = "neutral",
-    description,
-    referenceAudio,
-    metadata = {},
-  } = body;
-
-  const speaker = await prisma.speakerProfile.create({
-    data: {
-      name,
-      gender,
-      ageGroup,
-      toneStyle,
-      description,
-      referenceAudio,
-      metadata,
-      isActive: true,
-      usageCount: 0,
-    },
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      id: speaker.id,
-      name: speaker.name,
-      gender: speaker.gender,
-      ageGroup: speaker.ageGroup,
-      toneStyle: speaker.toneStyle,
-      description: speaker.description,
-      referenceAudio: speaker.referenceAudio,
-      confidence: speaker.confidence
-        ? parseFloat(speaker.confidence.toString())
-        : null,
-      metadata: speaker.metadata,
-      isActive: speaker.isActive,
-      usageCount: speaker.usageCount,
-      createdAt: speaker.createdAt,
-      updatedAt: speaker.updatedAt,
-    },
-  });
+export const POST = withErrorHandler(async () => {
+  throw new ValidationError("VoxCPM2 说话人由参考音频上传或自动角色路由创建");
 });

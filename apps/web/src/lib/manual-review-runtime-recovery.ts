@@ -67,11 +67,19 @@ const extractRecoveredPayload = (value: unknown): RuntimeRecoveredPayload | null
   }
 
   const draftRecord = asRecord(record.segmentScriptDraft);
+  const repairedDraftRecord = asRecord(record.repairedDraft);
+  const failedArtifactRecord = asRecord(record.failedArtifact);
   const rawResponse =
-    asString(record.rawResponse) || asString(draftRecord?.rawResponse) || "";
+    asString(record.rawResponse) ||
+    asString(draftRecord?.rawResponse) ||
+    asString(repairedDraftRecord?.rawResponse) ||
+    asString(failedArtifactRecord?.rawResponse) ||
+    "";
   const structuredResult =
     toRecoveredStructuredResult(record.structuredResult) ||
-    toRecoveredStructuredResult(record.segmentScriptDraft);
+    toRecoveredStructuredResult(record.segmentScriptDraft) ||
+    toRecoveredStructuredResult(record.repairedDraft) ||
+    toRecoveredStructuredResult(failedArtifactRecord?.structuredResult);
 
   if (!rawResponse && !structuredResult) {
     return null;
@@ -130,14 +138,26 @@ const loadRuntimeRecoveryMap = async (rows: ReviewRow[]) => {
     include: {
       stageRuns: {
         where: {
-          stageId: "segment_scripting",
+          stageId: {
+            in: ["segment_scripting", "segment_repair"],
+          },
         },
         orderBy: [{ startedAt: "desc" }, { id: "desc" }],
         include: {
           agentRuns: {
             where: {
-              agentId: "script-generation-agent",
-              status: "completed",
+              OR: [
+                {
+                  agentId: "script-generation-agent",
+                  status: "completed",
+                },
+                {
+                  agentId: "repair-agent",
+                  status: {
+                    in: ["completed", "failed"],
+                  },
+                },
+              ],
             },
             orderBy: [
               { completedAt: "desc" },

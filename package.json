@@ -5,6 +5,7 @@
   "description": "Text to Voice monorepo",
   "scripts": {
     "dev": "pnpm --filter web dev",
+    "dev:mastra": "pnpm --filter web run dev:mastra",
     "build": "pnpm -r --if-present build",
     "start": "pnpm --filter web start",
     "check:card-content-padding": "node scripts/check-card-content-padding.js",
@@ -41,5 +42,10 @@
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0"
+  "packageManager": "pnpm@8.15.0",
+  "pnpm": {
+    "overrides": {
+      "baseline-browser-mapping": "2.10.13"
+    }
+  }
 }

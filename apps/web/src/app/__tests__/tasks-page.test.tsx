@@ -110,6 +110,25 @@ describe("tasks page", () => {
                   },
                 ],
               },
+              currentStage: "segment_scripting",
+              recentRuntimeEvents: [
+                {
+                  seq: 11,
+                  kind: "llm_completed",
+                  title: "LLM 调用完成",
+                  detail: "segment_scripting · openai/gpt-4.1-mini · 840ms",
+                  createdAt: "2026-03-22T10:00:30.000Z",
+                  progress: 64,
+                },
+                {
+                  seq: 12,
+                  kind: "task_stage",
+                  title: "第 3/5 段台本生成中",
+                  detail: "当前正在生成段落台本",
+                  createdAt: "2026-03-22T10:00:31.000Z",
+                  progress: 68,
+                },
+              ],
             },
             createdAt: "2026-03-22T10:00:00.000Z",
             updatedAt: "2026-03-22T10:01:00.000Z",
@@ -172,6 +191,11 @@ describe("tasks page", () => {
     expect(container.textContent).toContain("voxcpm");
     expect(container.textContent).toContain("已提交 5");
     expect(container.textContent).toContain("重试 1");
+    expect(container.textContent).toContain("最近进展");
+    expect(container.textContent).toContain("LLM 调用完成");
+    expect(container.textContent).toContain(
+      "segment_scripting · openai/gpt-4.1-mini · 840ms"
+    );
 
     await unmount(root, container);
   });

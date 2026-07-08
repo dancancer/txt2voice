@@ -1,5 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server.node";
-import { ReviewScriptEditWorkspace } from "../ReviewScriptEditWorkspace";
+import {
+  buildInitialDraft,
+  ReviewScriptEditWorkspace,
+  toStructuredResult,
+} from "../ReviewScriptEditWorkspace";
 import { SCRIPT_VALIDATION_ISSUE_TYPE } from "@/lib/script-validation-review";
 import type { ManualReviewItem } from "../../models/types";
 
@@ -108,6 +112,79 @@ describe("ReviewScriptEditWorkspace", () => {
     expect(html).toContain("未知");
   });
 
+  it("should prefer manual edited structured result when rebuilding the draft", () => {
+    const item = buildItem();
+    item.issueDetail = {
+      ...(item.issueDetail as Record<string, unknown>),
+      structuredResult: {
+        dialogues: [
+          {
+            id: "line-1",
+            sourceText: "原始结果",
+            text: "原始结果",
+            speaker: "未知",
+            tone: "平静",
+          },
+        ],
+        characters: [],
+      },
+      manualEditedStructuredResult: {
+        dialogues: [
+          {
+            id: "line-1",
+            sourceText: "人工修订结果",
+            text: "人工修订结果",
+            speaker: "旁白",
+            tone: "冷静",
+          },
+        ],
+        characters: [],
+      },
+    };
+
+    const draft = buildInitialDraft(item);
+
+    expect(draft.dialogues[0]).toMatchObject({
+      sourceText: "人工修订结果",
+      text: "人工修订结果",
+      speaker: "旁白",
+      tone: "冷静",
+    });
+  });
+
+  it("should preserve personality metadata when serializing structured result", () => {
+    const structuredResult = toStructuredResult({
+      dialogues: [],
+      characters: [
+        {
+          name: "小雄",
+          aliases: "阿雄, 雄哥",
+          description: "一位沉稳的副官",
+          personality: "冷静, 果断",
+          gender: "male",
+          age: "28",
+          dialogueStyle: "克制",
+          importance: "main",
+        },
+      ],
+    });
+
+    expect(structuredResult).toMatchObject({
+      characters: [
+        {
+          name: "小雄",
+          aliases: ["阿雄", "雄哥"],
+          description: "一位沉稳的副官",
+          personality: ["冷静", "果断"],
+          gender: "male",
+          age: "28",
+          dialogueStyle: "克制",
+          importance: "main",
+        },
+      ],
+    });
+  });
+
   it("should reserve a dedicated scroll container for the structured editor column", () => {
     const html = renderToStaticMarkup(
       <ReviewScriptEditWorkspace
@@ -121,5 +198,50 @@ describe("ReviewScriptEditWorkspace", () => {
 
     expect(html).toContain("flex min-h-0 flex-1 flex-col");
     expect(html).toContain("min-h-0 flex-1 overflow-y-auto");
+  });
+
+  it("should render dialogue reorder controls and recognized speaker selector", () => {
+    const item = buildItem();
+    item.issueDetail = {
+      ...(item.issueDetail as Record<string, unknown>),
+      structuredResult: {
+        dialogues: [
+          {
+            id: "line-1",
+            sourceText: "“你好”",
+            text: "你好",
+            speaker: "小雄",
+            tone: "平静",
+          },
+        ],
+        characters: [
+          {
+            name: "小雄",
+            aliases: [],
+            description: "",
+            gender: "unknown",
+            age: null,
+            personality: [],
+            importance: "main",
+            dialogueStyle: "",
+          },
+        ],
+      },
+    };
+
+    const html = renderToStaticMarkup(
+      <ReviewScriptEditWorkspace
+        open
+        item={item}
+        saving={false}
+        onClose={() => undefined}
+        onSave={async () => true}
+      />
+    );
+
+    expect(html).toContain("上移第 1 条台词");
+    expect(html).toContain("下移第 1 条台词");
+    expect(html).toContain("speaker（从已识别角色选择）");
+    expect(html).toContain("<option value=\"小雄\" selected=\"\">小雄</option>");
   });
 });

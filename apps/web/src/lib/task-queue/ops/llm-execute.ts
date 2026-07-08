@@ -1,5 +1,5 @@
 import { serializeLLMJobError } from "@/lib/llm-job-error";
-import { executeProviderLLMCall } from "@/lib/llm-service";
+import { executeProviderLLMCall } from "@/lib/llm/client";
 import type {
   LLMExecutionJobData,
   LLMExecutionJobResult,

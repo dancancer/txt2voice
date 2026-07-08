@@ -87,8 +87,8 @@ export function DocumentTree({
           onClick={() => onSelect({ type: "book", id: bookId })}
           className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer transition ${
             selectedNode.type === "book"
-              ? "bg-blue-50 text-blue-700"
-              : "hover:bg-gray-100"
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           }`}
         >
           <BookOpen className="w-4 h-4 flex-shrink-0" />
@@ -116,8 +116,8 @@ export function DocumentTree({
                   onClick={() => onSelect({ type: "chapter", id: chapter.id })}
                   className={`flex items-center gap-1 px-2 py-1.5 rounded cursor-pointer transition ${
                     isSelected
-                      ? "bg-blue-50 text-blue-700"
-                      : "hover:bg-gray-100"
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
                   <button
@@ -127,7 +127,7 @@ export function DocumentTree({
                         isAutoOnlyExpanded,
                       })
                     }
-                    className="flex-shrink-0 p-0.5 hover:bg-gray-200 rounded"
+                    className="rounded p-0.5 transition-colors hover:bg-accent"
                   >
                     {isExpanded ? (
                       <ChevronDown className="w-3 h-3" />
@@ -136,9 +136,9 @@ export function DocumentTree({
                     )}
                   </button>
                   {isExpanded ? (
-                    <FolderOpen className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                    <FolderOpen className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                   ) : (
-                    <Folder className="w-4 h-4 flex-shrink-0 text-amber-500" />
+                    <Folder className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
                   )}
                   <span className="text-sm flex-1 truncate" title={chapter.title}>
                     {chapter.title}
@@ -150,7 +150,7 @@ export function DocumentTree({
 
                 {/* Segments under Chapter */}
                 {isExpanded && (
-                  <div className="ml-5 border-l border-gray-200">
+                  <div className="ml-5 border-l border-border">
                     {chapter.segments.map((segment) => {
                       const isSegmentSelected =
                         selectedNode.type === "segment" && selectedNode.id === segment.id;
@@ -161,20 +161,20 @@ export function DocumentTree({
                           onClick={() => onSelect({ type: "segment", id: segment.id })}
                           className={`flex items-center gap-2 pl-3 pr-2 py-1.5 cursor-pointer transition ${
                             isSegmentSelected
-                              ? "bg-blue-50 text-blue-700"
-                              : "hover:bg-gray-50"
+                              ? "bg-accent text-accent-foreground"
+                              : "text-muted-foreground hover:bg-accent/60 hover:text-accent-foreground"
                           }`}
                         >
-                          <FileText className="w-3.5 h-3.5 flex-shrink-0 text-gray-400" />
+                          <FileText className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
                           <span className="text-xs flex-1 truncate" title={segment.label}>
                             {segment.label}
                           </span>
                           <div className="flex gap-1">
                             {segment.hasScript && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-green-500" title="已有台本" />
+                              <div className="h-1.5 w-1.5 rounded-full bg-primary" title="已有台本" />
                             )}
                             {segment.hasAudio && (
-                              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" title="已有音频" />
+                              <div className="h-1.5 w-1.5 rounded-full bg-primary" title="已有音频" />
                             )}
                           </div>
                         </div>
@@ -188,7 +188,7 @@ export function DocumentTree({
         </div>
 
         {chapters.length === 0 && (
-          <div className="text-xs text-gray-500 text-center py-8 border border-dashed rounded-lg mt-4">
+          <div className="mt-4 rounded-lg border border-dashed border-border py-8 text-center text-xs text-muted-foreground">
             暂无章节数据
           </div>
         )}

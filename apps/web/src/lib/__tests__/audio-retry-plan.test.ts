@@ -20,7 +20,6 @@ const requests: RequestItem[] = [
 describe("audio-retry-plan", () => {
   it("should build first pass from the full request set", () => {
     const pass = buildAudioRetryPass({
-      provider: "indextts",
       passName: "pass-1",
       requests,
       getRequestId: (request) => request.scriptSentenceId,
@@ -33,19 +32,17 @@ describe("audio-retry-plan", () => {
       "sentence-2",
       "sentence-3",
     ]);
-    expect(pass.concurrency).toBeGreaterThan(1);
+    expect(pass.concurrency).toBe(1);
   });
 
   it("should only keep failed requests for later passes", () => {
     const pass1 = buildAudioRetryPass({
-      provider: "indextts",
       passName: "pass-1",
       requests,
       getRequestId: (request) => request.scriptSentenceId,
     });
 
     const pass2 = buildNextAudioRetryPass({
-      provider: "indextts",
       previousPass: pass1,
       results: [{ success: true }, { success: false }, { success: false }],
       getRequestId: (request) => request.scriptSentenceId,
@@ -60,7 +57,6 @@ describe("audio-retry-plan", () => {
     ]);
 
     const pass3 = buildNextAudioRetryPass({
-      provider: "indextts",
       previousPass: pass2!,
       results: [{ success: false }, { success: true }],
       getRequestId: (request) => request.scriptSentenceId,
@@ -75,7 +71,6 @@ describe("audio-retry-plan", () => {
     expect(pass3?.concurrency).toBe(1);
 
     const done = buildNextAudioRetryPass({
-      provider: "indextts",
       previousPass: pass3!,
       results: [{ success: true }],
       getRequestId: (request) => request.scriptSentenceId,

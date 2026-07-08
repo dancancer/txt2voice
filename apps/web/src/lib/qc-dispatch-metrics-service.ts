@@ -3,28 +3,26 @@
 // output: 自动派单与 autoRejected 聚合指标
 // pos: 质检观测服务
 import prisma, { Prisma } from "@/lib/prisma";
-import { ValidationError } from "@/lib/error-handler";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const DEFAULT_WINDOW_DAYS = 7;
-const MAX_WINDOW_DAYS = 90;
-
-interface DispatchMetricBase {
-  autoRejectedEventCount: number;
-  autoRejectedAccumulatedCount: number;
-  thresholdBlockedCount: number;
-  secondaryPendingCount: number;
-}
-type MutableDispatchMetricBase = DispatchMetricBase;
-
-type DispatchSignalType = "cer" | "speaker";
-
-interface MutableSourceSummary {
-  source: string;
-  taskCount: number;
-  secondaryDispatchCount: number;
-  secondaryDispatchSkippedByThresholdCount: number;
-}
+import {
+  asNonNegativeInteger,
+  asRecord,
+  asString,
+  DAY_MS,
+  DEFAULT_WINDOW_DAYS,
+  initMutableMetric,
+  MutableDispatchMetricBase,
+  MutableSourceSummary,
+  normalizeIssueType,
+  normalizeSource,
+  parseWindowDays,
+  resolveSignal,
+  resolveSource,
+  shouldInclude,
+  sortMetric,
+  upsertMetric,
+  MAX_WINDOW_DAYS,
+  type DispatchMetricBase,
+} from "@/lib/qc-dispatch-metrics/helpers";
 
 export interface QcDispatchMetricsQuery {
   windowDays: number;
@@ -57,159 +55,6 @@ export interface QcDispatchMetricsResult {
   };
 }
 
-const asRecord = (value: unknown): Record<string, unknown> | null => {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return null;
-  }
-  return value as Record<string, unknown>;
-};
-
-const asString = (value: unknown): string | undefined => {
-  if (typeof value !== "string") {
-    return undefined;
-  }
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : undefined;
-};
-
-const asNonNegativeInteger = (value: unknown): number | null => {
-  if (value === undefined || value === null) {
-    return null;
-  }
-  const numeric = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
-  if (!Number.isInteger(numeric) || numeric < 0) {
-    return null;
-  }
-  return Number(numeric);
-};
-
-const normalizeSource = (value: string): string => value.trim().toLowerCase();
-const normalizeIssueType = (value: string): string => value.trim().toUpperCase();
-
-const resolveSource = ({
-  issueDetail,
-  resolutionNote,
-}: {
-  issueDetail: Prisma.JsonValue;
-  resolutionNote: string | null;
-}): string => {
-  const detail = asRecord(issueDetail);
-  const sourceFromDetail = asString(detail?.source);
-  if (sourceFromDetail) {
-    return normalizeSource(sourceFromDetail);
-  }
-
-  const dispatchSource = asString(detail?.dispatchSource);
-  if (dispatchSource) {
-    return normalizeSource(dispatchSource);
-  }
-
-  if (typeof resolutionNote === "string") {
-    if (resolutionNote.includes("qc_retry")) {
-      return "qc_retry";
-    }
-    if (resolutionNote.includes("retry_task:")) {
-      return "manual_review";
-    }
-  }
-
-  return "unknown";
-};
-
-const resolveSignal = ({
-  issueType,
-  issueDetail,
-}: {
-  issueType: string;
-  issueDetail: Prisma.JsonValue;
-}): DispatchSignalType | null => {
-  const normalizedIssueType = normalizeIssueType(issueType || "UNKNOWN");
-  if (normalizedIssueType === "CER") {
-    return "cer";
-  }
-  if (normalizedIssueType === "SPEAKER") {
-    return "speaker";
-  }
-
-  const detail = asRecord(issueDetail);
-  const primarySignal = asString(detail?.primarySignal)?.toLowerCase();
-  if (primarySignal?.includes("q2_cer") || primarySignal?.includes("cer")) {
-    return "cer";
-  }
-  if (
-    primarySignal?.includes("q3_speaker") ||
-    primarySignal?.includes("speaker") ||
-    primarySignal?.includes("voiceprint")
-  ) {
-    return "speaker";
-  }
-
-  const reasons = Array.isArray(detail?.reasons) ? detail?.reasons : [];
-  if (reasons.some((reason) => typeof reason === "string" && reason.startsWith("cer_"))) {
-    return "cer";
-  }
-  if (
-    reasons.some(
-      (reason) =>
-        typeof reason === "string" && reason.startsWith("speaker_similarity")
-    )
-  ) {
-    return "speaker";
-  }
-
-  return null;
-};
-
-const initMutableMetric = (): MutableDispatchMetricBase => ({
-  autoRejectedEventCount: 0,
-  autoRejectedAccumulatedCount: 0,
-  thresholdBlockedCount: 0,
-  secondaryPendingCount: 0,
-});
-
-const upsertMetric = <T>(
-  map: Map<string, T>,
-  key: string,
-  create: () => T
-): T => {
-  const current = map.get(key);
-  if (current) {
-    return current;
-  }
-  const next = create();
-  map.set(key, next);
-  return next;
-};
-
-const parseWindowDays = (value: unknown): number => {
-  if (value === undefined || value === null) {
-    return DEFAULT_WINDOW_DAYS;
-  }
-  const numeric = typeof value === "number" ? value : typeof value === "string" ? Number(value) : NaN;
-  if (!Number.isInteger(numeric) || numeric <= 0 || numeric > MAX_WINDOW_DAYS) {
-    throw new ValidationError(`days 必须是 1-${MAX_WINDOW_DAYS} 的整数`);
-  }
-  return Number(numeric);
-};
-
-const shouldInclude = ({
-  query,
-  source,
-  issueType,
-}: {
-  query: QcDispatchMetricsQuery;
-  source: string;
-  issueType: string;
-}): boolean => {
-  if (query.source && source !== query.source) {
-    return false;
-  }
-  if (query.issueType && issueType !== query.issueType) {
-    return false;
-  }
-  return true;
-};
-
 export const parseQcDispatchMetricsQuery = (
   searchParams: URLSearchParams
 ): QcDispatchMetricsQuery => {
@@ -237,7 +82,7 @@ export const getQcDispatchMetrics = async ({
     prisma.manualReviewItem.findMany({
       where: {
         bookId,
-        resolutionType: "auto_rejected",
+        resolutionType: "auto_recovery_exhausted",
         resolvedAt: {
           gte: since,
         },
@@ -420,16 +265,6 @@ export const getQcDispatchMetrics = async ({
     }
     return a.source.localeCompare(b.source);
   });
-
-  const sortMetric = (a: DispatchMetricBase, b: DispatchMetricBase): number => {
-    if (b.autoRejectedEventCount !== a.autoRejectedEventCount) {
-      return b.autoRejectedEventCount - a.autoRejectedEventCount;
-    }
-    if (b.secondaryPendingCount !== a.secondaryPendingCount) {
-      return b.secondaryPendingCount - a.secondaryPendingCount;
-    }
-    return b.autoRejectedAccumulatedCount - a.autoRejectedAccumulatedCount;
-  };
 
   const byIssueType = Array.from(byIssueTypeMap.values()).sort((a, b) => {
     const metricCompare = sortMetric(a, b);

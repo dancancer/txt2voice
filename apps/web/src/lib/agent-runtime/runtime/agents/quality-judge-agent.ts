@@ -1,6 +1,7 @@
 import type { LLMAdapter } from "../../adapters/llm-adapter";
 import type { QualityVerdict, SegmentScriptDraft, ValidationReport } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
+import { renderPromptTemplate } from "../prompt-template";
 
 export interface QualityJudgePrompts {
   systemPrompt: string;
@@ -18,7 +19,11 @@ export interface QualityJudgeAgentInput {
   validationReport: ValidationReport;
   qualitySignals?: QualitySignals;
   failedArtifact?: unknown;
+  characterMemorySummary?: string;
+  characterResolutionEvidence?: unknown;
+  modelPolicy?: string;
   prompts: QualityJudgePrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface QualityJudgeAgentResult {
@@ -150,7 +155,7 @@ const toQualityJudgeResult = (params: {
   };
 };
 
-const stringifyJson = (value: unknown): string => {
+export const stringifyQualityPromptJson = (value: unknown): string => {
   try {
     return JSON.stringify(value, null, 2);
   } catch {
@@ -158,38 +163,68 @@ const stringifyJson = (value: unknown): string => {
   }
 };
 
-const renderUserPrompt = (
+export const renderQualityJudgeUserPromptFromVariables = (
+  template: string,
+  variables: {
+    segment_script_draft_json: string;
+    validation_report_json: string;
+    quality_signals_json: string;
+    failed_artifact_json: string;
+    character_memory_summary?: string;
+    character_resolution_evidence_json?: string;
+  }
+) =>
+  renderPromptTemplate(template, {
+    segment_script_draft_json: variables.segment_script_draft_json,
+    validation_report_json: variables.validation_report_json,
+    quality_signals_json: variables.quality_signals_json,
+    failed_artifact_json: variables.failed_artifact_json,
+    character_memory_summary: variables.character_memory_summary || "",
+    character_resolution_evidence_json:
+      variables.character_resolution_evidence_json || "",
+  });
+
+export const renderQualityJudgeUserPrompt = (
   template: string,
   params: {
     segmentScriptDraft: SegmentScriptDraft;
     validationReport: ValidationReport;
     qualitySignals?: QualitySignals;
     failedArtifact?: unknown;
+    characterMemorySummary?: string;
+    characterResolutionEvidence?: unknown;
   }
 ) =>
-  template
-    .split("{{segment_script_draft_json}}")
-    .join(stringifyJson(params.segmentScriptDraft))
-    .split("{{validation_report_json}}")
-    .join(stringifyJson(params.validationReport))
-    .split("{{quality_signals_json}}")
-    .join(stringifyJson(params.qualitySignals ?? {}))
-    .split("{{failed_artifact_json}}")
-    .join(stringifyJson(params.failedArtifact ?? null));
+  renderQualityJudgeUserPromptFromVariables(template, {
+    segment_script_draft_json: stringifyQualityPromptJson(params.segmentScriptDraft),
+    validation_report_json: stringifyQualityPromptJson(params.validationReport),
+    quality_signals_json: stringifyQualityPromptJson(params.qualitySignals ?? {}),
+    failed_artifact_json: stringifyQualityPromptJson(params.failedArtifact ?? null),
+    character_memory_summary: params.characterMemorySummary || "",
+    character_resolution_evidence_json: stringifyQualityPromptJson(
+      params.characterResolutionEvidence ?? null
+    ),
+  });
 
 export const createQualityJudgeAgent = (deps: QualityJudgeAgentDeps) => ({
   async execute(input: QualityJudgeAgentInput): Promise<QualityJudgeAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
-        segmentScriptDraft: input.segmentScriptDraft,
-        validationReport: input.validationReport,
-        qualitySignals: input.qualitySignals,
-        failedArtifact: input.failedArtifact,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderQualityJudgeUserPrompt(input.prompts.userPrompt, {
+          segmentScriptDraft: input.segmentScriptDraft,
+          validationReport: input.validationReport,
+          qualitySignals: input.qualitySignals,
+          failedArtifact: input.failedArtifact,
+          characterMemorySummary: input.characterMemorySummary,
+          characterResolutionEvidence: input.characterResolutionEvidence,
+        }),
+      modelPolicy: input.modelPolicy ?? "default",
       metadata: {
         source: "agent_runtime.quality_judgement",
         stageId: "quality_judgement",
+        segmentId: input.segmentId,
       },
     });
 

@@ -109,18 +109,20 @@ const SAMPLE_TEXT = readFileSync(
 const makeRequest = (overrides?: {
   autoPipelineEnabled?: string;
   autoPipelineOptions?: Record<string, unknown>;
+  filename?: string;
+  fileBuffer?: Buffer;
 }) => {
+  const fileBuffer = overrides?.fileBuffer || Buffer.from(SAMPLE_TEXT, "utf-8");
   const entries = new Map<string, any>([
     [
       "file",
       {
-        name: "sample.txt",
-        size: Buffer.byteLength(SAMPLE_TEXT, "utf-8"),
+        name: overrides?.filename || "sample.txt",
+        size: fileBuffer.byteLength,
         async arrayBuffer() {
-          const buffer = Buffer.from(SAMPLE_TEXT, "utf-8");
-          return buffer.buffer.slice(
-            buffer.byteOffset,
-            buffer.byteOffset + buffer.byteLength
+          return fileBuffer.buffer.slice(
+            fileBuffer.byteOffset,
+            fileBuffer.byteOffset + fileBuffer.byteLength
           );
         },
       },
@@ -171,7 +173,7 @@ describe("POST /api/books/[id]/upload", () => {
     expect(response.status).toBe(200);
     expect(payload.success).toBe(true);
     expect(payload.data.originalFilename).toBe("sample.txt");
-    expect(payload.data.contentPreview).toContain("第一章");
+    expect(payload.data.contentPreview).toBeNull();
     expect(payload.data.autoPipeline).toEqual(
       expect.objectContaining({
         enabled: true,
@@ -232,5 +234,38 @@ describe("POST /api/books/[id]/upload", () => {
       },
       triggerFailure: "redis down",
     });
+  });
+
+  it("should leave non UTF-8 content validation to text processing", async () => {
+    mockStartAutoPipelineTask.mockResolvedValue({
+      taskId: "task-auto-gbk",
+      reused: false,
+      totalStages: 4,
+      qualityCheckEnabled: true,
+    });
+
+    const gbkLikeBuffer = Buffer.from([0xb5, 0xda, 0xd2, 0xbb, 0xd5, 0xc2]);
+    const response: any = await POST(
+      makeRequest({
+        filename: "gbk.txt",
+        fileBuffer: gbkLikeBuffer,
+      }),
+      ROUTE_PARAMS as any
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(payload.data.originalFilename).toBe("gbk.txt");
+    expect(payload.data.contentPreview).toBeNull();
+    expect(mockStartAutoPipelineTask).toHaveBeenCalledWith(
+      expect.objectContaining({
+        bookId: "book-1",
+        triggerMetadata: expect.objectContaining({
+          filename: "gbk.txt",
+          size: gbkLikeBuffer.byteLength,
+        }),
+      })
+    );
   });
 });

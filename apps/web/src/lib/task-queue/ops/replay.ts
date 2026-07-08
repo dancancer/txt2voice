@@ -3,10 +3,16 @@ import {
   extractPayloadFromTask,
   isRecoverableTask,
 } from "@/lib/task-queue/replay-payload";
+import {
+  resolveAutoPipelineOptionsSnapshot,
+  ZERO_TOUCH_VOXCPM_PRESET_ID,
+} from "@/lib/auto-pipeline/presets";
+import { jsonObject } from "@/lib/processing-task-utils";
 import type {
   ReplayControlOptions,
   ReplayResult,
 } from "@/lib/task-queue/core/types";
+import type { Prisma } from "@/lib/prisma";
 import {
   enqueueAutoPipelineJob,
   enqueueAudioGenerationJob,
@@ -14,6 +20,24 @@ import {
   enqueueQualitySignalSyncJob,
   enqueueScriptGenerationJob,
 } from "@/lib/task-queue/ops/enqueue";
+
+const asRecord = (value: unknown): Record<string, unknown> | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+};
+
+const refreshAutoPipelinePresetOptions = (taskData: Prisma.JsonValue | null | undefined) => {
+  const metadata = asRecord(jsonObject(taskData).metadata);
+  const presetId =
+    typeof metadata?.presetId === "string" && metadata.presetId.trim()
+      ? metadata.presetId.trim()
+      : ZERO_TOUCH_VOXCPM_PRESET_ID;
+  const options = asRecord(metadata?.options) || {};
+
+  return resolveAutoPipelineOptionsSnapshot(presetId, options).resolvedOptions;
+};
 
 export async function replayProcessingTask(
   taskId: string,
@@ -85,6 +109,10 @@ export async function replayProcessingTask(
   }
 
   if (payload.kind === "auto_pipeline") {
+    if (control.refreshPreset) {
+      payload.input.options = refreshAutoPipelinePresetOptions(task.taskData);
+    }
+
     const result = await enqueueAutoPipelineJob(payload.input, {
       allowReuse: !force,
       reason,

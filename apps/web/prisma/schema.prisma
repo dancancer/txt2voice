@@ -147,6 +147,24 @@ model TTSVoiceProfile {
   @@map("tts_voice_profiles")
 }
 
+model LlmModelConfig {
+  id        String   @id @default(uuid())
+  name      String
+  provider  String   @default("custom")
+  baseURL   String
+  model     String
+  apiKey    String?
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isDefault])
+  @@index([isActive, sortOrder, createdAt])
+  @@map("llm_model_configs")
+}
+
 model CharacterVoiceBinding {
   id               String           @id @default(uuid())
   characterId      String
@@ -334,6 +352,9 @@ model WorkflowRun {
   stageRuns        StageRun[]
   traceEvents      TraceEvent[]
   runtimeArtifacts RuntimeArtifact[]
+
+  @@index([bookId])
+  @@index([processingTaskId])
 }
 
 model StageRun {
@@ -348,6 +369,8 @@ model StageRun {
   agentRuns     AgentRun[]
   traceEvents   TraceEvent[]
   runtimeArtifacts RuntimeArtifact[]
+
+  @@index([workflowRunId])
 }
 
 model AgentRun {
@@ -364,6 +387,8 @@ model AgentRun {
   toolCalls     ToolCall[]
   traceEvents   TraceEvent[]
   runtimeArtifacts RuntimeArtifact[]
+
+  @@index([stageRunId])
 }
 
 model ToolCall {
@@ -376,6 +401,8 @@ model ToolCall {
   createdAt       DateTime  @default(now())
   completedAt     DateTime?
   agentRun        AgentRun  @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  @@index([agentRunId])
 }
 
 model TraceEvent {
@@ -389,6 +416,10 @@ model TraceEvent {
   workflowRun   WorkflowRun  @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
   stageRun      StageRun?    @relation(fields: [stageRunId], references: [id], onDelete: SetNull)
   agentRun      AgentRun?    @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+
+  @@index([workflowRunId])
+  @@index([stageRunId])
+  @@index([agentRunId])
 }
 
 model RuntimeArtifact {
@@ -404,6 +435,10 @@ model RuntimeArtifact {
   workflowRun     WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
   stageRun        StageRun?   @relation(fields: [stageRunId], references: [id], onDelete: SetNull)
   agentRun        AgentRun?   @relation(fields: [agentRunId], references: [id], onDelete: SetNull)
+
+  @@index([workflowRunId])
+  @@index([stageRunId])
+  @@index([agentRunId])
 }
 
 model SpeakerProfile {

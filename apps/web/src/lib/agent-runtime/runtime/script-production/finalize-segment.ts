@@ -1,6 +1,8 @@
-import { mapSegmentScriptDraftToDialogueLines } from "@/lib/script-generator/storage/persistence";
+import { mapSegmentScriptDraftToDialogueLines } from "./storage/persistence";
 import type { SegmentScriptDraft, ValidationReport } from "../../context";
-import { createShadowDiffPayload } from "../../mastra/runtime/shadow-diff";
+import type { QualitySignals } from "../agents/quality-judge-agent";
+import { canonicalizeSegmentScriptDraftSpeakers } from "../character-memory/canonicalize";
+import { createBootstrapCharacterMemorySnapshot } from "../character-memory/store";
 import {
   createFailureDetail,
   createStageSummary,
@@ -9,7 +11,6 @@ import {
 import { runPersistStage } from "../stages/run-persist-stage";
 import {
   runQualityStage,
-  type RunQualityStageResult,
 } from "../stages/run-quality-stage";
 import type { RunSingleSegmentParams } from "./run-single-segment-types";
 import type { SegmentRunResult, SegmentRuntimeCounters } from "./shared-types";
@@ -21,6 +22,8 @@ export const finalizeSegment = async (params: {
   draft: SegmentScriptDraft;
   validationReport: ValidationReport;
   counters: SegmentRuntimeCounters;
+  failedArtifact?: unknown;
+  qualitySignals?: QualitySignals;
 }): Promise<FinalizeSegmentResult> => {
   if (params.context.deferPersist) {
     // 细分叶子只是为了拼回父段草案，不应在叶子层独立触发质量闸门。
@@ -37,7 +40,9 @@ export const finalizeSegment = async (params: {
         deferredDialogueLines.length,
         [
           ...new Set(
-            deferredDialogueLines.map((line) => line.characterName || "未知")
+            deferredDialogueLines.map(
+              (line): string => line.characterName || "未知"
+            )
           ),
         ]
       ),
@@ -50,19 +55,31 @@ export const finalizeSegment = async (params: {
     params.context.runQualityStage || runQualityStage;
   const runPersistCommitStage =
     params.context.runPersistStage || runPersistStage;
-  let qualityShadowResult: RunQualityStageResult | null = null;
+  const memorySnapshot = createBootstrapCharacterMemorySnapshot(
+    params.context.characterProfiles,
+    params.context.now
+  );
+  const canonicalized = canonicalizeSegmentScriptDraftSpeakers({
+    draft: params.draft,
+    snapshot: memorySnapshot,
+  });
+  const finalDraft = canonicalized.draft;
 
   const qualityStage = await runQualityJudgeStage({
     workflowRunId: params.context.workflowRunId,
     segmentId: params.context.segment.id,
-    segmentScriptDraft: params.draft,
+    segmentScriptDraft: finalDraft,
     validationReport: params.validationReport,
-    adapter: params.context.adapter,
-    executor: params.context.executorPolicy?.qualityJudgement,
-    shadowMode: params.context.executorPolicy?.shadowModeEnabled,
-    onShadowResult: async (result) => {
-      qualityShadowResult = result;
+    qualitySignals: params.qualitySignals,
+    failedArtifact: params.failedArtifact,
+    characterMemory: {
+      canonicalIdentities: memorySnapshot.canonicalIdentities,
+      aliasEvidence: memorySnapshot.aliasEvidence,
+      assertedFacts: memorySnapshot.assertedFacts,
+      inferredHints: memorySnapshot.inferredHints,
     },
+    characterResolutionEvidence: canonicalized.evidence,
+    adapter: params.context.adapter,
     createId: params.context.createId,
     now: params.context.now,
     createStageRun: params.context.createStageRun,
@@ -116,22 +133,6 @@ export const finalizeSegment = async (params: {
     },
   });
 
-  if (qualityShadowResult) {
-    await params.context.runtimeStore.createShadowDiffArtifact({
-      id: params.context.createId(),
-      workflowRunId: params.context.workflowRunId,
-      stageRunId: qualityStage.stageRunId,
-      segmentId: params.context.segment.id,
-      payload: createShadowDiffPayload({
-        stageId: "quality_judgement",
-        segmentId: params.context.segment.id,
-        nativeResult: qualityStage,
-        shadowResult: qualityShadowResult,
-      }),
-      createdAt: (params.context.now ?? (() => new Date()))(),
-    });
-  }
-
   if (qualityStage.status === "completed") {
     await params.context.runtimeStore.createRuntimeArtifact({
       id: params.context.createId(),
@@ -141,7 +142,7 @@ export const finalizeSegment = async (params: {
       segmentId: params.context.segment.id,
       artifactKind: "segment-script-draft",
       artifactVersion: "v1",
-      payload: params.draft,
+      payload: finalDraft,
       createdAt: (params.context.now ?? (() => new Date()))(),
     });
     await params.context.runtimeStore.createRuntimeArtifact({
@@ -174,32 +175,42 @@ export const finalizeSegment = async (params: {
     };
   }
 
-  if (qualityStage.decision !== "auto_pass") {
+  if (qualityStage.decision === "auto_fail") {
     return {
       status: "failed",
       failure: createFailureDetail({
         segment: params.context.segment,
         stage: "quality_judgement",
-        errorCode:
-          qualityStage.decision === "manual_review_required"
-            ? "QUALITY_MANUAL_REVIEW_REQUIRED"
-            : "QUALITY_AUTO_FAIL",
+        errorCode: "QUALITY_AUTO_FAIL",
         message:
           qualityStage.handoff?.summary ||
           qualityStage.verdict.reasons[0] ||
           "quality_check_not_passed",
         retryable: false,
         coverageRatio: params.validationReport.coverageRatio,
-        issueCodes: [
-          qualityStage.decision === "manual_review_required"
-            ? "QUALITY_MANUAL_REVIEW_REQUIRED"
-            : "QUALITY_AUTO_FAIL",
-        ],
+        issueCodes: ["QUALITY_AUTO_FAIL"],
         issueMessages: qualityStage.verdict.reasons,
       }),
       counters: params.counters,
     };
   }
+
+  const manualReviewFailure =
+    qualityStage.decision === "manual_review_required"
+      ? createFailureDetail({
+          segment: params.context.segment,
+          stage: "quality_judgement",
+          errorCode: "QUALITY_MANUAL_REVIEW_REQUIRED",
+          message:
+            qualityStage.handoff?.summary ||
+            qualityStage.verdict.reasons[0] ||
+            "quality_check_not_passed",
+          retryable: false,
+          coverageRatio: params.validationReport.coverageRatio,
+          issueCodes: ["QUALITY_MANUAL_REVIEW_REQUIRED"],
+          issueMessages: qualityStage.verdict.reasons,
+        })
+      : undefined;
 
   const persistStage = await runPersistCommitStage({
     workflowRunId: params.context.workflowRunId,
@@ -207,7 +218,7 @@ export const finalizeSegment = async (params: {
     artifacts: [
       {
         kind: "segment-script-draft",
-        segmentScriptDraft: params.draft,
+        segmentScriptDraft: finalDraft,
         chapterId: params.context.segment.chapterId ?? null,
       },
     ],
@@ -297,7 +308,7 @@ export const finalizeSegment = async (params: {
   });
 
   const dialogueLines = mapSegmentScriptDraftToDialogueLines({
-    segmentScriptDraft: params.draft,
+    segmentScriptDraft: finalDraft,
     chapterId: params.context.segment.chapterId ?? null,
   });
   const counters = {
@@ -343,9 +354,14 @@ export const finalizeSegment = async (params: {
     summary: toSegmentSummary(
       params.context.segment.id,
       dialogueLines.length,
-      [...new Set(dialogueLines.map((line) => line.characterName || "未知"))]
+      [
+        ...new Set(
+          dialogueLines.map((line): string => line.characterName || "未知")
+        ),
+      ]
     ),
     counters,
-    draft: params.draft,
+    draft: finalDraft,
+    manualReviewFailure,
   };
 };

@@ -8,12 +8,17 @@ import prisma, { Prisma } from "@/lib/prisma";
 import { z } from "zod";
 
 const createBindingSchema = z.object({
-  speakerProfileId: z.preprocess(
-    (value) => (typeof value === "string" ? parseInt(value, 10) : value),
-    z.number().int().positive("说话人ID无效")
-  ),
+  speakerId: z.string().min(1, "说话人ID无效").optional(),
+  speakerProfileId: z
+    .preprocess(
+      (value) => (typeof value === "string" ? parseInt(value, 10) : value),
+      z.number().int().positive("说话人ID无效")
+    )
+    .optional(),
   isPreferred: z.boolean().optional(),
   metadata: z.record(z.string(), z.any()).optional(),
+}).refine((value) => Boolean(value.speakerId || value.speakerProfileId), {
+  message: "说话人ID无效",
 });
 
 const updateBindingSchema = z.object({
@@ -24,6 +29,18 @@ const updateBindingSchema = z.object({
 
 const toJsonValue = (value?: Record<string, unknown>): Prisma.InputJsonValue =>
   (value ?? {}) as Prisma.InputJsonValue;
+
+const resolveSpeakerProfileId = (value: {
+  speakerId?: string;
+  speakerProfileId?: number;
+}): number | null => {
+  if (typeof value.speakerProfileId === "number") {
+    return value.speakerProfileId;
+  }
+
+  const parsed = value.speakerId ? parseInt(value.speakerId, 10) : NaN;
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+};
 
 const serializeBinding = (binding: any) => ({
   id: binding.id,
@@ -96,8 +113,20 @@ export const POST = withErrorHandler(
       throw new ValidationError("角色不存在");
     }
 
+    const shouldBeDefault =
+      validatedData.isPreferred !== undefined
+        ? validatedData.isPreferred
+        : (await prisma.characterSpeakerBinding.count({
+            where: { characterId },
+          })) === 0;
+
+    const speakerProfileId = resolveSpeakerProfileId(validatedData);
+    if (!speakerProfileId) {
+      throw new ValidationError("说话人ID无效");
+    }
+
     const speakerProfile = await prisma.speakerProfile.findUnique({
-      where: { id: validatedData.speakerProfileId },
+      where: { id: speakerProfileId },
     });
 
     if (!speakerProfile) {
@@ -111,7 +140,7 @@ export const POST = withErrorHandler(
     const existingBinding = await prisma.characterSpeakerBinding.findFirst({
       where: {
         characterId,
-        speakerProfileId: validatedData.speakerProfileId,
+        speakerProfileId: speakerProfile.id,
       },
     });
 
@@ -123,11 +152,6 @@ export const POST = withErrorHandler(
       where: { characterId },
     });
 
-    const shouldBeDefault =
-      validatedData.isPreferred !== undefined
-        ? validatedData.isPreferred
-        : bindingCount === 0;
-
     if (shouldBeDefault && bindingCount > 0) {
       await prisma.characterSpeakerBinding.updateMany({
         where: { characterId, isDefault: true },
@@ -138,7 +162,7 @@ export const POST = withErrorHandler(
     const binding = await prisma.characterSpeakerBinding.create({
       data: {
         characterId,
-        speakerProfileId: validatedData.speakerProfileId,
+        speakerProfileId: speakerProfile.id,
         isDefault: shouldBeDefault,
         ...(validatedData.metadata && {
           metadata: toJsonValue(validatedData.metadata),

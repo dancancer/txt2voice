@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 
 export function ScriptStudioLoadingState() {
   return (
-    <div className="flex h-full items-center justify-center bg-gray-50">
+    <div className="flex h-full items-center justify-center bg-background">
       <div className="text-center">
-        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-blue-600" />
-        <p className="text-gray-600">加载中...</p>
+        <Loader2 className="mx-auto mb-4 h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">加载中...</p>
       </div>
     </div>
   );
@@ -28,10 +28,10 @@ export function ScriptStudioErrorState({
   onBack,
 }: ScriptStudioErrorStateProps) {
   return (
-    <div className="flex h-full items-center justify-center bg-gray-50">
+    <div className="flex h-full items-center justify-center bg-background">
       <div className="text-center">
-        <FileText className="mx-auto mb-4 h-8 w-8 text-red-500" />
-        <p className="mb-4 text-red-600">{message}</p>
+        <FileText className="mx-auto mb-4 h-8 w-8 text-destructive" />
+        <p className="mb-4 text-destructive">{message}</p>
         <Button onClick={onBack}>返回</Button>
       </div>
     </div>

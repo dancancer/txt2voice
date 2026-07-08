@@ -11,6 +11,11 @@ import {
   updateProcessingTaskProgress as updateTaskProgress,
 } from "@/lib/processing-task-utils";
 import {
+  CANCELED_TASK_STATUS,
+  TaskCanceledError,
+  throwIfTaskCanceled,
+} from "@/lib/task-cancellation";
+import {
   createChapterSegmentRecords,
   processFileContent,
   type TextProcessingOptions,
@@ -37,6 +42,10 @@ export const updateTaskFailureIfNeeded = async (
   });
 
   if (!task || task.status === "failed") {
+    return;
+  }
+
+  if (task.status === CANCELED_TASK_STATUS) {
     return;
   }
 
@@ -76,6 +85,10 @@ export const ensureStageCompleted = async (
   }
 
   if (stageTask.status !== "completed") {
+    if (stageTask.status === CANCELED_TASK_STATUS) {
+      throw new TaskCanceledError(stageTaskId, `${STAGE_LABEL[stage]}子任务已取消`);
+    }
+
     throw new Error(
       stageTask.errorMessage || `${STAGE_LABEL[stage]}子任务未成功完成`
     );
@@ -128,6 +141,7 @@ export const runTextProcessingStage = async ({
   bookId: string;
   options: TextProcessingOptions;
 }): Promise<void> => {
+  await throwIfTaskCanceled(taskId);
   await updateTaskProgress(taskId, 10, "读取原始文件");
 
   const book = await prisma.book.findUnique({
@@ -151,6 +165,7 @@ export const runTextProcessingStage = async ({
   });
 
   const fileBuffer = await readFile(book.uploadedFilePath);
+  await throwIfTaskCanceled(taskId);
 
   await updateTaskProgress(taskId, 35, "文本清洗与编码识别");
 
@@ -159,7 +174,6 @@ export const runTextProcessingStage = async ({
     minSegmentLength: options.minSegmentLength,
     preserveFormatting: options.preserveFormatting,
     encoding: options.encoding,
-    useSmartSplitter: options.useSmartSplitter,
   });
 
   const {
@@ -167,6 +181,7 @@ export const runTextProcessingStage = async ({
     segmentRecords,
     statistics,
   } = createChapterSegmentRecords(bookId, processedText.content, options);
+  await throwIfTaskCanceled(taskId);
 
   await updateTaskProgress(taskId, 70, "清理旧数据并写入章节/段落");
 
@@ -206,6 +221,7 @@ export const runTextProcessingStage = async ({
       },
     });
   });
+  await throwIfTaskCanceled(taskId);
 
   await updateTaskProgress(taskId, 100, "文本处理完成");
 

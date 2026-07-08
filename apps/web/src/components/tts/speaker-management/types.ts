@@ -1,4 +1,4 @@
-export type TTSReferenceProvider = "indextts" | "cosyvoice" | "voxcpm";
+export type TTSReferenceProvider = "voxcpm";
 
 export interface ProviderServiceStatus {
   provider: TTSReferenceProvider;

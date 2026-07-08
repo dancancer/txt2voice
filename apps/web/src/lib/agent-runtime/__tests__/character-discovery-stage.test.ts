@@ -92,10 +92,9 @@ describe("character discovery stage", () => {
     });
 
     const call = (adapter.call as jest.Mock).mock.calls[0]?.[0];
-    expect(call.prompt).toContain("names:宁采臣, 燕赤霞");
-    expect(call.prompt).toContain("aliasCount:1");
-    expect(call.prompt).toContain("assertedCount:1");
-    expect(call.prompt).toContain("inferredCount:1");
+    expect(call.prompt).toContain('"name":"宁采臣"');
+    expect(call.prompt).toContain('"name":"燕赤霞"');
+    expect(call.prompt).toContain('"aliases":["燕大侠"]');
   });
 
   it("uses skill definition from the same skillDir source", async () => {
@@ -499,7 +498,7 @@ describe("character discovery stage", () => {
     expect("artifact" in result).toBe(false);
   });
 
-  it("fails stage when llm returns non-json payload", async () => {
+  it("returns retrying when llm returns non-json payload", async () => {
     const adapter = createMockAdapter("not-json");
 
     const result = await runCharacterDiscoveryStage({
@@ -509,11 +508,11 @@ describe("character discovery stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("retrying");
     expect("artifact" in result).toBe(false);
   });
 
-  it("fails stage when llm returns malformed empty object payload", async () => {
+  it("returns retrying when llm returns malformed empty object payload", async () => {
     const adapter = createMockAdapter("{}");
 
     const result = await runCharacterDiscoveryStage({
@@ -523,11 +522,11 @@ describe("character discovery stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("retrying");
     expect("artifact" in result).toBe(false);
   });
 
-  it("fails stage when llm returns malformed canonical identity entry", async () => {
+  it("returns retrying when llm returns malformed canonical identity entry", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
         canonicalIdentities: [{}],
@@ -544,88 +543,8 @@ describe("character discovery stage", () => {
       adapter,
     });
 
-    expect(result.status).toBe("failed");
+    expect(result.status).toBe("retrying");
     expect("artifact" in result).toBe(false);
   });
 
-  it("uses mastra executor path when stage executor is mastra", async () => {
-    const adapter = createMockAdapter("{}");
-    const runMastraCharacterDiscoveryStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-stage-1",
-      status: "completed",
-      artifact: {
-        kind: "character-memory-draft",
-        skillId: "character-extraction",
-        characterMemoryDraft: {
-          canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
-          aliasEvidence: [],
-          assertedFacts: {},
-          inferredHints: {},
-        },
-      },
-    } satisfies RunCharacterDiscoveryStageResult);
-
-    const result = await runCharacterDiscoveryStage({
-      workflowRunId: "wf-mastra-executor",
-      segmentText: "宁采臣缓缓抬头。",
-      skillDir,
-      adapter,
-      executor: "mastra",
-      runMastraCharacterDiscoveryStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraCharacterDiscoveryStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(0);
-    expect(asCompletedResult(result).artifact.characterMemoryDraft).toEqual({
-      canonicalIdentities: [{ id: "char-1", name: "宁采臣" }],
-      aliasEvidence: [],
-      assertedFacts: {},
-      inferredHints: {},
-    });
-  });
-
-  it("keeps native result as primary output when shadow mode is enabled", async () => {
-    const adapter = createMockAdapter(
-      JSON.stringify({
-        canonicalIdentities: [{ id: "char-native", name: "宁采臣" }],
-        aliasEvidence: [],
-        assertedFacts: {},
-        inferredHints: {},
-      })
-    );
-    const runMastraCharacterDiscoveryStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-shadow-1",
-      status: "completed",
-      artifact: {
-        kind: "character-memory-draft",
-        skillId: "character-extraction",
-        characterMemoryDraft: {
-          canonicalIdentities: [{ id: "char-shadow", name: "燕赤霞" }],
-          aliasEvidence: [],
-          assertedFacts: {},
-          inferredHints: {},
-        },
-      },
-    } satisfies RunCharacterDiscoveryStageResult);
-
-    const result = await runCharacterDiscoveryStage({
-      workflowRunId: "wf-shadow-executor",
-      segmentText: "宁采臣缓缓抬头。",
-      skillDir,
-      adapter,
-      shadowMode: true,
-      runMastraCharacterDiscoveryStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraCharacterDiscoveryStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(1);
-    expect(asCompletedResult(result).artifact.characterMemoryDraft).toEqual({
-      canonicalIdentities: [{ id: "char-native", name: "宁采臣" }],
-      aliasEvidence: [],
-      assertedFacts: {},
-      inferredHints: {},
-    });
-  });
 });

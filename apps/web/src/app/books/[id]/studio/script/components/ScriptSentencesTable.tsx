@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Play, Edit, Trash2, Volume2, CheckCircle, XCircle } from "lucide-react";
 import { ScriptSentence } from "@/lib/types";
+import { ScriptProsodyDisplay } from "./prosody-display";
 
 interface ScriptSentencesTableProps {
   segmentTitle: string;
@@ -45,10 +46,10 @@ export function ScriptSentencesTable({
   };
 
   return (
-    <div className="border rounded-lg bg-white">
-      <div className="px-6 py-4 border-b">
-        <h2 className="text-lg font-semibold">{segmentTitle}</h2>
-        <p className="text-sm text-gray-500 mt-1">
+    <div className="rounded-lg border border-border bg-card">
+      <div className="border-b border-border px-6 py-4">
+        <h2 className="text-lg font-semibold text-foreground">{segmentTitle}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
           共 {sentences.length} 句台词
         </p>
       </div>
@@ -68,7 +69,7 @@ export function ScriptSentencesTable({
           <TableBody>
             {sentences.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={6} className="py-8 text-center text-muted-foreground">
                   该段落暂无台词
                 </TableCell>
               </TableRow>
@@ -80,7 +81,7 @@ export function ScriptSentencesTable({
                   sentence.audioFiles!.some((file) => file.status === "completed");
 
                 return (
-                  <TableRow key={sentence.id} className="hover:bg-gray-50">
+                  <TableRow key={sentence.id} className="hover:bg-muted/60">
                     <TableCell className="font-medium">
                       {sentence.orderInSegment !== undefined
                         ? sentence.orderInSegment + 1
@@ -97,11 +98,19 @@ export function ScriptSentencesTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      {sentence.tone && (
-                        <Badge variant="secondary" className="text-xs">
-                          {sentence.tone}
-                        </Badge>
-                      )}
+                      <div className="space-y-1">
+                        {sentence.tone && (
+                          <Badge variant="secondary" className="text-xs">
+                            {sentence.tone}
+                          </Badge>
+                        )}
+                        <ScriptProsodyDisplay
+                          strength={sentence.strength}
+                          pauseAfter={sentence.pauseAfter}
+                          prosody={sentence.prosody}
+                          compact
+                        />
+                      </div>
                     </TableCell>
                     <TableCell>
                       {audioCompleted ? (
@@ -155,8 +164,9 @@ export function ScriptSentencesTable({
                             size="sm"
                             variant="ghost"
                             onClick={() => onDelete(sentence.id)}
+                            className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                           >
-                            <Trash2 className="w-3 h-3 text-red-500" />
+                            <Trash2 className="w-3 h-3" />
                           </Button>
                         )}
                       </div>

@@ -64,7 +64,7 @@ export function UploadAudioDialog({
             <div className="space-y-2">
               <Label>上传进度</Label>
               <Progress value={uploadProgress} className="w-full" />
-              <p className="text-sm text-gray-600">{uploadProgress.toFixed(1)}%</p>
+              <p className="text-sm text-muted-foreground">{uploadProgress.toFixed(1)}%</p>
             </div>
           )}
           <div className="flex justify-end gap-2">

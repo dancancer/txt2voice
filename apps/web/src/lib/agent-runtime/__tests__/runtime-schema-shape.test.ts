@@ -1,6 +1,13 @@
 import fs from "fs";
 import path from "path";
 
+import {
+  DefinitionRegistryError,
+  validateSkillDefinition,
+  validateWorkflowDefinition,
+} from "../registry";
+import { isRuntimeSubstageDefinition } from "../protocol";
+
 const schemaPath = path.resolve(
   process.cwd(),
   "prisma/schema.prisma"
@@ -30,7 +37,58 @@ const expectJsonField = (schema: string, modelName: string, fieldName: string) =
   expect(modelBlock?.[1]).toMatch(new RegExp(`\\b${fieldName}\\s+Json\\??\\b`));
 };
 
+const expectIndex = (schema: string, modelName: string, fieldName: string) => {
+  const modelBlock = schema.match(
+    new RegExp(`model\\s+${modelName}\\s+\\{([\\s\\S]*?)\\n\\}`, "m")
+  );
+
+  expect(modelBlock?.[1]).toBeDefined();
+  expect(modelBlock?.[1]).toMatch(
+    new RegExp(`@@index\\(\\[${fieldName}\\]\\)`)
+  );
+};
+
 describe("agent runtime prisma schema shape", () => {
+  it("separates workflow authoring stages from runtime-owned substages", () => {
+    expect(
+      isRuntimeSubstageDefinition({
+        id: "validation",
+        owner: "framework",
+        parentStage: "segment_scripting",
+      })
+    ).toBe(true);
+
+    expect(() =>
+      validateWorkflowDefinition(
+        {
+          id: "script-production",
+          version: "1",
+          kind: "workflow",
+          stages: ["prepare", "validation", "persist"],
+        },
+        "script-production"
+      )
+    ).toThrow(DefinitionRegistryError);
+  });
+
+  it("rejects runtime skills that defer prompt bundle failures to execution time", () => {
+    expect(() =>
+      validateSkillDefinition(
+        {
+          id: "script-generation",
+          version: "1",
+          kind: "generation",
+          compatibleAgents: ["script-generation-agent"],
+          inputSchemaRef: "segment-script-input",
+          outputSchemaRef: "segment-script-draft",
+          contextRequirements: ["segment"],
+          toolAllowlist: [],
+        },
+        "script-generation"
+      )
+    ).toThrow(DefinitionRegistryError);
+  });
+
   it("defines workflow execution models with minimum keys", () => {
     const schema = readSchema();
 
@@ -84,5 +142,21 @@ describe("agent runtime prisma schema shape", () => {
     expectJsonField(schema, "ToolCall", "resultSummary");
     expectJsonField(schema, "TraceEvent", "payload");
     expectJsonField(schema, "RuntimeArtifact", "payload");
+  });
+
+  it("indexes runtime foreign keys to keep cascade deletes cheap", () => {
+    const schema = readSchema();
+
+    expectIndex(schema, "WorkflowRun", "bookId");
+    expectIndex(schema, "WorkflowRun", "processingTaskId");
+    expectIndex(schema, "StageRun", "workflowRunId");
+    expectIndex(schema, "AgentRun", "stageRunId");
+    expectIndex(schema, "ToolCall", "agentRunId");
+    expectIndex(schema, "TraceEvent", "workflowRunId");
+    expectIndex(schema, "TraceEvent", "stageRunId");
+    expectIndex(schema, "TraceEvent", "agentRunId");
+    expectIndex(schema, "RuntimeArtifact", "workflowRunId");
+    expectIndex(schema, "RuntimeArtifact", "stageRunId");
+    expectIndex(schema, "RuntimeArtifact", "agentRunId");
   });
 });

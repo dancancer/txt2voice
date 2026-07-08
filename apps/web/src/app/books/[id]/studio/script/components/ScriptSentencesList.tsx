@@ -80,14 +80,14 @@ export function ScriptSentencesList({
         </div>
 
         {scriptSentences.length === 0 && (
-          <div className="text-sm text-gray-500 text-center py-6">
+          <div className="py-6 text-center text-sm text-muted-foreground">
             {emptyMessage || "暂无台词，请先生成台本。"}
           </div>
         )}
 
         {scriptSentences.length > PAGE_SIZE && (
           <div className="mt-6 flex items-center justify-between flex-wrap gap-3">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted-foreground">
               显示第 {startItem}-{endItem} 句，共 {scriptSentences.length} 句
             </span>
             <div className="flex items-center space-x-2">
@@ -99,7 +99,7 @@ export function ScriptSentencesList({
               >
                 上一页
               </Button>
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 第 {effectivePage} 页 / 共 {totalPages} 页
               </span>
               <Button

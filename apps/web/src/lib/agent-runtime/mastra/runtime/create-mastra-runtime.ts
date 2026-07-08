@@ -26,6 +26,9 @@ export class MastraRuntimeBootstrapError extends Error {
 
 export interface CreateMastraRuntimeParams {
   env?: RuntimeEnv;
+  agents?: Record<string, any>;
+  workflows?: Record<string, any>;
+  server?: Record<string, any> | null;
 }
 
 export interface MastraRuntimeBootstrapResult {
@@ -55,8 +58,9 @@ export const createMastraRuntime = (
 
   return {
     mastra: new Mastra({
-      agents: {},
-      workflows: {},
+      agents: params.agents ?? {},
+      workflows: params.workflows ?? {},
+      ...(params.server ? { server: params.server } : {}),
     }),
     modelProvider: createOpenAI({
       apiKey,

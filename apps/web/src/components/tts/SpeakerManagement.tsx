@@ -16,9 +16,7 @@ import { ReferenceAudioTab } from "./speaker-management/panels/ReferenceAudioTab
 import { SpeakerFilters } from "./speaker-management/SpeakerFilters";
 
 const PROVIDER_OPTIONS = [
-  { value: "indextts", label: "IndexTTS" },
-  { value: "cosyvoice", label: "CosyVoice" },
-  { value: "voxcpm", label: "VoxCPM" },
+  { value: "voxcpm", label: "VoxCPM2" },
 ] as const;
 
 export function SpeakerManagement() {
@@ -35,20 +33,23 @@ export function SpeakerManagement() {
           <Button asChild variant="outline">
             <Link href="/">上传书籍</Link>
           </Button>
-          {controller.supportsSpeakerManagement && (
-            <Button onClick={() => controller.setIsCreateDialogOpen(true)}>
-              新建说话人
+          {!controller.supportsSpeakerManagement && (
+            <Button asChild>
+              <a
+                href={controller.selectedProviderStatus?.endpoint || "http://192.168.88.9:18083"}
+                target="_blank"
+                rel="noreferrer"
+              >
+                打开 VoxCPM2 服务
+              </a>
             </Button>
           )}
-          <Button onClick={() => controller.setIsUploadDialogOpen(true)}>
-            上传参考音频
-          </Button>
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <p className="text-sm font-medium text-slate-700">语音服务配置</p>
+          <p className="text-sm font-medium text-card-foreground">语音服务配置</p>
           <Button
             type="button"
             variant="outline"
@@ -71,30 +72,30 @@ export function SpeakerManagement() {
             const statusClass = status
               ? status.healthy
                 ? "bg-emerald-100 text-emerald-700"
-                : "bg-rose-100 text-rose-700"
-              : "bg-slate-100 text-slate-600";
+                : "bg-destructive/10 text-destructive"
+              : "bg-muted text-muted-foreground";
 
             return (
               <div
                 key={option.value}
                 className={`rounded-lg border p-3 ${
                   controller.selectedProvider === option.value
-                    ? "border-indigo-400 bg-indigo-50/40"
-                    : "border-slate-200"
+                    ? "border-border bg-accent/60"
+                    : "border-border bg-card"
                 }`}
               >
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="font-medium text-slate-900">{option.label}</p>
+                  <p className="font-medium text-foreground">{option.label}</p>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusClass}`}
                   >
                     {statusText}
                   </span>
                 </div>
-                <p className="mb-2 break-all text-xs text-slate-500">
+                <p className="mb-2 break-all text-xs text-muted-foreground">
                   {status?.endpoint || "等待状态检测"}
                 </p>
-                <p className="mb-3 text-xs text-slate-600">
+                <p className="mb-3 text-xs text-muted-foreground">
                   {status?.message || "点击刷新状态后可查看服务连通性"}
                 </p>
                 <Button
@@ -117,9 +118,9 @@ export function SpeakerManagement() {
           })}
         </div>
 
-        <p className="mt-3 text-xs text-slate-500">
-          如需修改服务地址，请更新 `.env` 中 `INDEXTTS_API_URL`、
-          `COSYVOICE_API_URL`、`VOXCPM_API_URL` 后重启 `web` 容器。
+        <p className="mt-3 text-xs text-muted-foreground">
+          如需修改服务地址，请更新 `.env` 中 `VOXCPM_API_URL` 后重启
+          `web` 容器。
         </p>
       </div>
 
@@ -137,8 +138,8 @@ export function SpeakerManagement() {
       )}
 
       {!controller.supportsSpeakerManagement && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-          当前服务仅支持参考音频管理，不提供说话人档案配置。
+        <div className="rounded-lg border border-border bg-accent/60 p-3 text-sm text-muted-foreground">
+          VoxCPM2 使用参考音频与语气控制完成合成；这里管理参考音频，角色绑定会在生成时默认走 VoxCPM2。
         </div>
       )}
 

@@ -35,7 +35,7 @@ describe("audio-generator job runtime", () => {
         outputFormat: "mp3",
       },
       {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
       }
     );
 
@@ -45,7 +45,7 @@ describe("audio-generator job runtime", () => {
         outputFormat: "mp3",
       },
       options: {
-        provider: "voxcpm",
+        preferredProvider: "voxcpm",
       },
       metadata: {
         source: "audio_generator",

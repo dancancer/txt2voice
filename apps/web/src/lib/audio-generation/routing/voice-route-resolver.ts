@@ -82,6 +82,27 @@ export function resolveVariantVoiceId(
   return null;
 }
 
+const asNonEmptyString = (value: unknown): string | null =>
+  typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+
+const resolveVariantReferenceAudio = (params: {
+  variantReferenceAudio: unknown;
+  speakerReferenceAudio: unknown;
+  capability: Record<string, unknown>;
+}): string | null =>
+  asNonEmptyString(params.variantReferenceAudio) ||
+  asNonEmptyString(params.speakerReferenceAudio) ||
+  asNonEmptyString(params.capability.referenceAudio) ||
+  asNonEmptyString(params.capability.reference_audio);
+
+const resolveVariantPromptText = (params: {
+  speakerDescription: unknown;
+  capability: Record<string, unknown>;
+}): string | null =>
+  asNonEmptyString(params.capability.promptText) ||
+  asNonEmptyString(params.capability.prompt_text) ||
+  asNonEmptyString(params.speakerDescription);
+
 export async function findNarrationFallbackVoice(params: {
   bookId: string;
   provider?: string;
@@ -127,8 +148,8 @@ export async function collectRouteCandidates(params: {
 }): Promise<AudioRouteCandidate[]> {
   const { scriptSentence, request, options, prismaClient } = params;
   const preferredProvider =
-    typeof options.provider === "string" && options.provider.trim()
-      ? options.provider.trim().toLowerCase()
+    typeof options.preferredProvider === "string" && options.preferredProvider.trim()
+      ? options.preferredProvider.trim().toLowerCase()
       : null;
   const candidates: AudioRouteCandidate[] = [];
 
@@ -137,9 +158,6 @@ export async function collectRouteCandidates(params: {
       where: { id: request.voiceProfileId },
     });
     if (!selectedProfile) {
-      return [];
-    }
-    if (preferredProvider && selectedProfile.provider !== preferredProvider) {
       return [];
     }
 
@@ -161,49 +179,6 @@ export async function collectRouteCandidates(params: {
     return candidates;
   }
 
-  const speakerBindings = scriptSentence.character?.speakerBindings || [];
-  for (const speakerBinding of speakerBindings) {
-    const speakerProfile = speakerBinding.speakerProfile;
-    if (!speakerProfile?.isActive) {
-      continue;
-    }
-
-    for (const variant of speakerProfile.engineVariants || []) {
-      const provider =
-        typeof variant.engine === "string" ? variant.engine.trim().toLowerCase() : "";
-      if (!provider) {
-        continue;
-      }
-      if (preferredProvider && provider !== preferredProvider) {
-        continue;
-      }
-
-      const voiceId = resolveVariantVoiceId(provider, variant.providerVoiceId);
-      const capability = asRecord(variant.capability) || {};
-      candidates.push({
-        candidateId: `variant:${variant.id}`,
-        source: "speaker_engine_variant",
-        provider,
-        voiceId,
-        voiceProfile: voiceId
-          ? {
-              provider,
-              voiceId,
-              defaultParameters: {
-                ...(asRecord(capability.defaultParameters) || {}),
-              },
-            }
-          : null,
-        isDefault: Boolean(variant.isDefault || speakerBinding.isDefault),
-        routingWeight: toFiniteNumber(variant.routingWeight, 1) ?? 1,
-        capability,
-        speakerProfileId: speakerProfile.id,
-        speakerEngineVariantId: variant.id,
-        emotionPresets: parseEmotionPresets(variant.emotionPresets || []),
-      });
-    }
-  }
-
   for (const binding of scriptSentence.character?.voiceBindings || []) {
     const voiceProfile = binding.voiceProfile;
     if (!voiceProfile || voiceProfile.isAvailable === false) {
@@ -215,9 +190,6 @@ export async function collectRouteCandidates(params: {
         ? voiceProfile.provider.trim().toLowerCase()
         : "";
     if (!provider) {
-      continue;
-    }
-    if (preferredProvider && provider !== preferredProvider) {
       continue;
     }
 
@@ -235,6 +207,59 @@ export async function collectRouteCandidates(params: {
       isDefault: Boolean(binding.isDefault),
       routingWeight: 1,
     });
+  }
+
+  const speakerBindings = scriptSentence.character?.speakerBindings || [];
+  for (const speakerBinding of speakerBindings) {
+    const speakerProfile = speakerBinding.speakerProfile;
+    if (!speakerProfile?.isActive) {
+      continue;
+    }
+
+    for (const variant of speakerProfile.engineVariants || []) {
+      const provider =
+        typeof variant.engine === "string" ? variant.engine.trim().toLowerCase() : "";
+      if (!provider) {
+        continue;
+      }
+
+      const voiceId = resolveVariantVoiceId(provider, variant.providerVoiceId);
+      const capability = asRecord(variant.capability) || {};
+      const referenceAudio = resolveVariantReferenceAudio({
+        variantReferenceAudio: variant.referenceAudio,
+        speakerReferenceAudio: speakerProfile.referenceAudio,
+        capability,
+      });
+      const promptText = resolveVariantPromptText({
+        speakerDescription: speakerProfile.description,
+        capability,
+      });
+      candidates.push({
+        candidateId: `variant:${variant.id}`,
+        source: "speaker_engine_variant",
+        provider,
+        voiceId,
+        voiceProfile: voiceId
+          ? {
+              provider,
+              voiceId,
+              referenceAudio,
+              promptText,
+              defaultParameters: {
+                ...(asRecord(capability.defaultParameters) || {}),
+                ...(referenceAudio ? { referenceAudio } : {}),
+                ...(promptText ? { promptText } : {}),
+              },
+            }
+          : null,
+        isDefault: Boolean(variant.isDefault || speakerBinding.isDefault),
+        routingWeight: toFiniteNumber(variant.routingWeight, 1) ?? 1,
+        capability,
+        speakerProfileId: speakerProfile.id,
+        speakerEngineVariantId: variant.id,
+        emotionPresets: parseEmotionPresets(variant.emotionPresets || []),
+      });
+    }
   }
 
   const narrationFallback = await findNarrationFallbackVoice({
@@ -259,6 +284,22 @@ export async function collectRouteCandidates(params: {
     });
   }
 
+  if (!narrationFallback && preferredProvider === "voxcpm") {
+    candidates.push({
+      candidateId: "fallback:voxcpm-default",
+      source: "narration_fallback",
+      provider: "voxcpm",
+      voiceId: "__voxcpm_default__",
+      voiceProfile: {
+        provider: "voxcpm",
+        voiceId: "__voxcpm_default__",
+        defaultParameters: {},
+      },
+      isDefault: true,
+      routingWeight: 1,
+    });
+  }
+
   return candidates;
 }
 
@@ -271,8 +312,8 @@ export async function resolveVoiceRouteForSentence(params: {
   const { scriptSentence, request, options, prismaClient } = params;
   const policyVersion = resolveRouterPolicyVersion(scriptSentence, options);
   const preferredProvider =
-    typeof options.provider === "string" && options.provider.trim()
-      ? options.provider.trim().toLowerCase()
+    typeof options.preferredProvider === "string" && options.preferredProvider.trim()
+      ? options.preferredProvider.trim().toLowerCase()
       : null;
   const context: AudioRouteContext = {
     roleType: typeof scriptSentence.roleType === "string" ? scriptSentence.roleType : null,

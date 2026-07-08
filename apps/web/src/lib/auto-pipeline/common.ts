@@ -4,7 +4,7 @@
 // pos: 自动编排共享模块
 import type { AudioGenerationOptions } from "@/lib/audio-generator";
 import type { QualityCheckTaskType } from "@/lib/quality-check-runner";
-import type { ScriptGenerationOptions } from "@/lib/script-generator";
+import type { ScriptGenerationOptions } from "@/lib/agent-runtime/runtime/script-production/types";
 import type { TextProcessingOptions } from "@/lib/text-processor";
 import type { Prisma } from "@/lib/prisma";
 
@@ -13,6 +13,13 @@ export type AutoPipelineStage =
   | "script_generation"
   | "audio_generation"
   | "quality_check";
+
+export type AutoPipelineDecisionAction =
+  | "run"
+  | "skip"
+  | "retry"
+  | "manual_review"
+  | "fail";
 
 export type AutoPipelineStageStatus =
   | "pending"
@@ -27,6 +34,46 @@ export interface AutoPipelineStageState {
   startedAt: string | null;
   completedAt: string | null;
   error: string | null;
+}
+
+export interface AutoPipelineSourceFingerprint {
+  uploadedFilePath?: string | null;
+  originalFilename?: string | null;
+  fileSize?: number | string | null;
+  contentHash?: string | null;
+  optionsHash?: string | null;
+}
+
+export interface AutoPipelineStageVersion {
+  version: string;
+  inputs?: Record<string, unknown>;
+}
+
+export interface AutoPipelineCheckpoint {
+  stage: AutoPipelineStage;
+  sourceFingerprint: AutoPipelineSourceFingerprint;
+  stageVersion: AutoPipelineStageVersion;
+  artifactHash: string;
+  taskId: string;
+  completedAt: string;
+  invalidatedAt?: string | null;
+  invalidationReason?: string | null;
+}
+
+export type AutoPipelineCheckpointMap = Partial<
+  Record<AutoPipelineStage, AutoPipelineCheckpoint>
+>;
+
+export interface AutoPipelineCheckpointPatch {
+  checkpoints: AutoPipelineCheckpointMap;
+}
+
+export interface AutoPipelineDecision {
+  action: AutoPipelineDecisionAction;
+  stage: AutoPipelineStage;
+  reason: string;
+  retryable: boolean;
+  manualReviewRequired: boolean;
 }
 
 interface AutoPipelineAudioOptions {
@@ -91,6 +138,16 @@ const asString = (value: unknown): string | undefined => {
 
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
+};
+
+const asPreferredProvider = (
+  value: unknown
+): AudioGenerationOptions["preferredProvider"] | undefined => {
+  const provider = asString(value)?.toLowerCase();
+  if (provider === "voxcpm") {
+    return provider;
+  }
+  return undefined;
 };
 
 const defaultStageState = (): AutoPipelineStageState => ({
@@ -170,6 +227,7 @@ export const parseAutoPipelineOptions = (
   const textProcessing = asRecord(root.textProcessing) || {};
   const scriptGeneration = asRecord(root.scriptGeneration) || {};
   const audioGenerationRoot = asRecord(root.audioGeneration) || {};
+  const audioOptionsRoot = asRecord(audioGenerationRoot.options) || {};
   const qualityCheckRoot = asRecord(root.qualityCheck) || {};
 
   const qualityType =
@@ -195,11 +253,6 @@ export const parseAutoPipelineOptions = (
             preserveFormatting: textProcessing.preserveFormatting,
           }
         : {}),
-      ...(typeof textProcessing.useSmartSplitter === "boolean"
-        ? {
-            useSmartSplitter: textProcessing.useSmartSplitter,
-          }
-        : {}),
     },
     scriptGeneration: scriptGeneration as Partial<ScriptGenerationOptions>,
     audioGeneration: {
@@ -208,7 +261,26 @@ export const parseAutoPipelineOptions = (
             autoMerge: audioGenerationRoot.autoMerge,
           }
         : {}),
-      options: (asRecord(audioGenerationRoot.options) || {}) as AudioGenerationOptions,
+      options: {
+        ...(typeof audioOptionsRoot.batchSize === "number"
+          ? { batchSize: Math.max(1, Math.floor(audioOptionsRoot.batchSize)) }
+          : {}),
+        ...(typeof audioOptionsRoot.skipExisting === "boolean"
+          ? { skipExisting: audioOptionsRoot.skipExisting }
+          : {}),
+        ...(typeof audioOptionsRoot.overwriteExisting === "boolean"
+          ? { overwriteExisting: audioOptionsRoot.overwriteExisting }
+          : {}),
+        ...(asPreferredProvider(audioOptionsRoot.preferredProvider)
+          ? { preferredProvider: asPreferredProvider(audioOptionsRoot.preferredProvider) }
+          : {}),
+        ...(asString(audioOptionsRoot.routerPolicyVersion)
+          ? { routerPolicyVersion: asString(audioOptionsRoot.routerPolicyVersion) }
+          : {}),
+        ...(typeof audioOptionsRoot.enableRouterDebug === "boolean"
+          ? { enableRouterDebug: audioOptionsRoot.enableRouterDebug }
+          : {}),
+      },
     },
     qualityCheck: {
       ...(typeof qualityCheckRoot.enabled === "boolean"

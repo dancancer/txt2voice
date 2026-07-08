@@ -5,6 +5,13 @@ import type {
   SegmentScriptDraftLine,
 } from "../../context";
 import { validateStructuredOutput } from "../../tools/validation-tools";
+import { renderPromptTemplate } from "../prompt-template";
+import {
+  parseOptionalPauseAfter,
+  parseOptionalProsody,
+  parseOptionalStrength,
+  parseOptionalTone,
+} from "./script-draft-line-metadata";
 
 export interface RepairAgentPrompts {
   systemPrompt: string;
@@ -15,7 +22,10 @@ export interface RepairAgentInput {
   segmentId: string;
   segmentText: string;
   failedArtifact: unknown;
+  failureKind?: "format_repair" | "semantic_retry";
+  modelPolicy?: string;
   prompts: RepairAgentPrompts;
+  renderedUserPrompt?: string;
 }
 
 export interface RepairAgentResult {
@@ -132,6 +142,10 @@ const toDraftLine = (value: unknown): SegmentScriptDraftLine => {
     text,
     speaker,
     orderInSegment,
+    tone: parseOptionalTone(value.tone),
+    prosody: parseOptionalProsody(value.prosody),
+    strength: parseOptionalStrength(value.strength),
+    pauseAfter: parseOptionalPauseAfter(value.pauseAfter),
   };
 };
 
@@ -184,18 +198,37 @@ const stringifyArtifact = (value: unknown): string => {
   }
 };
 
-const renderUserPrompt = (
+export const renderRepairUserPrompt = (
   template: string,
   params: {
     segmentText: string;
     failedArtifact: unknown;
+    characterMemorySummary?: string;
+    characterResolutionHints?: string;
   }
 ) =>
-  template
-    .split("{{segment_text}}")
-    .join(params.segmentText)
-    .split("{{failed_artifact_json}}")
-    .join(stringifyArtifact(params.failedArtifact));
+  renderRepairUserPromptFromVariables(template, {
+    segment_text: params.segmentText,
+    failed_artifact_json: stringifyArtifact(params.failedArtifact),
+    character_memory_summary: params.characterMemorySummary || "",
+    character_resolution_hints: params.characterResolutionHints || "",
+  });
+
+export const renderRepairUserPromptFromVariables = (
+  template: string,
+  variables: {
+    segment_text: string;
+    failed_artifact_json: string;
+    character_memory_summary?: string;
+    character_resolution_hints?: string;
+  }
+) =>
+  renderPromptTemplate(template, {
+    segment_text: variables.segment_text,
+    failed_artifact_json: variables.failed_artifact_json,
+    character_memory_summary: variables.character_memory_summary || "",
+    character_resolution_hints: variables.character_resolution_hints || "",
+  });
 
 const asErrorMessage = (value: unknown): string => {
   if (value instanceof Error) {
@@ -238,18 +271,39 @@ const toRepairExecutionError = (params: {
   return wrapped;
 };
 
+const createSemanticRetryFallback = (params: {
+  segmentId: string;
+  rawResponse: string;
+  provider: string;
+  model: string;
+}): RepairAgentResult => ({
+  decision: {
+    segmentId: params.segmentId,
+    action: "retry",
+    reason: "semantic_retry_parse_failed",
+    retryable: true,
+  },
+  rawResponse: params.rawResponse,
+  provider: params.provider,
+  model: params.model,
+});
+
 export const createRepairAgent = (deps: RepairAgentDeps) => ({
   async execute(input: RepairAgentInput): Promise<RepairAgentResult> {
     const response = await deps.adapter.call({
       systemPrompt: input.prompts.systemPrompt,
-      prompt: renderUserPrompt(input.prompts.userPrompt, {
-        segmentText: input.segmentText,
-        failedArtifact: input.failedArtifact,
-      }),
+      prompt:
+        input.renderedUserPrompt ??
+        renderRepairUserPrompt(input.prompts.userPrompt, {
+          segmentText: input.segmentText,
+          failedArtifact: input.failedArtifact,
+        }),
+      modelPolicy: input.modelPolicy ?? "default",
       metadata: {
         source: "agent_runtime.segment_repair",
         stageId: "segment_repair",
-        failureCategory: "format_repair",
+        segmentId: input.segmentId,
+        failureCategory: input.failureKind ?? "format_repair",
       },
     });
     const now = deps.now ?? (() => new Date());
@@ -265,7 +319,7 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
         decision: {
           segmentId: input.segmentId,
           action: "retry",
-          reason: "format_repair",
+          reason: input.failureKind ?? "format_repair",
           retryable: true,
         },
         repairedDraft: {
@@ -279,6 +333,15 @@ export const createRepairAgent = (deps: RepairAgentDeps) => ({
         model: response.model,
       };
     } catch (error) {
+      if (input.failureKind === "semantic_retry") {
+        return createSemanticRetryFallback({
+          segmentId: input.segmentId,
+          rawResponse: response.content,
+          provider: response.provider,
+          model: response.model,
+        });
+      }
+
       throw toRepairExecutionError({
         error,
         context: {

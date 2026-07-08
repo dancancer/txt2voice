@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
-// input: 函数参数/外部依赖
-// output: 工具/服务导出
+// input: VoxCPM2 服务地址/合成参数/参考音频
+// output: VoxCPM2 API 客户端与低层合成结果
 // pos: 共享业务库
 import { TTSError } from "./error-handler";
 
@@ -15,7 +15,13 @@ export interface VoxCPMReferenceAudio {
 export interface VoxCPMSynthesizeRequest {
   text: string;
   referenceAudio?: string;
+  promptAudio?: string;
   promptText?: string;
+  controlInstruction?: string;
+  cfgValue?: number;
+  inferenceTimesteps?: number;
+  normalize?: boolean;
+  denoise?: boolean;
 }
 
 export interface VoxCPMSynthesizeResult {
@@ -40,6 +46,36 @@ type VoxCPMApiResponse<T> =
     }
   | T;
 
+const appendDefined = (
+  payload: Record<string, any>,
+  entries: Record<string, unknown>
+): void => {
+  for (const [key, value] of Object.entries(entries)) {
+    if (value !== undefined) {
+      payload[key] = value;
+    }
+  }
+};
+
+const createTimeoutSignal = (
+  timeout: number
+): { signal: AbortSignal; clear: () => void } => {
+  if (typeof AbortSignal.timeout === "function") {
+    return {
+      signal: AbortSignal.timeout(timeout),
+      clear: () => undefined,
+    };
+  }
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+
+  return {
+    signal: controller.signal,
+    clear: () => clearTimeout(timer),
+  };
+};
+
 /**
  * VoxCPM API 客户端服务
  */
@@ -49,7 +85,7 @@ export class VoxCPMService {
 
   constructor(config?: { baseUrl?: string; timeout?: number }) {
     this.baseUrl =
-      config?.baseUrl || process.env.VOXCPM_API_URL || "http://192.168.88.9:8012";
+      config?.baseUrl || process.env.VOXCPM_API_URL || "http://192.168.88.9:18083";
 
     const timeoutRaw = process.env.VOXCPM_TIMEOUT;
     const timeoutFromEnv =
@@ -73,11 +109,13 @@ export class VoxCPMService {
       headers["Content-Type"] = "application/json";
     }
 
+    const timeoutSignal = createTimeoutSignal(this.timeout);
+
     try {
       const response = await fetch(url, {
         ...options,
         headers,
-        signal: AbortSignal.timeout(this.timeout),
+        signal: timeoutSignal.signal,
       });
 
       if (!response.ok) {
@@ -112,6 +150,8 @@ export class VoxCPMService {
         "voxcpm",
         true
       );
+    } finally {
+      timeoutSignal.clear();
     }
   }
 
@@ -181,9 +221,19 @@ export class VoxCPMService {
       payload.reference_audio = referenceAudio;
     }
 
-    if (request.promptText !== undefined) {
-      payload.prompt_text = request.promptText;
+    const promptAudio = request.promptAudio?.trim();
+    if (promptAudio) {
+      payload.prompt_audio = promptAudio;
     }
+
+    appendDefined(payload, {
+      prompt_text: request.promptText,
+      control_instruction: request.controlInstruction,
+      cfg_value: request.cfgValue,
+      inference_timesteps: request.inferenceTimesteps,
+      normalize: request.normalize,
+      denoise: request.denoise,
+    });
 
     const response = await this.makeRequest<VoxCPMApiResponse<any>>(
       "/api/tts/synthesize",

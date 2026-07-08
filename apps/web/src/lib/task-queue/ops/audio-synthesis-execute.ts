@@ -27,8 +27,8 @@ export async function runAudioSynthesisJob(
       provider:
         typeof result.metadata?.routerDecision?.selectedEngine === "string"
           ? result.metadata.routerDecision.selectedEngine
-          : typeof data.options.provider === "string"
-            ? data.options.provider
+          : typeof data.options.preferredProvider === "string"
+            ? data.options.preferredProvider
             : null,
       attempt: context.attempt,
       retriesUsed: Math.max(context.attempt - 1, 0),
@@ -37,8 +37,8 @@ export async function runAudioSynthesisJob(
     throw new Error(
       serializeAudioJobError(error, {
         provider:
-          typeof data.options.provider === "string"
-            ? data.options.provider
+          typeof data.options.preferredProvider === "string"
+            ? data.options.preferredProvider
             : "unknown",
         attempt: context.attempt,
         retriesUsed: Math.max(context.attempt - 1, 0),

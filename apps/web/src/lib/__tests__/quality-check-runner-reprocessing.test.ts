@@ -4,6 +4,17 @@
 // pos: 任务执行器测试
 jest.mock("@/lib/prisma", () => ({
   __esModule: true,
+  Decimal: class Decimal {
+    private readonly raw: number;
+
+    constructor(value: string | number) {
+      this.raw = Number(value);
+    }
+
+    toNumber(): number {
+      return this.raw;
+    }
+  },
   Prisma: {
     Decimal: class Decimal {
       private readonly raw: number;
@@ -148,7 +159,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       where: { id: "review-reprocessing-1" },
       data: expect.objectContaining({
         status: "rejected",
-        resolutionType: "auto_rejected",
+        resolutionType: "auto_recovery_exhausted",
         issueDetail: expect.objectContaining({
           source: "qc_retry",
         }),
@@ -237,7 +248,7 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
       where: { id: "review-reprocessing-2" },
       data: expect.objectContaining({
         status: "rejected",
-        resolutionType: "auto_rejected",
+        resolutionType: "auto_recovery_exhausted",
         issueDetail: expect.objectContaining({
           source: "qc_retry",
           secondaryDispatch: "threshold_blocked",
@@ -256,15 +267,17 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
   });
 
   it("should sync manual_review_batch reprocessing without secondary dispatch", async () => {
-    mockTaskFindUnique.mockResolvedValueOnce({
-      taskData: {
-        metadata: {
-          source: "manual_review_batch",
-          syncSignalsBeforeRun: false,
-          retryReviewItemIds: ["review-batch-1"],
+    mockTaskFindUnique
+      .mockResolvedValueOnce({ status: "processing" })
+      .mockResolvedValueOnce({
+        taskData: {
+          metadata: {
+            source: "manual_review_batch",
+            syncSignalsBeforeRun: false,
+            retryReviewItemIds: ["review-batch-1"],
+          },
         },
-      },
-    });
+      });
 
     const tx = {
       qualityCheckResult: {
@@ -330,28 +343,30 @@ describe("runQualityCheckTask reprocessing secondary dispatch", () => {
   });
 
   it("should keep calibration_eval in dry-run mode without touching production state", async () => {
-    mockTaskFindUnique.mockResolvedValueOnce({
-      taskData: {
-        metadata: {
-          source: "calibration_eval",
-          syncSignalsBeforeRun: false,
-          calibrationEval: {
-            enabled: true,
-            dryRun: true,
-            reportId: "report-1",
-            sampleSetId: "sample-set-1",
-            sampleLabels: [
-              {
-                audioFileId: "audio-1",
-                expectedVerdict: "manual_review",
-                issueType: "EMOTION",
-                source: "manual_review",
-              },
-            ],
+    mockTaskFindUnique
+      .mockResolvedValueOnce({ status: "processing" })
+      .mockResolvedValueOnce({
+        taskData: {
+          metadata: {
+            source: "calibration_eval",
+            syncSignalsBeforeRun: false,
+            calibrationEval: {
+              enabled: true,
+              dryRun: true,
+              reportId: "report-1",
+              sampleSetId: "sample-set-1",
+              sampleLabels: [
+                {
+                  audioFileId: "audio-1",
+                  expectedVerdict: "manual_review",
+                  issueType: "EMOTION",
+                  source: "manual_review",
+                },
+              ],
+            },
           },
         },
-      },
-    });
+      });
     mockBookFindUnique.mockResolvedValueOnce({
       metadata: {
         qualityCheck: {

@@ -169,6 +169,62 @@ describe("quality stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(1);
   });
 
+  it("does not let quality judge block auto-local speaker labels", async () => {
+    const adapter = createMockAdapter(
+      JSON.stringify({
+        score: 0.62,
+        confidence: 0.94,
+        reasons: [
+          "角色“门后的人”未归一化为已知角色“顾青”，影响角色一致性。",
+        ],
+        summary: "对白角色未使用规范名称。",
+      })
+    );
+
+    const result = await runQualityStage({
+      workflowRunId: "wf-quality-auto-local-speaker-1",
+      segmentId: "segment-auto-local-speaker-1",
+      segmentScriptDraft: {
+        segmentId: "segment-auto-local-speaker-1",
+        createdAt: "2026-03-24T00:00:00.000Z",
+        lines: [
+          {
+            id: "line-1",
+            sourceText: "“资料带来了吗？”门后的人压低声音。",
+            text: "资料带来了吗？",
+            speaker: "门后的人",
+            orderInSegment: 0,
+          },
+        ],
+      },
+      validationReport: createValidationReport("segment-auto-local-speaker-1"),
+      characterResolutionEvidence: {
+        memoryVersion: 1,
+        rawSpeakers: ["门后的人"],
+        resolvedSpeakers: [
+          {
+            raw: "门后的人",
+            canonical: "门后的人",
+            reason: "auto_local",
+          },
+        ],
+        unresolvedSpeakers: [],
+        aliasConflicts: [],
+      },
+      adapter,
+    });
+
+    expect(result.status).toBe("completed");
+    const completed = asCompletedResult(result);
+    expect(completed.decision).toBe("auto_pass");
+    expect(completed.verdict).toEqual({
+      segmentId: "segment-auto-local-speaker-1",
+      verdict: "pass",
+      score: 0.82,
+      reasons: ["local_speaker_auto_create_allowed"],
+    });
+  });
+
   it("passes prompt guardrails that limit reasons to script-generation quality", async () => {
     const adapter = createMockAdapter(
       JSON.stringify({
@@ -195,7 +251,9 @@ describe("quality stage", () => {
 
     expect(request.systemPrompt).toContain("只评估台本生成质量");
     expect(request.systemPrompt).toContain("不要把原文题材、叙事质量、受众适宜性");
+    expect(request.systemPrompt).toContain("auto_local");
     expect(request.prompt).toContain("不要把原文叙事连贯性、题材敏感性、受众适宜性");
+    expect(request.prompt).toContain("auto_local");
   });
 
   it("converts low score output into manual_review_required", async () => {
@@ -386,85 +444,4 @@ describe("quality stage", () => {
     expect(adapter.call).toHaveBeenCalledTimes(0);
   });
 
-  it("uses mastra executor path when quality executor is mastra", async () => {
-    const adapter = createMockAdapter("{}");
-    const runMastraQualityStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-quality-stage-1",
-      agentRunId: "mastra-quality-agent-1",
-      status: "completed",
-      decision: "auto_pass",
-      verdict: {
-        segmentId: "segment-quality-mastra",
-        verdict: "pass",
-        score: 0.91,
-        reasons: ["mastra path"],
-      },
-    } satisfies RunQualityStageResult);
-
-    const result = await runQualityStage({
-      workflowRunId: "wf-quality-mastra",
-      segmentId: "segment-quality-mastra",
-      segmentScriptDraft: createDraft("segment-quality-mastra"),
-      validationReport: createValidationReport("segment-quality-mastra"),
-      adapter,
-      executor: "mastra",
-      runMastraQualityStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraQualityStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(0);
-    expect(asCompletedResult(result).decision).toBe("auto_pass");
-  });
-
-  it("keeps native result as primary output when quality shadow mode is enabled", async () => {
-    const adapter = createMockAdapter(
-      JSON.stringify({
-        score: 0.93,
-        confidence: 0.94,
-        reasons: ["角色语气一致", "未发现语义冲突"],
-        summary: "语义质量稳定，可自动通过",
-      })
-    );
-    const runMastraQualityStage = jest.fn().mockResolvedValue({
-      stageRunId: "mastra-quality-shadow-stage-1",
-      agentRunId: "mastra-quality-shadow-agent-1",
-      status: "completed",
-      decision: "manual_review_required",
-      verdict: {
-        segmentId: "segment-quality-shadow",
-        verdict: "manual_review",
-        score: 0.42,
-        reasons: ["shadow path"],
-      },
-      handoff: {
-        segmentId: "segment-quality-shadow",
-        summary: "shadow path",
-        reasons: ["shadow path"],
-        evidence: {
-          score: 0.42,
-          confidence: 0.42,
-          validation: {
-            coverageRatio: 1,
-            issues: [],
-          },
-        },
-      },
-    } satisfies RunQualityStageResult);
-
-    const result = await runQualityStage({
-      workflowRunId: "wf-quality-shadow",
-      segmentId: "segment-quality-shadow",
-      segmentScriptDraft: createDraft("segment-quality-shadow"),
-      validationReport: createValidationReport("segment-quality-shadow"),
-      adapter,
-      shadowMode: true,
-      runMastraQualityStage,
-    });
-
-    expect(result.status).toBe("completed");
-    expect(runMastraQualityStage).toHaveBeenCalledTimes(1);
-    expect(adapter.call).toHaveBeenCalledTimes(1);
-    expect(asCompletedResult(result).decision).toBe("auto_pass");
-  });
 });

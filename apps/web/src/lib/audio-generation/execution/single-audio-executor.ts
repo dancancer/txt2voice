@@ -9,7 +9,7 @@ import type {
   VoiceRouteResolution,
 } from "../types";
 import { createRouteAttemptContext, applyRouterPresetToRequest } from "../routing/route-attempt";
-import { resolveVoiceRouteForSentence } from "../routing/voice-route-resolver";
+import { runVoiceRoutingAgent } from "@/lib/auto-pipeline/voice-routing-agent";
 import { buildTTSRequest } from "../synthesis/tts-request-builder";
 import { recordFailedSynthesisAttempt } from "../persistence/synthesis-attempt-store";
 import { saveAudioFile } from "../persistence/audio-file-store";
@@ -111,12 +111,13 @@ export async function executeSingleAudioSynthesis(params: {
     }
 
     attemptStartedAt = new Date();
-    routeResolution = await resolveVoiceRouteForSentence({
+    const voiceRoutingDecision = await runVoiceRoutingAgent({
       scriptSentence,
       request,
       options: finalOptions,
       prismaClient,
     });
+    routeResolution = voiceRoutingDecision.routeResolution;
 
     if (!routeResolution?.selectedCandidate) {
       try {
@@ -133,7 +134,7 @@ export async function executeSingleAudioSynthesis(params: {
               })
             : undefined,
           fallbackEngine:
-            finalOptions.provider || scriptSentence.engineHint || undefined,
+            finalOptions.preferredProvider || scriptSentence.engineHint || undefined,
           error: new Error("未找到可用的声音配置（包含旁白兜底）"),
         });
       } catch (persistError) {
@@ -219,7 +220,7 @@ export async function executeSingleAudioSynthesis(params: {
             startedAt: attemptStartedAt,
             prismaClient,
             fallbackEngine:
-              finalOptions.provider || scriptSentence.engineHint || undefined,
+              finalOptions.preferredProvider || scriptSentence.engineHint || undefined,
             routeAttemptContext,
             error,
             isFinal: isFinalAttempt,
@@ -264,7 +265,7 @@ export async function executeSingleAudioSynthesis(params: {
           startedAt: attemptStartedAt,
           prismaClient,
           fallbackEngine:
-            finalOptions.provider || scriptSentence.engineHint || undefined,
+            finalOptions.preferredProvider || scriptSentence.engineHint || undefined,
           routeAttemptContext: routeResolution
             ? createRouteAttemptContext({
                 routeResolution,

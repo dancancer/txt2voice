@@ -31,11 +31,11 @@ export function useSpeakerBindings(bookId: string, setCharacters: (updater: any)
   const [removingBindingId, setRemovingBindingId] = useState<string | null>(null)
 
   const buildSpeakerPreviewSources = (referenceAudio?: string | null) => {
-    const base = (process.env.NEXT_PUBLIC_INDEXTTS_API_URL || 'http://192.168.88.9:8001').replace(/\/$/, '')
     if (!referenceAudio) return []
     if (/^https?:\/\//.test(referenceAudio)) return [referenceAudio]
+    const base = (process.env.NEXT_PUBLIC_VOXCPM_API_URL || 'http://192.168.88.9:18083').replace(/\/$/, '')
     if (referenceAudio.startsWith('/')) return [`${base}${referenceAudio}`]
-    return [`${base}/uploads/${referenceAudio}`]
+    return [referenceAudio]
   }
 
   const fetchCharacterSpeakerBindings = useCallback(async (characterId: string) => {
@@ -100,8 +100,7 @@ export function useSpeakerBindings(bookId: string, setCharacters: (updater: any)
 
   const addBinding = async () => {
     if (!dialogCharacter) return
-    const speakerProfileId = Number(selectedSpeakerId)
-    if (!selectedSpeakerId || Number.isNaN(speakerProfileId)) {
+    if (!selectedSpeakerId) {
       toast.error('请选择要关联的说话人')
       return
     }
@@ -113,7 +112,7 @@ export function useSpeakerBindings(bookId: string, setCharacters: (updater: any)
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            speakerProfileId,
+            speakerId: selectedSpeakerId,
             isPreferred: bindings.length === 0,
           }),
         }

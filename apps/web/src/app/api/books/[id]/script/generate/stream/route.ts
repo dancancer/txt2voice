@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { withErrorHandler, ValidationError } from "@/lib/error-handler";
 import { formatProcessingTask } from "@/lib/processing-task-utils";
+import { normalizeScriptGenerationRuntimeEvents } from "@/lib/script-generation/runner/runtime-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -26,6 +27,8 @@ export const GET = withErrorHandler(
 
     let intervalId: ReturnType<typeof setInterval> | null = null;
     let stopped = false;
+    let lastSnapshotKey = "";
+    let lastRuntimeEventSeq = 0;
 
     const stream = new ReadableStream({
       start(controller) {
@@ -39,13 +42,23 @@ export const GET = withErrorHandler(
           controller.close();
         };
 
-        const send = (event: string, payload: Record<string, unknown>) => {
+        const send = (event: string, payload: unknown) => {
           if (stopped) return;
           controller.enqueue(
             encoder.encode(
               `event: ${event}\n` + `data: ${JSON.stringify(payload)}\n\n`
             )
           );
+        };
+
+        const sendSnapshot = (payload: Record<string, unknown>) => {
+          const snapshotKey = JSON.stringify(payload);
+          if (snapshotKey === lastSnapshotKey) {
+            return;
+          }
+          lastSnapshotKey = snapshotKey;
+          send("task_snapshot", payload);
+          send("message", payload);
         };
 
         const tick = async () => {
@@ -69,16 +82,33 @@ export const GET = withErrorHandler(
             }
 
             const formatted = formatProcessingTask(task);
-            send("message", {
+            const runtimeEvents = normalizeScriptGenerationRuntimeEvents(
+              formatted.metadata?.recentRuntimeEvents
+            );
+            const unseenEvents = runtimeEvents.filter(
+              (event) => event.seq > lastRuntimeEventSeq
+            );
+
+            for (const event of unseenEvents) {
+              send("runtime_event", event);
+              lastRuntimeEventSeq = Math.max(lastRuntimeEventSeq, event.seq);
+            }
+
+            sendSnapshot({
               taskId: formatted.id,
               status: formatted.status,
               progress: formatted.progress ?? 0,
               message: formatted.message,
               metadata: formatted.metadata,
               error: formatted.error,
+              lastRuntimeEventSeq,
             });
 
-            if (formatted.status === "completed" || formatted.status === "failed") {
+            if (
+              formatted.status === "completed" ||
+              formatted.status === "failed" ||
+              formatted.status === "canceled"
+            ) {
               close();
             }
           } catch (error) {

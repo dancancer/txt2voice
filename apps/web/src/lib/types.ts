@@ -142,6 +142,12 @@ export interface ScriptSentence {
   roleType?: string;
   strength?: number; // 数据库字段名
   pauseAfter?: number; // Decimal转换
+  prosody?: {
+    pace?: number;
+    pitch?: number;
+    energy?: number;
+    pauseMsAfter?: number;
+  };
   ttsParameters?: {
     pitch?: number;
     rate?: number;
@@ -298,12 +304,7 @@ export interface CharacterCandidate {
 
 // TTS 服务类型
 export interface TTSServiceConfig {
-  provider:
-    | "azure"
-    | "openai"
-    | "indextts"
-    | "cosyvoice"
-    | "voxcpm";
+  provider: "voxcpm";
   apiKey?: string;
   region?: string;
   voiceId: string;

@@ -1,4 +1,4 @@
-import { buildCharacterMap } from "@/lib/script-generator/storage/character-utils";
+import { buildCharacterMap } from "../script-production/storage/character-utils";
 import type { CharacterMemory, MemoryPatch, SegmentScriptDraft } from "../../context";
 import { createPersistTools, type PersistTools } from "../../tools/persist-tools";
 import type { AgentRunRecord, ToolCallRecord } from "../run-agent";
@@ -193,6 +193,7 @@ export const runPersistStage = async (
                 })
               : await persistSegmentDraft();
             persistedSentenceCount += result.persistedSentenceCount;
+            persistedCharacterCount += result.persistedCharacterCount;
           }
 
           return {

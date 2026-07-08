@@ -5,7 +5,6 @@ export interface TextProcessingOptions {
   minSegmentLength?: number;
   preserveFormatting?: boolean;
   encoding?: BufferEncoding;
-  useSmartSplitter?: boolean;
 }
 
 export interface ProcessedText {

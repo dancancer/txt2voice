@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
 // input: review 重生任务列表 props
-// output: 最近重生任务卡片
+// output: 最近台本失败与重生任务卡片
 // pos: 质检复核页面子组件
 
 import { Badge } from "@/components/ui/badge";
@@ -41,27 +41,76 @@ const formatDateTime = (value: string | null): string => {
   });
 };
 
+type NonNullReviewRegenerateTaskSource = Exclude<
+  ReviewRegenerateTask["source"],
+  null
+>;
+
+export const REVIEW_REGENERATE_SOURCE_LABELS: Record<
+  NonNullReviewRegenerateTaskSource,
+  string
+> = {
+  manual_review: "单条重生",
+  manual_review_batch: "批量重生",
+  manual_review_bulk_pending: "全量待复核重生",
+};
+
+export const REVIEW_REGENERATE_CATEGORY_LABELS: Record<
+  ReviewRegenerateTask["category"],
+  string
+> = {
+  manual_review_regenerate: "重生任务",
+  script_failure: "失败任务",
+};
+
 const toSourceLabel = (source: ReviewRegenerateTask["source"]): string => {
-  if (source === "manual_review_batch") {
-    return "批量重生";
+  if (source === null) {
+    return "系统记录";
   }
-  if (source === "manual_review_bulk_pending") {
-    return "全量待复核重生";
+  return REVIEW_REGENERATE_SOURCE_LABELS[source];
+};
+
+const toCategoryLabel = (category: ReviewRegenerateTask["category"]): string => {
+  return REVIEW_REGENERATE_CATEGORY_LABELS[category];
+};
+
+const toFailureSummaryLine = (
+  summary: ReviewRegenerateTask["failureSummary"]
+): string | null => {
+  if (!summary) {
+    return null;
   }
-  return "单条重生";
+
+  const parts: string[] = [];
+  if (summary.orderIndex !== null) {
+    parts.push(`段落 ${summary.orderIndex + 1}`);
+  } else if (summary.segmentId) {
+    parts.push(`段落ID ${summary.segmentId}`);
+  }
+  if (summary.stage) {
+    parts.push(summary.stage);
+  }
+  if (summary.errorCode) {
+    parts.push(summary.errorCode);
+  }
+  if (summary.message) {
+    parts.push(summary.message);
+  }
+
+  return parts.length > 0 ? parts.join(" · ") : null;
 };
 
 const toStatusIcon = (status: ReviewRegenerateTask["status"]) => {
   if (status === "completed") {
-    return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
+    return <CheckCircle2 className="h-4 w-4 text-primary" />;
   }
   if (status === "failed") {
-    return <XCircle className="h-4 w-4 text-rose-600" />;
+    return <XCircle className="h-4 w-4 text-destructive" />;
   }
   if (status === "processing") {
-    return <Loader2 className="h-4 w-4 animate-spin text-blue-600" />;
+    return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
   }
-  return <Clock3 className="h-4 w-4 text-slate-500" />;
+  return <Clock3 className="h-4 w-4 text-muted-foreground" />;
 };
 
 export function ReviewRegenerateTaskList({
@@ -69,27 +118,27 @@ export function ReviewRegenerateTaskList({
   loading,
 }: ReviewRegenerateTaskListProps) {
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg text-slate-900">
-          <RotateCcw className="h-5 w-5 text-blue-600" />
-          最近重生任务
+        <CardTitle className="flex items-center gap-2 text-lg text-foreground">
+          <RotateCcw className="h-5 w-5 text-primary" />
+          最近台本失败与重生任务
         </CardTitle>
-        <p className="text-sm leading-6 text-slate-600">
-          展示当前书籍由人工复核触发的单条/批量重生任务；有运行中任务时，页面会自动刷新。
+        <p className="text-sm leading-6 text-muted-foreground">
+          展示当前书籍最近的台本失败任务与人工复核重生任务；有运行中任务时，页面会自动刷新。
         </p>
       </CardHeader>
       <CardContent className="space-y-3">
         {loading ? (
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
-            <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-blue-600" />
+          <div className="rounded-md border border-border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
+            <Loader2 className="mx-auto mb-3 h-6 w-6 animate-spin text-primary" />
             正在加载最近重生任务...
           </div>
         ) : null}
 
         {!loading && tasks.length === 0 ? (
-          <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-600">
-            当前还没有人工复核触发的重生任务。
+          <div className="rounded-md border border-dashed border-border bg-muted/50 px-4 py-8 text-center text-sm text-muted-foreground">
+            当前还没有台本失败或重生任务。
           </div>
         ) : null}
 
@@ -97,27 +146,30 @@ export function ReviewRegenerateTaskList({
           ? tasks.map((task) => {
               const statusMeta = getTaskStatusMeta(task.status);
               const isProcessing = task.status === "processing";
+              const failureSummaryLine = toFailureSummaryLine(task.failureSummary);
 
               return (
                 <div
                   key={task.id}
-                  className="rounded-lg border border-slate-200 bg-white p-4"
+                  id={`task-${task.id}`}
+                  className="rounded-lg border border-border bg-card p-4"
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline">{getTaskTypeLabel(task.taskType)}</Badge>
                     <Badge className={statusMeta.className}>{statusMeta.label}</Badge>
+                    <Badge variant="outline">{toCategoryLabel(task.category)}</Badge>
                     <Badge variant="outline">{toSourceLabel(task.source)}</Badge>
                     <Badge variant="outline">目标 {task.targetCount} 条</Badge>
                   </div>
 
-                  <div className="mt-3 flex items-start gap-2 text-sm text-slate-700">
+                  <div className="mt-3 flex items-start gap-2 text-sm text-foreground">
                     {toStatusIcon(task.status)}
                     <p className="leading-6">{task.message || "任务已创建，等待执行。"}</p>
                   </div>
 
                   {isProcessing ? (
                     <div className="mt-3 space-y-2">
-                      <div className="flex items-center justify-between text-sm text-slate-600">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
                         <span>当前进度</span>
                         <span>{task.progress}%</span>
                       </div>
@@ -126,13 +178,19 @@ export function ReviewRegenerateTaskList({
                   ) : null}
 
                   {task.errorMessage ? (
-                    <div className="mt-3 flex items-start gap-2 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    <div className="mt-3 flex items-start gap-2 rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive">
                       <AlertCircle className="mt-0.5 h-4 w-4" />
                       <p className="leading-6">{task.errorMessage}</p>
                     </div>
                   ) : null}
 
-                  <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-slate-500 sm:grid-cols-3">
+                  {task.failureSummary && failureSummaryLine ? (
+                    <div className="mt-3 rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-700">
+                      <p className="leading-6">{failureSummaryLine}</p>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-muted-foreground sm:grid-cols-3">
                     <p>任务ID: {task.id.slice(0, 8)}</p>
                     <p>创建: {formatDateTime(task.createdAt)}</p>
                     <p>

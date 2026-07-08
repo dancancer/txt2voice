@@ -167,6 +167,41 @@ describe("POST /api/tasks/[taskId]/replay", () => {
     expect(mockReplayTask).toHaveBeenCalledWith("task-1", {
       force: false,
       reason: "manual_api_replay",
+      refreshPreset: false,
+    });
+  });
+
+  it("should pass explicit preset refresh flag to replay service", async () => {
+    mockFindTask.mockResolvedValue({
+      id: "task-1",
+      bookId: "book-1",
+      taskType: "AUTO_PIPELINE",
+      status: "failed",
+    });
+
+    mockReplayTask.mockResolvedValue({
+      taskId: "task-1",
+      taskType: "AUTO_PIPELINE",
+      jobId: "task-1",
+      reused: false,
+      reason: "manual_api_replay",
+    });
+
+    const response: any = await POST(
+      makeRequest("dev-replay-token", {
+        force: true,
+        refreshPreset: true,
+      }),
+      ROUTE_PARAMS as any
+    );
+    const payload = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(payload.success).toBe(true);
+    expect(mockReplayTask).toHaveBeenCalledWith("task-1", {
+      force: true,
+      reason: "manual_api_replay",
+      refreshPreset: true,
     });
   });
 });

@@ -58,11 +58,11 @@ export class ErrorBoundary extends Component<Props, State> {
 function DefaultErrorFallback({ error }: { error?: Error }) {
   return (
     <div className="min-h-[400px] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-red-50 border border-red-200 rounded-lg p-6">
+      <div className="w-full max-w-md rounded-lg border border-destructive/20 bg-destructive/10 p-6">
         <div className="flex items-start">
           <div className="shrink-0">
             <svg
-              className="h-6 w-6 text-red-600"
+              className="h-6 w-6 text-destructive"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -76,14 +76,14 @@ function DefaultErrorFallback({ error }: { error?: Error }) {
             </svg>
           </div>
           <div className="ml-3 flex-1">
-            <h3 className="text-sm font-medium text-red-800">出错了</h3>
-            <div className="mt-2 text-sm text-red-700">
+            <h3 className="text-sm font-medium text-destructive">出错了</h3>
+            <div className="mt-2 text-sm text-destructive">
               <p>{error?.message || '发生了未知错误'}</p>
             </div>
             <div className="mt-4">
               <button
                 onClick={() => window.location.reload()}
-                className="text-sm font-medium text-red-600 hover:text-red-500"
+                className="text-sm font-medium text-destructive hover:opacity-80"
               >
                 刷新页面
               </button>

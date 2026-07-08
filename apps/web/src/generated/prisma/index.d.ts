@@ -39,6 +39,11 @@ export type CharacterAlias = $Result.DefaultSelection<Prisma.$CharacterAliasPayl
  */
 export type TTSVoiceProfile = $Result.DefaultSelection<Prisma.$TTSVoiceProfilePayload>
 /**
+ * Model LlmModelConfig
+ * 
+ */
+export type LlmModelConfig = $Result.DefaultSelection<Prisma.$LlmModelConfigPayload>
+/**
  * Model CharacterVoiceBinding
  * 
  */
@@ -321,6 +326,16 @@ export class PrismaClient<
     * ```
     */
   get tTSVoiceProfile(): Prisma.TTSVoiceProfileDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.llmModelConfig`: Exposes CRUD operations for the **LlmModelConfig** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LlmModelConfigs
+    * const llmModelConfigs = await prisma.llmModelConfig.findMany()
+    * ```
+    */
+  get llmModelConfig(): Prisma.LlmModelConfigDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.characterVoiceBinding`: Exposes CRUD operations for the **CharacterVoiceBinding** model.
@@ -997,6 +1012,7 @@ export namespace Prisma {
     CharacterProfile: 'CharacterProfile',
     CharacterAlias: 'CharacterAlias',
     TTSVoiceProfile: 'TTSVoiceProfile',
+    LlmModelConfig: 'LlmModelConfig',
     CharacterVoiceBinding: 'CharacterVoiceBinding',
     TextSegment: 'TextSegment',
     ScriptSentence: 'ScriptSentence',
@@ -1038,7 +1054,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "workflowRun" | "stageRun" | "agentRun" | "toolCall" | "traceEvent" | "runtimeArtifact" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "qcDispatchAlertEvent" | "qcDispatchPolicyConfig" | "qcDispatchPolicyRevision" | "chapterQualityAudit"
+      modelProps: "book" | "chapter" | "characterProfile" | "characterAlias" | "tTSVoiceProfile" | "llmModelConfig" | "characterVoiceBinding" | "textSegment" | "scriptSentence" | "audioFile" | "characterMergeAudit" | "processingTask" | "workflowRun" | "stageRun" | "agentRun" | "toolCall" | "traceEvent" | "runtimeArtifact" | "speakerProfile" | "characterSpeakerBinding" | "speakerEngineVariant" | "speakerEmotionPreset" | "synthesisAttempt" | "qualityCheckResult" | "manualReviewItem" | "qcDispatchAlertEvent" | "qcDispatchPolicyConfig" | "qcDispatchPolicyRevision" | "chapterQualityAudit"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1409,6 +1425,80 @@ export namespace Prisma {
           count: {
             args: Prisma.TTSVoiceProfileCountArgs<ExtArgs>
             result: $Utils.Optional<TTSVoiceProfileCountAggregateOutputType> | number
+          }
+        }
+      }
+      LlmModelConfig: {
+        payload: Prisma.$LlmModelConfigPayload<ExtArgs>
+        fields: Prisma.LlmModelConfigFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LlmModelConfigFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LlmModelConfigFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>
+          }
+          findFirst: {
+            args: Prisma.LlmModelConfigFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LlmModelConfigFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>
+          }
+          findMany: {
+            args: Prisma.LlmModelConfigFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>[]
+          }
+          create: {
+            args: Prisma.LlmModelConfigCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>
+          }
+          createMany: {
+            args: Prisma.LlmModelConfigCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LlmModelConfigCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>[]
+          }
+          delete: {
+            args: Prisma.LlmModelConfigDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>
+          }
+          update: {
+            args: Prisma.LlmModelConfigUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>
+          }
+          deleteMany: {
+            args: Prisma.LlmModelConfigDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LlmModelConfigUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.LlmModelConfigUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>[]
+          }
+          upsert: {
+            args: Prisma.LlmModelConfigUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LlmModelConfigPayload>
+          }
+          aggregate: {
+            args: Prisma.LlmModelConfigAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLlmModelConfig>
+          }
+          groupBy: {
+            args: Prisma.LlmModelConfigGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LlmModelConfigGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LlmModelConfigCountArgs<ExtArgs>
+            result: $Utils.Optional<LlmModelConfigCountAggregateOutputType> | number
           }
         }
       }
@@ -3215,6 +3305,7 @@ export namespace Prisma {
     characterProfile?: CharacterProfileOmit
     characterAlias?: CharacterAliasOmit
     tTSVoiceProfile?: TTSVoiceProfileOmit
+    llmModelConfig?: LlmModelConfigOmit
     characterVoiceBinding?: CharacterVoiceBindingOmit
     textSegment?: TextSegmentOmit
     scriptSentence?: ScriptSentenceOmit
@@ -11025,6 +11116,1113 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: TTSVoiceProfileInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LlmModelConfig
+   */
+
+  export type AggregateLlmModelConfig = {
+    _count: LlmModelConfigCountAggregateOutputType | null
+    _avg: LlmModelConfigAvgAggregateOutputType | null
+    _sum: LlmModelConfigSumAggregateOutputType | null
+    _min: LlmModelConfigMinAggregateOutputType | null
+    _max: LlmModelConfigMaxAggregateOutputType | null
+  }
+
+  export type LlmModelConfigAvgAggregateOutputType = {
+    sortOrder: number | null
+  }
+
+  export type LlmModelConfigSumAggregateOutputType = {
+    sortOrder: number | null
+  }
+
+  export type LlmModelConfigMinAggregateOutputType = {
+    id: string | null
+    name: string | null
+    provider: string | null
+    baseURL: string | null
+    model: string | null
+    apiKey: string | null
+    isDefault: boolean | null
+    isActive: boolean | null
+    sortOrder: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LlmModelConfigMaxAggregateOutputType = {
+    id: string | null
+    name: string | null
+    provider: string | null
+    baseURL: string | null
+    model: string | null
+    apiKey: string | null
+    isDefault: boolean | null
+    isActive: boolean | null
+    sortOrder: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LlmModelConfigCountAggregateOutputType = {
+    id: number
+    name: number
+    provider: number
+    baseURL: number
+    model: number
+    apiKey: number
+    isDefault: number
+    isActive: number
+    sortOrder: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type LlmModelConfigAvgAggregateInputType = {
+    sortOrder?: true
+  }
+
+  export type LlmModelConfigSumAggregateInputType = {
+    sortOrder?: true
+  }
+
+  export type LlmModelConfigMinAggregateInputType = {
+    id?: true
+    name?: true
+    provider?: true
+    baseURL?: true
+    model?: true
+    apiKey?: true
+    isDefault?: true
+    isActive?: true
+    sortOrder?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LlmModelConfigMaxAggregateInputType = {
+    id?: true
+    name?: true
+    provider?: true
+    baseURL?: true
+    model?: true
+    apiKey?: true
+    isDefault?: true
+    isActive?: true
+    sortOrder?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LlmModelConfigCountAggregateInputType = {
+    id?: true
+    name?: true
+    provider?: true
+    baseURL?: true
+    model?: true
+    apiKey?: true
+    isDefault?: true
+    isActive?: true
+    sortOrder?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type LlmModelConfigAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LlmModelConfig to aggregate.
+     */
+    where?: LlmModelConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LlmModelConfigs to fetch.
+     */
+    orderBy?: LlmModelConfigOrderByWithRelationInput | LlmModelConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LlmModelConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LlmModelConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LlmModelConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LlmModelConfigs
+    **/
+    _count?: true | LlmModelConfigCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LlmModelConfigAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LlmModelConfigSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LlmModelConfigMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LlmModelConfigMaxAggregateInputType
+  }
+
+  export type GetLlmModelConfigAggregateType<T extends LlmModelConfigAggregateArgs> = {
+        [P in keyof T & keyof AggregateLlmModelConfig]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLlmModelConfig[P]>
+      : GetScalarType<T[P], AggregateLlmModelConfig[P]>
+  }
+
+
+
+
+  export type LlmModelConfigGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LlmModelConfigWhereInput
+    orderBy?: LlmModelConfigOrderByWithAggregationInput | LlmModelConfigOrderByWithAggregationInput[]
+    by: LlmModelConfigScalarFieldEnum[] | LlmModelConfigScalarFieldEnum
+    having?: LlmModelConfigScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LlmModelConfigCountAggregateInputType | true
+    _avg?: LlmModelConfigAvgAggregateInputType
+    _sum?: LlmModelConfigSumAggregateInputType
+    _min?: LlmModelConfigMinAggregateInputType
+    _max?: LlmModelConfigMaxAggregateInputType
+  }
+
+  export type LlmModelConfigGroupByOutputType = {
+    id: string
+    name: string
+    provider: string
+    baseURL: string
+    model: string
+    apiKey: string | null
+    isDefault: boolean
+    isActive: boolean
+    sortOrder: number
+    createdAt: Date
+    updatedAt: Date
+    _count: LlmModelConfigCountAggregateOutputType | null
+    _avg: LlmModelConfigAvgAggregateOutputType | null
+    _sum: LlmModelConfigSumAggregateOutputType | null
+    _min: LlmModelConfigMinAggregateOutputType | null
+    _max: LlmModelConfigMaxAggregateOutputType | null
+  }
+
+  type GetLlmModelConfigGroupByPayload<T extends LlmModelConfigGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LlmModelConfigGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LlmModelConfigGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LlmModelConfigGroupByOutputType[P]>
+            : GetScalarType<T[P], LlmModelConfigGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LlmModelConfigSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    provider?: boolean
+    baseURL?: boolean
+    model?: boolean
+    apiKey?: boolean
+    isDefault?: boolean
+    isActive?: boolean
+    sortOrder?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["llmModelConfig"]>
+
+  export type LlmModelConfigSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    provider?: boolean
+    baseURL?: boolean
+    model?: boolean
+    apiKey?: boolean
+    isDefault?: boolean
+    isActive?: boolean
+    sortOrder?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["llmModelConfig"]>
+
+  export type LlmModelConfigSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    name?: boolean
+    provider?: boolean
+    baseURL?: boolean
+    model?: boolean
+    apiKey?: boolean
+    isDefault?: boolean
+    isActive?: boolean
+    sortOrder?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["llmModelConfig"]>
+
+  export type LlmModelConfigSelectScalar = {
+    id?: boolean
+    name?: boolean
+    provider?: boolean
+    baseURL?: boolean
+    model?: boolean
+    apiKey?: boolean
+    isDefault?: boolean
+    isActive?: boolean
+    sortOrder?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type LlmModelConfigOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "provider" | "baseURL" | "model" | "apiKey" | "isDefault" | "isActive" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["llmModelConfig"]>
+
+  export type $LlmModelConfigPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LlmModelConfig"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      name: string
+      provider: string
+      baseURL: string
+      model: string
+      apiKey: string | null
+      isDefault: boolean
+      isActive: boolean
+      sortOrder: number
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["llmModelConfig"]>
+    composites: {}
+  }
+
+  type LlmModelConfigGetPayload<S extends boolean | null | undefined | LlmModelConfigDefaultArgs> = $Result.GetResult<Prisma.$LlmModelConfigPayload, S>
+
+  type LlmModelConfigCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<LlmModelConfigFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: LlmModelConfigCountAggregateInputType | true
+    }
+
+  export interface LlmModelConfigDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LlmModelConfig'], meta: { name: 'LlmModelConfig' } }
+    /**
+     * Find zero or one LlmModelConfig that matches the filter.
+     * @param {LlmModelConfigFindUniqueArgs} args - Arguments to find a LlmModelConfig
+     * @example
+     * // Get one LlmModelConfig
+     * const llmModelConfig = await prisma.llmModelConfig.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LlmModelConfigFindUniqueArgs>(args: SelectSubset<T, LlmModelConfigFindUniqueArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one LlmModelConfig that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {LlmModelConfigFindUniqueOrThrowArgs} args - Arguments to find a LlmModelConfig
+     * @example
+     * // Get one LlmModelConfig
+     * const llmModelConfig = await prisma.llmModelConfig.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LlmModelConfigFindUniqueOrThrowArgs>(args: SelectSubset<T, LlmModelConfigFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LlmModelConfig that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LlmModelConfigFindFirstArgs} args - Arguments to find a LlmModelConfig
+     * @example
+     * // Get one LlmModelConfig
+     * const llmModelConfig = await prisma.llmModelConfig.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LlmModelConfigFindFirstArgs>(args?: SelectSubset<T, LlmModelConfigFindFirstArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first LlmModelConfig that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LlmModelConfigFindFirstOrThrowArgs} args - Arguments to find a LlmModelConfig
+     * @example
+     * // Get one LlmModelConfig
+     * const llmModelConfig = await prisma.llmModelConfig.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LlmModelConfigFindFirstOrThrowArgs>(args?: SelectSubset<T, LlmModelConfigFindFirstOrThrowArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more LlmModelConfigs that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LlmModelConfigFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LlmModelConfigs
+     * const llmModelConfigs = await prisma.llmModelConfig.findMany()
+     * 
+     * // Get first 10 LlmModelConfigs
+     * const llmModelConfigs = await prisma.llmModelConfig.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const llmModelConfigWithIdOnly = await prisma.llmModelConfig.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LlmModelConfigFindManyArgs>(args?: SelectSubset<T, LlmModelConfigFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a LlmModelConfig.
+     * @param {LlmModelConfigCreateArgs} args - Arguments to create a LlmModelConfig.
+     * @example
+     * // Create one LlmModelConfig
+     * const LlmModelConfig = await prisma.llmModelConfig.create({
+     *   data: {
+     *     // ... data to create a LlmModelConfig
+     *   }
+     * })
+     * 
+     */
+    create<T extends LlmModelConfigCreateArgs>(args: SelectSubset<T, LlmModelConfigCreateArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many LlmModelConfigs.
+     * @param {LlmModelConfigCreateManyArgs} args - Arguments to create many LlmModelConfigs.
+     * @example
+     * // Create many LlmModelConfigs
+     * const llmModelConfig = await prisma.llmModelConfig.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LlmModelConfigCreateManyArgs>(args?: SelectSubset<T, LlmModelConfigCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LlmModelConfigs and returns the data saved in the database.
+     * @param {LlmModelConfigCreateManyAndReturnArgs} args - Arguments to create many LlmModelConfigs.
+     * @example
+     * // Create many LlmModelConfigs
+     * const llmModelConfig = await prisma.llmModelConfig.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LlmModelConfigs and only return the `id`
+     * const llmModelConfigWithIdOnly = await prisma.llmModelConfig.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LlmModelConfigCreateManyAndReturnArgs>(args?: SelectSubset<T, LlmModelConfigCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a LlmModelConfig.
+     * @param {LlmModelConfigDeleteArgs} args - Arguments to delete one LlmModelConfig.
+     * @example
+     * // Delete one LlmModelConfig
+     * const LlmModelConfig = await prisma.llmModelConfig.delete({
+     *   where: {
+     *     // ... filter to delete one LlmModelConfig
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LlmModelConfigDeleteArgs>(args: SelectSubset<T, LlmModelConfigDeleteArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one LlmModelConfig.
+     * @param {LlmModelConfigUpdateArgs} args - Arguments to update one LlmModelConfig.
+     * @example
+     * // Update one LlmModelConfig
+     * const llmModelConfig = await prisma.llmModelConfig.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LlmModelConfigUpdateArgs>(args: SelectSubset<T, LlmModelConfigUpdateArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more LlmModelConfigs.
+     * @param {LlmModelConfigDeleteManyArgs} args - Arguments to filter LlmModelConfigs to delete.
+     * @example
+     * // Delete a few LlmModelConfigs
+     * const { count } = await prisma.llmModelConfig.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LlmModelConfigDeleteManyArgs>(args?: SelectSubset<T, LlmModelConfigDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LlmModelConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LlmModelConfigUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LlmModelConfigs
+     * const llmModelConfig = await prisma.llmModelConfig.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LlmModelConfigUpdateManyArgs>(args: SelectSubset<T, LlmModelConfigUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LlmModelConfigs and returns the data updated in the database.
+     * @param {LlmModelConfigUpdateManyAndReturnArgs} args - Arguments to update many LlmModelConfigs.
+     * @example
+     * // Update many LlmModelConfigs
+     * const llmModelConfig = await prisma.llmModelConfig.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more LlmModelConfigs and only return the `id`
+     * const llmModelConfigWithIdOnly = await prisma.llmModelConfig.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends LlmModelConfigUpdateManyAndReturnArgs>(args: SelectSubset<T, LlmModelConfigUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one LlmModelConfig.
+     * @param {LlmModelConfigUpsertArgs} args - Arguments to update or create a LlmModelConfig.
+     * @example
+     * // Update or create a LlmModelConfig
+     * const llmModelConfig = await prisma.llmModelConfig.upsert({
+     *   create: {
+     *     // ... data to create a LlmModelConfig
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LlmModelConfig we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LlmModelConfigUpsertArgs>(args: SelectSubset<T, LlmModelConfigUpsertArgs<ExtArgs>>): Prisma__LlmModelConfigClient<$Result.GetResult<Prisma.$LlmModelConfigPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of LlmModelConfigs.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LlmModelConfigCountArgs} args - Arguments to filter LlmModelConfigs to count.
+     * @example
+     * // Count the number of LlmModelConfigs
+     * const count = await prisma.llmModelConfig.count({
+     *   where: {
+     *     // ... the filter for the LlmModelConfigs we want to count
+     *   }
+     * })
+    **/
+    count<T extends LlmModelConfigCountArgs>(
+      args?: Subset<T, LlmModelConfigCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LlmModelConfigCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LlmModelConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LlmModelConfigAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LlmModelConfigAggregateArgs>(args: Subset<T, LlmModelConfigAggregateArgs>): Prisma.PrismaPromise<GetLlmModelConfigAggregateType<T>>
+
+    /**
+     * Group by LlmModelConfig.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LlmModelConfigGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LlmModelConfigGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LlmModelConfigGroupByArgs['orderBy'] }
+        : { orderBy?: LlmModelConfigGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LlmModelConfigGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLlmModelConfigGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LlmModelConfig model
+   */
+  readonly fields: LlmModelConfigFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LlmModelConfig.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LlmModelConfigClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LlmModelConfig model
+   */
+  interface LlmModelConfigFieldRefs {
+    readonly id: FieldRef<"LlmModelConfig", 'String'>
+    readonly name: FieldRef<"LlmModelConfig", 'String'>
+    readonly provider: FieldRef<"LlmModelConfig", 'String'>
+    readonly baseURL: FieldRef<"LlmModelConfig", 'String'>
+    readonly model: FieldRef<"LlmModelConfig", 'String'>
+    readonly apiKey: FieldRef<"LlmModelConfig", 'String'>
+    readonly isDefault: FieldRef<"LlmModelConfig", 'Boolean'>
+    readonly isActive: FieldRef<"LlmModelConfig", 'Boolean'>
+    readonly sortOrder: FieldRef<"LlmModelConfig", 'Int'>
+    readonly createdAt: FieldRef<"LlmModelConfig", 'DateTime'>
+    readonly updatedAt: FieldRef<"LlmModelConfig", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LlmModelConfig findUnique
+   */
+  export type LlmModelConfigFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LlmModelConfig to fetch.
+     */
+    where: LlmModelConfigWhereUniqueInput
+  }
+
+  /**
+   * LlmModelConfig findUniqueOrThrow
+   */
+  export type LlmModelConfigFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LlmModelConfig to fetch.
+     */
+    where: LlmModelConfigWhereUniqueInput
+  }
+
+  /**
+   * LlmModelConfig findFirst
+   */
+  export type LlmModelConfigFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LlmModelConfig to fetch.
+     */
+    where?: LlmModelConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LlmModelConfigs to fetch.
+     */
+    orderBy?: LlmModelConfigOrderByWithRelationInput | LlmModelConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LlmModelConfigs.
+     */
+    cursor?: LlmModelConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LlmModelConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LlmModelConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LlmModelConfigs.
+     */
+    distinct?: LlmModelConfigScalarFieldEnum | LlmModelConfigScalarFieldEnum[]
+  }
+
+  /**
+   * LlmModelConfig findFirstOrThrow
+   */
+  export type LlmModelConfigFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LlmModelConfig to fetch.
+     */
+    where?: LlmModelConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LlmModelConfigs to fetch.
+     */
+    orderBy?: LlmModelConfigOrderByWithRelationInput | LlmModelConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LlmModelConfigs.
+     */
+    cursor?: LlmModelConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LlmModelConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LlmModelConfigs.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LlmModelConfigs.
+     */
+    distinct?: LlmModelConfigScalarFieldEnum | LlmModelConfigScalarFieldEnum[]
+  }
+
+  /**
+   * LlmModelConfig findMany
+   */
+  export type LlmModelConfigFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * Filter, which LlmModelConfigs to fetch.
+     */
+    where?: LlmModelConfigWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LlmModelConfigs to fetch.
+     */
+    orderBy?: LlmModelConfigOrderByWithRelationInput | LlmModelConfigOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LlmModelConfigs.
+     */
+    cursor?: LlmModelConfigWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LlmModelConfigs from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LlmModelConfigs.
+     */
+    skip?: number
+    distinct?: LlmModelConfigScalarFieldEnum | LlmModelConfigScalarFieldEnum[]
+  }
+
+  /**
+   * LlmModelConfig create
+   */
+  export type LlmModelConfigCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to create a LlmModelConfig.
+     */
+    data: XOR<LlmModelConfigCreateInput, LlmModelConfigUncheckedCreateInput>
+  }
+
+  /**
+   * LlmModelConfig createMany
+   */
+  export type LlmModelConfigCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LlmModelConfigs.
+     */
+    data: LlmModelConfigCreateManyInput | LlmModelConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LlmModelConfig createManyAndReturn
+   */
+  export type LlmModelConfigCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * The data used to create many LlmModelConfigs.
+     */
+    data: LlmModelConfigCreateManyInput | LlmModelConfigCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LlmModelConfig update
+   */
+  export type LlmModelConfigUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * The data needed to update a LlmModelConfig.
+     */
+    data: XOR<LlmModelConfigUpdateInput, LlmModelConfigUncheckedUpdateInput>
+    /**
+     * Choose, which LlmModelConfig to update.
+     */
+    where: LlmModelConfigWhereUniqueInput
+  }
+
+  /**
+   * LlmModelConfig updateMany
+   */
+  export type LlmModelConfigUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LlmModelConfigs.
+     */
+    data: XOR<LlmModelConfigUpdateManyMutationInput, LlmModelConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which LlmModelConfigs to update
+     */
+    where?: LlmModelConfigWhereInput
+    /**
+     * Limit how many LlmModelConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LlmModelConfig updateManyAndReturn
+   */
+  export type LlmModelConfigUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * The data used to update LlmModelConfigs.
+     */
+    data: XOR<LlmModelConfigUpdateManyMutationInput, LlmModelConfigUncheckedUpdateManyInput>
+    /**
+     * Filter which LlmModelConfigs to update
+     */
+    where?: LlmModelConfigWhereInput
+    /**
+     * Limit how many LlmModelConfigs to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * LlmModelConfig upsert
+   */
+  export type LlmModelConfigUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * The filter to search for the LlmModelConfig to update in case it exists.
+     */
+    where: LlmModelConfigWhereUniqueInput
+    /**
+     * In case the LlmModelConfig found by the `where` argument doesn't exist, create a new LlmModelConfig with this data.
+     */
+    create: XOR<LlmModelConfigCreateInput, LlmModelConfigUncheckedCreateInput>
+    /**
+     * In case the LlmModelConfig was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LlmModelConfigUpdateInput, LlmModelConfigUncheckedUpdateInput>
+  }
+
+  /**
+   * LlmModelConfig delete
+   */
+  export type LlmModelConfigDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
+    /**
+     * Filter which LlmModelConfig to delete.
+     */
+    where: LlmModelConfigWhereUniqueInput
+  }
+
+  /**
+   * LlmModelConfig deleteMany
+   */
+  export type LlmModelConfigDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LlmModelConfigs to delete
+     */
+    where?: LlmModelConfigWhereInput
+    /**
+     * Limit how many LlmModelConfigs to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * LlmModelConfig without action
+   */
+  export type LlmModelConfigDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LlmModelConfig
+     */
+    select?: LlmModelConfigSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the LlmModelConfig
+     */
+    omit?: LlmModelConfigOmit<ExtArgs> | null
   }
 
 
@@ -39917,6 +41115,23 @@ export namespace Prisma {
   export type TTSVoiceProfileScalarFieldEnum = (typeof TTSVoiceProfileScalarFieldEnum)[keyof typeof TTSVoiceProfileScalarFieldEnum]
 
 
+  export const LlmModelConfigScalarFieldEnum: {
+    id: 'id',
+    name: 'name',
+    provider: 'provider',
+    baseURL: 'baseURL',
+    model: 'model',
+    apiKey: 'apiKey',
+    isDefault: 'isDefault',
+    isActive: 'isActive',
+    sortOrder: 'sortOrder',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type LlmModelConfigScalarFieldEnum = (typeof LlmModelConfigScalarFieldEnum)[keyof typeof LlmModelConfigScalarFieldEnum]
+
+
   export const CharacterVoiceBindingScalarFieldEnum: {
     id: 'id',
     characterId: 'characterId',
@@ -41104,6 +42319,90 @@ export namespace Prisma {
     isAvailable?: BoolWithAggregatesFilter<"TTSVoiceProfile"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"TTSVoiceProfile"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"TTSVoiceProfile"> | Date | string
+  }
+
+  export type LlmModelConfigWhereInput = {
+    AND?: LlmModelConfigWhereInput | LlmModelConfigWhereInput[]
+    OR?: LlmModelConfigWhereInput[]
+    NOT?: LlmModelConfigWhereInput | LlmModelConfigWhereInput[]
+    id?: StringFilter<"LlmModelConfig"> | string
+    name?: StringFilter<"LlmModelConfig"> | string
+    provider?: StringFilter<"LlmModelConfig"> | string
+    baseURL?: StringFilter<"LlmModelConfig"> | string
+    model?: StringFilter<"LlmModelConfig"> | string
+    apiKey?: StringNullableFilter<"LlmModelConfig"> | string | null
+    isDefault?: BoolFilter<"LlmModelConfig"> | boolean
+    isActive?: BoolFilter<"LlmModelConfig"> | boolean
+    sortOrder?: IntFilter<"LlmModelConfig"> | number
+    createdAt?: DateTimeFilter<"LlmModelConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"LlmModelConfig"> | Date | string
+  }
+
+  export type LlmModelConfigOrderByWithRelationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    provider?: SortOrder
+    baseURL?: SortOrder
+    model?: SortOrder
+    apiKey?: SortOrderInput | SortOrder
+    isDefault?: SortOrder
+    isActive?: SortOrder
+    sortOrder?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LlmModelConfigWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: LlmModelConfigWhereInput | LlmModelConfigWhereInput[]
+    OR?: LlmModelConfigWhereInput[]
+    NOT?: LlmModelConfigWhereInput | LlmModelConfigWhereInput[]
+    name?: StringFilter<"LlmModelConfig"> | string
+    provider?: StringFilter<"LlmModelConfig"> | string
+    baseURL?: StringFilter<"LlmModelConfig"> | string
+    model?: StringFilter<"LlmModelConfig"> | string
+    apiKey?: StringNullableFilter<"LlmModelConfig"> | string | null
+    isDefault?: BoolFilter<"LlmModelConfig"> | boolean
+    isActive?: BoolFilter<"LlmModelConfig"> | boolean
+    sortOrder?: IntFilter<"LlmModelConfig"> | number
+    createdAt?: DateTimeFilter<"LlmModelConfig"> | Date | string
+    updatedAt?: DateTimeFilter<"LlmModelConfig"> | Date | string
+  }, "id">
+
+  export type LlmModelConfigOrderByWithAggregationInput = {
+    id?: SortOrder
+    name?: SortOrder
+    provider?: SortOrder
+    baseURL?: SortOrder
+    model?: SortOrder
+    apiKey?: SortOrderInput | SortOrder
+    isDefault?: SortOrder
+    isActive?: SortOrder
+    sortOrder?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: LlmModelConfigCountOrderByAggregateInput
+    _avg?: LlmModelConfigAvgOrderByAggregateInput
+    _max?: LlmModelConfigMaxOrderByAggregateInput
+    _min?: LlmModelConfigMinOrderByAggregateInput
+    _sum?: LlmModelConfigSumOrderByAggregateInput
+  }
+
+  export type LlmModelConfigScalarWhereWithAggregatesInput = {
+    AND?: LlmModelConfigScalarWhereWithAggregatesInput | LlmModelConfigScalarWhereWithAggregatesInput[]
+    OR?: LlmModelConfigScalarWhereWithAggregatesInput[]
+    NOT?: LlmModelConfigScalarWhereWithAggregatesInput | LlmModelConfigScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LlmModelConfig"> | string
+    name?: StringWithAggregatesFilter<"LlmModelConfig"> | string
+    provider?: StringWithAggregatesFilter<"LlmModelConfig"> | string
+    baseURL?: StringWithAggregatesFilter<"LlmModelConfig"> | string
+    model?: StringWithAggregatesFilter<"LlmModelConfig"> | string
+    apiKey?: StringNullableWithAggregatesFilter<"LlmModelConfig"> | string | null
+    isDefault?: BoolWithAggregatesFilter<"LlmModelConfig"> | boolean
+    isActive?: BoolWithAggregatesFilter<"LlmModelConfig"> | boolean
+    sortOrder?: IntWithAggregatesFilter<"LlmModelConfig"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"LlmModelConfig"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"LlmModelConfig"> | Date | string
   }
 
   export type CharacterVoiceBindingWhereInput = {
@@ -44180,6 +45479,104 @@ export namespace Prisma {
     usageCount?: IntFieldUpdateOperationsInput | number
     rating?: DecimalFieldUpdateOperationsInput | Decimal | DecimalJsLike | number | string
     isAvailable?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LlmModelConfigCreateInput = {
+    id?: string
+    name: string
+    provider?: string
+    baseURL: string
+    model: string
+    apiKey?: string | null
+    isDefault?: boolean
+    isActive?: boolean
+    sortOrder?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LlmModelConfigUncheckedCreateInput = {
+    id?: string
+    name: string
+    provider?: string
+    baseURL: string
+    model: string
+    apiKey?: string | null
+    isDefault?: boolean
+    isActive?: boolean
+    sortOrder?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LlmModelConfigUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    baseURL?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    apiKey?: NullableStringFieldUpdateOperationsInput | string | null
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LlmModelConfigUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    baseURL?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    apiKey?: NullableStringFieldUpdateOperationsInput | string | null
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LlmModelConfigCreateManyInput = {
+    id?: string
+    name: string
+    provider?: string
+    baseURL: string
+    model: string
+    apiKey?: string | null
+    isDefault?: boolean
+    isActive?: boolean
+    sortOrder?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LlmModelConfigUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    baseURL?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    apiKey?: NullableStringFieldUpdateOperationsInput | string | null
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    sortOrder?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LlmModelConfigUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    baseURL?: StringFieldUpdateOperationsInput | string
+    model?: StringFieldUpdateOperationsInput | string
+    apiKey?: NullableStringFieldUpdateOperationsInput | string | null
+    isDefault?: BoolFieldUpdateOperationsInput | boolean
+    isActive?: BoolFieldUpdateOperationsInput | boolean
+    sortOrder?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -47582,6 +48979,56 @@ export namespace Prisma {
   export type TTSVoiceProfileSumOrderByAggregateInput = {
     usageCount?: SortOrder
     rating?: SortOrder
+  }
+
+  export type LlmModelConfigCountOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    provider?: SortOrder
+    baseURL?: SortOrder
+    model?: SortOrder
+    apiKey?: SortOrder
+    isDefault?: SortOrder
+    isActive?: SortOrder
+    sortOrder?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LlmModelConfigAvgOrderByAggregateInput = {
+    sortOrder?: SortOrder
+  }
+
+  export type LlmModelConfigMaxOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    provider?: SortOrder
+    baseURL?: SortOrder
+    model?: SortOrder
+    apiKey?: SortOrder
+    isDefault?: SortOrder
+    isActive?: SortOrder
+    sortOrder?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LlmModelConfigMinOrderByAggregateInput = {
+    id?: SortOrder
+    name?: SortOrder
+    provider?: SortOrder
+    baseURL?: SortOrder
+    model?: SortOrder
+    apiKey?: SortOrder
+    isDefault?: SortOrder
+    isActive?: SortOrder
+    sortOrder?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LlmModelConfigSumOrderByAggregateInput = {
+    sortOrder?: SortOrder
   }
 
   export type TTSVoiceProfileScalarRelationFilter = {

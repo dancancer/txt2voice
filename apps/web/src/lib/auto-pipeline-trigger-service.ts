@@ -10,6 +10,10 @@ import {
 import prisma, { Prisma } from "@/lib/prisma";
 import { jsonObject, mergeTaskData } from "@/lib/processing-task-utils";
 import { enqueueAutoPipelineJobInternal } from "@/lib/task-queue/ops/auto-pipeline-enqueue";
+import {
+  resolveAutoPipelineOptionsSnapshot,
+  ZERO_TOUCH_VOXCPM_PRESET_ID,
+} from "@/lib/auto-pipeline/presets";
 
 const PIPELINE_STAGE_TASK_TYPES = [
   "TEXT_PROCESSING",
@@ -100,6 +104,7 @@ const buildCompensationState = ({
 export interface StartAutoPipelineTaskInput {
   bookId: string;
   options?: AutoPipelineOptions;
+  presetId?: string;
   triggerSource: string;
   triggerMetadata?: Record<string, unknown>;
   allowReuseRunningTask?: boolean;
@@ -115,6 +120,7 @@ export interface StartAutoPipelineTaskResult {
 export interface ScheduleAutoPipelineCompensationTaskInput {
   bookId: string;
   options?: AutoPipelineOptions;
+  presetId?: string;
   originalTriggerSource: string;
   triggerMetadata?: Record<string, unknown>;
   triggerFailure: string;
@@ -128,10 +134,13 @@ export interface ScheduleAutoPipelineCompensationTaskResult {
 export async function startAutoPipelineTask({
   bookId,
   options = {},
+  presetId = ZERO_TOUCH_VOXCPM_PRESET_ID,
   triggerSource,
   triggerMetadata,
   allowReuseRunningTask = true,
 }: StartAutoPipelineTaskInput): Promise<StartAutoPipelineTaskResult> {
+  const preset = resolveAutoPipelineOptionsSnapshot(presetId, options);
+  const resolvedOptions = preset.resolvedOptions;
   const [book, existingAutoPipelineTask, existingStageTask] = await Promise.all([
     prisma.book.findUnique({
       where: { id: bookId },
@@ -173,10 +182,13 @@ export async function startAutoPipelineTask({
     throw new ValidationError("请先上传文本文件");
   }
 
-  const qualityCheckEnabled = isQualityCheckEnabled(options);
+  const qualityCheckEnabled = isQualityCheckEnabled(resolvedOptions);
   const computedTotalStages = qualityCheckEnabled ? 4 : 3;
 
-  if (requiresQualityCheckChapter(options) && !options.qualityCheck?.chapterId) {
+  if (
+    requiresQualityCheckChapter(resolvedOptions) &&
+    !resolvedOptions.qualityCheck?.chapterId
+  ) {
     throw new ValidationError("自动编排章节质检必须提供 qualityCheck.chapterId");
   }
 
@@ -203,7 +215,7 @@ export async function startAutoPipelineTask({
   }
 
   const triggerTime = new Date().toISOString();
-  const optionsJson = toInputJsonValue(options);
+  const optionsJson = toInputJsonValue(resolvedOptions);
   const triggerMetadataJson = toInputJsonValue(triggerMetadata || {});
 
   const task = await prisma.processingTask.create({
@@ -223,6 +235,9 @@ export async function startAutoPipelineTask({
           currentStage: "init",
           totalStages: computedTotalStages,
           options: optionsJson,
+          presetId: preset.presetId,
+          presetVersion: preset.presetVersion,
+          resolvedOptions: optionsJson,
         },
       },
     },
@@ -250,7 +265,7 @@ export async function startAutoPipelineTask({
       {
         taskId: task.id,
         bookId,
-        options,
+        options: resolvedOptions,
         mode: "pipeline",
         triggerSource,
         triggerMetadata: triggerMetadata || {},
@@ -301,10 +316,13 @@ export async function startAutoPipelineTask({
 export async function scheduleAutoPipelineCompensationTask({
   bookId,
   options = {},
+  presetId = ZERO_TOUCH_VOXCPM_PRESET_ID,
   originalTriggerSource,
   triggerMetadata,
   triggerFailure,
 }: ScheduleAutoPipelineCompensationTaskInput): Promise<ScheduleAutoPipelineCompensationTaskResult> {
+  const preset = resolveAutoPipelineOptionsSnapshot(presetId, options);
+  const resolvedOptions = preset.resolvedOptions;
   const book = await prisma.book.findUnique({
     where: { id: bookId },
     select: {
@@ -348,7 +366,10 @@ export async function scheduleAutoPipelineCompensationTask({
           allowReuseRunningTask: true,
           scheduledAt: triggerTime,
           triggerFailure,
-          options: toInputJsonValue(options),
+          options: toInputJsonValue(resolvedOptions),
+          presetId: preset.presetId,
+          presetVersion: preset.presetVersion,
+          resolvedOptions: toInputJsonValue(resolvedOptions),
         },
       },
     },
@@ -375,7 +396,7 @@ export async function scheduleAutoPipelineCompensationTask({
       {
         taskId: task.id,
         bookId,
-        options,
+        options: resolvedOptions,
         mode: "trigger_compensation",
         triggerSource,
         triggerMetadata: {

@@ -65,7 +65,7 @@ function SpeakerDialog({
   }
 
   if (speakers.length === 0) {
-    return <div className="py-8 text-center text-gray-500">暂无说话人，请先在说话人管理页面创建说话人。</div>;
+    return <div className="py-8 text-center text-muted-foreground">暂无说话人，请先在说话人管理页面创建说话人。</div>;
   }
 
   return (
@@ -107,7 +107,7 @@ function SpeakerDialog({
             )}
           </div>
 
-          {speaker.description && <p className="text-sm text-gray-600">{speaker.description}</p>}
+          {speaker.description && <p className="text-sm text-muted-foreground">{speaker.description}</p>}
 
           {speaker.referenceAudio && (
             <div className="space-y-2">
@@ -243,7 +243,7 @@ export function CharacterAssignmentPanel({
       <CardContent>
         <div className="mb-4">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">已分配角色</span>
+            <span className="text-muted-foreground">已分配角色</span>
             <span className="font-medium">
               {assignedCount} / {scriptSentences.length}
             </span>
@@ -259,11 +259,11 @@ export function CharacterAssignmentPanel({
                 className="flex items-center justify-between rounded-lg border p-3"
               >
                 <div className="flex-1">
-                  <p className="line-clamp-2 text-sm text-gray-900">{sentence.text}</p>
-                  <p className="mt-1 text-xs text-gray-500">段落 {getSegmentLabel(sentence)}</p>
+                  <p className="line-clamp-2 text-sm text-foreground">{sentence.text}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">段落 {getSegmentLabel(sentence)}</p>
                 </div>
                 <select
-                  className="ml-4 rounded-md border border-gray-300 px-3 py-1 text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500"
+                  className="ml-4 h-11 rounded-md border border-input bg-background px-3 py-1 text-sm text-foreground ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   value={sentence.characterId || ""}
                   onChange={(event) =>
                     onSentenceCharacterChange(sentence.id, event.target.value)

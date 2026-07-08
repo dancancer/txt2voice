@@ -1,6 +1,6 @@
 // 一旦我被更新，请更新我的开头注释
-// input: 测试数据/被测模块
-// output: 断言/报告
+// input: GBK 样本文本/分段窗口
+// output: 编码与分段契约断言
 // pos: 单元测试
 /**
  * @jest-environment node
@@ -19,9 +19,14 @@ describe('GBK 文本分段', () => {
   it('内联 GBK 样本文本的非末段保持在 500±100 字范围内', () => {
     const sourceText = buildGbkSampleText()
     const buffer = iconv.encode(sourceText, 'gbk')
+    const segmentOptions = {
+      maxSegmentLength: 600,
+      minSegmentLength: 400,
+      preserveFormatting: true,
+    }
 
     const processed = processFileContent(buffer, 'test.txt', { preserveFormatting: true })
-    const segments = segmentText(processed.content, { useSmartSplitter: true })
+    const segments = segmentText(processed.content, segmentOptions)
 
     expect(processed.encoding).toBe('gbk')
     expect(segments.length).toBeGreaterThan(1)
@@ -51,7 +56,11 @@ describe('GBK 文本分段', () => {
 
   it('facade 与新分段模块对同一文本给出相同分段结果', () => {
     const sourceText = buildGbkSampleText()
-    const options = { useSmartSplitter: true, preserveFormatting: true }
+    const options = {
+      maxSegmentLength: 600,
+      minSegmentLength: 400,
+      preserveFormatting: true,
+    }
 
     const facadeSegments = segmentText(sourceText, options)
     const moduleSegments = segmentTextFromModule(sourceText, options)
